@@ -1,13 +1,16 @@
 use gsasl_sys::*;
 use std::ptr;
-use std::ffi::CStr;
 
 mod buffer;
 mod session;
+mod error;
 
 use session::Session;
 
-pub struct SASL {
+/// Main rsasl struct
+///
+/// This struct wraps a gsasl context ensuring `gsasl_init` and `gsasl_done` are called.
+pub strut SASL {
     ctx: *mut Gsasl,
 }
 
@@ -35,6 +38,10 @@ impl SASL {
         } else {
             Ok(())
         }
+    }
+
+    pub fn mech_list(&self) -> Result<String, libc::c_int> {
+
     }
 
     pub fn client_start(&mut self, mech: &CStr) -> Result<Session, libc::c_int> {
