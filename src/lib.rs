@@ -1,4 +1,5 @@
 use gsasl_sys::*;
+use gsasl_sys::Gsasl_rc::*;
 use std::ptr;
 use std::ffi::CStr;
 
@@ -8,6 +9,11 @@ pub mod error;
 
 use session::Session;
 use buffer::SaslString;
+
+pub use gsasl_sys::{
+    Gsasl_rc as ReturnCode,
+    Gsasl_property as Property,
+};
 
 pub use error::{
     SaslError,
@@ -42,7 +48,7 @@ impl SASL {
             gsasl_init(&mut (self.ctx) as *mut *mut Gsasl)
         };
 
-        if res != (Gsasl_rc_GSASL_OK as libc::c_int) {
+        if res != (GSASL_OK as libc::c_int) {
             Err(error::SaslError(res))
         } else {
             Ok(())
@@ -64,7 +70,7 @@ impl SASL {
         // memory.
         let s = SaslString::from_raw(out);
 
-        if ret != (Gsasl_rc_GSASL_OK as libc::c_int) {
+        if ret != (GSASL_OK as libc::c_int) {
             // In the error case `s` will simply be dropped and freed.
 
             Err(error::SaslError(ret))
@@ -90,7 +96,7 @@ impl SASL {
         // memory.
         let s = SaslString::from_raw(out);
 
-        if ret != (Gsasl_rc_GSASL_OK as libc::c_int) {
+        if ret != (GSASL_OK as libc::c_int) {
             // In the error case `s` will simply be dropped and freed.
 
             Err(error::SaslError(ret))
@@ -137,7 +143,7 @@ impl SASL {
             gsasl_client_start(self.ctx, mech.as_ptr(), &mut ptr as *mut *mut Gsasl_session)
         };
 
-        if res != (Gsasl_rc_GSASL_OK as libc::c_int) {
+        if res != (GSASL_OK as libc::c_int) {
             Err(error::SaslError(res))
         } else {
             let session = Session::from_ptr(ptr);
@@ -151,7 +157,7 @@ impl SASL {
             gsasl_server_start(self.ctx, mech.as_ptr(), &mut ptr as *mut *mut Gsasl_session)
         };
 
-        if res != (Gsasl_rc_GSASL_OK as libc::c_int) {
+        if res != (GSASL_OK as libc::c_int) {
             Err(error::SaslError(res))
         } else {
             let session = Session::from_ptr(ptr);
