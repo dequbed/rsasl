@@ -4,7 +4,7 @@ use std::ffi::CStr;
 
 mod buffer;
 mod session;
-mod error;
+pub mod error;
 
 use session::Session;
 use buffer::SaslString;
@@ -39,7 +39,7 @@ impl SASL {
     fn init(&mut self) -> error::Result<()> {
         // Initialize the context
         let res = unsafe {
-            gsasl_init(self.ctx as *mut *mut Gsasl)
+            gsasl_init(&mut (self.ctx) as *mut *mut Gsasl)
         };
 
         if res != (Gsasl_rc_GSASL_OK as libc::c_int) {
