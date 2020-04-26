@@ -15,6 +15,8 @@ pub use gsasl_sys::{
     Gsasl_property as Property,
 };
 
+pub use session::Step;
+
 pub use error::{
     SaslError,
     gsasl_err_to_str,
