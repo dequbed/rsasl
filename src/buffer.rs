@@ -7,6 +7,7 @@ use std::ffi::CStr;
 ///  allocator corruption or other bad behaviour in the case that libgsasl uses a different
 ///  allocator to the Rust runtime (e.g. glibc vs jemalloc).  SaslBuffer implements
 ///  Deref<Target=[u8]> which is where most of the API comes from.
+#[derive(Debug)]
 pub struct SaslBuffer {
     ptr: *mut u8,
     len: usize,
@@ -45,6 +46,7 @@ impl std::ops::Deref for SaslBuffer {
 /// `free` function used by libgsasl which will prevent any allocator corruption.
 /// It implements `Deref<Target=CStr>` so all functions useable with a &CStr are usable with a
 /// &SaslString.
+#[derive(Debug)]
 pub struct SaslString {
     ptr: *mut libc::c_char,
 }

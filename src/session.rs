@@ -6,10 +6,12 @@ use gsasl_sys::Gsasl_rc::*;
 use crate::buffer::{SaslBuffer, SaslString};
 use crate::error::{Result, SaslError};
 
+#[derive(Debug)]
 pub struct Session {
     ptr: *mut Gsasl_session,
 }
 
+#[derive(Debug)]
 pub enum Step<T> {
     Done(T),
     NeedsMore(T),
