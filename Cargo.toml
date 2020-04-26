@@ -14,3 +14,4 @@ keywords = ["SASL"]
 
 [dependencies]
 gsasl-sys = "0.1"
+libc = "0.2"
