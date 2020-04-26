@@ -14,10 +14,12 @@ impl fmt::Display for SaslError {
 }
 
 /// Convert an error code to a human readable description of that error
-pub const fn gsasl_err_to_str(err: libc::c_int) -> &'static str {
+pub fn gsasl_err_to_str(err: libc::c_int) -> &'static str {
     // gsasl returns the normal zero-terminated string
-    let ptr = unsafe { gsasl_strerror(err) };
-    let cstr = CStr::from_ptr(ptr);
+    let cstr = unsafe { 
+        let ptr = gsasl_strerror(err);
+        CStr::from_ptr(ptr)
+    };
     // Yes, this could potentially fail. But we're talking about an array of static, compiled-in
     // strings here. If they aren't UTF-8 that's clearly a bug.
     cstr.to_str().expect("GSASL library contains bad UTF-8 error descriptions")
@@ -25,10 +27,12 @@ pub const fn gsasl_err_to_str(err: libc::c_int) -> &'static str {
 
 /// Convert an error code to the human readable name of that error.
 /// i.e. gsasl_errname_to_str(GSASL_OK) -> "GSASL_OK"
-pub const fn gsasl_errname_to_str(err: libc::c_int) -> &'static str {
+pub fn gsasl_errname_to_str(err: libc::c_int) -> &'static str {
     // gsasl returns the normal zero-terminated string
-    let ptr = unsafe { gsasl_strerror_name(err) };
-    let cstr = CStr::from_ptr(ptr);
+    let cstr = unsafe { 
+        let ptr = gsasl_strerror_name(err);
+        CStr::from_ptr(ptr)
+    };
     // Yes, this could potentially fail. But we're talking about an array of static, compiled-in
     // strings here. If they aren't UTF-8 that's clearly a bug.
     cstr.to_str().expect("GSASL library contians bad UTF-8 error names")

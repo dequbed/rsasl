@@ -1,18 +1,24 @@
 use gsasl_sys::*;
 use std::ptr;
 use std::ffi::CStr;
-use std::ffi::CString;
 
 mod buffer;
 mod session;
 mod error;
 
 use session::Session;
-use buffer::{SaslBuffer, SaslString};
+use buffer::SaslString;
+
+pub use error::{
+    SaslError,
+    gsasl_err_to_str,
+    gsasl_errname_to_str,
+};
 
 /// Main rsasl struct
 ///
 /// This struct wraps a gsasl context ensuring `gsasl_init` and `gsasl_done` are called.
+#[derive(Debug)]
 pub struct SASL {
     ctx: *mut Gsasl,
 }
@@ -95,6 +101,35 @@ impl SASL {
         }
     }
 
+    /// Decide wheter there is client-side support for the specified mechanism
+    pub fn client_supports(&self, mech: &CStr) -> bool {
+        // returns 1 if there is client support for the specific mechanism
+        let ret = unsafe { gsasl_client_support_p(self.ctx, mech.as_ptr()) };
+        if ret == 1 {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /// Decide wheter there is server-side support for the specified mechanism
+    pub fn server_supports(&self, mech: &CStr) -> bool {
+        // returns 1 if there is server support for the specific mechanism
+        let ret = unsafe { gsasl_server_support_p(self.ctx, mech.as_ptr()) };
+        if ret == 1 {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /// The callback is used by mechanisms to retrieve information, such as username and password,
+    /// from the application. In a server, the callback is used to decide whether a user is
+    /// permitted to log in or not. 
+    /// With this function you install the callback for the given context.
+    pub fn install_callback(&mut self, callback: Gsasl_callback_function) {
+        unsafe { gsasl_callback_set(self.ctx, callback); }
+    }
 
     pub fn client_start(&mut self, mech: &CStr) -> error::Result<Session> {
         let mut ptr: *mut Gsasl_session = ptr::null_mut();
