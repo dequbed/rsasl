@@ -47,16 +47,54 @@ impl SASL {
     // The underlying pointer must be freed by the caller, so for the sake of easier ownership
     // this must return a SaslString and not a &str, &CStr or similar.
     pub fn client_mech_list(&self) -> error::Result<SaslString> {
+        // rustc's borrow checker can't prove that we will never read this so this *must* be
+        // initialized.
         let mut out = ptr::null_mut();
+
+        // Call into libgsasl. As per usual ffi is unsafe
         let ret = unsafe { gsasl_client_mechlist(self.ctx, &mut out as *mut *mut libc::c_char) };
+
+        // Take ownership of the output buffer so that it will always be freed and we don't leak
+        // memory.
+        let s = SaslString::from_raw(out);
+
         if ret != (Gsasl_rc_GSASL_OK as libc::c_int) {
+            // In the error case `s` will simply be dropped and freed.
+
             Err(error::SaslError(ret))
         } else {
             // If libgsasl does not return an error we can assume that out has been filled with
             // valid data.
-            Ok(SaslString::from_raw(out))
+            Ok(s)
         }
     }
+
+    /// return the list of supported mechanism on the server side as a space-separated string
+    // The underlying pointer must be freed by the caller, so for the sake of easier ownership
+    // this must return a SaslString and not a &str, &CStr or similar.
+    pub fn server_mech_list(&self) -> error::Result<SaslString> {
+        // rustc's borrow checker can't prove that we will never read this so this *must* be
+        // initialized.
+        let mut out = ptr::null_mut();
+
+        // Call into libgsasl. As per usual ffi is unsafe
+        let ret = unsafe { gsasl_server_mechlist(self.ctx, &mut out as *mut *mut libc::c_char) };
+
+        // Take ownership of the output buffer so that it will always be freed and we don't leak
+        // memory.
+        let s = SaslString::from_raw(out);
+
+        if ret != (Gsasl_rc_GSASL_OK as libc::c_int) {
+            // In the error case `s` will simply be dropped and freed.
+
+            Err(error::SaslError(ret))
+        } else {
+            // If libgsasl does not return an error we can assume that out has been filled with
+            // valid string data.
+            Ok(s)
+        }
+    }
+
 
     pub fn client_start(&mut self, mech: &CStr) -> error::Result<Session> {
         let mut ptr: *mut Gsasl_session = ptr::null_mut();
