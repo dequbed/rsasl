@@ -28,14 +28,6 @@ pub use error::{
 /// Main rsasl struct
 ///
 /// This struct wraps a gsasl context ensuring `gsasl_init` and `gsasl_done` are called.
-
-// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-// Split bookkeeping:
-//  - Raw wrapper around the pointer wraps all the functions from libgsasl to more ergonomic Rust
-//  - Then there's a bookkeeping struct that owns one of those, init() on new, done() on drop, impl
-//    Deref so that you can just use it like the former.
-// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-
 pub struct SASL {
     ctx: *mut Gsasl,
 }
@@ -43,13 +35,15 @@ pub struct SASL {
 impl SASL {
     /// Creates and initializes a new SASL context.
     pub fn new() -> error::Result<Self> {
-        let mut s = SASL {
-            ctx: ptr::null_mut(),
-        };
+        let mut s = Self::from_ptr(ptr::null_mut());
 
         s.init()?;
 
         Ok(s)
+    }
+
+    pub fn from_ptr(ctx: *mut Gsasl) -> Self {
+        Self { ctx }
     }
 
     /// Initialize a SASL context. Has to be run before most other functions are called

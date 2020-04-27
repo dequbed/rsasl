@@ -4,5 +4,7 @@ use crate::{
     Property,
     ReturnCode,
 };
-
-
+use crate::sys::{
+    Gsasl,
+    Gsasl_session,
+};

@@ -24,6 +24,8 @@ pub fn main() -> Result<()> {
         Step::NeedsMore(b) => { println!("{:?}", std::str::from_utf8(&b)) }
     }
 
+    session.finish();
+    sasl.done();
 
     Ok(())
 }
