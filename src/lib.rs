@@ -6,11 +6,13 @@ use std::ffi::CStr;
 mod buffer;
 mod session;
 pub mod error;
+mod callback;
 
-use session::Session;
+pub use session::Session;
 use buffer::SaslString;
 
 pub use gsasl_sys::{
+    self as sys,
     Gsasl_rc as ReturnCode,
     Gsasl_property as Property,
 };
@@ -26,7 +28,14 @@ pub use error::{
 /// Main rsasl struct
 ///
 /// This struct wraps a gsasl context ensuring `gsasl_init` and `gsasl_done` are called.
-#[derive(Debug)]
+
+// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+// Split bookkeeping:
+//  - Raw wrapper around the pointer wraps all the functions from libgsasl to more ergonomic Rust
+//  - Then there's a bookkeeping struct that owns one of those, init() on new, done() on drop, impl
+//    Deref so that you can just use it like the former.
+// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+
 pub struct SASL {
     ctx: *mut Gsasl,
 }
@@ -35,7 +44,7 @@ impl SASL {
     /// Creates and initializes a new SASL context.
     pub fn new() -> error::Result<Self> {
         let mut s = SASL {
-            ctx: ptr::null_mut()
+            ctx: ptr::null_mut(),
         };
 
         s.init()?;
@@ -51,10 +60,10 @@ impl SASL {
         };
 
         if res != (GSASL_OK as libc::c_int) {
-            Err(error::SaslError(res))
-        } else {
-            Ok(())
+            return Err(error::SaslError(res));
         }
+
+        Ok(())
     }
 
     /// return the list of supported mechanism on the client side as a space-separated string
@@ -166,15 +175,10 @@ impl SASL {
             Ok(session)
         }
     }
-}
 
-impl Drop for SASL {
-    fn drop(&mut self) {
-        unsafe {
-            // Finalize the context when its definitely not needed any more.
-            // This function can handle NULL-pointers which happen should libgsasl fail to
-            // initialize.
-            gsasl_done(self.ctx);
-        }
+    /// Finalize the context.
+    pub fn done(self) {
+        // The pointer is invalid afterwards so we take ownership of it to drop it.
+        unsafe { gsasl_done(self.ctx) };
     }
 }
