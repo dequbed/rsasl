@@ -68,7 +68,7 @@ impl Session {
     /// A simple wrapper around the interal step function that base64-decodes the input and
     /// base64-encodes the output. Mainly useful for text-based protocols.
     ///
-    /// Note: THis function may leak memory on failure since the interal step function does as well.
+    /// Note: This function may leak memory on failure since the interal step function does as well.
     pub fn step64(&mut self, input: &CStr) -> StepResult<SaslString> {
         let mut output: *mut libc::c_char = ptr::null_mut();
 
@@ -84,12 +84,8 @@ impl Session {
             Err(SaslError(res))
         }
     }
-}
 
-impl Drop for Session {
-    fn drop(&mut self) {
-        unsafe {
-            gsasl_finish(self.ptr);
-        }
+    pub fn finish(&mut self) {
+        unsafe { gsasl_finish(self.ptr) };
     }
 }
