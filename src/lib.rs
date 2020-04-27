@@ -6,7 +6,6 @@ use std::ffi::CStr;
 mod buffer;
 mod session;
 pub mod error;
-mod callback;
 
 pub use session::Session;
 use buffer::SaslString;
