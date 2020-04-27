@@ -32,6 +32,13 @@ impl Session {
         }
     }
 
+    pub fn get_property_fast(&self, prop: Gsasl_property) -> &CStr {
+        unsafe { 
+            let ptr = gsasl_property_fast(self.ptr, prop) ;
+            CStr::from_ptr(ptr)
+        }
+    }
+
     /// Perform one step of SASL authentication. This reads data from `input`, processes it
     /// (potentially calling the configured callback) and returns data to be returned to the other
     /// end.
