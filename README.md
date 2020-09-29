@@ -1,6 +1,6 @@
 # SASL in Rust
 
-![Latest Version]][crates.io] [![docs]][docs.rs]
+[![Latest Version]][crates.io] [![docs]][docs.rs]
 
 rsasl is an implementation of the Simple Authentication and Security Layer — SASL.
 
@@ -31,6 +31,7 @@ implementation. It provides less Mechanisms but does not need heavy use of
 
 
 
+[Latest Version]: https://img.shields.io/crates/v/rsasl.svg
 [crates.io]: https://crates.io/crates/rsasl
 [docs]: https://docs.rs/rsasl/badge.svg
 [docs.rs]: https://docs.rs/rsasl/
