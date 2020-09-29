@@ -1,6 +1,6 @@
 [package]
 name = "rsasl"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Gregor Reitzenstein <me@dequbed.space>"]
 edition = "2018"
 description = "Rusty bindings to gsasl-sys"
@@ -14,7 +14,7 @@ documentation = "https://docs.rs/rsasl"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gsasl-sys = { path = "gsasl-sys", version = "0.2.2" }
+gsasl-sys = { path = "gsasl-sys", version = "0.2.3" }
 libc = "0.2"
 
 [workspace]
