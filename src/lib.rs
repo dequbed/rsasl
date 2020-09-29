@@ -1,7 +1,7 @@
 use gsasl_sys::*;
 pub use gsasl_sys::Gsasl_rc::*;
 use std::ptr;
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::ops::{Drop, Deref, DerefMut};
 
 pub mod buffer;
@@ -318,7 +318,7 @@ mod tests {
     fn callback_test() {
         struct CB;
         impl Callback<u32, u64> for CB {
-            fn callback(mut sasl: SaslCtx<u32, u64>, mut session: Session<u64>, prop: Property) 
+            fn callback(mut sasl: SaslCtx<u32, u64>, mut session: Session<u64>, _prop: Property) 
                 -> libc::c_int
             {
                 assert_eq!(sasl.retrieve_mut(), Some(&mut 0x55555555));
@@ -341,7 +341,7 @@ mod tests {
     fn callback_unset_test() {
         struct CB;
         impl Callback<u32, u64> for CB {
-            fn callback(mut sasl: SaslCtx<u32, u64>, mut session: Session<u64>, prop: Property) 
+            fn callback(mut sasl: SaslCtx<u32, u64>, mut session: Session<u64>, _prop: Property) 
                 -> libc::c_int
             {
                 assert_eq!(sasl.retrieve_mut(), None);

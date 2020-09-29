@@ -9,6 +9,7 @@ repository = "https://github.com/dequbed/rsasl"
 readme = "README.md"
 categories = ["authentication"]
 keywords = ["SASL"]
+documentation = "https://docs.rs/rsasl"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
