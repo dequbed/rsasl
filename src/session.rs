@@ -4,15 +4,16 @@ use std::ops::{Drop, Deref, DerefMut};
 use gsasl_sys::*;
 use gsasl_sys::Gsasl_rc::*;
 
+use crate::Property;
 use crate::buffer::{SaslBuffer, SaslString};
 use crate::error::{Result, SaslError};
 
 #[derive(Debug)]
 /// SASL Session handle
 ///
-/// This struct wraps the underlying gsasl session context and provides a set of safe Rust methods.
-/// Similar to how `SASL` is implemented this implements Deref and DerefMut to the unmanaged
-/// `Session` while itself providing the memory management.
+/// This struct wraps a [SASL Session](struct.Session.html).  Similar to how `SASL` is implemented
+/// this implements Deref and DerefMut to the unmanaged `Session` while itself providing the memory
+/// management.
 pub struct SessionHandle<D> {
     session: Session<D>,
 }
@@ -40,12 +41,19 @@ impl<D> DerefMut for SessionHandle<D> {
 }
 
 #[derive(Debug)]
+/// SASL Session
+///
+/// A session is a single authentication exchange between a server and a client.
 pub struct Session<D> {
     ptr: *mut Gsasl_session,
     phantom: std::marker::PhantomData<D>,
 }
 
 #[derive(Debug)]
+/// The outcome of a single step in the authentication exchange
+///
+/// Since SASL is multi-step each step can either complete the exchange or require more steps to be
+/// performed. In both cases however it may provide data that has to be forwarded to the other end.
 pub enum Step<T> {
     Done(T),
     NeedsMore(T),
@@ -54,26 +62,6 @@ pub enum Step<T> {
 pub type StepResult<T> = Result<Step<T>>;
 
 impl<D> Session<D> {
-    pub(crate) fn from_ptr(ptr: *mut Gsasl_session) -> Self {
-        let phantom = std::marker::PhantomData;
-        Self { ptr, phantom }
-    }
-
-    pub fn set_property(&mut self, prop: Gsasl_property, data: &[u8]) {
-        let data_ptr = data.as_ptr() as *const libc::c_char;
-        let len = data.len() as size_t;
-        unsafe {
-            gsasl_property_set_raw(self.ptr, prop, data_ptr, len);
-        }
-    }
-
-    pub fn get_property_fast(&self, prop: Gsasl_property) -> &CStr {
-        unsafe { 
-            let ptr = gsasl_property_fast(self.ptr, prop) ;
-            CStr::from_ptr(ptr)
-        }
-    }
-
     /// Perform one step of SASL authentication. This reads data from `input`, processes it
     /// (potentially calling the configured callback) and returns data to be returned to the other
     /// end.
@@ -110,7 +98,7 @@ impl<D> Session<D> {
     /// A simple wrapper around the interal step function that base64-decodes the input and
     /// base64-encodes the output. Mainly useful for text-based protocols.
     ///
-    /// Note: This function may leak memory on failure since the interal step function does as well.
+    /// Note: This function may leak memory on failure since the internal step function does as well.
     pub fn step64(&mut self, input: &CStr) -> StepResult<SaslString> {
         let mut output: *mut libc::c_char = ptr::null_mut();
 
@@ -124,6 +112,35 @@ impl<D> Session<D> {
             Ok(Step::NeedsMore(SaslString::from_raw(output)))
         } else {
             Err(SaslError(res))
+        }
+    }
+
+    /// Set a property on the session context
+    ///
+    /// A `property` in this context is a piece of information used by authentication mechanisms,
+    /// for example the Authcid, Authzid and Password for PLAIN.
+    pub fn set_property(&mut self, prop: Property, data: &[u8]) {
+        let data_ptr = data.as_ptr() as *const libc::c_char;
+        let len = data.len() as size_t;
+        unsafe {
+            gsasl_property_set_raw(self.ptr, prop as Gsasl_property, data_ptr, len);
+        }
+    }
+
+    /// Try to read a property from the session context
+    ///
+    /// This maps to `gsasl_property_fast` in gsasl meaning it will *not* call the callback to
+    /// retrieve properties it does not know about.
+    ///
+    /// Returns `None` if the property is now known or was not set
+    pub fn get_property(&self, prop: Property) -> Option<&CStr> {
+        unsafe { 
+            let ptr = gsasl_property_fast(self.ptr, prop as Gsasl_property);
+            if !ptr.is_null() {
+                Some(CStr::from_ptr(ptr))
+            } else {
+                None
+            }
         }
     }
 
@@ -168,6 +185,11 @@ impl<D> Session<D> {
             let ptr = gsasl_session_hook_get(self.ptr) as *mut D;
             ptr.as_mut()
         }
+    }
+
+    pub(crate) fn from_ptr(ptr: *mut Gsasl_session) -> Self {
+        let phantom = std::marker::PhantomData;
+        Self { ptr, phantom }
     }
 
     pub(crate) fn finish(&mut self) {

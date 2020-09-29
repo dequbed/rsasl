@@ -1,19 +1,19 @@
 use gsasl_sys::*;
-use gsasl_sys::Gsasl_rc::*;
+pub use gsasl_sys::Gsasl_rc::*;
 use std::ptr;
-use std::cell::RefCell;
 use std::ffi::CStr;
-use std::sync::{Mutex, MutexGuard};
 use std::ops::{Drop, Deref, DerefMut};
 
-mod buffer;
-mod session;
+pub mod buffer;
+pub mod session;
 pub mod error;
 mod callback;
+mod mechanisms;
 
 pub use callback::Callback;
-pub use session::Session;
-use buffer::SaslString;
+pub use session::{SessionHandle, Session};
+pub use buffer::SaslString;
+pub use mechanisms::Mechanisms;
 
 pub use gsasl_sys::{
     self as sys,
@@ -29,19 +29,20 @@ pub use error::{
     gsasl_errname_to_str,
 };
 
+#[derive(Debug)]
 /// Main rsasl struct
 ///
-/// This struct wraps a gsasl context ensuring `gsasl_init` and `gsasl_done` are called.
-/// It implements `Deref` and `DerefMut` to the — unmanaged — `SaslCtx` that wraps the unsafe FFI
-/// methods from GSASL with safe(r) Rust functions.
+/// This struct wraps a gsasl context ensuring `gsasl_init` and `gsasl_done` are called.  It
+/// implements `Deref` and `DerefMut` to the — unmanaged — [SaslCtx](struct.SaslCtx.html) that
+/// wraps the unsafe FFI methods from GSASL with safe(r) Rust functions.
 ///
 /// The reason for this split lays in callbacks - they are given pointers to the (C struct) context
 /// and session they were called from which we wrap so the safe(r) Rust methods can be used
 /// instead, but we MUST NOT call `done` on the context or the session afterwards.
-pub struct SASL<D> {
-    ctx: SaslCtx<D>
+pub struct SASL<D,E> {
+    ctx: SaslCtx<D,E>
 }
-impl<D> SASL<D> {
+impl<D,E> SASL<D,E> {
     pub fn new() -> error::Result<Self> {
         let mut ctx = SaslCtx::from_ptr(ptr::null_mut());
 
@@ -50,7 +51,7 @@ impl<D> SASL<D> {
         Ok(SASL { ctx })
     }
 }
-impl<D> Drop for SASL<D> {
+impl<D,E> Drop for SASL<D,E> {
     fn drop(&mut self) {
         // Clean up the Context so we do not leak memory
         // This is unsafe because using a Context after calling `done` is undefined behaviour — and
@@ -58,37 +59,45 @@ impl<D> Drop for SASL<D> {
         unsafe { self.ctx.done() };
     }
 }
-impl<D> Deref for SASL<D> {
-    type Target = SaslCtx<D>;
+impl<D,E> Deref for SASL<D,E> {
+    type Target = SaslCtx<D,E>;
     fn deref(&self) -> &Self::Target {
         &self.ctx
     }
 }
-impl<D> DerefMut for SASL<D> {
+impl<D,E> DerefMut for SASL<D,E> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.ctx
     }
 }
 
+#[derive(Debug)]
 /// An unmanaged GSASL context
-pub struct SaslCtx<D> {
+///
+/// You rarely construct this directly. If you want a context as consumer of this crate construct a
+/// [SASL struct](struct.SASL.html) instead which will ensure that the context is properly closed.
+///
+/// You will however be passed this struct in [Callbacks](trait.Callback.html) if you install one.
+pub struct SaslCtx<D,E> {
     // The underlying context as returned by gsasl
     ctx: *mut Gsasl,
 
     // The data is actually stored in the application context, not in this struct. This phantom
     // marker allows us to use generics and ensures that the context is !Send if the stored data is
     // !Send
-    phantom: std::marker::PhantomData<RefCell<D>>,
+    appdata: std::marker::PhantomData<D>,
+    sessdata: std::marker::PhantomData<E>,
 }
 
-impl<D> SaslCtx<D> {
+impl<D, E> SaslCtx<D,E> {
     /// Creates a new SASL context.
     ///
     /// This function should never be called by an external party directly. Please use the
     /// `SASL` struct that correctly initializes and deinitalizes the underlying context for you.
     pub(crate) fn from_ptr(ctx: *mut Gsasl) -> Self {
-        let phantom = std::marker::PhantomData;
-        Self { ctx, phantom }
+        let appdata = std::marker::PhantomData;
+        let sessdata = std::marker::PhantomData;
+        Self { ctx, appdata, sessdata }
     }
 
     /// Initialize a SASL context. Has to be run before most other functions are called
@@ -108,7 +117,7 @@ impl<D> SaslCtx<D> {
     /// return the list of supported mechanism on the client side as a space-separated string
     // The underlying pointer must be freed by the caller, so for the sake of easier ownership
     // this must return a SaslString and not a &str, &CStr or similar.
-    pub fn client_mech_list(&self) -> error::Result<SaslString> {
+    pub fn client_mech_list(&self) -> error::Result<Mechanisms> {
         // rustc's borrow checker can't prove that we will never read this so this *must* be
         // initialized.
         let mut out = ptr::null_mut();
@@ -127,7 +136,7 @@ impl<D> SaslCtx<D> {
         } else {
             // If libgsasl does not return an error we can assume that out has been filled with
             // valid data.
-            Ok(s)
+            Ok(Mechanisms::from_sasl(s))
         }
     }
 
@@ -157,10 +166,10 @@ impl<D> SaslCtx<D> {
         }
     }
 
-    /// Decide wheter there is client-side support for the specified mechanism
-    pub fn client_supports(&self, mech: &CStr) -> bool {
+    /// Return wheter there is client-side support for the specified mechanism
+    pub fn client_supports(&self, mech: &str) -> bool {
         // returns 1 if there is client support for the specific mechanism
-        let ret = unsafe { gsasl_client_support_p(self.ctx, mech.as_ptr()) };
+        let ret = unsafe { gsasl_client_support_p(self.ctx, mech.as_ptr() as *const i8) };
         if ret == 1 {
             return true;
         } else {
@@ -168,10 +177,10 @@ impl<D> SaslCtx<D> {
         }
     }
 
-    /// Decide wheter there is server-side support for the specified mechanism
-    pub fn server_supports(&self, mech: &CStr) -> bool {
+    /// Return wheter there is server-side support for the specified mechanism
+    pub fn server_supports(&self, mech: &str) -> bool {
         // returns 1 if there is server support for the specific mechanism
-        let ret = unsafe { gsasl_server_support_p(self.ctx, mech.as_ptr()) };
+        let ret = unsafe { gsasl_server_support_p(self.ctx, mech.as_ptr() as *const i8) };
         if ret == 1 {
             return true;
         } else {
@@ -183,15 +192,25 @@ impl<D> SaslCtx<D> {
     /// from the application. In a server, the callback is used to decide whether a user is
     /// permitted to log in or not. 
     /// With this function you install the callback for the given context.
-    pub fn install_callback<E, C: Callback<D,E>>(&mut self) {
+    ///
+    /// See the [trait documentation](trait.Callback.html) for details on how to use this function
+    pub fn install_callback<C: Callback<D,E>>(&mut self) {
         self.install_callback_raw(Some(callback::wrap::<C, D, E>));
     }
 
-    pub(crate) fn install_callback_raw(&mut self, callback: Gsasl_callback_function) {
+    fn install_callback_raw(&mut self, callback: Gsasl_callback_function) {
         unsafe { gsasl_callback_set(self.ctx, callback); }
     }
 
-    pub fn client_start<E>(&mut self, mech: &CStr) -> error::Result<Session<E>> {
+    /// Start the client side of an authentication exchange
+    ///
+    /// Depending on the mechanism you have chosen this may need additional data from you (such as
+    /// an authcid, and/or authzid and password for PLAIN). To provide that data either call
+    /// `set_property` on the returned session or install a Callback.
+    ///
+    /// See [the gsasl documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Using-a-callback) for
+    /// how gsasl uses properties and callbacks.
+    pub fn client_start(&mut self, mech: &CStr) -> error::Result<SessionHandle<E>> {
         let mut ptr: *mut Gsasl_session = ptr::null_mut();
         let res = unsafe {
             gsasl_client_start(self.ctx, mech.as_ptr(), &mut ptr as *mut *mut Gsasl_session)
@@ -200,21 +219,29 @@ impl<D> SaslCtx<D> {
         if res != (GSASL_OK as libc::c_int) {
             Err(error::SaslError(res))
         } else {
-            let session = Session::from_ptr(ptr);
+            let session = SessionHandle::from_ptr(ptr);
             Ok(session)
         }
     }
 
-    pub fn server_start<E>(&mut self, mech: &CStr) -> error::Result<Session<E>> {
+    /// Start the server side of an authentication exchange
+    ///
+    /// Depending on the mechanism you have chosen this may need additional data from you (such as
+    /// the ability to check authcid/authzid/password combinations for PLAIN). Either provide that
+    /// data using calls to `set_property` on the returned session or install a Callback.
+    ///
+    /// See [the gsasl documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Using-a-callback) for
+    /// how gsasl uses properties and callbacks.
+    pub fn server_start(&mut self, mech: &str) -> error::Result<SessionHandle<E>> {
         let mut ptr: *mut Gsasl_session = ptr::null_mut();
         let res = unsafe {
-            gsasl_server_start(self.ctx, mech.as_ptr(), &mut ptr as *mut *mut Gsasl_session)
+            gsasl_server_start(self.ctx, mech.as_ptr() as *const i8, &mut ptr as *mut *mut Gsasl_session)
         };
 
         if res != (GSASL_OK as libc::c_int) {
             Err(error::SaslError(res))
         } else {
-            let session = Session::from_ptr(ptr);
+            let session = SessionHandle::from_ptr(ptr);
             Ok(session)
         }
     }
