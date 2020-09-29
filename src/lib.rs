@@ -31,11 +31,15 @@ pub use error::{
 ///
 /// This struct wraps a gsasl context ensuring `gsasl_init` and `gsasl_done` are called.
 /// It implements `Deref` and `DerefMut` to the — unmanaged — `SaslCtx` that wraps the unsafe FFI
-/// methods from GSASL with safe(r) Rust functions
-pub struct SASL {
-    ctx: SaslCtx
+/// methods from GSASL with safe(r) Rust functions.
+///
+/// The reason for this split lays in callbacks - they are given pointers to the (C struct) context
+/// and session they were called from which we wrap so the safe(r) Rust methods can be used
+/// instead, but we MUST NOT call `done` on the context or the session afterwards.
+pub struct SASL<D> {
+    ctx: SaslCtx<D>
 }
-impl SASL {
+impl<D> SASL<D> {
     pub fn new() -> error::Result<Self> {
         let mut ctx = SaslCtx::from_ptr(ptr::null_mut());
 
@@ -44,7 +48,7 @@ impl SASL {
         Ok(SASL { ctx })
     }
 }
-impl Drop for SASL {
+impl<D> Drop for SASL<D> {
     fn drop(&mut self) {
         // Clean up the Context so we do not leak memory
         // This is unsafe because using a Context after calling `done` is undefined behaviour — and
@@ -52,30 +56,32 @@ impl Drop for SASL {
         unsafe { self.ctx.done() };
     }
 }
-impl Deref for SASL {
-    type Target = SaslCtx;
+impl<D> Deref for SASL<D> {
+    type Target = SaslCtx<D>;
     fn deref(&self) -> &Self::Target {
         &self.ctx
     }
 }
-impl DerefMut for SASL {
+impl<D> DerefMut for SASL<D> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.ctx
     }
 }
 
 /// An unmanaged GSASL context
-pub struct SaslCtx {
+pub struct SaslCtx<D> {
     ctx: *mut Gsasl,
+    phantom: std::marker::PhantomData<D>,
 }
 
-impl SaslCtx {
+impl<D> SaslCtx<D> {
     /// Creates a new SASL context.
     ///
-    /// This function should never be called by an external developer directly. Please use the
+    /// This function should never be called by an external party directly. Please use the
     /// `SASL` struct that correctly initializes and deinitalizes the underlying context for you.
     pub(crate) fn from_ptr(ctx: *mut Gsasl) -> Self {
-        Self { ctx }
+        let phantom = std::marker::PhantomData;
+        Self { ctx, phantom }
     }
 
     /// Initialize a SASL context. Has to be run before most other functions are called
@@ -199,6 +205,25 @@ impl SaslCtx {
         } else {
             let session = Session::from_ptr(ptr);
             Ok(session)
+        }
+    }
+
+    /// Store some data in the SASL context
+    ///
+    /// This allows a callback to later access that data using `retrieve_raw`. 
+    pub unsafe fn store_raw(&mut self, data: Box<D>) {
+        gsasl_callback_hook_set(self.ctx, Box::into_raw(data) as *mut libc::c_void)
+    }
+
+    /// Retrieve the data stored with `store_raw`
+    ///
+    /// This function tries to returns `None` if no data was stored.
+    pub unsafe fn retrieve_raw(&mut self) -> Option<Box<D>> {
+        let ptr = gsasl_callback_hook_get(self.ctx);
+        if !ptr.is_null() {
+            Some(Box::from_raw(ptr as *mut D))
+        } else {
+            None
         }
     }
 
