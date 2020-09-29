@@ -19,6 +19,10 @@ impl SaslBuffer {
         let ptr = ptr as *mut u8;
         Self { ptr, len }
     }
+
+    pub fn as_raw_ptr(&self) -> *const libc::c_char {
+        self.ptr as *const libc::c_char
+    }
 }
 
 impl Drop for SaslBuffer {
@@ -55,6 +59,10 @@ impl SaslString {
     /// Takes ownership of a raw pointer returned by libgsasl.
     pub fn from_raw(ptr: *mut libc::c_char) -> Self {
         Self { ptr }
+    }
+
+    pub fn as_raw_ptr(&self) -> *const libc::c_char {
+        self.ptr as *const libc::c_char
     }
 }
 
