@@ -9,8 +9,9 @@ use std::ops::{Drop, Deref, DerefMut};
 mod buffer;
 mod session;
 pub mod error;
-//mod callback;
+mod callback;
 
+pub use callback::Callback;
 pub use session::Session;
 use buffer::SaslString;
 
@@ -182,11 +183,15 @@ impl<D> SaslCtx<D> {
     /// from the application. In a server, the callback is used to decide whether a user is
     /// permitted to log in or not. 
     /// With this function you install the callback for the given context.
+    pub fn install_callback<E, C: Callback<D,E>>(&mut self) {
+        self.install_callback_raw(Some(callback::wrap::<C, D, E>));
+    }
+
     pub(crate) fn install_callback_raw(&mut self, callback: Gsasl_callback_function) {
         unsafe { gsasl_callback_set(self.ctx, callback); }
     }
 
-    pub fn client_start(&mut self, mech: &CStr) -> error::Result<Session> {
+    pub fn client_start<E>(&mut self, mech: &CStr) -> error::Result<Session<E>> {
         let mut ptr: *mut Gsasl_session = ptr::null_mut();
         let res = unsafe {
             gsasl_client_start(self.ctx, mech.as_ptr(), &mut ptr as *mut *mut Gsasl_session)
@@ -200,7 +205,7 @@ impl<D> SaslCtx<D> {
         }
     }
 
-    pub fn server_start(&mut self, mech: &CStr) -> error::Result<Session> {
+    pub fn server_start<E>(&mut self, mech: &CStr) -> error::Result<Session<E>> {
         let mut ptr: *mut Gsasl_session = ptr::null_mut();
         let res = unsafe {
             gsasl_server_start(self.ctx, mech.as_ptr(), &mut ptr as *mut *mut Gsasl_session)
