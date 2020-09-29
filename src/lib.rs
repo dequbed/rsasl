@@ -3,9 +3,12 @@ use gsasl_sys::Gsasl_rc::*;
 use std::ptr;
 use std::ffi::CStr;
 
+use std::ops::{Drop, Deref, DerefMut};
+
 mod buffer;
 mod session;
 pub mod error;
+//mod callback;
 
 pub use session::Session;
 use buffer::SaslString;
@@ -27,21 +30,51 @@ pub use error::{
 /// Main rsasl struct
 ///
 /// This struct wraps a gsasl context ensuring `gsasl_init` and `gsasl_done` are called.
+/// It implements `Deref` and `DerefMut` to the — unmanaged — `SaslCtx` that wraps the unsafe FFI
+/// methods from GSASL with safe(r) Rust functions
 pub struct SASL {
+    ctx: SaslCtx
+}
+impl SASL {
+    pub fn new() -> error::Result<Self> {
+        let mut ctx = SaslCtx::from_ptr(ptr::null_mut());
+
+        ctx.init()?;
+
+        Ok(SASL { ctx })
+    }
+}
+impl Drop for SASL {
+    fn drop(&mut self) {
+        // Clean up the Context so we do not leak memory
+        // This is unsafe because using a Context after calling `done` is undefined behaviour — and
+        // very likely to lead to a segmentation fault.
+        unsafe { self.ctx.done() };
+    }
+}
+impl Deref for SASL {
+    type Target = SaslCtx;
+    fn deref(&self) -> &Self::Target {
+        &self.ctx
+    }
+}
+impl DerefMut for SASL {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.ctx
+    }
+}
+
+/// An unmanaged GSASL context
+pub struct SaslCtx {
     ctx: *mut Gsasl,
 }
 
-impl SASL {
-    /// Creates and initializes a new SASL context.
-    pub fn new() -> error::Result<Self> {
-        let mut s = Self::from_ptr(ptr::null_mut());
-
-        s.init()?;
-
-        Ok(s)
-    }
-
-    pub fn from_ptr(ctx: *mut Gsasl) -> Self {
+impl SaslCtx {
+    /// Creates a new SASL context.
+    ///
+    /// This function should never be called by an external developer directly. Please use the
+    /// `SASL` struct that correctly initializes and deinitalizes the underlying context for you.
+    pub(crate) fn from_ptr(ctx: *mut Gsasl) -> Self {
         Self { ctx }
     }
 
@@ -137,7 +170,7 @@ impl SASL {
     /// from the application. In a server, the callback is used to decide whether a user is
     /// permitted to log in or not. 
     /// With this function you install the callback for the given context.
-    pub fn install_callback(&mut self, callback: Gsasl_callback_function) {
+    pub(crate) fn install_callback_raw(&mut self, callback: Gsasl_callback_function) {
         unsafe { gsasl_callback_set(self.ctx, callback); }
     }
 
@@ -170,8 +203,11 @@ impl SASL {
     }
 
     /// Finalize the context.
-    pub fn done(self) {
-        // The pointer is invalid afterwards so we take ownership of it to drop it.
-        unsafe { gsasl_done(self.ctx) };
+    ///
+    /// This is not exposed to consumers of the crate because it's use it very unsafe — you have to
+    /// make sure that the caller is the only remaining user of the GSASL context and that the
+    /// context is not used afterwards.
+    pub(crate) unsafe fn done(&mut self) {
+        gsasl_done(self.ctx);
     }
 }
