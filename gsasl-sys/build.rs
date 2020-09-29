@@ -4,6 +4,11 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
+    if let Ok(_) = std::env::var("DOCS_RS") {
+        // docs.rs doesn't have gsasl so we can't generate bindings for it.
+        return;
+    }
+
     // Compilation preamble
     println!("cargo:rustc-link-lib=gsasl");
     println!("cargo:rerun-if-changed=wrapper.h");
