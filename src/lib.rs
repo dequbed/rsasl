@@ -1,7 +1,7 @@
 use gsasl_sys::*;
 pub use gsasl_sys::Gsasl_rc::*;
 use std::ptr;
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 use std::ops::{Drop, Deref, DerefMut};
 
 pub mod buffer;
@@ -210,10 +210,14 @@ impl<D, E> SaslCtx<D,E> {
     ///
     /// See [the gsasl documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Using-a-callback) for
     /// how gsasl uses properties and callbacks.
-    pub fn client_start(&mut self, mech: &CStr) -> error::Result<SessionHandle<E>> {
+    pub fn client_start(&mut self, mech: &str) -> error::Result<SessionHandle<E>> {
         let mut ptr: *mut Gsasl_session = ptr::null_mut();
+        let mech_string = CString::new(mech).map_err(|_| { SaslError(GSASL_UNKNOWN_MECHANISM as libc::c_int) })?;
         let res = unsafe {
-            gsasl_client_start(self.ctx, mech.as_ptr(), &mut ptr as *mut *mut Gsasl_session)
+            gsasl_client_start(
+                self.ctx, 
+                mech_string.as_ptr(),
+                &mut ptr as *mut *mut Gsasl_session)
         };
 
         if res != (GSASL_OK as libc::c_int) {
@@ -291,6 +295,11 @@ impl<D, E> SaslCtx<D,E> {
         }
     }
 
+    /// Run the configured callback
+    pub fn callback(&mut self, session: &mut Session<E>, prop: Property) -> libc::c_int {
+        unsafe { gsasl_callback(self.ctx, session.as_ptr(), prop) }
+    }
+
     /// Finalize the context.
     ///
     /// This is not exposed to consumers of the crate because it's use it very unsafe — you have to
@@ -298,5 +307,54 @@ impl<D, E> SaslCtx<D,E> {
     /// context is not used afterwards.
     pub(crate) unsafe fn done(&mut self) {
         gsasl_done(self.ctx);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn callback_test() {
+        struct CB;
+        impl Callback<u32, u64> for CB {
+            fn callback(mut sasl: SaslCtx<u32, u64>, mut session: Session<u64>, prop: Property) 
+                -> libc::c_int
+            {
+                assert_eq!(sasl.retrieve_mut(), Some(&mut 0x55555555));
+                assert_eq!(session.retrieve_mut(), Some(&mut 0xAAAAAAAAAAAAAAAA));
+                GSASL_OK as libc::c_int
+            }
+        }
+
+        let mut sasl = SASL::new().unwrap();
+        sasl.install_callback::<CB>();
+        sasl.store(Box::new(0x55555555));
+        let mut session = sasl.client_start("PLAIN").unwrap();
+        session.store(Box::new(0xAAAAAAAAAAAAAAAA));
+
+        assert_eq!(GSASL_OK as libc::c_int,
+            sasl.callback(&mut session, Property::GSASL_VALIDATE_SIMPLE));
+    }
+
+    #[test]
+    fn callback_unset_test() {
+        struct CB;
+        impl Callback<u32, u64> for CB {
+            fn callback(mut sasl: SaslCtx<u32, u64>, mut session: Session<u64>, prop: Property) 
+                -> libc::c_int
+            {
+                assert_eq!(sasl.retrieve_mut(), None);
+                assert_eq!(session.retrieve_mut(), None);
+                GSASL_OK as libc::c_int
+            }
+        }
+
+        let mut sasl = SASL::new().unwrap();
+        sasl.install_callback::<CB>();
+        let mut session = sasl.client_start("PLAIN").unwrap();
+
+        assert_eq!(GSASL_OK as libc::c_int,
+            sasl.callback(&mut session, Property::GSASL_VALIDATE_SIMPLE));
     }
 }

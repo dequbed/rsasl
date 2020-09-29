@@ -192,6 +192,10 @@ impl<D> Session<D> {
         Self { ptr, phantom }
     }
 
+    pub(crate) fn as_ptr(&self) -> *mut Gsasl_session {
+        self.ptr
+    }
+
     pub(crate) fn finish(&mut self) {
         unsafe { gsasl_finish(self.ptr) };
     }
