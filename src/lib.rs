@@ -39,6 +39,11 @@ pub use error::{
 /// The reason for this split lays in callbacks - they are given pointers to the (C struct) context
 /// and session they were called from which we wrap so the safe(r) Rust methods can be used
 /// instead, but we MUST NOT call `done` on the context or the session afterwards.
+///
+/// The two type parameters restrict the types you can store / retrieve in callbacks; gsasl allows
+/// to store two objects in the context and session so that the callback function can access them
+/// despite being called with no reference to Rust's execution environment otherwise. They are
+/// exposed in rsasl as [store](struct.SASL.html#method.store) and [retrieve](struct.SASL.html#method.retrieve_mut)
 pub struct SASL<D,E> {
     ctx: SaslCtx<D,E>
 }
