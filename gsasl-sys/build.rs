@@ -1,14 +1,11 @@
+#[cfg(feature = "build_bindgen")]
 extern crate bindgen;
 
 use std::env;
 use std::path::PathBuf;
 
+#[cfg(feature = "build_bindgen")]
 fn main() {
-    if let Ok(_) = std::env::var("DOCS_RS") {
-        // docs.rs doesn't have gsasl so we can't generate bindings for it.
-        return;
-    }
-
     // Compilation preamble
     println!("cargo:rustc-link-lib=gsasl");
     println!("cargo:rerun-if-changed=wrapper.h");
@@ -28,3 +25,6 @@ fn main() {
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Unable to write bindgen bindings.");
 }
+
+#[cfg(not(feature = "build_bindgen"))]
+fn main() { }
