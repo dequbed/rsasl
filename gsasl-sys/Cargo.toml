@@ -1,6 +1,6 @@
 [package]
 name = "gsasl-sys"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Gregor Reitzenstein <me@dequbed.space>"]
 edition = "2018"
 description = "Raw FFI wrapper for GNU sasl (gsasl)"
