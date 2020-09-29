@@ -1,4 +1,5 @@
-use crate::{SaslCtx, Session, Property};
+use crate::{SaslCtx, Property};
+use crate::session::Session;
 
 /// Callback instance
 ///

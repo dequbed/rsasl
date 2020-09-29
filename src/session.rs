@@ -1,10 +1,43 @@
 use std::ptr;
 use std::ffi::CStr;
+use std::ops::{Drop, Deref, DerefMut};
 use gsasl_sys::*;
 use gsasl_sys::Gsasl_rc::*;
 
 use crate::buffer::{SaslBuffer, SaslString};
 use crate::error::{Result, SaslError};
+
+#[derive(Debug)]
+/// SASL Session handle
+///
+/// This struct wraps the underlying gsasl session context and provides a set of safe Rust methods.
+/// Similar to how `SASL` is implemented this implements Deref and DerefMut to the unmanaged
+/// `Session` while itself providing the memory management.
+pub struct SessionHandle<D> {
+    session: Session<D>,
+}
+impl<D> SessionHandle<D> {
+    pub(crate) fn from_ptr(ptr: *mut Gsasl_session) -> Self {
+        let session = Session::from_ptr(ptr);
+        SessionHandle { session }
+    }
+}
+impl<D> Drop for SessionHandle<D> {
+    fn drop(&mut self) {
+        self.session.finish();
+    }
+}
+impl<D> Deref for SessionHandle<D> {
+    type Target = Session<D>;
+    fn deref(&self) -> &Self::Target {
+        &self.session
+    }
+}
+impl<D> DerefMut for SessionHandle<D> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.session
+    }
+}
 
 #[derive(Debug)]
 pub struct Session<D> {
@@ -21,7 +54,7 @@ pub enum Step<T> {
 pub type StepResult<T> = Result<Step<T>>;
 
 impl<D> Session<D> {
-    pub fn from_ptr(ptr: *mut Gsasl_session) -> Self {
+    pub(crate) fn from_ptr(ptr: *mut Gsasl_session) -> Self {
         let phantom = std::marker::PhantomData;
         Self { ptr, phantom }
     }
@@ -137,7 +170,7 @@ impl<D> Session<D> {
         }
     }
 
-    pub fn finish(&mut self) {
+    pub(crate) fn finish(&mut self) {
         unsafe { gsasl_finish(self.ptr) };
     }
 }
