@@ -1,20 +1,18 @@
 [package]
-name = "rsasl"
-version = "0.1.3"
+name = "gsasl-sys"
+version = "0.2.1"
 authors = ["Gregor Reitzenstein <me@dequbed.space>"]
 edition = "2018"
-description = "Rusty bindings to gsasl-sys"
+description = "Raw FFI wrapper for GNU sasl (gsasl)"
 license = "MIT"
 repository = "https://github.com/dequbed/rsasl"
 readme = "README.md"
-categories = ["authentication"]
+links = "gsasl"
+categories = ["external-ffi-bindings", "authentication"]
 keywords = ["SASL"]
+build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-gsasl-sys = { path = "gsasl-sys", version = "0.2.1" }
-libc = "0.2"
-
-[workspace]
-members = ["gsasl-sys"]
+[build-dependencies]
+bindgen = "0.55"
