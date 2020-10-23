@@ -148,7 +148,7 @@ impl<D, E> SaslCtx<D,E> {
     /// return the list of supported mechanism on the server side as a space-separated string
     // The underlying pointer must be freed by the caller, so for the sake of easier ownership
     // this must return a SaslString and not a &str, &CStr or similar.
-    pub fn server_mech_list(&self) -> error::Result<SaslString> {
+    pub fn server_mech_list(&self) -> error::Result<Mechanisms> {
         // rustc's borrow checker can't prove that we will never read this so this *must* be
         // initialized.
         let mut out = ptr::null_mut();
@@ -167,7 +167,7 @@ impl<D, E> SaslCtx<D,E> {
         } else {
             // If libgsasl does not return an error we can assume that out has been filled with
             // valid string data.
-            Ok(s)
+            Ok(Mechanisms::from_sasl(s))
         }
     }
 
