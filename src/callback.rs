@@ -20,6 +20,14 @@ use crate::session::Session;
 /// To install a callback implement this trait on an unit struct which you pass to
 /// SASL::install_callback():
 ///
+/// Due to rsasl wrapping a C library you can't safely access data using a `self` parameter. If you
+/// need to transfer data into the callback you will have to use
+/// [`SaslCtx::store`](method@crate::SaslCtx::store) or
+/// [`Session::store`](method@crate::session::Session::store). Those two functions differ in that
+/// data stored via the former can be accessed from all sessions including those created after the
+/// call to `store` while data set by the latter can only be accessed from the session it was
+/// stored in.
+///
 /// ```
 /// use rsasl::{SASL, Callback, SaslCtx, Session, Property};
 /// struct CB;

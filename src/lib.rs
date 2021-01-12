@@ -1,3 +1,16 @@
+//! RSASL — Rustic bindings to GNU libgsasl
+//!
+//! [libgsasl](https://www.gnu.org/software/gsasl/) is a pure C, LGPL-2.1 (or later) licensed SASL
+//! library. This crate provides a set of rusty abstractions on top of that library making it hard
+//! to mis-use.
+//!
+//! The main struct in this library is the [`SASL`] struct. It handles resource allocation and
+//! free-ing for you.
+//!
+//! For all but the most basic of applications you will want to also construct an
+//! application-specific [`Callback`], which rsasl will use to ask for additional data required to
+//! perform the handshake.
+
 use gsasl_sys::*;
 pub use gsasl_sys::Gsasl_rc::*;
 use std::ptr;
