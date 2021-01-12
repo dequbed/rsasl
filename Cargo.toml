@@ -1,6 +1,6 @@
 [package]
 name = "rsasl"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Gregor Reitzenstein <me@dequbed.space>"]
 edition = "2018"
 description = "Rusty bindings to gsasl-sys"
