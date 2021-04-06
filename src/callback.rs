@@ -1,3 +1,8 @@
+// The Gsasl_propery enum has to be non-exhaustive. On the C-side it's defined as a number of
+// constants, all of which are represented as values by bindgen (as long as the version of gsasl
+// your system has is ABI-compatible with the one you built your software with).
+#![allow(improper_ctypes_definitions)]
+
 use crate::{SASL, Property};
 use crate::session::Session;
 
