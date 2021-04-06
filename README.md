@@ -30,7 +30,9 @@ implementation. It provides less Mechanisms but does not need `unsafe` like
 rsasl does due to it's FFI-bindings and does not rely on an old (albeit
 well written) C library.
 
+# Examples
 
+You can find a few examples on [GitHub](examples/).
 
 [Latest Version]: https://img.shields.io/crates/v/rsasl.svg
 [crates.io]: https://crates.io/crates/rsasl
