@@ -15,7 +15,8 @@ use gsasl_sys::*;
 pub use gsasl_sys::Gsasl_rc::*;
 use std::ptr;
 use std::ffi::CString;
-use std::ops::{Drop, Deref, DerefMut};
+
+use discard::{Discard, DiscardOnDrop};
 
 pub mod buffer;
 pub mod session;
@@ -24,7 +25,7 @@ mod callback;
 mod mechanisms;
 
 pub use callback::Callback;
-pub use session::{SessionHandle, Session};
+pub use session::Session;
 pub use buffer::SaslString;
 pub use mechanisms::Mechanisms;
 
@@ -45,9 +46,7 @@ pub use error::{
 #[derive(Debug)]
 /// Main rsasl struct
 ///
-/// This struct wraps a gsasl context ensuring `gsasl_init` and `gsasl_done` are called.  It
-/// implements `Deref` and `DerefMut` to the — unmanaged — [SaslCtx](struct.SaslCtx.html) that
-/// wraps the unsafe FFI methods from GSASL with safe(r) Rust functions.
+/// This struct wraps a gsasl context ensuring `gsasl_init` and `gsasl_done` are called.
 ///
 /// The reason for this split lays in callbacks - they are given pointers to the (C struct) context
 /// and session they were called from which we wrap so the safe(r) Rust methods can be used
@@ -58,45 +57,6 @@ pub use error::{
 /// despite being called with no reference to Rust's execution environment otherwise. They are
 /// exposed in rsasl as [store](struct.SASL.html#method.store) and [retrieve](struct.SASL.html#method.retrieve_mut)
 pub struct SASL<D,E> {
-    ctx: SaslCtx<D,E>
-}
-impl<D,E> SASL<D,E> {
-    pub fn new() -> error::Result<Self> {
-        let mut ctx = SaslCtx::from_ptr(ptr::null_mut());
-
-        ctx.init()?;
-
-        Ok(SASL { ctx })
-    }
-}
-impl<D,E> Drop for SASL<D,E> {
-    fn drop(&mut self) {
-        // Clean up the Context so we do not leak memory
-        // This is unsafe because using a Context after calling `done` is undefined behaviour — and
-        // very likely to lead to a segmentation fault.
-        unsafe { self.ctx.done() };
-    }
-}
-impl<D,E> Deref for SASL<D,E> {
-    type Target = SaslCtx<D,E>;
-    fn deref(&self) -> &Self::Target {
-        &self.ctx
-    }
-}
-impl<D,E> DerefMut for SASL<D,E> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.ctx
-    }
-}
-
-#[derive(Debug)]
-/// An unmanaged GSASL context
-///
-/// You rarely construct this directly. If you want a context as consumer of this crate construct a
-/// [SASL struct](struct.SASL.html) instead which will ensure that the context is properly closed.
-///
-/// You will however be passed this struct in [Callbacks](trait.Callback.html) if you install one.
-pub struct SaslCtx<D,E> {
     // The underlying context as returned by gsasl
     ctx: *mut Gsasl,
 
@@ -107,11 +67,29 @@ pub struct SaslCtx<D,E> {
     sessdata: std::marker::PhantomData<E>,
 }
 
-impl<D, E> SaslCtx<D,E> {
+impl<D, E> SASL<D,E> {
+    /// Create a fresh GSASL context from scratch.
+    ///
+    /// The context retrieved from this is wrapped in a [`DiscardOnDrop`](discard::DiscardOnDrop).
+    /// The purpose of this wrapping is to ensure that finalizer functions are called when the
+    /// context is dropped.
+    /// `DiscardOnDrop` implements both [`Deref`](std::ops::Deref) and
+    /// [`DerefMut`](std::ops::DerefMut), making the wrapping transparent to you.
+    /// If you want to intentionally remove the Context from the wrapping you can call
+    /// [`DiscardOnDrop::leak`](discard::DiscardOnDrop::leak), allowing you to manually handle
+    /// finalizing the context.
+    pub fn new() -> error::Result<DiscardOnDrop<Self>> {
+        let mut ctx = Self::from_ptr(ptr::null_mut());
+
+        ctx.init()?;
+
+        Ok(DiscardOnDrop::new(ctx))
+    }
+
     /// Creates a new SASL context.
     ///
-    /// This function should never be called by an external party directly. Please use the
-    /// `SASL` struct that correctly initializes and deinitalizes the underlying context for you.
+    /// This function should never be called by an external party directly. Use the `new`
+    /// constructor that correctly initializes the context.
     pub(crate) fn from_ptr(ctx: *mut Gsasl) -> Self {
         let appdata = std::marker::PhantomData;
         let sessdata = std::marker::PhantomData;
@@ -136,8 +114,8 @@ impl<D, E> SaslCtx<D,E> {
     // The underlying pointer must be freed by the caller, so for the sake of easier ownership
     // this must return a SaslString and not a &str, &CStr or similar.
     pub fn client_mech_list(&self) -> error::Result<Mechanisms> {
-        // rustc's borrow checker can't prove that we will never read this so this *must* be
-        // initialized.
+        // rustc's borrow checker can't prove that we will never read this before having
+        // initialized it so this *must* be initialized by us.
         let mut out = ptr::null_mut();
 
         // Call into libgsasl. As per usual ffi is unsafe
@@ -228,7 +206,7 @@ impl<D, E> SaslCtx<D,E> {
     ///
     /// See [the gsasl documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Using-a-callback) for
     /// how gsasl uses properties and callbacks.
-    pub fn client_start(&mut self, mech: &str) -> error::Result<SessionHandle<E>> {
+    pub fn client_start(&mut self, mech: &str) -> error::Result<Session<E>> {
         let mut ptr: *mut Gsasl_session = ptr::null_mut();
         let mech_string = CString::new(mech).map_err(|_| { SaslError(GSASL_UNKNOWN_MECHANISM as libc::c_int) })?;
         let res = unsafe {
@@ -241,7 +219,7 @@ impl<D, E> SaslCtx<D,E> {
         if res != (GSASL_OK as libc::c_int) {
             Err(error::SaslError(res))
         } else {
-            let session = SessionHandle::from_ptr(ptr);
+            let session = Session::from_ptr(ptr);
             Ok(session)
         }
     }
@@ -254,7 +232,7 @@ impl<D, E> SaslCtx<D,E> {
     ///
     /// See [the gsasl documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Using-a-callback) for
     /// how gsasl uses properties and callbacks.
-    pub fn server_start(&mut self, mech: &str) -> error::Result<SessionHandle<E>> {
+    pub fn server_start(&mut self, mech: &str) -> error::Result<Session<E>> {
         let mut ptr: *mut Gsasl_session = ptr::null_mut();
         let res = unsafe {
             gsasl_server_start(self.ctx, mech.as_ptr() as *const i8, &mut ptr as *mut *mut Gsasl_session)
@@ -263,7 +241,7 @@ impl<D, E> SaslCtx<D,E> {
         if res != (GSASL_OK as libc::c_int) {
             Err(error::SaslError(res))
         } else {
-            let session = SessionHandle::from_ptr(ptr);
+            let session = Session::from_ptr(ptr);
             Ok(session)
         }
     }
@@ -328,6 +306,12 @@ impl<D, E> SaslCtx<D,E> {
     }
 }
 
+impl<D,E> Discard for SASL<D,E> {
+    fn discard(mut self) {
+        unsafe { self.done() };
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -336,7 +320,7 @@ mod tests {
     fn callback_test() {
         struct CB;
         impl Callback<u32, u64> for CB {
-            fn callback(mut sasl: SaslCtx<u32, u64>, mut session: Session<u64>, _prop: Property) 
+            fn callback(mut sasl: SASL<u32, u64>, mut session: Session<u64>, _prop: Property) 
                 -> libc::c_int
             {
                 assert_eq!(sasl.retrieve_mut(), Some(&mut 0x55555555));
@@ -359,7 +343,7 @@ mod tests {
     fn callback_unset_test() {
         struct CB;
         impl Callback<u32, u64> for CB {
-            fn callback(mut sasl: SaslCtx<u32, u64>, mut session: Session<u64>, _prop: Property) 
+            fn callback(mut sasl: SASL<u32, u64>, mut session: Session<u64>, _prop: Property) 
                 -> libc::c_int
             {
                 assert_eq!(sasl.retrieve_mut(), None);
