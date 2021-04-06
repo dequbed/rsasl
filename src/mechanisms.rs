@@ -4,12 +4,12 @@ use crate::buffer::SaslString;
 /// A String representing a list of Mechanisms
 ///
 /// Gsasl uses the concept of 'string of Mechanism, separated by invalid characters such as SPC' in
-/// several locations. This struct allows to easier de-/construct such values.
+/// several locations. This struct allows to easier de-/construct of such values.
 pub struct Mechanisms {
     inner: Alloc,
 }
 
-/// The allocation source. 
+/// The allocation source.
 ///
 /// If gsasl allocated the string it should be used to free it again, if Rust allocated it then
 /// gsasl must not be used to free it.
@@ -23,7 +23,7 @@ impl Mechanisms {
         Self { inner: Alloc::Gsasl(inner) }
     }
 
-    /// Iterate over the mechanisms
+    /// Iterate over the mechanism names
     pub fn iter(&self) -> impl Iterator<Item=&str> {
         let s = match self.inner {
             // If gsasl returns a mechanism that is not valid UTF-8 that is a rather grievous bug

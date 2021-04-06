@@ -3,55 +3,167 @@
 // your system has is ABI-compatible with the one you built your software with).
 #![allow(improper_ctypes_definitions)]
 
-use crate::{SASL, Property};
+use crate::{SASL, Property, ReturnCode};
 use crate::session::Session;
 
-/// Callback instance
+/// Typesafe Callbacks via trait implementations
 ///
-/// GSASL makes heavy use of callbacks to retrieve data from your application.
-/// Whenever gsasl requires further information it calls the callback with the `prop` indicating
-/// what action the callback is required to perform. 
+/// GSASL makes use of callbacks to retrieve data from an application and to allow it to make
+/// decisions regarding the authentication process and outcome.
 ///
-/// For example if you do a PLAIN authentication
-/// as a client the callback may be called three times with `GSASL_AUTHID`, `GSASL_AUTHZID` and
-/// `GSASL_PASSWORD` set respectively expecting you to call `session.set_property` for those
-/// properties and provide the information.
+/// Whenever gsasl requires further information not already provided by
+/// [`Session::set_property`](Session::set_property) it calls the configured callback function with
+/// a `prop` value indicating what action to perform or what property to set.
+/// 
+/// #### An example for the server-side of a PLAIN authentication 
 ///
-/// If you are performing a PLAIN authentication as Server you will instead be called with
-/// `GSASL_VALIDATE_SIMPLE`, expected to read the authcid/authzid/password using
-/// `session.get_property` and return `GSASL_OK` or `GSASL_AUTHENTICATION_ERROR` (or any other
-/// non-`GSASL_OK`) return code to indicate successful or failed authentication.
-///
-/// To install a callback implement this trait on an unit struct which you pass to
-/// SASL::install_callback():
-///
-/// Due to rsasl wrapping a C library you can't safely access data using a `self` parameter. If you
-/// need to transfer data into the callback you will have to use
-/// [`SaslCtx::store`](method@crate::SaslCtx::store) or
-/// [`Session::store`](method@crate::session::Session::store). Those two functions differ in that
-/// data stored via the former can be accessed from all sessions including those created after the
-/// call to `store` while data set by the latter can only be accessed from the session it was
-/// stored in.
+/// To authorize a PLAIN exchange the application callback will be called with the property
+/// `Property::GSASL_VALIDATE_SIMPLE`. The callback can then access the properties `GSASL_AUTHID`,
+/// `GSASL_AUTHZID` and `GSASL_PASSWORD` to check the provided credentials.
 ///
 /// ```
-/// use rsasl::{SASL, Callback, Session, Property};
-/// struct CB;
-/// impl Callback<(), ()> for CB {
-///     // Note that this function does *not* take `self`. You can not access data from the type
-///     // you are implementing this trait on
-///     fn callback(sasl: &mut SASL<(), ()>, session: &mut Session<()>, prop: Property) -> libc::c_int {
-///         // While you don't have access to data from your system directly you can call
-///         // SaslCtx::retrieve_mut() here and access data you previously stored
-///         rsasl::GSASL_OK as libc::c_int
+/// use std::ffi::CString;
+/// use rsasl::{SASL, Session, Callback, Property, ReturnCode};
+///
+/// // Callback is an unit struct since no data can be accessed from it.
+/// struct OurCallback;
+///
+/// impl Callback<(), ()> for OurCallback {
+///     // Note that this function does not take `self`. The callback function has no access to
+///     // data stored in the type the trait is implemented on.
+///     fn callback(sasl: &mut SASL<(), ()>, session: &mut Session<()>, prop: Property) 
+///         -> Result<(), ReturnCode> 
+///     {
+///         // For brevity sake we use hard-coded credentials here.
+///         match prop {
+///             Property::GSASL_VALIDATE_SIMPLE => {
+///                 let authcid = session.get_property(Property::GSASL_AUTHID)
+///                     .ok_or(ReturnCode::GSASL_NO_AUTHID)?;
+///
+///                 let password = session.get_property(Property::GSASL_PASSWORD)
+///                     .ok_or(ReturnCode::GSASL_NO_PASSWORD)?;
+///
+///                 if authcid == CString::new("username").unwrap().as_ref()
+///                     && password == CString::new("secret").unwrap().as_ref()
+///                 {
+///                     Ok(())
+///                 } else {
+///                     Err(ReturnCode::GSASL_AUTHENTICATION_ERROR)
+///                 }
+///             },
+///             _ => Err(ReturnCode::GSASL_NO_CALLBACK)
+///         }
 ///     }
 /// }
-/// let mut sasl = SASL::new().unwrap();
-/// sasl.install_callback::<CB>();
 /// ```
+/// 
+/// #### Accessing application data in callbacks
 ///
-/// The type parameters here 
+/// Due to callbacks having to pass through FFI data can not be safely accessed via `self`
+/// parameters. Instead an application needs to store values that the callbacks need in the
+/// global `SASL` context or the `Session` context.
+///
+/// To this end an application can use either [`SASL::store`](SASL::store) for global data
+/// available to all Session that is retrieved using [`SASL::retrieve_mut`](SASL::retrieve_mut) or
+/// the equivalent [`Session::store`](Session::store) and
+/// [`Session::retrieve_mut`](Session::retrieve_mut) for data only available to one specific
+/// authentication exchange.
+///
+/// ##### Typesafety
+///
+/// Typesafety is ensured by using generic type parameters. Thanks to type inference is it usually
+/// not necessary to spell out the types for the `SASL` and `Session` structs:
+///
+/// ```
+/// use rsasl::{SASL, Session, Callback, Property, ReturnCode};
+/// struct TypedCallback;
+///
+/// impl Callback<u64, String> for TypedCallback {
+///     fn callback(sasl: &mut SASL<u64, String>, session: &mut Session<String>, _prop: Property)
+///         -> Result<(), ReturnCode>
+///     {
+///         // retrieve the stored global data
+///         let global_data: &mut u64 = sasl.retrieve_mut().unwrap();
+///
+///         // We don't always set session data, so we can't unwrap here.
+///         let session_data: Option<&mut String> = session.retrieve_mut();
+///
+///         match global_data {
+///             // Session data is only valid for that specific session;
+///             1 => assert_eq!(session_data, Some(&mut "Hello SASL".to_string())),
+///
+///             // the second time around no data was stored. This results in retrieve_mut()
+///             // returning `None`:
+///             2 => assert_eq!(session_data, None),
+///
+///             3 => assert_eq!(session_data, Some(&mut "Hello again".to_string())),
+///
+///
+///             _ => assert!(false, "Unexpected value of `global_data`"),
+///         }
+///
+///         // You can modify global data in callbacks since you have transfered ownership of it to
+///         // the `SASL` context which ensure exclusive access. If you need shared access use `Arc`,
+///         // `Mutex`, etc.
+///         *global_data += 1;
+///
+///         Ok(())
+///     }
+/// }
+///
+/// fn main() {
+///     let mut sasl = SASL::new().unwrap();
+///     sasl.install_callback::<TypedCallback>();
+///
+///     {
+///         // Start an example exchange
+///         let mut session = sasl.client_start("PLAIN").unwrap();
+///
+///         // This is global data so scope is irrelevant
+///         sasl.store(Box::new(1));
+///
+///         // This data however is only valid for this one session
+///         session.store(Box::new("Hello SASL".to_string()));
+///
+///         let rt = sasl.callback(&mut session, Property::GSASL_SERVICE);
+///         assert_eq!(rt, ReturnCode::GSASL_OK as libc::c_int)
+///     }
+///
+///     {
+///         // Start a new session...
+///         let mut session = sasl.client_start("PLAIN").unwrap();
+///         // ...but don't store any session-specific data
+///
+///         let rt = sasl.callback(&mut session, Property::GSASL_SERVICE);
+///         assert_eq!(rt, ReturnCode::GSASL_OK as libc::c_int)
+///     }
+///
+///     {
+///         // Start a new session...
+///         let mut session = sasl.client_start("PLAIN").unwrap();
+///         // ...and store different data than the first time
+///         session.store(Box::new("Hello again".to_string()));
+///
+///         let rt = sasl.callback(&mut session, Property::GSASL_SERVICE);
+///         assert_eq!(rt, ReturnCode::GSASL_OK as libc::c_int)
+///     }
+///
+/// }
+/// ```
+
+
 pub trait Callback<D,E> {
-    fn callback(sasl: &mut SASL<D,E>, session: &mut Session<E>, prop: Property) -> libc::c_int;
+    /// Application callback function to be implemented
+    ///
+    /// The parameters passed are the global SASL context, the session context and the `Property`
+    /// indicating what data has to be provided or what action has to be taken.
+    ///
+    /// The callback should return `Ok(())` on success and and `Err(ReturnCode)` on failure with
+    /// the ReturnCode indicating the kind of error.
+    ///
+    /// See the [gsasl website](https://www.gnu.org/software/gsasl/manual/gsasl.html#Error-values)
+    /// for a list of possible return value with their descriptions.
+    fn callback(sasl: &mut SASL<D,E>, session: &mut Session<E>, prop: Property) -> Result<(), ReturnCode>;
 }
 
 pub(crate) extern "C" fn wrap<C: Callback<D,E>, D, E>(
@@ -63,4 +175,7 @@ pub(crate) extern "C" fn wrap<C: Callback<D,E>, D, E>(
     let mut sasl = SASL::from_ptr(ctx);
     let mut session = Session::from_ptr(sctx);
     C::callback(&mut sasl, &mut session, prop as Property)
+        .err()                              // Extract the error return code if it exists
+        .unwrap_or(ReturnCode::GSASL_OK)    // Otherwise set the return value to GSASL_OK
+        as libc::c_int
 }

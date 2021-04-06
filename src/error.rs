@@ -5,6 +5,9 @@ use std::ffi::CStr;
 pub type Result<T> = std::result::Result<T, SaslError>;
 
 #[derive(Debug)]
+/// The gsasl error type
+///
+/// gsasl has its own error type providing access to human-readable descriptions
 pub struct SaslError(pub libc::c_int);
 
 impl fmt::Display for SaslError {

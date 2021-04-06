@@ -84,7 +84,7 @@
 use gsasl_sys::*;
 pub use gsasl_sys::Gsasl_rc::*;
 use std::ptr;
-use std::ffi::CString;
+use std::ffi::{CString, CStr};
 
 use discard::{Discard, DiscardOnDrop};
 
@@ -120,15 +120,16 @@ pub use error::{
 ///
 /// It implements housekeeping functionality, calling `gsasl_init` and `gsasl_done` as required.
 ///
-/// The reason for this split lays in callbacks - they are given pointers to the (C struct) context
-/// and session they were called from which we wrap so the safe(r) Rust methods can be used
-/// instead, but we MUST NOT call `done` on the context or the session afterwards.
+/// The type parameters `D` and `E` define the types you can store / retrieve in callbacks; gsasl
+/// allows to store one object in both the context and session allowing callbacks to access values
+/// from the application despite going through a FFI layer.
 ///
-/// TODO: Expand this D,E explanation
-/// The two type parameters restrict the types you can store / retrieve in callbacks; gsasl allows
-/// to store two objects in the context and session so that the callback function can access them
-/// despite being called with no reference to Rust's execution environment otherwise. They are
-/// exposed in rsasl as [store](struct.SASL.html#method.store) and [retrieve](struct.SASL.html#method.retrieve_mut)
+/// Values stored in the global context using [store](SASL::store) are available to all callbacks
+/// via [retrieve_mut](SASL::retrieve_mut). Values stored with [`Session::store`](Session::store)
+/// are only available in that session via [`Session::retrieve_mut`](Session::retrieve_mut).
+///
+/// The stored value can be extracted again using [`retrieve`](SASL::retrieve) and it's 
+/// [`Session` requivalent](Session::retrieve).
 pub struct SASL<D,E> {
     // The underlying context as returned by gsasl
     ctx: *mut Gsasl,
@@ -183,9 +184,12 @@ impl<D, E> SASL<D,E> {
         Ok(())
     }
 
-    /// return the list of supported mechanism on the client side as a space-separated string
-    // The underlying pointer must be freed by the caller, so for the sake of easier ownership
-    // this must return a SaslString and not a &str, &CStr or similar.
+    /// Returns the list of Client Mechanisms supported by this library.
+    ///
+    /// Important note: This will make no attempt to check if the application has provided the
+    /// required data for the listed mechanisms. For example this will return the `GSSAPI` and
+    /// `KERBEROS_V5` mechanism if the system gsasl was linked with a libkrb5, independent of if
+    /// the application has a valid ticket.
     pub fn client_mech_list(&self) -> error::Result<Mechanisms> {
         // rustc's borrow checker can't prove that we will never read this before having
         // initialized it so this *must* be initialized by us.
@@ -209,9 +213,12 @@ impl<D, E> SASL<D,E> {
         }
     }
 
-    /// return the list of supported mechanism on the server side as a space-separated string
-    // The underlying pointer must be freed by the caller, so for the sake of easier ownership
-    // this must return a SaslString and not a &str, &CStr or similar.
+    /// Returns the list of Server Mechanisms supported by this library.
+    ///
+    /// Important note: This will make no attempt to check if the application has provided the
+    /// required data for the listed mechanisms. For example this will return the `GSSAPI` and
+    /// `KERBEROS_V5` mechanism if the system gsasl was linked with a libkrb5, independent of if
+    /// the application has a valid keytab.
     pub fn server_mech_list(&self) -> error::Result<Mechanisms> {
         // rustc's borrow checker can't prove that we will never read this so this *must* be
         // initialized.
@@ -235,10 +242,10 @@ impl<D, E> SASL<D,E> {
         }
     }
 
-    /// Return wheter there is client-side support for the specified mechanism
-    pub fn client_supports(&self, mech: &str) -> bool {
+    /// Returns wheter there is client-side support for the specified mechanism
+    pub fn client_supports(&self, mech: &CStr) -> bool {
         // returns 1 if there is client support for the specific mechanism
-        let ret = unsafe { gsasl_client_support_p(self.ctx, mech.as_ptr() as *const i8) };
+        let ret = unsafe { gsasl_client_support_p(self.ctx, mech.to_bytes_with_nul().as_ptr() as *const i8) };
         if ret == 1 {
             return true;
         } else {
@@ -246,8 +253,8 @@ impl<D, E> SASL<D,E> {
         }
     }
 
-    /// Return wheter there is server-side support for the specified mechanism
-    pub fn server_supports(&self, mech: &str) -> bool {
+    /// Returns wheter there is server-side support for the specified mechanism
+    pub fn server_supports(&self, mech: &CStr) -> bool {
         // returns 1 if there is server support for the specific mechanism
         let ret = unsafe { gsasl_server_support_p(self.ctx, mech.as_ptr() as *const i8) };
         if ret == 1 {
@@ -257,12 +264,16 @@ impl<D, E> SASL<D,E> {
         }
     }
 
-    /// The callback is used by mechanisms to retrieve information, such as username and password,
-    /// from the application. In a server, the callback is used to decide whether a user is
-    /// permitted to log in or not. 
-    /// With this function you install the callback for the given context.
+    /// Install a callback.
     ///
-    /// See the [trait documentation](trait.Callback.html) for details on how to use this function
+    /// Callbacks are used to retrieve information, such as username and password, from the
+    /// application. In a server, the callback is additionally used make decisions such as whether
+    /// a user is permitted to log in or not. 
+    ///
+    /// See the [callback documentation](Callback) for details on how to use this function
+    ///
+    /// Do note that the generic types `D` and `E` need to match between `SASL`, `Session` and
+    /// `Callback` to ensure typesafety. [More information](Callback#typesafety)
     pub fn install_callback<C: Callback<D,E>>(&mut self) {
         self.install_callback_raw(Some(callback::wrap::<C, D, E>));
     }
@@ -271,15 +282,17 @@ impl<D, E> SASL<D,E> {
         unsafe { gsasl_callback_set(self.ctx, callback); }
     }
 
-    /// Start the client side of an authentication exchange
+    /// Starts a authentication exchange as the client role
     ///
-    /// Depending on the mechanism you have chosen this may need additional data from you (such as
-    /// an authcid, and/or authzid and password for PLAIN). To provide that data either call
-    /// `set_property` on the returned session or install a Callback.
+    /// Depending on the mechanism chosen this may need additional data from the application, such
+    /// as an authcid, optional authzid and password for PLAIN. To provide that data an application
+    /// has to either call `set_property` before running the step that requires the data, or
+    /// install a callback.
     ///
-    /// See [the gsasl documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Using-a-callback) for
-    /// how gsasl uses properties and callbacks.
-    pub fn client_start(&mut self, mech: &str) -> error::Result<Session<E>> {
+    /// See [the gsasl
+    /// documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Properties) for what
+    /// mechanism uses what properties.
+    pub fn client_start(&mut self, mech: &str) -> error::Result<DiscardOnDrop<Session<E>>> {
         let mut ptr: *mut Gsasl_session = ptr::null_mut();
         let mech_string = CString::new(mech).map_err(|_| { SaslError(GSASL_UNKNOWN_MECHANISM as libc::c_int) })?;
         let res = unsafe {
@@ -293,19 +306,20 @@ impl<D, E> SASL<D,E> {
             Err(error::SaslError(res))
         } else {
             let session = Session::from_ptr(ptr);
-            Ok(session)
+            Ok(DiscardOnDrop::new(session))
         }
     }
 
-    /// Start the server side of an authentication exchange
+    /// Starts a authentication exchange as the server role
     ///
-    /// Depending on the mechanism you have chosen this may need additional data from you (such as
-    /// the ability to check authcid/authzid/password combinations for PLAIN). Either provide that
-    /// data using calls to `set_property` on the returned session or install a Callback.
+    /// An application acting as server will most likely need to implement a callback to check the
+    /// authentication data provided by the user.
+    ///
+    /// See [Callback](Callback) on how to implement callbacks.
     ///
     /// See [the gsasl documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Using-a-callback) for
     /// how gsasl uses properties and callbacks.
-    pub fn server_start(&mut self, mech: &str) -> error::Result<Session<E>> {
+    pub fn server_start(&mut self, mech: &str) -> error::Result<DiscardOnDrop<Session<E>>> {
         let mut ptr: *mut Gsasl_session = ptr::null_mut();
         let res = unsafe {
             gsasl_server_start(self.ctx, mech.as_ptr() as *const i8, &mut ptr as *mut *mut Gsasl_session)
@@ -315,13 +329,14 @@ impl<D, E> SASL<D,E> {
             Err(error::SaslError(res))
         } else {
             let session = Session::from_ptr(ptr);
-            Ok(session)
+            Ok(DiscardOnDrop::new(session))
         }
     }
 
     /// Store some data in the SASL context
     ///
-    /// This allows a callback to later access that data using `retrieve` or `retrieve_mut`
+    /// This allows a callback to later access that data using [`retrieve`](Self::retrieve) or
+    /// [`retrieve_mut`](Self::retrieve_mut)
     pub fn store(&mut self, data: Box<D>) {
         // This is safe because the worst that can happen is that we leak a previously stored
         // value.
@@ -330,7 +345,7 @@ impl<D, E> SASL<D,E> {
         }
     }
 
-    /// Retrieve the data stored with `store`, leaving nothing in its place
+    /// Retrieve the data stored with [`store`](Self::store), leaving nothing in its place
     ///
     /// This function will return `None` if no data was stored. This function is unsafe because we
     /// can not guarantee that there is currently nothing else that has a reference to the data
@@ -349,10 +364,10 @@ impl<D, E> SASL<D,E> {
         }
     }
 
-    /// Retrieve a mutable reference to the data stored with `store`
+    /// Retrieve a mutable reference to the data stored with [`store`](Self::store)
     ///
-    /// This is an alternative to `retrieve_raw` that does not take ownership of the stored data,
-    /// thus also not dropping it after it has left the current scope. Mainly useful for callbacks
+    /// This function does not take ownership of the stored data, thus also not dropping it after
+    /// it has left the current scope.
     ///
     /// The function tries to return `None` if no data was stored.
     pub fn retrieve_mut(&mut self) -> Option<&mut D> {
@@ -364,7 +379,7 @@ impl<D, E> SASL<D,E> {
         }
     }
 
-    /// Run the configured callback
+    /// Run the configured callback.
     pub fn callback(&mut self, session: &mut Session<E>, prop: Property) -> libc::c_int {
         unsafe { gsasl_callback(self.ctx, session.as_ptr(), prop) }
     }
@@ -413,11 +428,11 @@ mod tests {
         struct CB;
         impl Callback<u32, u64> for CB {
             fn callback(sasl: &mut SASL<u32, u64>, session: &mut Session<u64>, _prop: Property) 
-                -> libc::c_int
+                -> Result<(), ReturnCode>
             {
                 assert_eq!(sasl.retrieve_mut(), Some(&mut 0x55555555));
                 assert_eq!(session.retrieve_mut(), Some(&mut 0xAAAAAAAAAAAAAAAA));
-                GSASL_OK as libc::c_int
+                Ok(())
             }
         }
 
@@ -436,11 +451,11 @@ mod tests {
         struct CB;
         impl Callback<u32, u64> for CB {
             fn callback(sasl: &mut SASL<u32, u64>, session: &mut Session<u64>, _prop: Property) 
-                -> libc::c_int
+                -> Result<(), ReturnCode>
             {
                 assert_eq!(sasl.retrieve_mut(), None);
                 assert_eq!(session.retrieve_mut(), None);
-                GSASL_OK as libc::c_int
+                Ok(())
             }
         }
 
