@@ -10,8 +10,11 @@ use crate::error::{Result, SaslError};
 use discard::{Discard};
 
 #[derive(Debug)]
-/// SASL Session
+/// The context of an authentication exchange
 ///
+/// This struct will call the necesarry initializers on construction and finalizers when
+/// `discarded`. If manual housekeeping is required the session can be leaked with
+/// [`DiscardOnDrop::leak`](discard::DiscardOnDrop::leak).
 pub struct Session<D> {
     ptr: *mut Gsasl_session,
     phantom: std::marker::PhantomData<D>,
@@ -30,11 +33,11 @@ pub enum Step<T> {
 pub type StepResult<T> = Result<Step<T>>;
 
 impl<D> Session<D> {
-    /// Perform one step of SASL authentication. This reads data from `input`, processes it
-    /// (potentially calling the configured callback) and returns data to be returned to the other
-    /// end.
+    /// Perform one step of SASL authentication. This reads data from `input` then processes it,
+    /// potentially calling a configured callback for required properties or enact decisions, and
+    /// finally returns data to be send to the other party.
     ///
-    /// Note: This function may leak memory on failure.
+    /// Note: This function may leak memory on internal failure.
     pub fn step(&mut self, input: &[u8]) -> StepResult<SaslBuffer> {
         // rustc can't prove this will never be read so we need to initialize it to a (bogus)
         // value.
@@ -63,7 +66,7 @@ impl<D> Session<D> {
         }
     }
 
-    /// A simple wrapper around the interal step function that base64-decodes the input and
+    /// A simple wrapper around the gsasl step function that base64-decodes the input and
     /// base64-encodes the output. Mainly useful for text-based protocols.
     ///
     /// Note: This function may leak memory on failure since the internal step function does as well.
@@ -83,7 +86,7 @@ impl<D> Session<D> {
         }
     }
 
-    /// Set a property on the session context
+    /// Set a property in the session context
     ///
     /// A `property` in this context is a piece of information used by authentication mechanisms,
     /// for example the Authcid, Authzid and Password for PLAIN.
@@ -98,8 +101,8 @@ impl<D> Session<D> {
 
     /// Try to read a property from the session context
     ///
-    /// This maps to `gsasl_property_fast` in gsasl meaning it will *not* call the callback to
-    /// retrieve properties it does not know about.
+    /// This maps to `gsasl_property_fast` meaning it will *not* call the callback to retrieve
+    /// properties it does not know about.
     ///
     /// Returns `None` if the property is now known or was not set
     pub fn get_property(&self, prop: Property) -> Option<&CStr> {
@@ -144,7 +147,7 @@ impl<D> Session<D> {
     /// Retrieve a mutable reference to the data stored with `store`
     ///
     /// This is an alternative to `retrieve_raw` that does not take ownership of the stored data,
-    /// thus also not dropping it after it has left the current scope. Mainly useful for callbacks
+    /// thus also not dropping it after it has left the current scope.
     ///
     /// The function tries to return `None` if no data was stored.
     pub fn retrieve_mut(&mut self) -> Option<&mut D> {

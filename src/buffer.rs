@@ -5,7 +5,7 @@ use std::ffi::CStr;
 ///
 ///  For most purposes this acts like a Box<[u8]>.  The main reason for its existance is to prevent
 ///  allocator corruption or other bad behaviour in the case that libgsasl uses a different
-///  allocator to the Rust runtime (e.g. glibc vs jemalloc).  SaslBuffer implements
+///  allocator to the Rust runtime (e.g. glibc malloc vs jemalloc).  SaslBuffer implements
 ///  Deref<Target=[u8]> which is where most of the API comes from.
 #[derive(Debug)]
 pub struct SaslBuffer {
