@@ -294,11 +294,15 @@ impl<D, E> SASL<D,E> {
     /// mechanism uses what properties.
     pub fn client_start(&mut self, mech: &str) -> error::Result<DiscardOnDrop<Session<E>>> {
         let mut ptr: *mut Gsasl_session = ptr::null_mut();
-        let mech_string = CString::new(mech).map_err(|_| { SaslError(GSASL_UNKNOWN_MECHANISM as libc::c_int) })?;
+
+        // Convert the mechanism &str to a zero-terminated String.
+        let cmech = CString::new(mech)
+            .map_err(|_| SaslError(ReturnCode::GSASL_MECHANISM_PARSE_ERROR as libc::c_int))?;
+
         let res = unsafe {
             gsasl_client_start(
                 self.ctx, 
-                mech_string.as_ptr(),
+                cmech.as_ptr(),
                 &mut ptr as *mut *mut Gsasl_session)
         };
 
@@ -321,8 +325,17 @@ impl<D, E> SASL<D,E> {
     /// how gsasl uses properties and callbacks.
     pub fn server_start(&mut self, mech: &str) -> error::Result<DiscardOnDrop<Session<E>>> {
         let mut ptr: *mut Gsasl_session = ptr::null_mut();
+
+        // Convert the mechanism &str to a zero-terminated String.
+        let cmech = CString::new(mech)
+            .map_err(|_| SaslError(ReturnCode::GSASL_MECHANISM_PARSE_ERROR as libc::c_int))?;
+
         let res = unsafe {
-            gsasl_server_start(self.ctx, mech.as_ptr() as *const i8, &mut ptr as *mut *mut Gsasl_session)
+            gsasl_server_start(
+                self.ctx,
+                cmech.as_ptr(),
+                &mut ptr as *mut *mut Gsasl_session
+            )
         };
 
         if res != (GSASL_OK as libc::c_int) {
