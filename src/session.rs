@@ -87,6 +87,7 @@ impl<D> Session<D> {
     ///
     /// A `property` in this context is a piece of information used by authentication mechanisms,
     /// for example the Authcid, Authzid and Password for PLAIN.
+    /// This is the Rust equivalent to the `gsasl_property_set` funciton.
     pub fn set_property(&mut self, prop: Property, data: &[u8]) {
         let data_ptr = data.as_ptr() as *const libc::c_char;
         let len = data.len() as size_t;
@@ -171,6 +172,10 @@ impl<D> Session<D> {
 
 impl<D> Discard for Session<D> {
     fn discard(mut self) {
+        // Retrieve and drop the stored value. This should always be safe because a session can
+        // only be duplicated by running a callback via an exchange or calling `callback`, in which
+        // case calling discard will be prevented by the borrow checker.
+        unsafe { self.retrieve(); }
         self.finish();
     }
 }

@@ -26,8 +26,9 @@ Since it links to gsasl rsasl can provide a large number of mechanisms:
 # Alternatives
 
 Please see [sasl-rs](https://gitlab.com/xmpp-rs/sasl-rs) for a pure Rust SASL
-implementation. It provides less Mechanisms but does not need heavy use of
-`unsafe` like rsasl does and is easier to use while harder to misuse.
+implementation. It provides less Mechanisms but does not need `unsafe` like
+rsasl does due to it's FFI-bindings and does not rely on an old (albeit
+well written) C library.
 
 
 

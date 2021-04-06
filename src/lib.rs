@@ -1,15 +1,85 @@
-//! RSASL — Rustic bindings to GNU libgsasl
+//! rSASL — Rustic bindings to GNU libgsasl
 //!
 //! [libgsasl](https://www.gnu.org/software/gsasl/) is a pure C, LGPL-2.1 (or later) licensed SASL
-//! library. This crate provides a set of rusty abstractions on top of that library making it hard
-//! to mis-use.
+//! library. This crate provides safe bindings to that library, providing access to a large number
+//! of authentication mechanisms:
+//! - EXTERNAL
+//! - ANONYMOUS
+//! - PLAIN
+//! - LOGIN
+//! - CRAM-MD5
+//! - DIGEST-MD5
+//! - SCRAM-SHA-1
+//! - NTLM
+//! - SECURID
+//! - GSSAPI
+//! - GS2-KRB5
+//! - SAML20
+//! - OPENID20
+//! - KERBEROS_V5
 //!
-//! The main struct in this library is the [`SASL`] struct. It handles resource allocation and
-//! free-ing for you.
+//! #### Usage
 //!
-//! For all but the most basic of applications you will want to also construct an
-//! application-specific [`Callback`], which rsasl will use to ask for additional data required to
-//! perform the handshake.
+//! To use this library a [`SASL`](SASL) struct has to be constructed first. Using this struct the
+//! list of supported mechanisms for authentication can be accessed via
+//! [`SASL::client_mech_list`](SASL::client_mech_list) and
+//! [`SASL::server_mech_list`](SASL::server_mech_list).
+//!
+//! For each authentication exchange a [`Session`](Session) need to be created using
+//! [`SASL::client_start`](SASL::client_start) or [`SASL::server_start`](SASL::server_start),
+//! depending on if the application is acting as the client or server role respectively.
+//!
+//! The returned `Session` can be preloaded with required data for authentication, see
+//! [`Session::set_property`].
+//!
+//! #### Properties
+//!
+//! gsasl uses what it calls 'Properties' to send authentication data to and from an application.
+//! These properties can either be "logic properties" indicating that the application need to make
+//! a decision and "data properties" storing a value such as an username or password.
+//! A detailed explanation of the available properties and their use in mechanism can be found at
+//! the [gsasl website](https://www.gnu.org/software/gsasl/manual/gsasl.html#Properties).
+//!
+//! #### Callbacks
+//!
+//! rSASL uses callbacks to retrieve properties from an application and to allow the
+//! application to make decisions.
+//!
+//! An explanation on how to implement decision logic and callbacks in Rust can be [found
+//! in the Callback documentation](Callback).
+//!
+//! While Server applications will usually need to implement callbacks Client applications can
+//! forgo this and preemptively set properties via
+//! [`Session::set_property`](Session::set_property):
+//!
+//! ```
+//! use rsasl::{SASL, Property, Step::{Done, NeedsMore}};
+//! pub fn main() {
+//!     // Create an untyped SASL because we won't store/retrieve information in the context since
+//!     // we don't use callbacks.
+//!     let mut sasl = SASL::new_untyped().unwrap();
+//!
+//!     // Usually you would first agree on a mechanism with the server, for demostration purposes
+//!     // we directly start a PLAIN "exchange"
+//!     let mut session = sasl.client_start("PLAIN").unwrap();
+//!
+//!
+//!     // Set the username that will be used in the PLAIN authentication
+//!     session.set_property(Property::GSASL_AUTHID, "username".as_bytes());
+//!
+//!     // Now set the password that will be used in the PLAIN authentication
+//!     session.set_property(Property::GSASL_PASSWORD, "secret".as_bytes());
+//!
+//!
+//!     // Do an authentication step. In a PLAIN exchange there is only one step, with no data.
+//!     let step_result = session.step(&[]).unwrap();
+//!
+//!     match step_result {
+//!         Done(buffer) => assert_eq!(buffer.as_ref(), "\0username\0secret".as_bytes()),
+//!         NeedsMore(_) => assert!(false, "PLAIN exchange took more than one step"),
+//!     }
+//! }
+//! ```
 
 use gsasl_sys::*;
 pub use gsasl_sys::Gsasl_rc::*;
@@ -44,14 +114,17 @@ pub use error::{
 };
 
 #[derive(Debug)]
-/// Main rsasl struct
+/// Global SASL Context wrapper implementing housekeeping functionality
 ///
-/// This struct wraps a gsasl context ensuring `gsasl_init` and `gsasl_done` are called.
+/// This struct contains the global gsasl context allowing you to start authentication exchanges.
+///
+/// It implements housekeeping functionality, calling `gsasl_init` and `gsasl_done` as required.
 ///
 /// The reason for this split lays in callbacks - they are given pointers to the (C struct) context
 /// and session they were called from which we wrap so the safe(r) Rust methods can be used
 /// instead, but we MUST NOT call `done` on the context or the session afterwards.
 ///
+/// TODO: Expand this D,E explanation
 /// The two type parameters restrict the types you can store / retrieve in callbacks; gsasl allows
 /// to store two objects in the context and session so that the callback function can access them
 /// despite being called with no reference to Rust's execution environment otherwise. They are
@@ -306,9 +379,28 @@ impl<D, E> SASL<D,E> {
     }
 }
 
+impl SASL<(), ()> {
+    /// Construct an untyped SASL
+    ///
+    /// This is mostly useful for client applications when no callback will be installed and no
+    /// information stored or retrieved in either the global or session context.
+    pub fn new_untyped() -> error::Result<DiscardOnDrop<Self>> {
+        SASL::new()
+    }
+}
+
+
 impl<D,E> Discard for SASL<D,E> {
     fn discard(mut self) {
-        unsafe { self.done() };
+        // This block is save as long as this is the only remaining copy of *this* gsasl context.
+        // This should always hold since the only way to duplicate the context as an user of this
+        // crate is by calling `callback` or having the Callback called in an ongoing exchange,
+        // which should be prevented by the borrow checker.
+        unsafe {
+            // Retrieve and drop the stored value.
+            self.retrieve();
+            self.done();
+        };
     }
 }
 
@@ -320,7 +412,7 @@ mod tests {
     fn callback_test() {
         struct CB;
         impl Callback<u32, u64> for CB {
-            fn callback(mut sasl: SASL<u32, u64>, mut session: Session<u64>, _prop: Property) 
+            fn callback(sasl: &mut SASL<u32, u64>, session: &mut Session<u64>, _prop: Property) 
                 -> libc::c_int
             {
                 assert_eq!(sasl.retrieve_mut(), Some(&mut 0x55555555));
@@ -343,7 +435,7 @@ mod tests {
     fn callback_unset_test() {
         struct CB;
         impl Callback<u32, u64> for CB {
-            fn callback(mut sasl: SASL<u32, u64>, mut session: Session<u64>, _prop: Property) 
+            fn callback(sasl: &mut SASL<u32, u64>, session: &mut Session<u64>, _prop: Property) 
                 -> libc::c_int
             {
                 assert_eq!(sasl.retrieve_mut(), None);
