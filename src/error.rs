@@ -10,6 +10,12 @@ pub type Result<T> = std::result::Result<T, SaslError>;
 /// gsasl has its own error type providing access to human-readable descriptions
 pub struct SaslError(pub libc::c_int);
 
+impl SaslError {
+    pub fn matches(&self, rc: crate::ReturnCode) -> bool {
+        self.0 == (rc as libc::c_int)
+    }
+}
+
 impl fmt::Display for SaslError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", gsasl_err_to_str(self.0))
