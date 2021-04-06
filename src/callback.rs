@@ -39,7 +39,7 @@ use crate::session::Session;
 /// impl Callback<(), ()> for CB {
 ///     // Note that this function does *not* take `self`. You can not access data from the type
 ///     // you are implementing this trait on
-///     fn callback(sasl: SASL<(), ()>, session: Session<()>, prop: Property) -> libc::c_int {
+///     fn callback(sasl: &mut SASL<(), ()>, session: &mut Session<()>, prop: Property) -> libc::c_int {
 ///         // While you don't have access to data from your system directly you can call
 ///         // SaslCtx::retrieve_mut() here and access data you previously stored
 ///         rsasl::GSASL_OK as libc::c_int
@@ -51,7 +51,7 @@ use crate::session::Session;
 ///
 /// The type parameters here 
 pub trait Callback<D,E> {
-    fn callback(sasl: SASL<D,E>, session: Session<E>, prop: Property) -> libc::c_int;
+    fn callback(sasl: &mut SASL<D,E>, session: &mut Session<E>, prop: Property) -> libc::c_int;
 }
 
 pub(crate) extern "C" fn wrap<C: Callback<D,E>, D, E>(
@@ -60,7 +60,7 @@ pub(crate) extern "C" fn wrap<C: Callback<D,E>, D, E>(
     prop: gsasl_sys::Gsasl_property)
     -> libc::c_int
 {
-    let sasl = SASL::from_ptr(ctx);
-    let session = Session::from_ptr(sctx);
-    C::callback(sasl, session, prop as Property)
+    let mut sasl = SASL::from_ptr(ctx);
+    let mut session = Session::from_ptr(sctx);
+    C::callback(&mut sasl, &mut session, prop as Property)
 }
