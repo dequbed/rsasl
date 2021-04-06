@@ -1,6 +1,5 @@
 use std::ptr;
 use std::ffi::CStr;
-use std::ops::{Drop, Deref, DerefMut};
 use gsasl_sys::*;
 use gsasl_sys::Gsasl_rc::*;
 
@@ -8,42 +7,11 @@ use crate::Property;
 use crate::buffer::{SaslBuffer, SaslString};
 use crate::error::{Result, SaslError};
 
-#[derive(Debug)]
-/// SASL Session handle
-///
-/// This struct wraps a [SASL Session](struct.Session.html).  Similar to how `SASL` is implemented
-/// this implements Deref and DerefMut to the unmanaged `Session` while itself providing the memory
-/// management.
-pub struct SessionHandle<D> {
-    session: Session<D>,
-}
-impl<D> SessionHandle<D> {
-    pub(crate) fn from_ptr(ptr: *mut Gsasl_session) -> Self {
-        let session = Session::from_ptr(ptr);
-        SessionHandle { session }
-    }
-}
-impl<D> Drop for SessionHandle<D> {
-    fn drop(&mut self) {
-        self.session.finish();
-    }
-}
-impl<D> Deref for SessionHandle<D> {
-    type Target = Session<D>;
-    fn deref(&self) -> &Self::Target {
-        &self.session
-    }
-}
-impl<D> DerefMut for SessionHandle<D> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.session
-    }
-}
+use discard::{Discard};
 
 #[derive(Debug)]
 /// SASL Session
 ///
-/// A session is a single authentication exchange between a server and a client.
 pub struct Session<D> {
     ptr: *mut Gsasl_session,
     phantom: std::marker::PhantomData<D>,
@@ -198,5 +166,11 @@ impl<D> Session<D> {
 
     pub(crate) fn finish(&mut self) {
         unsafe { gsasl_finish(self.ptr) };
+    }
+}
+
+impl<D> Discard for Session<D> {
+    fn discard(mut self) {
+        self.finish();
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "rsasl"
-version = "0.2.4"
+version = "0.3.0"
 authors = ["Gregor Reitzenstein <me@dequbed.space>"]
 edition = "2018"
 description = "Rusty bindings to gsasl-sys"
@@ -20,6 +20,9 @@ build_bindgen = ["gsasl-sys/build_bindgen"]
 [dependencies]
 libc = "0.2"
 gsasl-sys = { path = "gsasl-sys", version = "0.2.3", default-features = false }
+
+# Discard is used to make the `SASL` and `Session` structs more ergonomic to use in callbacks
+discard = "1.0.4"
 
 [workspace]
 members = ["gsasl-sys"]
