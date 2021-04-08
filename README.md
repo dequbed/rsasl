@@ -14,6 +14,7 @@ Since it links to gsasl rsasl can provide a large number of mechanisms:
 - CRAM-MD5
 - DIGEST-MD5
 - SCRAM-SHA-1
+- SCRAM-SHA-256
 - NTLM
 - SECURID
 - GSSAPI
@@ -34,8 +35,17 @@ well written) C library.
 
 You can find a few examples on [GitHub](examples/).
 
+# Stability & Development
+
+rsasl is currently in stable maintenance mode. While there are no plans to
+extend this crate with additional features or mechanism, issues and especially
+security-related bugs will be responded to and fixed quickly.
+
+If you have need for additional features in this crate do open an issue on
+GitHub but be aware that we may not have time to implement it.
+
 [Latest Version]: https://img.shields.io/crates/v/rsasl.svg
 [crates.io]: https://crates.io/crates/rsasl
 [docs]: https://docs.rs/rsasl/badge.svg
 [docs.rs]: https://docs.rs/rsasl/
-[maintenance]: https://img.shields.io/badge/maintenance-actively--developed-brightgreen.svg
+[maintenance]: https://img.shields.io/badge/maintenance-passively--developed-green.svg
