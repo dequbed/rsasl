@@ -6,7 +6,7 @@ pub type Result<T> = std::result::Result<T, SaslError>;
 
 static UNKNOWN_ERROR: &'static str = "The given error code is unknown to gsasl";
 
-#[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(PartialEq, PartialOrd, Eq, Ord)]
 /// The gsasl error type
 ///
 /// gsasl has its own error type providing access to human-readable descriptions
@@ -21,6 +21,11 @@ impl SaslError {
     }
 }
 
+impl fmt::Debug for SaslError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}): {}", self.0, gsasl_err_to_str_internal(self.0))
+    }
+}
 impl fmt::Display for SaslError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", gsasl_err_to_str_internal(self.0))
