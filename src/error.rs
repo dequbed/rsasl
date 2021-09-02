@@ -13,6 +13,9 @@ static UNKNOWN_ERROR: &'static str = "The given error code is unknown to gsasl";
 pub struct SaslError(pub libc::c_int);
 
 impl SaslError {
+    pub fn new(rc: crate::ReturnCode) -> Self {
+        Self(rc as libc::c_int)
+    }
     pub fn matches(&self, rc: crate::ReturnCode) -> bool {
         self.0 == (rc as libc::c_int)
     }
