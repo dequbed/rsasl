@@ -242,6 +242,25 @@ impl<D, E> SASL<D,E> {
         }
     }
 
+    /// Suggests a mechanism to use from a given list of Mechanisms. Returns
+    /// Err(GSASL_UNKNOWN_MECHANISM) if there was no supported mechanism found in the given list,
+    /// and Err(GSASL_MECHANISM_PARSE_ERROR) if the returned mechanism name is invalid.
+    // The ptr returned by the ffi call is typed as 'const char*', so it should be valid for as
+    // long as libgsasl is loaded.
+    pub fn suggest_client_mechanism(&self, mechs: Mechanisms) -> Result<&str, SaslError> {
+        unsafe {
+            let ptr = gsasl_client_suggest_mechanism(self.ctx, mechs.as_raw_ptr());
+            if ptr.is_null() {
+                Err(SaslError(GSASL_UNKNOWN_MECHANISM as libc::c_int))
+            } else {
+                let cstr = CStr::from_ptr(ptr);
+                cstr.to_str()
+                    .map_err(|_: std::str::Utf8Error|
+                        SaslError(GSASL_MECHANISM_PARSE_ERROR as libc::c_int))
+            }
+        }
+    }
+
     /// Returns wheter there is client-side support for the specified mechanism
     pub fn client_supports(&self, mech: &CStr) -> bool {
         // returns 1 if there is client support for the specific mechanism
@@ -435,6 +454,7 @@ impl<D,E> Discard for SASL<D,E> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::iter::FromIterator;
 
     #[test]
     fn callback_test() {
@@ -478,5 +498,24 @@ mod tests {
 
         assert_eq!(GSASL_OK as libc::c_int,
             sasl.callback(&mut session, Property::GSASL_VALIDATE_SIMPLE));
+    }
+
+    #[test]
+    fn suggest_good() {
+        let mechs = vec!["PLAIN", "GSSAPI", "INVALID", "SCRAM-SHA-256"];
+        let mut sasl = SASL::new_untyped().unwrap();
+        let suggest = sasl.suggest_client_mechanism(Mechanisms::from_iter(mechs.iter()));
+
+        assert!(suggest.is_ok());
+        assert_eq!("GSSAPI", suggest.unwrap());
+    }
+
+    #[test]
+    fn suggest_fail_on_invalid() {
+        let mechs = vec!["INVALID", "ALSOINV", "MOREINV3"];
+        let mut sasl = SASL::new_untyped().unwrap();
+        let suggest = sasl.suggest_client_mechanism(Mechanisms::from_iter(mechs.iter()));
+
+        assert_eq!(Err(SaslError(GSASL_UNKNOWN_MECHANISM as libc::c_int)), suggest);
     }
 }
