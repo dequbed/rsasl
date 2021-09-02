@@ -4,7 +4,7 @@ use std::ffi::CStr;
 
 pub type Result<T> = std::result::Result<T, SaslError>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
 /// The gsasl error type
 ///
 /// gsasl has its own error type providing access to human-readable descriptions
