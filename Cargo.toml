@@ -1,6 +1,6 @@
 [package]
 name = "rsasl"
-version = "1.3.0"
+version = "1.4.0"
 authors = ["Gregor Reitzenstein <me@dequbed.space>"]
 edition = "2018"
 description = "A SASL crate based on GNU gsasl"
