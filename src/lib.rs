@@ -112,7 +112,9 @@ pub use session::Step;
 
 pub use error::{
     SaslError,
+    rsasl_err_to_str,
     gsasl_err_to_str,
+    rsasl_errname_to_str,
     gsasl_errname_to_str,
 };
 
