@@ -86,7 +86,10 @@ pub use gsasl_sys::Gsasl_rc::*;
 use std::ptr;
 use std::ffi::{CString, CStr};
 
-use discard::{Discard, DiscardOnDrop};
+
+// Re-Export DiscardOnDrop so people can write rsasl::DiscardOnDrop<SASL<D,E>> without having to
+// import the discard crate.
+pub use discard::{Discard, DiscardOnDrop};
 
 pub mod buffer;
 pub mod session;
@@ -140,6 +143,10 @@ pub struct SASL<D,E> {
     appdata: std::marker::PhantomData<D>,
     sessdata: std::marker::PhantomData<E>,
 }
+
+/// Utility type definition to make the outer SASL type spellable without manually importing the
+/// discard crate.
+pub type RSASL<D,E> = DiscardOnDrop<SASL<D,E>>;
 
 impl<D, E> SASL<D,E> {
     /// Create a fresh GSASL context from scratch.
