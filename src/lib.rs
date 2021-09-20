@@ -273,7 +273,7 @@ impl<D, E> SASL<D,E> {
     /// Returns wheter there is client-side support for the specified mechanism
     pub fn client_supports(&self, mech: &CStr) -> bool {
         // returns 1 if there is client support for the specific mechanism
-        let ret = unsafe { gsasl_client_support_p(self.ctx, mech.to_bytes_with_nul().as_ptr() as *const i8) };
+        let ret = unsafe { gsasl_client_support_p(self.ctx, mech.to_bytes_with_nul().as_ptr() as *const libc::c_char) };
         if ret == 1 {
             return true;
         } else {
@@ -284,7 +284,7 @@ impl<D, E> SASL<D,E> {
     /// Returns wheter there is server-side support for the specified mechanism
     pub fn server_supports(&self, mech: &CStr) -> bool {
         // returns 1 if there is server support for the specific mechanism
-        let ret = unsafe { gsasl_server_support_p(self.ctx, mech.as_ptr() as *const i8) };
+        let ret = unsafe { gsasl_server_support_p(self.ctx, mech.as_ptr() as *const libc::c_char) };
         if ret == 1 {
             return true;
         } else {
