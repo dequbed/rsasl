@@ -1,19 +1,19 @@
 use libc::size_t;
 use std::ptr;
 use std::ffi::CStr;
-use rsasl_c2rust::consts::GSASL_OK;
+use crate::gsasl::consts::GSASL_OK;
 
-use crate::Property;
 use crate::buffer::{SaslBuffer, SaslString};
 use crate::error::{Result, SaslError};
 
 use discard::{Discard};
-use rsasl_c2rust::callback::{gsasl_session_hook_get, gsasl_session_hook_set};
-use rsasl_c2rust::consts::{GSASL_NEEDS_MORE, Gsasl_property};
-use rsasl_c2rust::gsasl::Gsasl_session;
-use rsasl_c2rust::property::{gsasl_property_fast, gsasl_property_set_raw};
-use rsasl_c2rust::xfinish::gsasl_finish;
-use rsasl_c2rust::xstep::{gsasl_step, gsasl_step64};
+use crate::gsasl::callback::{gsasl_session_hook_get, gsasl_session_hook_set};
+use crate::gsasl::consts::{GSASL_NEEDS_MORE, Gsasl_property};
+use crate::gsasl::gsasl::Gsasl_session;
+use crate::gsasl::property::{gsasl_property_fast, gsasl_property_set_raw};
+use crate::gsasl::xfinish::gsasl_finish;
+use crate::gsasl::xstep::{gsasl_step, gsasl_step64};
+use crate::Property;
 
 #[derive(Debug)]
 /// The context of an authentication exchange
@@ -101,7 +101,7 @@ impl<D> Session<D> {
         let data_ptr = data.as_ptr() as *const libc::c_char;
         let len = data.len() as size_t;
         unsafe {
-            gsasl_property_set_raw(self.ptr, prop as Gsasl_property, data_ptr, len);
+            gsasl_property_set_raw(self.ptr, prop, data_ptr, len);
         }
     }
 

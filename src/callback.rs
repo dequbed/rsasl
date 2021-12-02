@@ -3,8 +3,8 @@
 // your system has is ABI-compatible with the one you built your software with).
 #![allow(improper_ctypes_definitions)]
 
-use rsasl_c2rust::consts::{GSASL_OK, Gsasl_property};
-use rsasl_c2rust::gsasl::{Gsasl, Gsasl_session};
+use crate::gsasl::consts::{GSASL_OK, Gsasl_property};
+use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
 use crate::{SASL, Property};
 use crate::session::Session;
 
