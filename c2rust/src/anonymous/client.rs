@@ -1,8 +1,8 @@
 use ::libc;
 use crate::consts::{GSASL_ANONYMOUS_TOKEN, GSASL_MALLOC_ERROR, GSASL_NO_ANONYMOUS_TOKEN, GSASL_OK, Gsasl_property};
+use crate::gsasl::Gsasl_session;
 
 extern "C" {
-    pub type Gsasl_session;
     #[no_mangle]
     fn gsasl_property_get(sctx: *mut Gsasl_session, prop: Gsasl_property)
      -> *const libc::c_char;

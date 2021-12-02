@@ -1,4 +1,7 @@
 use ::libc;
+use libc::size_t;
+use crate::gc::Gc_rc;
+
 extern "C" {
     #[no_mangle]
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
@@ -7,7 +10,6 @@ extern "C" {
                    in_0: *const libc::c_void, inlen: size_t,
                    resbuf: *mut libc::c_char) -> Gc_rc;
 }
-pub type size_t = libc::c_ulong;
 /* gc.h --- Header file for implementation agnostic crypto wrapper API.
  * Copyright (C) 2002-2005, 2007-2008, 2011-2021 Free Software Foundation, Inc.
  *
@@ -25,17 +27,6 @@ pub type size_t = libc::c_ulong;
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-/* Get size_t. */
-pub type Gc_rc = libc::c_uint;
-pub const GC_PKCS5_DERIVED_KEY_TOO_LONG: Gc_rc = 8;
-pub const GC_PKCS5_INVALID_DERIVED_KEY_LENGTH: Gc_rc = 7;
-pub const GC_PKCS5_INVALID_ITERATION_COUNT: Gc_rc = 6;
-pub const GC_INVALID_HASH: Gc_rc = 5;
-pub const GC_INVALID_CIPHER: Gc_rc = 4;
-pub const GC_RANDOM_ERROR: Gc_rc = 3;
-pub const GC_INIT_ERROR: Gc_rc = 2;
-pub const GC_MALLOC_ERROR: Gc_rc = 1;
-pub const GC_OK: Gc_rc = 0;
 /* digest.h --- Generate a CRAM-MD5 hex encoded HMAC-MD5 response string.
  * Copyright (C) 2002-2021 Simon Josefsson
  *
@@ -73,13 +64,13 @@ pub unsafe extern "C" fn cram_md5_digest(mut challenge: *const libc::c_char,
     let mut hash: [libc::c_char; 16] = [0; 16];
     let mut i: size_t = 0;
     gc_hmac_md5(secret as *const libc::c_void,
-                if secretlen != 0 { secretlen } else { strlen(secret) },
+                if secretlen != 0 { secretlen } else { strlen(secret) as size_t },
                 challenge as *const libc::c_void,
                 if challengelen != 0 {
                     challengelen
-                } else { strlen(challenge) }, hash.as_mut_ptr());
+                } else { strlen(challenge) as size_t }, hash.as_mut_ptr());
     i = 0 as libc::c_int as size_t;
-    while i < 16 as libc::c_int as libc::c_ulong {
+    while i < 16 {
         let fresh0 = response;
         response = response.offset(1);
         *fresh0 =
