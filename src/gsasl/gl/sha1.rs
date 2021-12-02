@@ -60,7 +60,7 @@ pub unsafe extern "C" fn sha1_read_ctx(mut ctx: *const sha1_ctx,
                              libc::c_ulong).wrapping_mul(::std::mem::size_of::<uint32_t>()
                                                              as libc::c_ulong)
                             as isize),
-               ({
+               {
                     let mut __v: libc::c_uint = 0;
                     let mut __x: libc::c_uint = (*ctx).A;
                     if 0 != 0 {
@@ -78,12 +78,12 @@ pub unsafe extern "C" fn sha1_read_ctx(mut ctx: *const sha1_ctx,
                         __v = __x.to_be();
                     }
                     __v
-                }));
+                });
     set_uint32(r.offset((1 as libc::c_int as
                              libc::c_ulong).wrapping_mul(::std::mem::size_of::<uint32_t>()
                                                              as libc::c_ulong)
                             as isize),
-               ({
+               {
                     let mut __v: libc::c_uint = 0;
                     let mut __x: libc::c_uint = (*ctx).B;
                     if 0 != 0 {
@@ -101,12 +101,12 @@ pub unsafe extern "C" fn sha1_read_ctx(mut ctx: *const sha1_ctx,
                         __v = __x.to_be();
                     }
                     __v
-                }));
+                });
     set_uint32(r.offset((2 as libc::c_int as
                              libc::c_ulong).wrapping_mul(::std::mem::size_of::<uint32_t>()
                                                              as libc::c_ulong)
                             as isize),
-               ({
+               {
                     let mut __v: libc::c_uint = 0;
                     let mut __x: libc::c_uint = (*ctx).C;
                     if 0 != 0 {
@@ -124,12 +124,12 @@ pub unsafe extern "C" fn sha1_read_ctx(mut ctx: *const sha1_ctx,
                         __v = __x.to_be();
                     }
                    __v
-                }));
+                });
     set_uint32(r.offset((3 as libc::c_int as
                              libc::c_ulong).wrapping_mul(::std::mem::size_of::<uint32_t>()
                                                              as libc::c_ulong)
                             as isize),
-               ({
+               {
                     let mut __v: libc::c_uint = 0;
                     let mut __x: libc::c_uint = (*ctx).D;
                     if 0 != 0 {
@@ -147,12 +147,12 @@ pub unsafe extern "C" fn sha1_read_ctx(mut ctx: *const sha1_ctx,
                         __v = __x.to_be();
                     }
                     __v
-                }));
+                });
     set_uint32(r.offset((4 as libc::c_int as
                              libc::c_ulong).wrapping_mul(::std::mem::size_of::<uint32_t>()
                                                              as libc::c_ulong)
                             as isize),
-               ({
+               {
                     let mut __v: libc::c_uint = 0;
                     let mut __x: libc::c_uint = (*ctx).E;
                     if 0 != 0 {
@@ -170,7 +170,7 @@ pub unsafe extern "C" fn sha1_read_ctx(mut ctx: *const sha1_ctx,
                         __v = __x.to_be();
                     }
                     __v
-                }));
+                });
     return resbuf;
 }
 /* Process the remaining bytes in the internal buffer and the usual
@@ -197,7 +197,7 @@ pub unsafe extern "C" fn sha1_finish_ctx(mut ctx: *mut sha1_ctx,
     /* Put the 64-bit file length in *bits* at the end of the buffer.  */
     (*ctx).buffer[size.wrapping_sub(2 as libc::c_int as libc::c_ulong) as
                       usize] =
-        ({
+        {
              let mut __v: libc::c_uint = 0;
              let mut __x: libc::c_uint =
                  (*ctx).total[1 as libc::c_int as usize] << 3 as libc::c_int |
@@ -216,10 +216,10 @@ pub unsafe extern "C" fn sha1_finish_ctx(mut ctx: *mut sha1_ctx,
                  __v = __x.to_be();
              }
              __v
-         });
+         };
     (*ctx).buffer[size.wrapping_sub(1 as libc::c_int as libc::c_ulong) as
                       usize] =
-        ({
+        {
              let mut __v: libc::c_uint = 0;
              let mut __x: libc::c_uint =
                  (*ctx).total[0 as libc::c_int as usize] << 3 as libc::c_int;
@@ -236,7 +236,7 @@ pub unsafe extern "C" fn sha1_finish_ctx(mut ctx: *mut sha1_ctx,
                  __v = __x.to_be();
              }
              __v
-         });
+         };
     memcpy(&mut *((*ctx).buffer.as_mut_ptr() as
                       *mut libc::c_char).offset(bytes as isize) as
                *mut libc::c_char as *mut libc::c_void,
@@ -475,7 +475,7 @@ pub unsafe extern "C" fn sha1_process_block(mut buffer: *const libc::c_void,
         t = 0 as libc::c_int;
         while t < 16 as libc::c_int {
             x[t as usize] =
-                ({
+                {
                      let mut __v: libc::c_uint = 0;
                      let mut __x: libc::c_uint = *words;
                      if 0 != 0 {
@@ -493,7 +493,7 @@ pub unsafe extern "C" fn sha1_process_block(mut buffer: *const libc::c_void,
                          __v = __x.to_be();
                      }
                      __v
-                 });
+                 };
             words = words.offset(1);
             t += 1
         }

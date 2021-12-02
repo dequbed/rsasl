@@ -374,11 +374,11 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
     let mut outlen: idx_t = 0;
     if (if ::std::mem::size_of::<idx_t>() as libc::c_ulong ==
                ::std::mem::size_of::<libc::c_schar>() as libc::c_ulong {
-            (if !((0 as libc::c_int as idx_t) < -(1 as libc::c_int) as idx_t)
+            if !((0 as libc::c_int as idx_t) < -(1 as libc::c_int) as idx_t)
                 {
-                 (if (if (4 as libc::c_int) < 0 as libc::c_int {
-                          (if in_over_3 < 0 as libc::c_int as libc::c_long {
-                               (if ((if 1 as libc::c_int != 0 {
+                 if (if (4 as libc::c_int) < 0 as libc::c_int {
+                          if in_over_3 < 0 as libc::c_int as libc::c_long {
+                               if ((if 1 as libc::c_int != 0 {
                                          0 as libc::c_int
                                      } else {
                                          (if 1 as libc::c_int != 0 {
@@ -504,9 +504,9 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                       }) as libc::c_long <=
                                          -(1 as libc::c_int) as libc::c_long -
                                              in_over_3) as libc::c_int
-                                })
+                                }
                            } else {
-                               (if (if (if ((if 1 as libc::c_int != 0 {
+                               if (if (if ((if 1 as libc::c_int != 0 {
                                                  0 as libc::c_int
                                              } else {
                                                  (if 1 as libc::c_int != 0 {
@@ -646,7 +646,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                     }) != 0 &&
                                        4 as libc::c_int == -(1 as libc::c_int)
                                    {
-                                    (if ((if 1 as libc::c_int != 0 {
+                                    if ((if 1 as libc::c_int != 0 {
                                               0 as libc::c_int as libc::c_long
                                           } else { in_over_3 }) -
                                              1 as libc::c_int as libc::c_long)
@@ -669,21 +669,21 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                       1 as libc::c_int as
                                                           libc::c_long) as
                                              libc::c_int
-                                     })
+                                     }
                                 } else {
                                     ((((-(127 as libc::c_int) -
                                             1 as libc::c_int) /
                                            4 as libc::c_int) as libc::c_long)
                                          < in_over_3) as libc::c_int
-                                })
-                           })
+                                }
+                           }
                       } else {
-                          (if 4 as libc::c_int == 0 as libc::c_int {
+                          if 4 as libc::c_int == 0 as libc::c_int {
                                0 as libc::c_int
                            } else {
-                               (if in_over_3 <
+                               if in_over_3 <
                                        0 as libc::c_int as libc::c_long {
-                                    (if (if (if ((if 1 as libc::c_int != 0 {
+                                    if (if (if ((if 1 as libc::c_int != 0 {
                                                       0 as libc::c_int as
                                                           libc::c_long
                                                   } else {
@@ -909,7 +909,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                             in_over_3 ==
                                                 -(1 as libc::c_int) as
                                                     libc::c_long {
-                                         (if ((if 1 as libc::c_int != 0 {
+                                         if ((if 1 as libc::c_int != 0 {
                                                    0 as libc::c_int
                                                } else { 4 as libc::c_int }) -
                                                   1 as libc::c_int) <
@@ -927,20 +927,20 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                    4 as libc::c_int -
                                                        1 as libc::c_int) as
                                                   libc::c_int
-                                          })
+                                          }
                                      } else {
                                          ((-(127 as libc::c_int) -
                                                1 as libc::c_int) as
                                               libc::c_long / in_over_3 <
                                               4 as libc::c_int as
                                                   libc::c_long) as libc::c_int
-                                     })
+                                     }
                                 } else {
                                     (((127 as libc::c_int / 4 as libc::c_int)
                                           as libc::c_long) < in_over_3) as
                                         libc::c_int
-                                })
-                           })
+                                }
+                           }
                       }) != 0 {
                       outlen =
                           (in_over_3 as
@@ -955,11 +955,11 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                               libc::c_uint) as
                               libc::c_schar as idx_t;
                       0 as libc::c_int
-                  })
+                  }
              } else {
-                 (if (if (4 as libc::c_int) < 0 as libc::c_int {
-                          (if in_over_3 < 0 as libc::c_int as libc::c_long {
-                               (if ((if 1 as libc::c_int != 0 {
+                 if (if (4 as libc::c_int) < 0 as libc::c_int {
+                          if in_over_3 < 0 as libc::c_int as libc::c_long {
+                               if ((if 1 as libc::c_int != 0 {
                                          0 as libc::c_int
                                      } else {
                                          ((if 1 as libc::c_int != 0 {
@@ -1094,9 +1094,9 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                       }) as libc::c_long <=
                                          -(1 as libc::c_int) as libc::c_long -
                                              in_over_3) as libc::c_int
-                                })
+                                }
                            } else {
-                               (if (if (if ((if 1 as libc::c_int != 0 {
+                               if (if (if ((if 1 as libc::c_int != 0 {
                                                  0 as libc::c_int
                                              } else {
                                                  ((if 1 as libc::c_int != 0 {
@@ -1214,7 +1214,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                     }) != 0 &&
                                        4 as libc::c_int == -(1 as libc::c_int)
                                    {
-                                    (if ((if 1 as libc::c_int != 0 {
+                                    if ((if 1 as libc::c_int != 0 {
                                               0 as libc::c_int as libc::c_long
                                           } else { in_over_3 }) -
                                              1 as libc::c_int as libc::c_long)
@@ -1235,20 +1235,20 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                       1 as libc::c_int as
                                                           libc::c_long) as
                                              libc::c_int
-                                     })
+                                     }
                                 } else {
                                     (((0 as libc::c_int / 4 as libc::c_int) as
                                           libc::c_long) < in_over_3) as
                                         libc::c_int
-                                })
-                           })
+                                }
+                           }
                       } else {
-                          (if 4 as libc::c_int == 0 as libc::c_int {
+                          if 4 as libc::c_int == 0 as libc::c_int {
                                0 as libc::c_int
                            } else {
-                               (if in_over_3 <
+                               if in_over_3 <
                                        0 as libc::c_int as libc::c_long {
-                                    (if (if (if ((if 1 as libc::c_int != 0 {
+                                    if (if (if ((if 1 as libc::c_int != 0 {
                                                       0 as libc::c_int as
                                                           libc::c_long
                                                   } else {
@@ -1452,7 +1452,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                             in_over_3 ==
                                                 -(1 as libc::c_int) as
                                                     libc::c_long {
-                                         (if ((if 1 as libc::c_int != 0 {
+                                         if ((if 1 as libc::c_int != 0 {
                                                    0 as libc::c_int
                                                } else { 4 as libc::c_int }) -
                                                   1 as libc::c_int) <
@@ -1467,20 +1467,20 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                    4 as libc::c_int -
                                                        1 as libc::c_int) as
                                                   libc::c_int
-                                          })
+                                          }
                                      } else {
                                          (0 as libc::c_int as libc::c_long /
                                               in_over_3 <
                                               4 as libc::c_int as
                                                   libc::c_long) as libc::c_int
-                                     })
+                                     }
                                 } else {
                                     ((((127 as libc::c_int * 2 as libc::c_int
                                             + 1 as libc::c_int) /
                                            4 as libc::c_int) as libc::c_long)
                                          < in_over_3) as libc::c_int
-                                })
-                           })
+                                }
+                           }
                       }) != 0 {
                       outlen =
                           (in_over_3 as
@@ -1495,17 +1495,17 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                               libc::c_uint) as
                               libc::c_uchar as idx_t;
                       0 as libc::c_int
-                  })
-             })
+                  }
+             }
         } else {
             (if ::std::mem::size_of::<idx_t>() as libc::c_ulong ==
                     ::std::mem::size_of::<libc::c_short>() as libc::c_ulong {
-                 (if !((0 as libc::c_int as idx_t) <
+                 if !((0 as libc::c_int as idx_t) <
                            -(1 as libc::c_int) as idx_t) {
-                      (if (if (4 as libc::c_int) < 0 as libc::c_int {
-                               (if in_over_3 <
+                      if (if (4 as libc::c_int) < 0 as libc::c_int {
+                               if in_over_3 <
                                        0 as libc::c_int as libc::c_long {
-                                    (if ((if 1 as libc::c_int != 0 {
+                                    if ((if 1 as libc::c_int != 0 {
                                               0 as libc::c_int
                                           } else {
                                               ((if 1 as libc::c_int != 0 {
@@ -1655,9 +1655,9 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                               -(1 as libc::c_int) as
                                                   libc::c_long - in_over_3) as
                                              libc::c_int
-                                     })
+                                     }
                                 } else {
-                                    (if (if (if ((if 1 as libc::c_int != 0 {
+                                    if (if (if ((if 1 as libc::c_int != 0 {
                                                       0 as libc::c_int
                                                   } else {
                                                       ((if 1 as libc::c_int !=
@@ -1830,7 +1830,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                          }) != 0 &&
                                             4 as libc::c_int ==
                                                 -(1 as libc::c_int) {
-                                         (if ((if 1 as libc::c_int != 0 {
+                                         if ((if 1 as libc::c_int != 0 {
                                                    0 as libc::c_int as
                                                        libc::c_long
                                                } else { in_over_3 }) -
@@ -1860,22 +1860,22 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                            1 as libc::c_int as
                                                                libc::c_long)
                                                   as libc::c_int
-                                          })
+                                          }
                                      } else {
                                          ((((-(32767 as libc::c_int) -
                                                  1 as libc::c_int) /
                                                 4 as libc::c_int) as
                                                libc::c_long) < in_over_3) as
                                              libc::c_int
-                                     })
-                                })
+                                     }
+                                }
                            } else {
-                               (if 4 as libc::c_int == 0 as libc::c_int {
+                               if 4 as libc::c_int == 0 as libc::c_int {
                                     0 as libc::c_int
                                 } else {
-                                    (if in_over_3 <
+                                    if in_over_3 <
                                             0 as libc::c_int as libc::c_long {
-                                         (if (if (if ((if 1 as libc::c_int !=
+                                         if (if (if ((if 1 as libc::c_int !=
                                                               0 {
                                                            0 as libc::c_int as
                                                                libc::c_long
@@ -2157,7 +2157,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                  in_over_3 ==
                                                      -(1 as libc::c_int) as
                                                          libc::c_long {
-                                              (if ((if 1 as libc::c_int != 0 {
+                                              if ((if 1 as libc::c_int != 0 {
                                                         0 as libc::c_int
                                                     } else {
                                                         4 as libc::c_int
@@ -2181,7 +2181,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                         4 as libc::c_int -
                                                             1 as libc::c_int)
                                                        as libc::c_int
-                                               })
+                                               }
                                           } else {
                                               ((-(32767 as libc::c_int) -
                                                     1 as libc::c_int) as
@@ -2189,14 +2189,14 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                    4 as libc::c_int as
                                                        libc::c_long) as
                                                   libc::c_int
-                                          })
+                                          }
                                      } else {
                                          (((32767 as libc::c_int /
                                                 4 as libc::c_int) as
                                                libc::c_long) < in_over_3) as
                                              libc::c_int
-                                     })
-                                })
+                                     }
+                                }
                            }) != 0 {
                            outlen =
                                (in_over_3 as
@@ -2215,12 +2215,12 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                    libc::c_uint)
                                    as libc::c_short as idx_t;
                            0 as libc::c_int
-                       })
+                       }
                   } else {
-                      (if (if (4 as libc::c_int) < 0 as libc::c_int {
-                               (if in_over_3 <
+                      if (if (4 as libc::c_int) < 0 as libc::c_int {
+                               if in_over_3 <
                                        0 as libc::c_int as libc::c_long {
-                                    (if ((if 1 as libc::c_int != 0 {
+                                    if ((if 1 as libc::c_int != 0 {
                                               0 as libc::c_int
                                           } else {
                                               ((if 1 as libc::c_int != 0 {
@@ -2379,9 +2379,9 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                               -(1 as libc::c_int) as
                                                   libc::c_long - in_over_3) as
                                              libc::c_int
-                                     })
+                                     }
                                 } else {
-                                    (if (if (if ((if 1 as libc::c_int != 0 {
+                                    if (if (if ((if 1 as libc::c_int != 0 {
                                                       0 as libc::c_int
                                                   } else {
                                                       ((if 1 as libc::c_int !=
@@ -2528,7 +2528,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                          }) != 0 &&
                                             4 as libc::c_int ==
                                                 -(1 as libc::c_int) {
-                                         (if ((if 1 as libc::c_int != 0 {
+                                         if ((if 1 as libc::c_int != 0 {
                                                    0 as libc::c_int as
                                                        libc::c_long
                                                } else { in_over_3 }) -
@@ -2553,21 +2553,21 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                            1 as libc::c_int as
                                                                libc::c_long)
                                                   as libc::c_int
-                                          })
+                                          }
                                      } else {
                                          (((0 as libc::c_int /
                                                 4 as libc::c_int) as
                                                libc::c_long) < in_over_3) as
                                              libc::c_int
-                                     })
-                                })
+                                     }
+                                }
                            } else {
-                               (if 4 as libc::c_int == 0 as libc::c_int {
+                               if 4 as libc::c_int == 0 as libc::c_int {
                                     0 as libc::c_int
                                 } else {
-                                    (if in_over_3 <
+                                    if in_over_3 <
                                             0 as libc::c_int as libc::c_long {
-                                         (if (if (if ((if 1 as libc::c_int !=
+                                         if (if (if ((if 1 as libc::c_int !=
                                                               0 {
                                                            0 as libc::c_int as
                                                                libc::c_long
@@ -2817,7 +2817,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                  in_over_3 ==
                                                      -(1 as libc::c_int) as
                                                          libc::c_long {
-                                              (if ((if 1 as libc::c_int != 0 {
+                                              if ((if 1 as libc::c_int != 0 {
                                                         0 as libc::c_int
                                                     } else {
                                                         4 as libc::c_int
@@ -2833,14 +2833,14 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                         4 as libc::c_int -
                                                             1 as libc::c_int)
                                                        as libc::c_int
-                                               })
+                                               }
                                           } else {
                                               (0 as libc::c_int as
                                                    libc::c_long / in_over_3 <
                                                    4 as libc::c_int as
                                                        libc::c_long) as
                                                   libc::c_int
-                                          })
+                                          }
                                      } else {
                                          ((((32767 as libc::c_int *
                                                  2 as libc::c_int +
@@ -2848,8 +2848,8 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                 4 as libc::c_int) as
                                                libc::c_long) < in_over_3) as
                                              libc::c_int
-                                     })
-                                })
+                                     }
+                                }
                            }) != 0 {
                            outlen =
                                (in_over_3 as
@@ -2868,21 +2868,21 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                    libc::c_uint)
                                    as libc::c_ushort as idx_t;
                            0 as libc::c_int
-                       })
-                  })
+                       }
+                  }
              } else {
-                 (if ::std::mem::size_of::<idx_t>() as libc::c_ulong ==
+                 if ::std::mem::size_of::<idx_t>() as libc::c_ulong ==
                          ::std::mem::size_of::<libc::c_int>() as libc::c_ulong
                      {
-                      (if ((if 1 as libc::c_int != 0 {
+                      if ((if 1 as libc::c_int != 0 {
                                 0 as libc::c_int as libc::c_long
                             } else { outlen }) -
                                1 as libc::c_int as libc::c_long) <
                               0 as libc::c_int as libc::c_long {
-                           (if (if (4 as libc::c_int) < 0 as libc::c_int {
-                                    (if in_over_3 <
+                           if (if (4 as libc::c_int) < 0 as libc::c_int {
+                                    if in_over_3 <
                                             0 as libc::c_int as libc::c_long {
-                                         (if ((if 1 as libc::c_int != 0 {
+                                         if ((if 1 as libc::c_int != 0 {
                                                    0 as libc::c_int
                                                } else {
                                                    ((if 1 as libc::c_int != 0
@@ -3066,9 +3066,9 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                        libc::c_long -
                                                        in_over_3) as
                                                   libc::c_int
-                                          })
+                                          }
                                      } else {
-                                         (if (if (if ((if 1 as libc::c_int !=
+                                         if (if (if ((if 1 as libc::c_int !=
                                                               0 {
                                                            0 as libc::c_int
                                                        } else {
@@ -3292,7 +3292,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                               }) != 0 &&
                                                  4 as libc::c_int ==
                                                      -(1 as libc::c_int) {
-                                              (if ((if 1 as libc::c_int != 0 {
+                                              if ((if 1 as libc::c_int != 0 {
                                                         0 as libc::c_int as
                                                             libc::c_long
                                                     } else { in_over_3 }) -
@@ -3330,23 +3330,23 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                     as
                                                                     libc::c_long)
                                                        as libc::c_int
-                                               })
+                                               }
                                           } else {
                                               ((((-(2147483647 as libc::c_int)
                                                       - 1 as libc::c_int) /
                                                      4 as libc::c_int) as
                                                     libc::c_long) < in_over_3)
                                                   as libc::c_int
-                                          })
-                                     })
+                                          }
+                                     }
                                 } else {
-                                    (if 4 as libc::c_int == 0 as libc::c_int {
+                                    if 4 as libc::c_int == 0 as libc::c_int {
                                          0 as libc::c_int
                                      } else {
-                                         (if in_over_3 <
+                                         if in_over_3 <
                                                  0 as libc::c_int as
                                                      libc::c_long {
-                                              (if (if (if ((if 1 as
+                                              if (if (if ((if 1 as
                                                                    libc::c_int
                                                                    != 0 {
                                                                 0 as
@@ -3675,7 +3675,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                           -(1 as libc::c_int)
                                                               as libc::c_long
                                                   {
-                                                   (if ((if 1 as libc::c_int
+                                                   if ((if 1 as libc::c_int
                                                                 != 0 {
                                                              0 as libc::c_int
                                                          } else {
@@ -3708,7 +3708,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                  1 as
                                                                      libc::c_int)
                                                             as libc::c_int
-                                                    })
+                                                    }
                                                } else {
                                                    ((-(2147483647 as
                                                            libc::c_int) -
@@ -3718,14 +3718,14 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                         4 as libc::c_int as
                                                             libc::c_long) as
                                                        libc::c_int
-                                               })
+                                               }
                                           } else {
                                               (((2147483647 as libc::c_int /
                                                      4 as libc::c_int) as
                                                     libc::c_long) < in_over_3)
                                                   as libc::c_int
-                                          })
-                                     })
+                                          }
+                                     }
                                 }) != 0 {
                                 outlen =
                                     (in_over_3 as
@@ -3744,12 +3744,12 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                         libc::c_uint)
                                         as libc::c_int as idx_t;
                                 0 as libc::c_int
-                            })
+                            }
                        } else {
-                           (if (if (4 as libc::c_int) < 0 as libc::c_int {
-                                    (if in_over_3 <
+                           if (if (4 as libc::c_int) < 0 as libc::c_int {
+                                    if in_over_3 <
                                             0 as libc::c_int as libc::c_long {
-                                         (if (if 1 as libc::c_int != 0 {
+                                         if (if 1 as libc::c_int != 0 {
                                                   0 as libc::c_int as
                                                       libc::c_uint
                                               } else {
@@ -3971,9 +3971,9 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                        libc::c_long -
                                                        in_over_3) as
                                                   libc::c_int
-                                          })
+                                          }
                                      } else {
-                                         (if (if (if ((if 1 as libc::c_int !=
+                                         if (if (if ((if 1 as libc::c_int !=
                                                               0 {
                                                            0 as libc::c_int
                                                        } else {
@@ -4160,7 +4160,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                               }) != 0 &&
                                                  4 as libc::c_int ==
                                                      -(1 as libc::c_int) {
-                                              (if ((if 1 as libc::c_int != 0 {
+                                              if ((if 1 as libc::c_int != 0 {
                                                         0 as libc::c_int as
                                                             libc::c_long
                                                     } else { in_over_3 }) -
@@ -4191,22 +4191,22 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                     as
                                                                     libc::c_long)
                                                        as libc::c_int
-                                               })
+                                               }
                                           } else {
                                               (((0 as libc::c_int /
                                                      4 as libc::c_int) as
                                                     libc::c_long) < in_over_3)
                                                   as libc::c_int
-                                          })
-                                     })
+                                          }
+                                     }
                                 } else {
-                                    (if 4 as libc::c_int == 0 as libc::c_int {
+                                    if 4 as libc::c_int == 0 as libc::c_int {
                                          0 as libc::c_int
                                      } else {
-                                         (if in_over_3 <
+                                         if in_over_3 <
                                                  0 as libc::c_int as
                                                      libc::c_long {
-                                              (if (if (if ((if 1 as
+                                              if (if (if ((if 1 as
                                                                    libc::c_int
                                                                    != 0 {
                                                                 0 as
@@ -4502,7 +4502,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                           -(1 as libc::c_int)
                                                               as libc::c_long
                                                   {
-                                                   (if ((if 1 as libc::c_int
+                                                   if ((if 1 as libc::c_int
                                                                 != 0 {
                                                              0 as libc::c_int
                                                          } else {
@@ -4528,7 +4528,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                  1 as
                                                                      libc::c_int)
                                                             as libc::c_int
-                                                    })
+                                                    }
                                                } else {
                                                    (0 as libc::c_int as
                                                         libc::c_long /
@@ -4536,7 +4536,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                         4 as libc::c_int as
                                                             libc::c_long) as
                                                        libc::c_int
-                                               })
+                                               }
                                           } else {
                                               (((2147483647 as libc::c_int as
                                                      libc::c_uint).wrapping_mul(2
@@ -4550,8 +4550,8 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                                                                                                   libc::c_uint)
                                                     as libc::c_long) <
                                                    in_over_3) as libc::c_int
-                                          })
-                                     })
+                                          }
+                                     }
                                 }) != 0 {
                                 outlen =
                                     (in_over_3 as
@@ -4570,23 +4570,23 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                         libc::c_uint)
                                         as idx_t;
                                 0 as libc::c_int
-                            })
-                       })
+                            }
+                       }
                   } else {
-                      (if ::std::mem::size_of::<idx_t>() as libc::c_ulong ==
+                      if ::std::mem::size_of::<idx_t>() as libc::c_ulong ==
                               ::std::mem::size_of::<libc::c_long>() as
                                   libc::c_ulong {
-                           (if ((if 1 as libc::c_int != 0 {
+                           if ((if 1 as libc::c_int != 0 {
                                      0 as libc::c_int as libc::c_long
                                  } else { outlen }) -
                                     1 as libc::c_int as libc::c_long) <
                                    0 as libc::c_int as libc::c_long {
-                                (if (if (4 as libc::c_int) < 0 as libc::c_int
+                                if (if (4 as libc::c_int) < 0 as libc::c_int
                                         {
-                                         (if in_over_3 <
+                                         if in_over_3 <
                                                  0 as libc::c_int as
                                                      libc::c_long {
-                                              (if ((if 1 as libc::c_int != 0 {
+                                              if ((if 1 as libc::c_int != 0 {
                                                         0 as libc::c_int as
                                                             libc::c_long
                                                     } else {
@@ -4819,9 +4819,9 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                             libc::c_long -
                                                             in_over_3) as
                                                        libc::c_int
-                                               })
+                                               }
                                           } else {
-                                              (if (if (if ((if 1 as
+                                              if (if (if ((if 1 as
                                                                    libc::c_int
                                                                    != 0 {
                                                                 0 as
@@ -5142,7 +5142,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                       4 as libc::c_int ==
                                                           -(1 as libc::c_int)
                                                   {
-                                                   (if ((if 1 as libc::c_int
+                                                   if ((if 1 as libc::c_int
                                                                 != 0 {
                                                              0 as libc::c_int
                                                                  as
@@ -5187,7 +5187,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                          as
                                                                          libc::c_long)
                                                             as libc::c_int
-                                                    })
+                                                    }
                                                } else {
                                                    (((-(9223372036854775807 as
                                                             libc::c_long) -
@@ -5196,17 +5196,17 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                              libc::c_long) <
                                                         in_over_3) as
                                                        libc::c_int
-                                               })
-                                          })
+                                               }
+                                          }
                                      } else {
-                                         (if 4 as libc::c_int ==
+                                         if 4 as libc::c_int ==
                                                  0 as libc::c_int {
                                               0 as libc::c_int
                                           } else {
-                                              (if in_over_3 <
+                                              if in_over_3 <
                                                       0 as libc::c_int as
                                                           libc::c_long {
-                                                   (if (if (if ((if 1 as
+                                                   if (if (if ((if 1 as
                                                                         libc::c_int
                                                                         != 0 {
                                                                      0 as
@@ -5558,7 +5558,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                    as
                                                                    libc::c_long
                                                        {
-                                                        (if ((if 1 as
+                                                        if ((if 1 as
                                                                      libc::c_int
                                                                      != 0 {
                                                                   0 as
@@ -5614,7 +5614,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                       libc::c_long)
                                                                  as
                                                                  libc::c_int
-                                                         })
+                                                         }
                                                     } else {
                                                         ((-(9223372036854775807
                                                                 as
@@ -5627,7 +5627,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                  as
                                                                  libc::c_long)
                                                             as libc::c_int
-                                                    })
+                                                    }
                                                } else {
                                                    ((9223372036854775807 as
                                                          libc::c_long /
@@ -5635,8 +5635,8 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                              libc::c_long) <
                                                         in_over_3) as
                                                        libc::c_int
-                                               })
-                                          })
+                                               }
+                                          }
                                      }) != 0 {
                                      outlen =
                                          (in_over_3 as
@@ -5655,14 +5655,14 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                               libc::c_ulong)
                                              as libc::c_long;
                                      0 as libc::c_int
-                                 })
+                                 }
                             } else {
-                                (if (if (4 as libc::c_int) < 0 as libc::c_int
+                                if (if (4 as libc::c_int) < 0 as libc::c_int
                                         {
-                                         (if in_over_3 <
+                                         if in_over_3 <
                                                  0 as libc::c_int as
                                                      libc::c_long {
-                                              (if (if 1 as libc::c_int != 0 {
+                                              if (if 1 as libc::c_int != 0 {
                                                        0 as libc::c_int as
                                                            libc::c_ulong
                                                    } else {
@@ -5923,9 +5923,9 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                              in_over_3) as
                                                             libc::c_ulong) as
                                                        libc::c_int
-                                               })
+                                               }
                                           } else {
-                                              (if (if (if ((if 1 as
+                                              if (if (if ((if 1 as
                                                                    libc::c_int
                                                                    != 0 {
                                                                 0 as
@@ -6156,7 +6156,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                       4 as libc::c_int ==
                                                           -(1 as libc::c_int)
                                                   {
-                                                   (if ((if 1 as libc::c_int
+                                                   if ((if 1 as libc::c_int
                                                                 != 0 {
                                                              0 as libc::c_int
                                                                  as
@@ -6195,24 +6195,24 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                          as
                                                                          libc::c_long)
                                                             as libc::c_int
-                                                    })
+                                                    }
                                                } else {
                                                    (((0 as libc::c_int /
                                                           4 as libc::c_int) as
                                                          libc::c_long) <
                                                         in_over_3) as
                                                        libc::c_int
-                                               })
-                                          })
+                                               }
+                                          }
                                      } else {
-                                         (if 4 as libc::c_int ==
+                                         if 4 as libc::c_int ==
                                                  0 as libc::c_int {
                                               0 as libc::c_int
                                           } else {
-                                              (if in_over_3 <
+                                              if in_over_3 <
                                                       0 as libc::c_int as
                                                           libc::c_long {
-                                                   (if (if (if ((if 1 as
+                                                   if (if (if ((if 1 as
                                                                         libc::c_int
                                                                         != 0 {
                                                                      0 as
@@ -6546,7 +6546,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                    as
                                                                    libc::c_long
                                                        {
-                                                        (if ((if 1 as
+                                                        if ((if 1 as
                                                                      libc::c_int
                                                                      != 0 {
                                                                   0 as
@@ -6585,7 +6585,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                           libc::c_int)
                                                                  as
                                                                  libc::c_int
-                                                         })
+                                                         }
                                                     } else {
                                                         (0 as libc::c_int as
                                                              libc::c_long /
@@ -6594,7 +6594,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                  as
                                                                  libc::c_long)
                                                             as libc::c_int
-                                                    })
+                                                    }
                                                } else {
                                                    ((9223372036854775807 as
                                                          libc::c_long as
@@ -6611,8 +6611,8 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                         in_over_3 as
                                                             libc::c_ulong) as
                                                        libc::c_int
-                                               })
-                                          })
+                                               }
+                                          }
                                      }) != 0 {
                                      outlen =
                                          (in_over_3 as
@@ -6631,20 +6631,20 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                               libc::c_ulong)
                                              as idx_t;
                                      0 as libc::c_int
-                                 })
-                            })
+                                 }
+                            }
                        } else {
-                           (if ((if 1 as libc::c_int != 0 {
+                           if ((if 1 as libc::c_int != 0 {
                                      0 as libc::c_int as libc::c_long
                                  } else { outlen }) -
                                     1 as libc::c_int as libc::c_long) <
                                    0 as libc::c_int as libc::c_long {
-                                (if (if (4 as libc::c_int) < 0 as libc::c_int
+                                if (if (4 as libc::c_int) < 0 as libc::c_int
                                         {
-                                         (if in_over_3 <
+                                         if in_over_3 <
                                                  0 as libc::c_int as
                                                      libc::c_long {
-                                              (if ((if 1 as libc::c_int != 0 {
+                                              if ((if 1 as libc::c_int != 0 {
                                                         0 as libc::c_int as
                                                             libc::c_longlong
                                                     } else {
@@ -6881,9 +6881,9 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                              in_over_3) as
                                                             libc::c_longlong)
                                                        as libc::c_int
-                                               })
+                                               }
                                           } else {
-                                              (if (if (if ((if 1 as
+                                              if (if (if ((if 1 as
                                                                    libc::c_int
                                                                    != 0 {
                                                                 0 as
@@ -7209,7 +7209,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                       4 as libc::c_int ==
                                                           -(1 as libc::c_int)
                                                   {
-                                                   (if ((if 1 as libc::c_int
+                                                   if ((if 1 as libc::c_int
                                                                 != 0 {
                                                              0 as libc::c_int
                                                                  as
@@ -7259,7 +7259,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                      as
                                                                      libc::c_longlong)
                                                             as libc::c_int
-                                                    })
+                                                    }
                                                } else {
                                                    (((-(9223372036854775807 as
                                                             libc::c_longlong)
@@ -7273,17 +7273,17 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                         in_over_3 as
                                                             libc::c_longlong)
                                                        as libc::c_int
-                                               })
-                                          })
+                                               }
+                                          }
                                      } else {
-                                         (if 4 as libc::c_int ==
+                                         if 4 as libc::c_int ==
                                                  0 as libc::c_int {
                                               0 as libc::c_int
                                           } else {
-                                              (if in_over_3 <
+                                              if in_over_3 <
                                                       0 as libc::c_int as
                                                           libc::c_long {
-                                                   (if (if (if ((if 1 as
+                                                   if (if (if ((if 1 as
                                                                         libc::c_int
                                                                         != 0 {
                                                                      0 as
@@ -7651,7 +7651,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                    as
                                                                    libc::c_long
                                                        {
-                                                        (if ((if 1 as
+                                                        if ((if 1 as
                                                                      libc::c_int
                                                                      != 0 {
                                                                   0 as
@@ -7707,7 +7707,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                       libc::c_longlong)
                                                                  as
                                                                  libc::c_int
-                                                         })
+                                                         }
                                                     } else {
                                                         (((-(9223372036854775807
                                                                  as
@@ -7723,7 +7723,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                  as
                                                                  libc::c_longlong)
                                                             as libc::c_int
-                                                    })
+                                                    }
                                                } else {
                                                    ((9223372036854775807 as
                                                          libc::c_longlong /
@@ -7733,8 +7733,8 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                         in_over_3 as
                                                             libc::c_longlong)
                                                        as libc::c_int
-                                               })
-                                          })
+                                               }
+                                          }
                                      }) != 0 {
                                      outlen =
                                          (in_over_3 as
@@ -7755,14 +7755,14 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                                   libc::c_ulonglong)
                                              as libc::c_longlong as idx_t;
                                      0 as libc::c_int
-                                 })
+                                 }
                             } else {
-                                (if (if (4 as libc::c_int) < 0 as libc::c_int
+                                if (if (4 as libc::c_int) < 0 as libc::c_int
                                         {
-                                         (if in_over_3 <
+                                         if in_over_3 <
                                                  0 as libc::c_int as
                                                      libc::c_long {
-                                              (if (if 1 as libc::c_int != 0 {
+                                              if (if 1 as libc::c_int != 0 {
                                                        0 as libc::c_int as
                                                            libc::c_ulonglong
                                                    } else {
@@ -8025,9 +8025,9 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                              in_over_3) as
                                                             libc::c_ulonglong)
                                                        as libc::c_int
-                                               })
+                                               }
                                           } else {
-                                              (if (if (if ((if 1 as
+                                              if (if (if ((if 1 as
                                                                    libc::c_int
                                                                    != 0 {
                                                                 0 as
@@ -8258,7 +8258,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                       4 as libc::c_int ==
                                                           -(1 as libc::c_int)
                                                   {
-                                                   (if ((if 1 as libc::c_int
+                                                   if ((if 1 as libc::c_int
                                                                 != 0 {
                                                              0 as libc::c_int
                                                                  as
@@ -8297,24 +8297,24 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                          as
                                                                          libc::c_long)
                                                             as libc::c_int
-                                                    })
+                                                    }
                                                } else {
                                                    (((0 as libc::c_int /
                                                           4 as libc::c_int) as
                                                          libc::c_long) <
                                                         in_over_3) as
                                                        libc::c_int
-                                               })
-                                          })
+                                               }
+                                          }
                                      } else {
-                                         (if 4 as libc::c_int ==
+                                         if 4 as libc::c_int ==
                                                  0 as libc::c_int {
                                               0 as libc::c_int
                                           } else {
-                                              (if in_over_3 <
+                                              if in_over_3 <
                                                       0 as libc::c_int as
                                                           libc::c_long {
-                                                   (if (if (if ((if 1 as
+                                                   if (if (if ((if 1 as
                                                                         libc::c_int
                                                                         != 0 {
                                                                      0 as
@@ -8648,7 +8648,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                    as
                                                                    libc::c_long
                                                        {
-                                                        (if ((if 1 as
+                                                        if ((if 1 as
                                                                      libc::c_int
                                                                      != 0 {
                                                                   0 as
@@ -8687,7 +8687,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                           libc::c_int)
                                                                  as
                                                                  libc::c_int
-                                                         })
+                                                         }
                                                     } else {
                                                         (0 as libc::c_int as
                                                              libc::c_long /
@@ -8696,7 +8696,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                  as
                                                                  libc::c_long)
                                                             as libc::c_int
-                                                    })
+                                                    }
                                                } else {
                                                    ((9223372036854775807 as
                                                          libc::c_longlong as
@@ -8713,8 +8713,8 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                         in_over_3 as
                                                             libc::c_ulonglong)
                                                        as libc::c_int
-                                               })
-                                          })
+                                               }
+                                          }
                                      }) != 0 {
                                      outlen =
                                          (in_over_3 as
@@ -8735,10 +8735,10 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                                   libc::c_ulonglong)
                                              as idx_t;
                                      0 as libc::c_int
-                                 })
-                            })
-                       })
-                  })
+                                 }
+                            }
+                       }
+                  }
              })
         }) != 0 || inlen < 0 as libc::c_int as libc::c_long {
         *out = 0 as *mut libc::c_char;
