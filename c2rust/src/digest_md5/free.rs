@@ -1,4 +1,6 @@
 use ::libc;
+use libc::size_t;
+
 extern "C" {
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <stdlib.h>.
@@ -37,10 +39,9 @@ extern "C" {
     #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
     #[no_mangle]
-    fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong)
+    fn memset(_: *mut libc::c_void, _: libc::c_int, _: size_t)
      -> *mut libc::c_void;
 }
-pub type size_t = libc::c_ulong;
 /* tokens.h --- Types for DIGEST-MD5 tokens.
  * Copyright (C) 2004-2021 Simon Josefsson
  *
@@ -228,8 +229,7 @@ pub unsafe extern "C" fn digest_md5_free_challenge(mut c:
     }
     rpl_free((*c).realms as *mut libc::c_void);
     rpl_free((*c).nonce as *mut libc::c_void);
-    memset(c as *mut libc::c_void, 0 as libc::c_int,
-           ::std::mem::size_of::<digest_md5_challenge>() as libc::c_ulong);
+    memset(c as *mut libc::c_void, 0, ::std::mem::size_of::<digest_md5_challenge>());
 }
 #[no_mangle]
 pub unsafe extern "C" fn digest_md5_free_response(mut r:
@@ -240,12 +240,9 @@ pub unsafe extern "C" fn digest_md5_free_response(mut r:
     rpl_free((*r).cnonce as *mut libc::c_void);
     rpl_free((*r).digesturi as *mut libc::c_void);
     rpl_free((*r).authzid as *mut libc::c_void);
-    memset(r as *mut libc::c_void, 0 as libc::c_int,
-           ::std::mem::size_of::<digest_md5_response>() as libc::c_ulong);
+    memset(r as *mut libc::c_void, 0, ::std::mem::size_of::<digest_md5_response>());
 }
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_free_finish(mut f:
-                                                    *mut digest_md5_finish) {
-    memset(f as *mut libc::c_void, 0 as libc::c_int,
-           ::std::mem::size_of::<digest_md5_finish>() as libc::c_ulong);
+pub unsafe extern "C" fn digest_md5_free_finish(mut f: *mut digest_md5_finish) {
+    memset(f as *mut libc::c_void, 0, ::std::mem::size_of::<digest_md5_finish>());
 }

@@ -1,13 +1,14 @@
 use ::libc;
+use libc::size_t;
 extern "C" {
     #[no_mangle]
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
+    fn malloc(_: size_t) -> *mut libc::c_void;
     #[no_mangle]
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
     #[no_mangle]
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn strlen(_: *const libc::c_char) -> size_t;
 }
-pub type size_t = libc::c_ulong;
+
 /* server.c --- DIGEST-MD5 mechanism from RFC 2831, server side.
  * Copyright (C) 2002-2021 Simon Josefsson
  *
@@ -59,12 +60,7 @@ unsafe extern "C" fn to_uchar(mut ch: libc::c_char) -> libc::c_uchar {
 #[no_mangle]
 pub unsafe extern "C" fn latin1toutf8(mut str: *const libc::c_char)
  -> *mut libc::c_char {
-    let mut p: *mut libc::c_char =
-        malloc((2 as libc::c_int as
-                    libc::c_ulong).wrapping_mul(strlen(str)).wrapping_add(1 as
-                                                                              libc::c_int
-                                                                              as
-                                                                              libc::c_ulong))
+    let mut p: *mut libc::c_char = malloc((2 as size_t).wrapping_mul(strlen(str)).wrapping_add(1))
             as *mut libc::c_char;
     if !p.is_null() {
         let mut i: size_t = 0;
@@ -128,8 +124,7 @@ pub unsafe extern "C" fn utf8tolatin1ifpossible(mut passwd:
         }
         i = i.wrapping_add(1)
     }
-    p =
-        malloc(strlen(passwd).wrapping_add(1 as libc::c_int as libc::c_ulong))
+    p = malloc(strlen(passwd).wrapping_add(1))
             as *mut libc::c_char;
     if !p.is_null() {
         let mut j: size_t = 0 as libc::c_int as size_t;
@@ -143,10 +138,7 @@ pub unsafe extern "C" fn utf8tolatin1ifpossible(mut passwd:
                 *p.offset(fresh5 as isize) =
                     ((to_uchar(*passwd.offset(i as isize)) as libc::c_int &
                           0x3 as libc::c_int) << 6 as libc::c_int |
-                         to_uchar(*passwd.offset(i.wrapping_add(1 as
-                                                                    libc::c_int
-                                                                    as
-                                                                    libc::c_ulong)
+                         to_uchar(*passwd.offset(i.wrapping_add(1)
                                                      as isize)) as libc::c_int
                              & 0x3f as libc::c_int) as libc::c_char;
                 i = i.wrapping_add(1)

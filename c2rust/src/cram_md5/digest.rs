@@ -4,7 +4,7 @@ use crate::gc::Gc_rc;
 
 extern "C" {
     #[no_mangle]
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn strlen(_: *const libc::c_char) -> size_t;
     #[no_mangle]
     fn gc_hmac_md5(key: *const libc::c_void, keylen: size_t,
                    in_0: *const libc::c_void, inlen: size_t,
@@ -64,11 +64,11 @@ pub unsafe extern "C" fn cram_md5_digest(mut challenge: *const libc::c_char,
     let mut hash: [libc::c_char; 16] = [0; 16];
     let mut i: size_t = 0;
     gc_hmac_md5(secret as *const libc::c_void,
-                if secretlen != 0 { secretlen } else { strlen(secret) as size_t },
+                if secretlen != 0 { secretlen } else { strlen(secret) },
                 challenge as *const libc::c_void,
                 if challengelen != 0 {
                     challengelen
-                } else { strlen(challenge) as size_t }, hash.as_mut_ptr());
+                } else { strlen(challenge) }, hash.as_mut_ptr());
     i = 0 as libc::c_int as size_t;
     while i < 16 {
         let fresh0 = response;

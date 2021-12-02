@@ -1,11 +1,10 @@
 use ::libc;
+use libc::size_t;
 extern "C" {
     #[no_mangle]
-    fn memcmp(_: *const libc::c_void, _: *const libc::c_void,
-              _: libc::c_ulong) -> libc::c_int;
+    fn memcmp(_: *const libc::c_void, _: *const libc::c_void, _: size_t) -> libc::c_int;
     #[no_mangle]
-    fn memchr(_: *const libc::c_void, _: libc::c_int, _: libc::c_ulong)
-     -> *mut libc::c_void;
+    fn memchr(_: *const libc::c_void, _: libc::c_int, _: size_t) -> *mut libc::c_void;
 }
 /* getsubopt.c --- Parse comma separate list into words, DIGEST-MD5 style.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -70,8 +69,7 @@ pub unsafe extern "C" fn digest_md5_getsubopt(mut optionp:
     /* Find start of value.  */
     vstart =
         memchr(*optionp as *const libc::c_void, '=' as i32,
-               endp.wrapping_offset_from(*optionp) as libc::c_long as
-                   libc::c_ulong) as *mut libc::c_char;
+               endp.wrapping_offset_from(*optionp) as size_t) as *mut libc::c_char;
     if vstart.is_null() { vstart = endp }
     /* Try to match the characters between *OPTIONP and VSTART against
      one of the TOKENS.  */
@@ -79,8 +77,8 @@ pub unsafe extern "C" fn digest_md5_getsubopt(mut optionp:
     while !(*tokens.offset(cnt as isize)).is_null() {
         if memcmp(*optionp as *const libc::c_void,
                   *tokens.offset(cnt as isize) as *const libc::c_void,
-                  vstart.wrapping_offset_from(*optionp) as libc::c_long as
-                      libc::c_ulong) == 0 as libc::c_int &&
+                  vstart.wrapping_offset_from(*optionp) as size_t) == 0
+            &&
                *(*tokens.offset(cnt as
                                     isize)).offset(vstart.wrapping_offset_from(*optionp)
                                                        as libc::c_long as

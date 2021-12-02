@@ -1,11 +1,12 @@
 use ::libc;
+use libc::size_t;
 extern "C" {
     #[no_mangle]
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
     #[no_mangle]
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn strlen(_: *const libc::c_char) -> size_t;
 }
-pub type size_t = libc::c_ulong;
+
 /* tokens.h --- Types for DIGEST-MD5 tokens.
  * Copyright (C) 2004-2021 Simon Josefsson
  *
@@ -79,7 +80,7 @@ pub struct digest_md5_challenge {
     pub nonce: *mut libc::c_char,
     pub qops: libc::c_int,
     pub stale: libc::c_int,
-    pub servermaxbuf: libc::c_ulong,
+    pub servermaxbuf: size_t,
     pub utf8: libc::c_int,
     pub ciphers: libc::c_int,
 }
@@ -119,10 +120,10 @@ pub struct digest_md5_response {
     pub realm: *mut libc::c_char,
     pub nonce: *mut libc::c_char,
     pub cnonce: *mut libc::c_char,
-    pub nc: libc::c_ulong,
+    pub nc: size_t,
     pub qop: digest_md5_qop,
     pub digesturi: *mut libc::c_char,
-    pub clientmaxbuf: libc::c_ulong,
+    pub clientmaxbuf: size_t,
     pub utf8: libc::c_int,
     pub cipher: digest_md5_cipher,
     pub authzid: *mut libc::c_char,
@@ -202,8 +203,7 @@ pub unsafe extern "C" fn digest_md5_validate_response(mut r:
     /* This directive is required and MUST be present exactly
      once; otherwise, authentication fails. */
     if *(*r).response.as_mut_ptr() == 0 { return -(1 as libc::c_int) }
-    if strlen((*r).response.as_mut_ptr()) !=
-           32 as libc::c_int as libc::c_ulong {
+    if strlen((*r).response.as_mut_ptr()) != 32 {
         return -(1 as libc::c_int)
     }
     /* This directive MUST appear exactly once if "auth-conf" is
@@ -251,8 +251,7 @@ pub unsafe extern "C" fn digest_md5_validate_finish(mut f:
  -> libc::c_int {
     if (*f).rspauth.as_mut_ptr().is_null() { return -(1 as libc::c_int) }
     /* A string of 32 hex digits */
-    if strlen((*f).rspauth.as_mut_ptr()) != 32 as libc::c_int as libc::c_ulong
-       {
+    if strlen((*f).rspauth.as_mut_ptr()) != 32 {
         return -(1 as libc::c_int)
     }
     return 0 as libc::c_int;
@@ -267,7 +266,7 @@ pub unsafe extern "C" fn digest_md5_validate(mut c: *mut digest_md5_challenge,
     if strcmp((*c).nonce, (*r).nonce) != 0 as libc::c_int {
         return -(1 as libc::c_int)
     }
-    if (*r).nc != 1 as libc::c_int as libc::c_ulong {
+    if (*r).nc != 1 {
         return -(1 as libc::c_int)
     }
     if (*c).utf8 == 0 && (*r).utf8 != 0 { return -(1 as libc::c_int) }

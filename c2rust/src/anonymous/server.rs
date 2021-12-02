@@ -1,17 +1,10 @@
 use ::libc;
 use libc::size_t;
+use crate::callback::gsasl_callback;
 use crate::consts::{GSASL_ANONYMOUS_TOKEN, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_OK, Gsasl_property, GSASL_VALIDATE_ANONYMOUS};
 use crate::gsasl::{Gsasl, Gsasl_session};
+use crate::property::gsasl_property_set_raw;
 
-extern "C" {
-    #[no_mangle]
-    fn gsasl_property_set_raw(sctx: *mut Gsasl_session, prop: Gsasl_property,
-                              data: *const libc::c_char, len: size_t)
-     -> libc::c_int;
-    #[no_mangle]
-    fn gsasl_callback(ctx: *mut Gsasl, sctx: *mut Gsasl_session,
-                      prop: Gsasl_property) -> libc::c_int;
-}
 /* anonymous.h --- Prototypes for ANONYMOUS mechanism as defined in RFC 2245.
  * Copyright (C) 2002-2021 Simon Josefsson
  *

@@ -1,4 +1,5 @@
 use ::libc;
+use libc::size_t;
 extern "C" {
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <stdlib.h>.
@@ -53,7 +54,7 @@ extern "C" {
     #[no_mangle]
     fn digest_md5_validate_finish(f: *mut digest_md5_finish) -> libc::c_int;
 }
-pub type size_t = libc::c_ulong;
+
 /* tokens.h --- Types for DIGEST-MD5 tokens.
  * Copyright (C) 2004-2021 Simon Josefsson
  *
@@ -127,7 +128,7 @@ pub struct digest_md5_challenge {
     pub nonce: *mut libc::c_char,
     pub qops: libc::c_int,
     pub stale: libc::c_int,
-    pub servermaxbuf: libc::c_ulong,
+    pub servermaxbuf: size_t,
     pub utf8: libc::c_int,
     pub ciphers: libc::c_int,
 }
@@ -167,10 +168,10 @@ pub struct digest_md5_response {
     pub realm: *mut libc::c_char,
     pub nonce: *mut libc::c_char,
     pub cnonce: *mut libc::c_char,
-    pub nc: libc::c_ulong,
+    pub nc: size_t,
     pub qop: digest_md5_qop,
     pub digesturi: *mut libc::c_char,
-    pub clientmaxbuf: libc::c_ulong,
+    pub clientmaxbuf: size_t,
     pub utf8: libc::c_int,
     pub cipher: digest_md5_cipher,
     pub authzid: *mut libc::c_char,

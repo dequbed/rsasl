@@ -1,17 +1,15 @@
 use ::libc;
+use libc::size_t;
 use crate::consts::{GSASL_ANONYMOUS_TOKEN, GSASL_MALLOC_ERROR, GSASL_NO_ANONYMOUS_TOKEN, GSASL_OK, Gsasl_property};
 use crate::gsasl::Gsasl_session;
+use crate::property::gsasl_property_get;
 
 extern "C" {
     #[no_mangle]
-    fn gsasl_property_get(sctx: *mut Gsasl_session, prop: Gsasl_property)
-     -> *const libc::c_char;
-    #[no_mangle]
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
     #[no_mangle]
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn strlen(_: *const libc::c_char) -> size_t;
 }
-pub type size_t = libc::c_ulong;
 
 /* anonymous.h --- Prototypes for ANONYMOUS mechanism as defined in RFC 2245.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -58,17 +56,12 @@ pub type size_t = libc::c_ulong;
 /* Get specification. */
 /* Get strdup, strlen. */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_anonymous_client_step(mut sctx:
-                                                          *mut Gsasl_session,
-                                                      mut mech_data:
-                                                          *mut libc::c_void,
-                                                      mut input:
-                                                          *const libc::c_char,
+pub unsafe extern "C" fn _gsasl_anonymous_client_step(mut sctx: *mut Gsasl_session,
+                                                      mut mech_data: *mut libc::c_void,
+                                                      mut input: *const libc::c_char,
                                                       mut input_len: size_t,
-                                                      mut output:
-                                                          *mut *mut libc::c_char,
-                                                      mut output_len:
-                                                          *mut size_t)
+                                                      mut output: *mut *mut libc::c_char,
+                                                      mut output_len: *mut size_t)
  -> libc::c_int {
     let mut p: *const libc::c_char = 0 as *const libc::c_char;
     p = gsasl_property_get(sctx, GSASL_ANONYMOUS_TOKEN);

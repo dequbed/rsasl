@@ -1,4 +1,5 @@
 use ::libc;
+use libc::size_t;
 extern "C" {
     /* parser.h --- DIGEST-MD5 parser.
  * Copyright (C) 2004-2021 Simon Josefsson
@@ -64,11 +65,11 @@ extern "C" {
     fn rpl_free(ptr: *mut libc::c_void);
     #[no_mangle]
     fn strtoul(_: *const libc::c_char, _: *mut *mut libc::c_char,
-               _: libc::c_int) -> libc::c_ulong;
+               _: libc::c_int) -> size_t;
     #[no_mangle]
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
+    fn realloc(_: *mut libc::c_void, _: size_t) -> *mut libc::c_void;
     #[no_mangle]
-    fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong)
+    fn memset(_: *mut libc::c_void, _: libc::c_int, _: size_t)
      -> *mut libc::c_void;
     #[no_mangle]
     fn strcpy(_: *mut libc::c_char, _: *const libc::c_char)
@@ -78,9 +79,9 @@ extern "C" {
     #[no_mangle]
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
     #[no_mangle]
-    fn strndup(_: *const libc::c_char, _: libc::c_ulong) -> *mut libc::c_char;
+    fn strndup(_: *const libc::c_char, _: size_t) -> *mut libc::c_char;
     #[no_mangle]
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn strlen(_: *const libc::c_char) -> size_t;
     /* validate.h --- Validate consistency of DIGEST-MD5 tokens.
  * Copyright (C) 2004-2021 Simon Josefsson
  *
@@ -112,7 +113,6 @@ extern "C" {
     #[no_mangle]
     fn digest_md5_validate_finish(f: *mut digest_md5_finish) -> libc::c_int;
 }
-pub type size_t = libc::c_ulong;
 pub type digest_md5_qop = libc::c_uint;
 pub const DIGEST_MD5_QOP_AUTH_CONF: digest_md5_qop = 4;
 pub const DIGEST_MD5_QOP_AUTH_INT: digest_md5_qop = 2;
@@ -132,7 +132,7 @@ pub struct digest_md5_challenge {
     pub nonce: *mut libc::c_char,
     pub qops: libc::c_int,
     pub stale: libc::c_int,
-    pub servermaxbuf: libc::c_ulong,
+    pub servermaxbuf: size_t,
     pub utf8: libc::c_int,
     pub ciphers: libc::c_int,
 }
@@ -143,10 +143,10 @@ pub struct digest_md5_response {
     pub realm: *mut libc::c_char,
     pub nonce: *mut libc::c_char,
     pub cnonce: *mut libc::c_char,
-    pub nc: libc::c_ulong,
+    pub nc: size_t,
     pub qop: digest_md5_qop,
     pub digesturi: *mut libc::c_char,
-    pub clientmaxbuf: libc::c_ulong,
+    pub clientmaxbuf: size_t,
     pub utf8: libc::c_int,
     pub cipher: digest_md5_cipher,
     pub authzid: *mut libc::c_char,
@@ -317,10 +317,9 @@ unsafe extern "C" fn parse_challenge(mut challenge: *mut libc::c_char,
     let mut done_algorithm: libc::c_int = 0 as libc::c_int;
     let mut disable_qop_auth_conf: libc::c_int = 0 as libc::c_int;
     let mut value: *mut libc::c_char = 0 as *mut libc::c_char;
-    memset(out as *mut libc::c_void, 0 as libc::c_int,
-           ::std::mem::size_of::<digest_md5_challenge>() as libc::c_ulong);
+    memset(out as *mut libc::c_void, 0, ::std::mem::size_of::<digest_md5_challenge>());
     /* The size of a digest-challenge MUST be less than 2048 bytes. */
-    if strlen(challenge) >= 2048 as libc::c_int as libc::c_ulong {
+    if strlen(challenge) >= 2048 {
         return -(1 as libc::c_int)
     }
     while *challenge as libc::c_int != '\u{0}' as i32 {
@@ -333,23 +332,14 @@ unsafe extern "C" fn parse_challenge(mut challenge: *mut libc::c_char,
                 (*out).nrealms = (*out).nrealms.wrapping_add(1);
                 tmp =
                     realloc((*out).realms as *mut libc::c_void,
-                            (*out).nrealms.wrapping_mul(::std::mem::size_of::<*mut libc::c_char>()
-                                                            as libc::c_ulong))
+                            (*out).nrealms.wrapping_mul(::std::mem::size_of::<*mut libc::c_char>()))
                         as *mut *mut libc::c_char;
                 if tmp.is_null() { return -(1 as libc::c_int) }
                 (*out).realms = tmp;
                 let ref mut fresh0 =
-                    *(*out).realms.offset((*out).nrealms.wrapping_sub(1 as
-                                                                          libc::c_int
-                                                                          as
-                                                                          libc::c_ulong)
-                                              as isize);
+                    *(*out).realms.offset((*out).nrealms.wrapping_sub(1) as isize);
                 *fresh0 = strdup(value);
-                if (*(*out).realms.offset((*out).nrealms.wrapping_sub(1 as
-                                                                          libc::c_int
-                                                                          as
-                                                                          libc::c_ulong)
-                                              as isize)).is_null() {
+                if (*(*out).realms.offset((*out).nrealms.wrapping_sub(1) as isize)).is_null() {
                     return -(1 as libc::c_int)
                 }
             }
@@ -408,16 +398,12 @@ unsafe extern "C" fn parse_challenge(mut challenge: *mut libc::c_char,
 	   client MUST abort the authentication exchange. */
                 if (*out).servermaxbuf != 0 { return -(1 as libc::c_int) }
                 (*out).servermaxbuf =
-                    strtoul(value, 0 as *mut *mut libc::c_char,
-                            10 as libc::c_int);
+                    strtoul(value, 0 as *mut *mut libc::c_char, 10);
                 /* FIXME: error handling. */
 	/* The value MUST be bigger than 16 (32 for Confidentiality
 	   protection with the "aes-cbc" cipher) and smaller or equal
 	   to 16777215 (i.e. 2**24-1). */
-                if (*out).servermaxbuf <= 16 as libc::c_int as libc::c_ulong
-                       ||
-                       (*out).servermaxbuf >
-                           16777215 as libc::c_int as libc::c_ulong {
+                if (*out).servermaxbuf <= 16 || (*out).servermaxbuf > 16777215 {
                     return -(1 as libc::c_int)
                 }
             }
@@ -526,10 +512,9 @@ unsafe extern "C" fn parse_response(mut response: *mut libc::c_char,
                                     mut out: *mut digest_md5_response)
  -> libc::c_int {
     let mut value: *mut libc::c_char = 0 as *mut libc::c_char;
-    memset(out as *mut libc::c_void, 0 as libc::c_int,
-           ::std::mem::size_of::<digest_md5_response>() as libc::c_ulong);
+    memset(out as *mut libc::c_void, 0, ::std::mem::size_of::<digest_md5_response>());
     /* The size of a digest-response MUST be less than 4096 bytes. */
-    if strlen(response) >= 4096 as libc::c_int as libc::c_ulong {
+    if strlen(response) >= 4096 {
         return -(1 as libc::c_int)
     }
     while *response as libc::c_int != '\u{0}' as i32 {
@@ -571,7 +556,7 @@ unsafe extern "C" fn parse_response(mut response: *mut libc::c_char,
 	   once; otherwise, authentication fails. */
                 if (*out).nc != 0 { return -(1 as libc::c_int) }
                 /* nc-value = 8LHEX */
-                if strlen(value) != 8 as libc::c_int as libc::c_ulong {
+                if strlen(value) != 8 {
                     return -(1 as libc::c_int)
                 }
                 (*out).nc =
@@ -614,7 +599,7 @@ unsafe extern "C" fn parse_response(mut response: *mut libc::c_char,
                     return -(1 as libc::c_int)
                 }
                 /* A string of 32 hex digits */
-                if strlen(value) != 32 as libc::c_int as libc::c_ulong {
+                if strlen(value) != 32 {
                     return -(1 as libc::c_int)
                 }
                 strcpy((*out).response.as_mut_ptr(), value);
@@ -631,10 +616,7 @@ unsafe extern "C" fn parse_response(mut response: *mut libc::c_char,
 	/* If the value is less or equal to 16 (<<32 for aes-cbc>>) or
 	   bigger than 16777215 (i.e. 2**24-1), the server MUST abort
 	   the authentication exchange. */
-                if (*out).clientmaxbuf <= 16 as libc::c_int as libc::c_ulong
-                       ||
-                       (*out).clientmaxbuf >
-                           16777215 as libc::c_int as libc::c_ulong {
+                if (*out).clientmaxbuf <= 16 || (*out).clientmaxbuf > 16777215 {
                     return -(1 as libc::c_int)
                 }
             }
@@ -706,10 +688,9 @@ unsafe extern "C" fn parse_finish(mut finish: *mut libc::c_char,
                                   mut out: *mut digest_md5_finish)
  -> libc::c_int {
     let mut value: *mut libc::c_char = 0 as *mut libc::c_char;
-    memset(out as *mut libc::c_void, 0 as libc::c_int,
-           ::std::mem::size_of::<digest_md5_finish>() as libc::c_ulong);
+    memset(out as *mut libc::c_void, 0, ::std::mem::size_of::<digest_md5_finish>());
     /* The size of a response-auth MUST be less than 2048 bytes. */
-    if strlen(finish) >= 2048 as libc::c_int as libc::c_ulong {
+    if strlen(finish) >= 2048 {
         return -(1 as libc::c_int)
     }
     while *finish as libc::c_int != '\u{0}' as i32 {
@@ -721,7 +702,7 @@ unsafe extern "C" fn parse_finish(mut finish: *mut libc::c_char,
                     return -(1 as libc::c_int)
                 }
                 /* A string of 32 hex digits */
-                if strlen(value) != 32 as libc::c_int as libc::c_ulong {
+                if strlen(value) != 32 {
                     return -(1 as libc::c_int)
                 }
                 strcpy((*out).rspauth.as_mut_ptr(), value);

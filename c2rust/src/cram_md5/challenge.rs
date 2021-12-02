@@ -1,20 +1,18 @@
 use ::libc;
 use libc::size_t;
 use crate::gc::{GC_OK, Gc_rc};
+use crate::gl::gc_gnulib::gc_nonce;
 
 extern "C" {
     #[no_mangle]
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
     #[no_mangle]
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn strlen(_: *const libc::c_char) -> size_t;
     #[no_mangle]
     fn __assert_fail(__assertion: *const libc::c_char,
                      __file: *const libc::c_char, __line: libc::c_uint,
                      __function: *const libc::c_char) -> !;
-    /* Randomness. */
-    #[no_mangle]
-    fn gc_nonce(data: *mut libc::c_char, datalen: size_t) -> Gc_rc;
 }
 /* Store zero terminated CRAM-MD5 challenge in output buffer.  The
    CHALLENGE buffer must be allocated by the caller, and must have
@@ -27,8 +25,7 @@ pub unsafe extern "C" fn cram_md5_challenge(mut challenge: *mut libc::c_char)
     let mut i: size_t = 0;
     let mut rc: libc::c_int = 0;
     if strlen(b"<XXXXXXXXXXXXXXXXXXXX.0@localhost>\x00" as *const u8 as
-                  *const libc::c_char) ==
-           (35 as libc::c_int - 1 as libc::c_int) as libc::c_ulong {
+                  *const libc::c_char) == (35 - 1) {
     } else {
         __assert_fail(b"strlen (TEMPLATE) == CRAM_MD5_CHALLENGE_LEN - 1\x00"
                           as *const u8 as *const libc::c_char,
@@ -40,7 +37,7 @@ pub unsafe extern "C" fn cram_md5_challenge(mut challenge: *mut libc::c_char)
     memcpy(challenge as *mut libc::c_void,
            b"<XXXXXXXXXXXXXXXXXXXX.0@localhost>\x00" as *const u8 as
                *const libc::c_char as *const libc::c_void,
-           35 as libc::c_int as libc::c_ulong);
+           35);
     rc =
         gc_nonce(nonce.as_mut_ptr(),
                  ::std::mem::size_of::<[libc::c_char; 10]>())
