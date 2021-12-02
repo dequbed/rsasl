@@ -483,13 +483,9 @@ pub unsafe extern "C" fn _gsasl_hex_decode(mut hexstr: *const libc::c_char,
 #[no_mangle]
 pub unsafe extern "C" fn _gsasl_hex_p(mut hexstr: *const libc::c_char)
  -> bool {
-    static mut hexalpha: [libc::c_char; 17] =
-        unsafe {
-            *::std::mem::transmute::<&[u8; 17],
-                                     &[libc::c_char; 17]>(b"0123456789abcdef\x00")
-        };
+    static mut hexalpha: &'static [u8; 17] = b"0123456789abcdef\x00";
     while *hexstr != 0 {
-        if strchr(hexalpha.as_ptr(), *hexstr as libc::c_int).is_null() {
+        if strchr(hexalpha.as_ptr() as *const libc::c_char, *hexstr as libc::c_int).is_null() {
             return 0 as libc::c_int != 0
         }
         hexstr = hexstr.offset(1)
