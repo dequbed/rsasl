@@ -207,11 +207,21 @@ unsafe extern "C" fn imalloc(mut s: idx_t) -> *mut libc::c_void {
 unsafe extern "C" fn to_uchar(mut ch: libc::c_char) -> libc::c_uchar {
     return ch as libc::c_uchar;
 }
-static mut b64c: [libc::c_char; 64] =
-    unsafe {
-        *::std::mem::transmute::<&[u8; 64],
-                                 &[libc::c_char; 64]>(b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
-    };
+static mut b64c: &'static [libc::c_char; 64] = &[
+    'A' as libc::c_char, 'B' as libc::c_char, 'C' as libc::c_char, 'D' as libc::c_char, 'E' as libc::c_char,
+    'F' as libc::c_char, 'G' as libc::c_char, 'H' as libc::c_char, 'I' as libc::c_char, 'J' as libc::c_char,
+    'K' as libc::c_char, 'L' as libc::c_char, 'M' as libc::c_char, 'N' as libc::c_char, 'O' as libc::c_char,
+    'P' as libc::c_char, 'Q' as libc::c_char, 'R' as libc::c_char, 'S' as libc::c_char, 'T' as libc::c_char,
+    'U' as libc::c_char, 'V' as libc::c_char, 'W' as libc::c_char, 'X' as libc::c_char, 'Y' as libc::c_char,
+    'Z' as libc::c_char, 'a' as libc::c_char, 'b' as libc::c_char, 'c' as libc::c_char, 'd' as libc::c_char,
+    'e' as libc::c_char, 'f' as libc::c_char, 'g' as libc::c_char, 'h' as libc::c_char, 'i' as libc::c_char,
+    'j' as libc::c_char, 'k' as libc::c_char, 'l' as libc::c_char, 'm' as libc::c_char, 'n' as libc::c_char,
+    'o' as libc::c_char, 'p' as libc::c_char, 'q' as libc::c_char, 'r' as libc::c_char, 's' as libc::c_char,
+    't' as libc::c_char, 'u' as libc::c_char, 'v' as libc::c_char, 'w' as libc::c_char, 'x' as libc::c_char,
+    'y' as libc::c_char, 'z' as libc::c_char, '0' as libc::c_char, '1' as libc::c_char, '2' as libc::c_char,
+    '3' as libc::c_char, '4' as libc::c_char, '5' as libc::c_char, '6' as libc::c_char, '7' as libc::c_char,
+    '8' as libc::c_char, '9' as libc::c_char, '+' as libc::c_char, '/' as libc::c_char
+];
 /* Base64 encode IN array of size INLEN into OUT array. OUT needs
    to be of length >= BASE64_LENGTH(INLEN), and INLEN needs to be
    a multiple of 3.  */
