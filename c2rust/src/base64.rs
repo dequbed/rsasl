@@ -1,4 +1,5 @@
 use ::libc;
+use libc::{size_t, ptrdiff_t};
 use crate::consts::*;
 
 extern "C" {
@@ -22,9 +23,6 @@ extern "C" {
     #[no_mangle]
     fn _gsasl_hex_p(hexstr: *const libc::c_char) -> bool;
 }
-pub type size_t = libc::c_ulong;
-pub type ptrdiff_t = libc::c_long;
-pub type C2RustUnnamed = libc::c_uint;
 /* A type for indices and sizes.
    Copyright (C) 2020-2021 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
@@ -248,10 +246,10 @@ pub unsafe extern "C" fn gsasl_hex_to(mut in_0: *const libc::c_char,
                                       mut outlen: *mut size_t)
  -> libc::c_int {
     let mut len: size_t =
-        (2 as libc::c_int as libc::c_ulong).wrapping_mul(inlen);
+        inlen.wrapping_mul(2);
     if !outlen.is_null() { *outlen = len }
     *out =
-        malloc((*outlen).wrapping_add(1 as libc::c_int as libc::c_ulong)) as
+        malloc((*outlen).wrapping_add(1) as u64) as
             *mut libc::c_char;
     if (*out).is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
     _gsasl_hex_encode(in_0, inlen, *out);
@@ -519,14 +517,13 @@ pub unsafe extern "C" fn gsasl_hex_from(mut in_0: *const libc::c_char,
                                         mut out: *mut *mut libc::c_char,
                                         mut outlen: *mut size_t)
  -> libc::c_int {
-    let mut inlen: size_t = strlen(in_0);
-    let mut l: size_t = inlen.wrapping_div(2 as libc::c_int as libc::c_ulong);
-    if inlen.wrapping_rem(2 as libc::c_int as libc::c_ulong) !=
-           0 as libc::c_int as libc::c_ulong {
+    let mut inlen: size_t = strlen(in_0) as size_t;
+    let mut l: size_t = inlen.wrapping_div(2);
+    if inlen.wrapping_rem(2) != 0 {
         return GSASL_BASE64_ERROR as libc::c_int
     }
     if !_gsasl_hex_p(in_0) { return GSASL_BASE64_ERROR as libc::c_int }
-    *out = malloc(l) as *mut libc::c_char;
+    *out = malloc(l as u64) as *mut libc::c_char;
     if (*out).is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
     _gsasl_hex_decode(in_0, *out);
     if !outlen.is_null() { *outlen = l }

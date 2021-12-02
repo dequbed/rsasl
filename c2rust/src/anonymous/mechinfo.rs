@@ -1,7 +1,8 @@
 use ::libc;
+use libc::size_t;
+use crate::gsasl::{Gsasl, Gsasl_mechanism, Gsasl_mechanism_functions, Gsasl_session};
+
 extern "C" {
-    pub type Gsasl;
-    pub type Gsasl_session;
     #[no_mangle]
     fn _gsasl_anonymous_client_step(sctx: *mut Gsasl_session,
                                     mech_data: *mut libc::c_void,
@@ -16,51 +17,6 @@ extern "C" {
                                     input_len: size_t,
                                     output: *mut *mut libc::c_char,
                                     output_len: *mut size_t) -> libc::c_int;
-}
-pub type size_t = libc::c_ulong;
-pub type Gsasl_init_function
-    =
-    Option<unsafe extern "C" fn(_: *mut Gsasl) -> libc::c_int>;
-pub type Gsasl_done_function
-    =
-    Option<unsafe extern "C" fn(_: *mut Gsasl) -> ()>;
-pub type Gsasl_start_function
-    =
-    Option<unsafe extern "C" fn(_: *mut Gsasl_session,
-                                _: *mut *mut libc::c_void) -> libc::c_int>;
-pub type Gsasl_step_function
-    =
-    Option<unsafe extern "C" fn(_: *mut Gsasl_session, _: *mut libc::c_void,
-                                _: *const libc::c_char, _: size_t,
-                                _: *mut *mut libc::c_char, _: *mut size_t)
-               -> libc::c_int>;
-pub type Gsasl_finish_function
-    =
-    Option<unsafe extern "C" fn(_: *mut Gsasl_session, _: *mut libc::c_void)
-               -> ()>;
-pub type Gsasl_code_function
-    =
-    Option<unsafe extern "C" fn(_: *mut Gsasl_session, _: *mut libc::c_void,
-                                _: *const libc::c_char, _: size_t,
-                                _: *mut *mut libc::c_char, _: *mut size_t)
-               -> libc::c_int>;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Gsasl_mechanism_functions {
-    pub init: Gsasl_init_function,
-    pub done: Gsasl_done_function,
-    pub start: Gsasl_start_function,
-    pub step: Gsasl_step_function,
-    pub finish: Gsasl_finish_function,
-    pub encode: Gsasl_code_function,
-    pub decode: Gsasl_code_function,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Gsasl_mechanism {
-    pub name: *const libc::c_char,
-    pub client: Gsasl_mechanism_functions,
-    pub server: Gsasl_mechanism_functions,
 }
 /* mechinfo.c --- Definition of ANONYMOUS mechanism.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -89,77 +45,83 @@ pub static mut gsasl_anonymous_mechanism: Gsasl_mechanism =
     unsafe {
         {
             let mut init =
-                Gsasl_mechanism{name:
-                                    b"ANONYMOUS\x00" as *const u8 as
-                                        *const libc::c_char,
-                                client:
-                                    {
-                                        let mut init =
-                                            Gsasl_mechanism_functions{init:
-                                                                          None,
-                                                                      done:
-                                                                          None,
-                                                                      start:
-                                                                          None,
-                                                                      step:
-                                                                          Some(_gsasl_anonymous_client_step
-                                                                                   as
-                                                                                   unsafe extern "C" fn(_:
-                                                                                                            *mut Gsasl_session,
-                                                                                                        _:
-                                                                                                            *mut libc::c_void,
-                                                                                                        _:
-                                                                                                            *const libc::c_char,
-                                                                                                        _:
-                                                                                                            size_t,
-                                                                                                        _:
-                                                                                                            *mut *mut libc::c_char,
-                                                                                                        _:
-                                                                                                            *mut size_t)
-                                                                                       ->
-                                                                                           libc::c_int),
-                                                                      finish:
-                                                                          None,
-                                                                      encode:
-                                                                          None,
-                                                                      decode:
-                                                                          None,};
-                                        init
-                                    },
-                                server:
-                                    {
-                                        let mut init =
-                                            Gsasl_mechanism_functions{init:
-                                                                          None,
-                                                                      done:
-                                                                          None,
-                                                                      start:
-                                                                          None,
-                                                                      step:
-                                                                          Some(_gsasl_anonymous_server_step
-                                                                                   as
-                                                                                   unsafe extern "C" fn(_:
-                                                                                                            *mut Gsasl_session,
-                                                                                                        _:
-                                                                                                            *mut libc::c_void,
-                                                                                                        _:
-                                                                                                            *const libc::c_char,
-                                                                                                        _:
-                                                                                                            size_t,
-                                                                                                        _:
-                                                                                                            *mut *mut libc::c_char,
-                                                                                                        _:
-                                                                                                            *mut size_t)
-                                                                                       ->
-                                                                                           libc::c_int),
-                                                                      finish:
-                                                                          None,
-                                                                      encode:
-                                                                          None,
-                                                                      decode:
-                                                                          None,};
-                                        init
-                                    },};
+                Gsasl_mechanism {
+                    name:
+                    b"ANONYMOUS\x00" as *const u8 as
+                        *const libc::c_char,
+                    client:
+                    {
+                        let mut init =
+                            Gsasl_mechanism_functions {
+                                init:
+                                None,
+                                done:
+                                None,
+                                start:
+                                None,
+                                step:
+                                Some(_gsasl_anonymous_client_step
+                                    as
+                                    unsafe extern "C" fn(_:
+                                                         *mut Gsasl_session,
+                                                         _:
+                                                         *mut libc::c_void,
+                                                         _:
+                                                         *const libc::c_char,
+                                                         _:
+                                                         size_t,
+                                                         _:
+                                                         *mut *mut libc::c_char,
+                                                         _:
+                                                         *mut size_t)
+                                        ->
+                                        libc::c_int),
+                                finish:
+                                None,
+                                encode:
+                                None,
+                                decode:
+                                None,
+                            };
+                        init
+                    },
+                    server:
+                    {
+                        let mut init =
+                            Gsasl_mechanism_functions {
+                                init:
+                                None,
+                                done:
+                                None,
+                                start:
+                                None,
+                                step:
+                                Some(_gsasl_anonymous_server_step
+                                    as
+                                    unsafe extern "C" fn(_:
+                                                         *mut Gsasl_session,
+                                                         _:
+                                                         *mut libc::c_void,
+                                                         _:
+                                                         *const libc::c_char,
+                                                         _:
+                                                         size_t,
+                                                         _:
+                                                         *mut *mut libc::c_char,
+                                                         _:
+                                                         *mut size_t)
+                                        ->
+                                        libc::c_int),
+                                finish:
+                                None,
+                                encode:
+                                None,
+                                decode:
+                                None,
+                            };
+                        init
+                    },
+                };
             init
         }
     };

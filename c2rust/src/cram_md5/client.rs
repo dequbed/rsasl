@@ -1,8 +1,9 @@
 use ::libc;
+use libc::size_t;
 use crate::consts::*;
+use crate::gsasl::Gsasl_session;
 
 extern "C" {
-    pub type Gsasl_session;
     #[no_mangle]
     fn gsasl_property_get(sctx: *mut Gsasl_session, prop: Gsasl_property)
      -> *const libc::c_char;
@@ -47,8 +48,6 @@ extern "C" {
                        secret: *const libc::c_char, secretlen: size_t,
                        response: *mut libc::c_char);
 }
-
-pub type size_t = libc::c_ulong;
 
 pub type Gsasl_saslprep_flags = libc::c_uint;
 pub const GSASL_ALLOW_UNASSIGNED: Gsasl_saslprep_flags = 1;
@@ -100,25 +99,21 @@ pub const GSASL_ALLOW_UNASSIGNED: Gsasl_saslprep_flags = 1;
 /* Get memcpy, strlen. */
 /* Get cram_md5_digest. */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_cram_md5_client_step(mut sctx:
-                                                         *mut Gsasl_session,
-                                                     mut mech_data:
-                                                         *mut libc::c_void,
-                                                     mut input:
-                                                         *const libc::c_char,
+pub unsafe extern "C" fn _gsasl_cram_md5_client_step(mut sctx: *mut Gsasl_session,
+                                                     mut mech_data: *mut libc::c_void,
+                                                     mut input: *const libc::c_char,
                                                      mut input_len: size_t,
-                                                     mut output:
-                                                         *mut *mut libc::c_char,
-                                                     mut output_len:
-                                                         *mut size_t)
- -> libc::c_int {
+                                                     mut output: *mut *mut libc::c_char,
+                                                     mut output_len: *mut size_t
+    ) -> libc::c_int
+{
     let mut response: [libc::c_char; 32] = [0; 32];
     let mut p: *const libc::c_char = 0 as *const libc::c_char;
     let mut len: size_t = 0;
     let mut tmp: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut authid: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut rc: libc::c_int = 0;
-    if input_len == 0 as libc::c_int as libc::c_ulong {
+    if input_len == 0 {
         *output_len = 0 as libc::c_int as size_t;
         *output = 0 as *mut libc::c_char;
         return GSASL_NEEDS_MORE as libc::c_int
@@ -143,22 +138,19 @@ pub unsafe extern "C" fn _gsasl_cram_md5_client_step(mut sctx:
         rpl_free(authid as *mut libc::c_void);
         return rc
     }
-    cram_md5_digest(input, input_len, tmp, strlen(tmp),
+    cram_md5_digest(input, input_len, tmp, strlen(tmp) as size_t,
                     response.as_mut_ptr());
     rpl_free(tmp as *mut libc::c_void);
-    len = strlen(authid);
+    len = strlen(authid) as size_t;
     *output_len =
-        len.wrapping_add(strlen(b" \x00" as *const u8 as
-                                    *const libc::c_char)).wrapping_add(32 as
-                                                                           libc::c_int
-                                                                           as
-                                                                           libc::c_ulong);
-    *output = malloc(*output_len) as *mut libc::c_char;
+        len.wrapping_add(strlen(b" \x00" as *const u8 as *const libc::c_char) as size_t)
+           .wrapping_add(32);
+    *output = malloc(*output_len as u64) as *mut libc::c_char;
     if (*output).is_null() {
         rpl_free(authid as *mut libc::c_void);
         return GSASL_MALLOC_ERROR as libc::c_int
     }
-    memcpy(*output as *mut libc::c_void, authid as *const libc::c_void, len);
+    memcpy(*output as *mut libc::c_void, authid as *const libc::c_void, len as u64);
     let fresh0 = len;
     len = len.wrapping_add(1);
     *(*output).offset(fresh0 as isize) = ' ' as i32 as libc::c_char;

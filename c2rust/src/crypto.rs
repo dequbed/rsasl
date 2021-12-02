@@ -1,6 +1,7 @@
 use ::libc;
 use libc::size_t;
 use crate::consts::GSASL_OK;
+use crate::gc::Gc_rc;
 use crate::mechtools::{Gsasl_hash, GSASL_HASH_SHA1_SIZE, GSASL_HASH_SHA256_SIZE};
 use crate::saslprep::{GSASL_ALLOW_UNASSIGNED, Gsasl_saslprep_flags};
 
@@ -82,17 +83,6 @@ extern "C" {
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-/* Get size_t. */
-pub type Gc_rc = libc::c_uint;
-pub const GC_PKCS5_DERIVED_KEY_TOO_LONG: Gc_rc = 8;
-pub const GC_PKCS5_INVALID_DERIVED_KEY_LENGTH: Gc_rc = 7;
-pub const GC_PKCS5_INVALID_ITERATION_COUNT: Gc_rc = 6;
-pub const GC_INVALID_HASH: Gc_rc = 5;
-pub const GC_INVALID_CIPHER: Gc_rc = 4;
-pub const GC_RANDOM_ERROR: Gc_rc = 3;
-pub const GC_INIT_ERROR: Gc_rc = 2;
-pub const GC_MALLOC_ERROR: Gc_rc = 1;
-pub const GC_OK: Gc_rc = 0;
 /* crypto.c --- Simple crypto wrappers for applications.
  * Copyright (C) 2002-2021 Simon Josefsson
  *
