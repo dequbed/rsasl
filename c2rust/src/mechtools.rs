@@ -288,16 +288,10 @@ pub unsafe extern "C" fn _gsasl_parse_gs2_header(mut data:
         }
         res =
             unescape_authzid(data.offset(4 as libc::c_int as isize),
-                             authzid_endptr.wrapping_offset_from(data.offset(4
-                                                                                 as
-                                                                                 libc::c_int
-                                                                                 as
-                                                                                 isize))
+                             authzid_endptr.offset_from(data.offset(4))
                                  as libc::c_long as size_t, authzid);
         if res != GSASL_OK as libc::c_int { return res }
-        *headerlen =
-            (authzid_endptr.wrapping_offset_from(data) as libc::c_long +
-                 1 as libc::c_int as libc::c_long) as size_t
+        *headerlen = (authzid_endptr.offset_from(data) + 1) as size_t
     } else { return GSASL_MECHANISM_PARSE_ERROR as libc::c_int }
     return GSASL_OK as libc::c_int;
 }

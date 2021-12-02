@@ -505,7 +505,7 @@ pub unsafe extern "C" fn printf_parse(mut format: *const libc::c_char,
             }
             (*dp).width_end = cp;
             width_length =
-                (*dp).width_end.wrapping_offset_from((*dp).width_start) as
+                (*dp).width_end.offset_from((*dp).width_start) as
                     libc::c_long as size_t;
             if max_width_length < width_length {
                 max_width_length = width_length
@@ -659,7 +659,7 @@ pub unsafe extern "C" fn printf_parse(mut format: *const libc::c_char,
                 }
                 (*dp).precision_end = cp;
                 precision_length =
-                    (*dp).precision_end.wrapping_offset_from((*dp).precision_start)
+                    (*dp).precision_end.offset_from((*dp).precision_start)
                         as libc::c_long as size_t;
                 if max_precision_length < precision_length {
                     max_precision_length = precision_length

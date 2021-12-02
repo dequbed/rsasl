@@ -406,7 +406,7 @@ pub unsafe extern "C" fn _gsasl_scram_client_step(mut sctx:
             }
             /* Prepare B64("cbind-input") for the next step. */
             if (*state).cf.cbflag as libc::c_int == 'p' as i32 {
-                let mut len: size_t = (p.wrapping_offset_from(*output))
+                let mut len: size_t = (p.offset_from(*output))
                     .wrapping_add((*state).cbtlsuniquelen as isize) as usize;
                 let mut cbind_input: *mut libc::c_char =
                     malloc(len) as *mut libc::c_char;
@@ -415,8 +415,8 @@ pub unsafe extern "C" fn _gsasl_scram_client_step(mut sctx:
                 }
                 memcpy(cbind_input as *mut libc::c_void,
                        *output as *const libc::c_void,
-                       p.wrapping_offset_from(*output) as size_t);
-                memcpy(cbind_input.offset(p.wrapping_offset_from(*output)) as
+                       p.offset_from(*output) as size_t);
+                memcpy(cbind_input.offset(p.offset_from(*output)) as
                            *mut libc::c_void,
                        (*state).cbtlsunique as *const libc::c_void,
                        (*state).cbtlsuniquelen);
@@ -427,7 +427,7 @@ pub unsafe extern "C" fn _gsasl_scram_client_step(mut sctx:
             } else {
                 rc =
                     gsasl_base64_to(*output,
-                                    p.wrapping_offset_from(*output) as
+                                    p.offset_from(*output) as
                                         libc::c_long as size_t,
                                     &mut (*state).cl.cbind, 0 as *mut size_t)
             }

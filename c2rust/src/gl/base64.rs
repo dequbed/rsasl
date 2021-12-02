@@ -8790,7 +8790,7 @@ unsafe extern "C" fn get_4(mut ctx: *mut base64_decode_context,
     if (*ctx).i == 0 as libc::c_int {
         let mut t: *const libc::c_char = *in_0;
         if 4 as libc::c_int as libc::c_long <=
-               in_end.wrapping_offset_from(*in_0) as libc::c_long &&
+               in_end.offset_from(*in_0) as libc::c_long &&
                memchr(t as *const libc::c_void, '\n' as i32,
                       4 as libc::c_int as libc::c_ulong).is_null() {
             /* This is the common case: no newline.  */
@@ -8979,7 +8979,7 @@ pub unsafe extern "C" fn base64_decode_ctx(mut ctx:
                 if !decode_4(non_nl, inlen, &mut out, &mut outleft) {
                     break ;
                 }
-                inlen = in_end.wrapping_offset_from(in_0) as libc::c_long
+                inlen = in_end.offset_from(in_0) as libc::c_long
             }
         }
     }

@@ -217,21 +217,21 @@ pub unsafe extern "C" fn scram_parse_client_first(mut str:
                 *const libc::c_char;
         if p.is_null() { return -(1 as libc::c_int) }
         (*cf).cbname =
-            malloc((p.wrapping_offset_from(str) as libc::c_long +
+            malloc((p.offset_from(str) as libc::c_long +
                         1 as libc::c_int as libc::c_long) as libc::c_ulong) as
                 *mut libc::c_char;
         if (*cf).cbname.is_null() { return -(1 as libc::c_int) }
         memcpy((*cf).cbname as *mut libc::c_void, str as *const libc::c_void,
-               p.wrapping_offset_from(str) as libc::c_long as libc::c_ulong);
-        *(*cf).cbname.offset(p.wrapping_offset_from(str) as libc::c_long as
+               p.offset_from(str) as libc::c_long as libc::c_ulong);
+        *(*cf).cbname.offset(p.offset_from(str) as libc::c_long as
                                  isize) = '\u{0}' as i32 as libc::c_char;
         len =
             (len as
-                 libc::c_ulong).wrapping_sub(p.wrapping_offset_from(str) as
+                 libc::c_ulong).wrapping_sub(p.offset_from(str) as
                                                  libc::c_long as
                                                  libc::c_ulong) as size_t as
                 size_t;
-        str = str.offset(p.wrapping_offset_from(str) as libc::c_long as isize)
+        str = str.offset(p.offset_from(str) as libc::c_long as isize)
     }
     if len == 0 as libc::c_int as libc::c_ulong ||
            *str as libc::c_int != ',' as i32 {
@@ -255,7 +255,7 @@ pub unsafe extern "C" fn scram_parse_client_first(mut str:
             memchr(str as *const libc::c_void, ',' as i32, len) as
                 *const libc::c_char;
         if p_0.is_null() { return -(1 as libc::c_int) }
-        l = p_0.wrapping_offset_from(str) as libc::c_long as size_t;
+        l = p_0.offset_from(str) as libc::c_long as size_t;
         if len < l { return -(1 as libc::c_int) }
         (*cf).authzid = unescape(str, l);
         if (*cf).authzid.is_null() { return -(1 as libc::c_int) }
@@ -286,7 +286,7 @@ pub unsafe extern "C" fn scram_parse_client_first(mut str:
         memchr(str as *const libc::c_void, ',' as i32, len) as
             *const libc::c_char;
     if p_1.is_null() { return -(1 as libc::c_int) }
-    l_0 = p_1.wrapping_offset_from(str) as libc::c_long as size_t;
+    l_0 = p_1.offset_from(str) as libc::c_long as size_t;
     if len < l_0 { return -(1 as libc::c_int) }
     (*cf).username = unescape(str, l_0);
     if (*cf).username.is_null() { return -(1 as libc::c_int) }
@@ -317,7 +317,7 @@ pub unsafe extern "C" fn scram_parse_client_first(mut str:
             *const libc::c_char;
     if p_2.is_null() { p_2 = str.offset(len as isize) }
     if p_2.is_null() { return -(1 as libc::c_int) }
-    l_1 = p_2.wrapping_offset_from(str) as libc::c_long as size_t;
+    l_1 = p_2.offset_from(str) as libc::c_long as size_t;
     if len < l_1 { return -(1 as libc::c_int) }
     (*cf).client_nonce =
         malloc(l_1.wrapping_add(1 as libc::c_int as libc::c_ulong)) as
@@ -361,7 +361,7 @@ pub unsafe extern "C" fn scram_parse_server_first(mut str:
         memchr(str as *const libc::c_void, ',' as i32, len) as
             *const libc::c_char;
     if p.is_null() { return -(1 as libc::c_int) }
-    l = p.wrapping_offset_from(str) as libc::c_long as size_t;
+    l = p.offset_from(str) as libc::c_long as size_t;
     if len < l { return -(1 as libc::c_int) }
     (*sf).nonce =
         malloc(l.wrapping_add(1 as libc::c_int as libc::c_ulong)) as
@@ -395,7 +395,7 @@ pub unsafe extern "C" fn scram_parse_server_first(mut str:
         memchr(str as *const libc::c_void, ',' as i32, len) as
             *const libc::c_char;
     if p_0.is_null() { return -(1 as libc::c_int) }
-    l_0 = p_0.wrapping_offset_from(str) as libc::c_long as size_t;
+    l_0 = p_0.offset_from(str) as libc::c_long as size_t;
     if len < l_0 { return -(1 as libc::c_int) }
     (*sf).salt =
         malloc(l_0.wrapping_add(1 as libc::c_int as libc::c_ulong)) as
@@ -502,7 +502,7 @@ pub unsafe extern "C" fn scram_parse_client_final(mut str:
         memchr(str as *const libc::c_void, ',' as i32, len) as
             *const libc::c_char;
     if p.is_null() { return -(1 as libc::c_int) }
-    l = p.wrapping_offset_from(str) as libc::c_long as size_t;
+    l = p.offset_from(str) as libc::c_long as size_t;
     if len < l { return -(1 as libc::c_int) }
     (*cl).cbind =
         malloc(l.wrapping_add(1 as libc::c_int as libc::c_ulong)) as
@@ -536,7 +536,7 @@ pub unsafe extern "C" fn scram_parse_client_final(mut str:
         memchr(str as *const libc::c_void, ',' as i32, len) as
             *const libc::c_char;
     if p_0.is_null() { return -(1 as libc::c_int) }
-    l_0 = p_0.wrapping_offset_from(str) as libc::c_long as size_t;
+    l_0 = p_0.offset_from(str) as libc::c_long as size_t;
     if len < l_0 { return -(1 as libc::c_int) }
     (*cl).nonce =
         malloc(l_0.wrapping_add(1 as libc::c_int as libc::c_ulong)) as
@@ -571,7 +571,7 @@ pub unsafe extern "C" fn scram_parse_client_final(mut str:
                 *const libc::c_char;
         if p_1.is_null() { return -(1 as libc::c_int) }
         p_1 = p_1.offset(1);
-        l_1 = p_1.wrapping_offset_from(str) as libc::c_long as size_t;
+        l_1 = p_1.offset_from(str) as libc::c_long as size_t;
         if len < l_1 { return -(1 as libc::c_int) }
         str = p_1;
         len = (len as libc::c_ulong).wrapping_sub(l_1) as size_t as size_t
