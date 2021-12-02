@@ -1,6 +1,7 @@
 use ::libc;
+use crate::gsasl::Gsasl_session;
+
 extern "C" {
-    pub type Gsasl_session;
     /* Callback handling: callback.c */
     /* Property handling: property.c */
     #[no_mangle]

@@ -1,7 +1,7 @@
 use ::libc;
+use crate::gsasl::{Gsasl, Gsasl_session};
+
 extern "C" {
-    pub type Gsasl;
-    pub type Gsasl_session;
     #[no_mangle]
     fn gsasl_saslprep(in_0: *const libc::c_char, flags: Gsasl_saslprep_flags,
                       out: *mut *mut libc::c_char,

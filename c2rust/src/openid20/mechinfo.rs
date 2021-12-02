@@ -1,17 +1,7 @@
 use ::libc;
+use crate::gsasl::{Gsasl, Gsasl_session};
+
 extern "C" {
-    /* *
-   * Gsasl:
-   *
-   * Handle to global library context.
-   */
-    pub type Gsasl;
-    /* *
-   * Gsasl_session:
-   *
-   * Handle to SASL session context.
-   */
-    pub type Gsasl_session;
     #[no_mangle]
     fn _gsasl_openid20_client_start(sctx: *mut Gsasl_session,
                                     mech_data: *mut *mut libc::c_void)

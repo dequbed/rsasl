@@ -1,11 +1,12 @@
 use ::libc;
+use crate::gsasl::Gsasl_session;
+
 extern "C" {
     /* *
    * Gsasl_session:
    *
    * Handle to SASL session context.
    */
-    pub type Gsasl_session;
     #[no_mangle]
     fn gsasl_property_set_raw(sctx: *mut Gsasl_session, prop: Gsasl_property,
                               data: *const libc::c_char, len: size_t)

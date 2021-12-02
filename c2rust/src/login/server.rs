@@ -1,7 +1,8 @@
 use ::libc;
+use crate::callback::gsasl_callback;
+use crate::gsasl::{Gsasl, Gsasl_session};
+
 extern "C" {
-    pub type Gsasl;
-    pub type Gsasl_session;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
 
@@ -39,9 +40,6 @@ extern "C" {
     #[no_mangle]
     fn gsasl_property_set(sctx: *mut Gsasl_session, prop: Gsasl_property,
                           data: *const libc::c_char) -> libc::c_int;
-    #[no_mangle]
-    fn gsasl_callback(ctx: *mut Gsasl, sctx: *mut Gsasl_session,
-                      prop: Gsasl_property) -> libc::c_int;
 }
 pub type size_t = libc::c_ulong;
 pub type C2RustUnnamed = libc::c_uint;

@@ -1,7 +1,7 @@
 use ::libc;
+use crate::gsasl::{Gsasl, Gsasl_session};
+
 extern "C" {
-    pub type Gsasl;
-    pub type Gsasl_session;
     #[no_mangle]
     fn _gsasl_external_client_step(sctx: *mut Gsasl_session,
                                    mech_data: *mut libc::c_void,
