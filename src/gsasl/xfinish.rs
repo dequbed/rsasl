@@ -1,5 +1,4 @@
 use ::libc;
-use libc::size_t;
 use crate::gsasl::gsasl::Gsasl_session;
 
 extern "C" {
@@ -37,7 +36,6 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
 }
 /* gsasl.h --- Header file for GNU SASL Library.

@@ -1,9 +1,9 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
+
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
      -> *mut libc::c_void;
-    #[no_mangle]
+
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
 }
 pub type size_t = libc::c_ulong;

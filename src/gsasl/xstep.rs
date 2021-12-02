@@ -39,7 +39,7 @@ extern "C" {
    */
     /* Output sizes of hashes. */
     /* Utilities: md5pwd.c, base64.c, free.c */
-    #[no_mangle]
+
     fn gsasl_base64_to(in_0: *const libc::c_char, inlen: size_t,
                        out: *mut *mut libc::c_char, outlen: *mut size_t)
      -> libc::c_int;
@@ -77,11 +77,11 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
+
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
+
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
-    #[no_mangle]
+
     fn gsasl_base64_from(in_0: *const libc::c_char, inlen: size_t,
                          out: *mut *mut libc::c_char, outlen: *mut size_t)
      -> libc::c_int;

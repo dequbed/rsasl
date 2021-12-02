@@ -1,14 +1,13 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
     fn __errno_location() -> *mut libc::c_int;
-    #[no_mangle]
+
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
+
     fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
+
     fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
+
     fn reallocarray(__ptr: *mut libc::c_void, __nmemb: size_t, __size: size_t)
      -> *mut libc::c_void;
 }

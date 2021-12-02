@@ -1,17 +1,16 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
     fn sha1_init_ctx(ctx: *mut sha1_ctx);
-    #[no_mangle]
+
     fn sha1_process_block(buffer: *const libc::c_void, len: size_t,
                           ctx: *mut sha1_ctx);
-    #[no_mangle]
+
     fn sha1_process_bytes(buffer: *const libc::c_void, len: size_t,
                           ctx: *mut sha1_ctx);
-    #[no_mangle]
+
     fn sha1_finish_ctx(ctx: *mut sha1_ctx, resbuf: *mut libc::c_void)
      -> *mut libc::c_void;
-    #[no_mangle]
+
     fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong)
      -> *mut libc::c_void;
     /* memxor.h -- perform binary exclusive OR operation on memory blocks.
@@ -34,7 +33,7 @@ extern "C" {
     /* Compute binary exclusive OR of memory areas DEST and SRC, putting
    the result in DEST, of length N bytes.  Returns a pointer to
    DEST. */
-    #[no_mangle]
+
     fn memxor(dest: *mut libc::c_void, src: *const libc::c_void, n: size_t)
      -> *mut libc::c_void;
 }

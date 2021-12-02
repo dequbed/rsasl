@@ -78,13 +78,13 @@ pub struct stat {
 #[no_mangle]
 #[inline]
 pub unsafe extern "C" fn stat_time_normalize(mut result: libc::c_int,
-                                             mut st: *mut stat)
+                                             mut _st: *mut stat)
  -> libc::c_int {
     return result;
 }
 #[no_mangle]
 #[inline]
-pub unsafe extern "C" fn get_stat_birthtime(mut st: *const stat) -> timespec {
+pub unsafe extern "C" fn get_stat_birthtime(mut _st: *const stat) -> timespec {
     let mut t: timespec = timespec{tv_sec: 0, tv_nsec: 0,};
     t.tv_sec = -(1 as libc::c_int) as __time_t;
     t.tv_nsec = -(1 as libc::c_int) as __syscall_slong_t;
@@ -120,7 +120,7 @@ pub unsafe extern "C" fn get_stat_mtime_ns(mut st: *const stat)
 }
 #[no_mangle]
 #[inline]
-pub unsafe extern "C" fn get_stat_birthtime_ns(mut st: *const stat)
+pub unsafe extern "C" fn get_stat_birthtime_ns(mut _st: *const stat)
  -> libc::c_long {
     return 0 as libc::c_int as libc::c_long;
 }

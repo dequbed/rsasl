@@ -36,9 +36,9 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
+
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
+
     fn memset(_: *mut libc::c_void, _: libc::c_int, _: size_t)
      -> *mut libc::c_void;
 }

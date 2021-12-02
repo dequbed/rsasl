@@ -6,9 +6,7 @@ use crate::gsasl::gsasl::Gsasl_session;
 use crate::gsasl::property::gsasl_property_get;
 
 extern "C" {
-    #[no_mangle]
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> size_t;
 }
 
@@ -58,9 +56,9 @@ extern "C" {
 /* Get strdup, strlen. */
 #[no_mangle]
 pub unsafe extern "C" fn _gsasl_anonymous_client_step(mut sctx: *mut Gsasl_session,
-                                                      mut mech_data: *mut libc::c_void,
-                                                      mut input: *const libc::c_char,
-                                                      mut input_len: size_t,
+                                                      mut _mech_data: *mut libc::c_void,
+                                                      mut _input: *const libc::c_char,
+                                                      mut _input_len: size_t,
                                                       mut output: *mut *mut libc::c_char,
                                                       mut output_len: *mut size_t)
  -> libc::c_int {

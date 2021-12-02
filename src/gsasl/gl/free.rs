@@ -1,8 +1,6 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
     fn free(__ptr: *mut libc::c_void);
-    #[no_mangle]
     fn __errno_location() -> *mut libc::c_int;
 }
 /* DO NOT EDIT! GENERATED AUTOMATICALLY! */

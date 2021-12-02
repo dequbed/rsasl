@@ -3,7 +3,7 @@ use libc::size_t;
 use crate::gsasl::gl::gc_gnulib::gc_md5;
 
 extern "C" {
-    #[no_mangle]
+
     fn malloc(_: size_t) -> *mut libc::c_void;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <stdlib.h>.
@@ -39,14 +39,14 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
+
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
+
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
-    #[no_mangle]
+
     fn strlen(_: *const libc::c_char) -> size_t;
-    #[no_mangle]
+
     fn sprintf(_: *mut libc::c_char, _: *const libc::c_char, _: ...)
      -> libc::c_int;
 }

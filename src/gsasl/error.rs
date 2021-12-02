@@ -2,10 +2,8 @@ use ::libc;
 use crate::gsasl::consts::*;
 
 extern "C" {
-    #[no_mangle]
     fn bindtextdomain(__domainname: *const libc::c_char,
                       __dirname: *const libc::c_char) -> *mut libc::c_char;
-    #[no_mangle]
     fn dcgettext(__domainname: *const libc::c_char,
                  __msgid: *const libc::c_char, __category: libc::c_int)
      -> *mut libc::c_char;

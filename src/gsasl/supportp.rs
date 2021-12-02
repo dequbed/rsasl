@@ -3,7 +3,6 @@ use libc::size_t;
 use crate::gsasl::gsasl::{Gsasl, Gsasl_mechanism};
 
 extern "C" {
-    #[no_mangle]
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
 }
 

@@ -1,6 +1,5 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
     fn strverscmp(__s1: *const libc::c_char, __s2: *const libc::c_char)
      -> libc::c_int;
 }

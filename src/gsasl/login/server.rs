@@ -23,17 +23,11 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
     fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
-    #[no_mangle]
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    #[no_mangle]
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    #[no_mangle]
     fn strndup(_: *const libc::c_char, _: size_t) -> *mut libc::c_char;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> size_t;
 }
 
@@ -69,7 +63,7 @@ pub struct _Gsasl_login_server_state {
     pub password: *mut libc::c_char,
 }
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_login_server_start(mut sctx:
+pub unsafe extern "C" fn _gsasl_login_server_start(mut _sctx:
                                                        *mut Gsasl_session,
                                                    mut mech_data:
                                                        *mut *mut libc::c_void)
@@ -185,7 +179,7 @@ pub unsafe extern "C" fn _gsasl_login_server_step(mut sctx:
  *
  */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_login_server_finish(mut sctx:
+pub unsafe extern "C" fn _gsasl_login_server_finish(mut _sctx:
                                                         *mut Gsasl_session,
                                                     mut mech_data:
                                                         *mut libc::c_void) {

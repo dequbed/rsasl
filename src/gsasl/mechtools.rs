@@ -1,20 +1,14 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,
                 _: ...) -> libc::c_int;
-    #[no_mangle]
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
      -> *mut libc::c_void;
-    #[no_mangle]
     fn memchr(_: *const libc::c_void, _: libc::c_int, _: libc::c_ulong)
      -> *mut libc::c_void;
-    #[no_mangle]
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char,
                _: libc::c_ulong) -> libc::c_int;
-    #[no_mangle]
     fn strchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <stdlib.h>.
@@ -33,21 +27,15 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(_: *mut libc::c_void);
-    #[no_mangle]
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
     fn gc_sha1(in_0: *const libc::c_void, inlen: size_t,
                resbuf: *mut libc::c_void) -> Gc_rc;
-    #[no_mangle]
     fn gc_sha256(in_0: *const libc::c_void, inlen: size_t,
                  resbuf: *mut libc::c_void) -> Gc_rc;
-    #[no_mangle]
     fn gc_hmac_sha1(key: *const libc::c_void, keylen: size_t,
                     in_0: *const libc::c_void, inlen: size_t,
                     resbuf: *mut libc::c_char) -> Gc_rc;
-    #[no_mangle]
     fn gc_hmac_sha256(key: *const libc::c_void, keylen: size_t,
                       in_0: *const libc::c_void, inlen: size_t,
                       resbuf: *mut libc::c_char) -> Gc_rc;
@@ -59,7 +47,6 @@ extern "C" {
    (typical iteration counts are 1000-20000).  This function
    "stretches" the key to be exactly dkLen bytes long.  GC_OK is
    returned on success, otherwise a Gc_rc error code is returned.  */
-    #[no_mangle]
     fn gc_pbkdf2_hmac(hash: Gc_hash, P: *const libc::c_char, Plen: size_t,
                       S: *const libc::c_char, Slen: size_t, c: libc::c_uint,
                       DK: *mut libc::c_char, dkLen: size_t) -> Gc_rc;

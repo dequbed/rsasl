@@ -1,27 +1,12 @@
 use ::libc;
 use libc::{size_t, ptrdiff_t};
 use crate::gsasl::consts::*;
+use crate::gsasl::gl::base64::{base64_decode_alloc_ctx, base64_encode_alloc};
+use crate::gsasl::mechtools::{_gsasl_hex_decode, _gsasl_hex_encode, _gsasl_hex_p};
 
 extern "C" {
-    #[no_mangle]
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
-    #[no_mangle]
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
-    fn base64_encode_alloc(in_0: *const libc::c_char, inlen: idx_t,
-                           out: *mut *mut libc::c_char) -> idx_t;
-    #[no_mangle]
-    fn base64_decode_alloc_ctx(ctx: *mut base64_decode_context,
-                               in_0: *const libc::c_char, inlen: idx_t,
-                               out: *mut *mut libc::c_char,
-                               outlen: *mut idx_t) -> bool;
-    #[no_mangle]
-    fn _gsasl_hex_encode(in_0: *const libc::c_char, inlen: size_t,
-                         out: *mut libc::c_char);
-    #[no_mangle]
-    fn _gsasl_hex_decode(hexstr: *const libc::c_char, bin: *mut libc::c_char);
-    #[no_mangle]
-    fn _gsasl_hex_p(hexstr: *const libc::c_char) -> bool;
+    fn strlen(_: *const libc::c_char) -> size_t;
+    fn malloc(_: size_t) -> *mut libc::c_void;
 }
 /* A type for indices and sizes.
    Copyright (C) 2020-2021 Free Software Foundation, Inc.
@@ -188,7 +173,7 @@ pub unsafe extern "C" fn gsasl_base64_to(mut in_0: *const libc::c_char,
                                          mut outlen: *mut size_t)
  -> libc::c_int {
     let mut len: size_t =
-        base64_encode_alloc(in_0, inlen as idx_t, out) as size_t;
+        base64_encode_alloc(in_0, inlen as i64, out) as size_t;
     if !outlen.is_null() { *outlen = len }
     if (*out).is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
     return GSASL_OK as libc::c_int;
@@ -217,7 +202,7 @@ pub unsafe extern "C" fn gsasl_base64_from(mut in_0: *const libc::c_char,
  -> libc::c_int {
     let mut ok: libc::c_int =
         base64_decode_alloc_ctx(0 as *mut base64_decode_context, in_0,
-                                inlen as idx_t, out, outlen as *mut idx_t) as
+                                inlen as i64, out, outlen as *mut i64) as
             libc::c_int;
     if ok == 0 { return GSASL_BASE64_ERROR as libc::c_int }
     if (*out).is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
@@ -248,11 +233,9 @@ pub unsafe extern "C" fn gsasl_hex_to(mut in_0: *const libc::c_char,
     let mut len: size_t =
         inlen.wrapping_mul(2);
     if !outlen.is_null() { *outlen = len }
-    *out =
-        malloc((*outlen).wrapping_add(1) as u64) as
-            *mut libc::c_char;
+    *out = malloc((*outlen).wrapping_add(1)) as *mut libc::c_char;
     if (*out).is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
-    _gsasl_hex_encode(in_0, inlen, *out);
+    _gsasl_hex_encode(in_0, inlen as u64, *out);
     *(*out).offset(len as isize) = '\u{0}' as i32 as libc::c_char;
     return GSASL_OK as libc::c_int;
 }
@@ -523,7 +506,7 @@ pub unsafe extern "C" fn gsasl_hex_from(mut in_0: *const libc::c_char,
         return GSASL_BASE64_ERROR as libc::c_int
     }
     if !_gsasl_hex_p(in_0) { return GSASL_BASE64_ERROR as libc::c_int }
-    *out = malloc(l as u64) as *mut libc::c_char;
+    *out = malloc(l) as *mut libc::c_char;
     if (*out).is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
     _gsasl_hex_decode(in_0, *out);
     if !outlen.is_null() { *outlen = l }

@@ -1,11 +1,7 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
     fn fflush(__stream: *mut FILE) -> libc::c_int;
-    #[no_mangle]
-    fn rpl_fseeko(fp: *mut FILE, offset: off_t, whence: libc::c_int)
-     -> libc::c_int;
-    #[no_mangle]
+    fn rpl_fseeko(fp: *mut FILE, offset: off_t, whence: libc::c_int) -> libc::c_int;
     fn __freading(__fp: *mut FILE) -> libc::c_int;
 }
 pub type size_t = libc::c_ulong;

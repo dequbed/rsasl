@@ -1,22 +1,15 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
     fn sha1_finish_ctx(ctx: *mut sha1_ctx, resbuf: *mut libc::c_void)
      -> *mut libc::c_void;
-    #[no_mangle]
     fn sha1_process_bytes(buffer: *const libc::c_void, len: size_t,
                           ctx: *mut sha1_ctx);
-    #[no_mangle]
     fn sha1_process_block(buffer: *const libc::c_void, len: size_t,
                           ctx: *mut sha1_ctx);
-    #[no_mangle]
     fn sha1_init_ctx(ctx: *mut sha1_ctx);
-    #[no_mangle]
     fn fread(_: *mut libc::c_void, _: libc::c_ulong, _: libc::c_ulong,
              _: *mut FILE) -> libc::c_ulong;
-    #[no_mangle]
     fn feof(__stream: *mut FILE) -> libc::c_int;
-    #[no_mangle]
     fn ferror(__stream: *mut FILE) -> libc::c_int;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <stdlib.h>.
@@ -35,9 +28,7 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
 }
 pub type size_t = libc::c_ulong;
@@ -126,10 +117,10 @@ pub struct sha1_ctx {
    For a more complete set of facilities that use the Linux kernel crypto API,
    look at libkcapi.  */
 #[inline]
-unsafe extern "C" fn afalg_stream(mut stream: *mut FILE,
-                                  mut alg: *const libc::c_char,
-                                  mut resblock: *mut libc::c_void,
-                                  mut hashlen: ssize_t) -> libc::c_int {
+unsafe extern "C" fn afalg_stream(mut _stream: *mut FILE,
+                                  mut _alg: *const libc::c_char,
+                                  mut _resblock: *mut libc::c_void,
+                                  mut _hashlen: ssize_t) -> libc::c_int {
     return -(97 as libc::c_int);
 }
 /* Declarations of functions and data types used for SHA1 sum

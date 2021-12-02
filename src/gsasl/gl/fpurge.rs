@@ -1,6 +1,5 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
     fn __fpurge(__fp: *mut FILE);
 }
 pub type size_t = libc::c_ulong;

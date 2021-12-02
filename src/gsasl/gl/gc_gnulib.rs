@@ -4,7 +4,6 @@ use crate::gsasl::gc::{GC_INVALID_CIPHER, GC_INVALID_HASH, GC_MALLOC_ERROR, GC_O
                  Gc_rc};
 
 extern "C" {
-    #[no_mangle]
     fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
@@ -23,75 +22,75 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
+
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
+
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
-    #[no_mangle]
+
     fn __errno_location() -> *mut libc::c_int;
-    #[no_mangle]
+
     fn getrandom(__buffer: *mut libc::c_void, __length: size_t,
                  __flags: libc::c_uint) -> ssize_t;
-    #[no_mangle]
+
     fn md5_init_ctx(ctx: *mut md5_ctx);
-    #[no_mangle]
+
     fn md5_process_bytes(buffer: *const libc::c_void, len: size_t,
                          ctx: *mut md5_ctx);
-    #[no_mangle]
+
     fn md5_finish_ctx(ctx: *mut md5_ctx, resbuf: *mut libc::c_void)
      -> *mut libc::c_void;
-    #[no_mangle]
+
     fn md5_buffer(buffer: *const libc::c_char, len: size_t,
                   resblock: *mut libc::c_void) -> *mut libc::c_void;
     /* 128 bytes; the first buflen bytes are in use */
     /* Initialize structure containing state of computation. */
-    #[no_mangle]
+
     fn sha1_init_ctx(ctx: *mut sha1_ctx);
     /* Starting with the result of former calls of this function (or the
    initialization function update the context for the next LEN bytes
    starting at BUFFER.
    It is NOT required that LEN is a multiple of 64.  */
-    #[no_mangle]
+
     fn sha1_process_bytes(buffer: *const libc::c_void, len: size_t,
                           ctx: *mut sha1_ctx);
     /* Process the remaining bytes in the buffer and put result from CTX
    in first 20 bytes following RESBUF.  The result is always in little
    endian byte order, so that a byte-wise output yields to the wanted
    ASCII representation of the message digest.  */
-    #[no_mangle]
+
     fn sha1_finish_ctx(ctx: *mut sha1_ctx, resbuf: *mut libc::c_void)
      -> *mut libc::c_void;
     /* Compute SHA1 message digest for LEN bytes beginning at BUFFER.  The
    result is always in little endian byte order, so that a byte-wise
    output yields to the wanted ASCII representation of the message
    digest.  */
-    #[no_mangle]
+
     fn sha1_buffer(buffer: *const libc::c_char, len: size_t,
                    resblock: *mut libc::c_void) -> *mut libc::c_void;
     /* 128 bytes; the first buflen bytes are in use */
     /* Initialize structure containing state of computation. */
-    #[no_mangle]
+
     fn sha256_init_ctx(ctx: *mut sha256_ctx);
     /* Starting with the result of former calls of this function (or the
    initialization function update the context for the next LEN bytes
    starting at BUFFER.
    It is NOT required that LEN is a multiple of 64.  */
-    #[no_mangle]
+
     fn sha256_process_bytes(buffer: *const libc::c_void, len: size_t,
                             ctx: *mut sha256_ctx);
     /* Process the remaining bytes in the buffer and put result from CTX
    in first 32 (28) bytes following RESBUF.  The result is always in little
    endian byte order, so that a byte-wise output yields to the wanted
    ASCII representation of the message digest.  */
-    #[no_mangle]
+
     fn sha256_finish_ctx(ctx: *mut sha256_ctx, resbuf: *mut libc::c_void)
      -> *mut libc::c_void;
     /* Compute SHA256 (SHA224) message digest for LEN bytes beginning at BUFFER.
    The result is always in little endian byte order, so that a byte-wise
    output yields to the wanted ASCII representation of the message
    digest.  */
-    #[no_mangle]
+
     fn sha256_buffer(buffer: *const libc::c_char, len: size_t,
                      resblock: *mut libc::c_void) -> *mut libc::c_void;
     /* hmac.h -- hashed message authentication codes
@@ -114,7 +113,7 @@ extern "C" {
    in RFC 2104, over BUFFER data of BUFLEN bytes using the KEY of
    KEYLEN bytes, writing the output to pre-allocated 16 byte minimum
    RESBUF buffer.  Return 0 on success.  */
-    #[no_mangle]
+
     fn hmac_md5(key: *const libc::c_void, keylen: size_t,
                 buffer: *const libc::c_void, buflen: size_t,
                 resbuf: *mut libc::c_void) -> libc::c_int;
@@ -122,7 +121,7 @@ extern "C" {
    data of BUFLEN bytes using the KEY of KEYLEN bytes, writing the
    output to pre-allocated 20 byte minimum RESBUF buffer.  Return 0 on
    success.  */
-    #[no_mangle]
+
     fn hmac_sha1(key: *const libc::c_void, keylen: size_t,
                  in_0: *const libc::c_void, inlen: size_t,
                  resbuf: *mut libc::c_void) -> libc::c_int;
@@ -130,7 +129,7 @@ extern "C" {
    data of BUFLEN bytes using the KEY of KEYLEN bytes, writing the
    output to pre-allocated 32 byte minimum RESBUF buffer.  Return 0 on
    success.  */
-    #[no_mangle]
+
     fn hmac_sha256(key: *const libc::c_void, keylen: size_t,
                    in_0: *const libc::c_void, inlen: size_t,
                    resbuf: *mut libc::c_void) -> libc::c_int;
@@ -362,12 +361,12 @@ pub unsafe extern "C" fn gc_random(mut data: *mut libc::c_char,
 }
 /* Memory allocation. */
 #[no_mangle]
-pub unsafe extern "C" fn gc_set_allocators(mut func_malloc: gc_malloc_t,
-                                           mut secure_malloc: gc_malloc_t,
-                                           mut secure_check:
+pub unsafe extern "C" fn gc_set_allocators(mut _func_malloc: gc_malloc_t,
+                                           mut _secure_malloc: gc_malloc_t,
+                                           mut _secure_check:
                                                gc_secure_check_t,
-                                           mut func_realloc: gc_realloc_t,
-                                           mut func_free: gc_free_t) {
+                                           mut _func_realloc: gc_realloc_t,
+                                           mut _func_free: gc_free_t) {
 }
 /* Ciphers. */
 #[no_mangle]
@@ -391,8 +390,8 @@ pub unsafe extern "C" fn gc_cipher_open(mut alg: Gc_cipher,
 }
 #[no_mangle]
 pub unsafe extern "C" fn gc_cipher_setkey(mut handle: gc_cipher_handle,
-                                          mut keylen: size_t,
-                                          mut key: *const libc::c_char)
+                                          mut _keylen: size_t,
+                                          mut _key: *const libc::c_char)
  -> Gc_rc {
     let mut ctx: *mut _gc_cipher_ctx = handle as *mut _gc_cipher_ctx;
     match (*ctx).alg as libc::c_uint { _ => { } }
@@ -400,8 +399,8 @@ pub unsafe extern "C" fn gc_cipher_setkey(mut handle: gc_cipher_handle,
 }
 #[no_mangle]
 pub unsafe extern "C" fn gc_cipher_setiv(mut handle: gc_cipher_handle,
-                                         mut ivlen: size_t,
-                                         mut iv: *const libc::c_char)
+                                         mut _ivlen: size_t,
+                                         mut _iv: *const libc::c_char)
  -> Gc_rc {
     let mut ctx: *mut _gc_cipher_ctx = handle as *mut _gc_cipher_ctx;
     match (*ctx).alg as libc::c_uint { _ => { } }
@@ -410,8 +409,8 @@ pub unsafe extern "C" fn gc_cipher_setiv(mut handle: gc_cipher_handle,
 #[no_mangle]
 pub unsafe extern "C" fn gc_cipher_encrypt_inline(mut handle:
                                                       gc_cipher_handle,
-                                                  mut len: size_t,
-                                                  mut data: *mut libc::c_char)
+                                                  mut _len: size_t,
+                                                  mut _data: *mut libc::c_char)
  -> Gc_rc {
     let mut ctx: *mut _gc_cipher_ctx = handle as *mut _gc_cipher_ctx;
     match (*ctx).alg as libc::c_uint { _ => { } }
@@ -420,8 +419,8 @@ pub unsafe extern "C" fn gc_cipher_encrypt_inline(mut handle:
 #[no_mangle]
 pub unsafe extern "C" fn gc_cipher_decrypt_inline(mut handle:
                                                       gc_cipher_handle,
-                                                  mut len: size_t,
-                                                  mut data: *mut libc::c_char)
+                                                  mut _len: size_t,
+                                                  mut _data: *mut libc::c_char)
  -> Gc_rc {
     let mut ctx: *mut _gc_cipher_ctx = handle as *mut _gc_cipher_ctx;
     match (*ctx).alg as libc::c_uint { _ => { } }

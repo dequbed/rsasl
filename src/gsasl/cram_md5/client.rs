@@ -6,7 +6,6 @@ use crate::gsasl::property::gsasl_property_get;
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep};
 
 extern "C" {
-    #[no_mangle]
     fn malloc(_: size_t) -> *mut libc::c_void;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
@@ -25,12 +24,12 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
+
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
+
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
-    #[no_mangle]
+
     fn strlen(_: *const libc::c_char) -> size_t;
     /* Compute hex encoded HMAC-MD5 on the CHALLENGELEN long string
    CHALLENGE, keyed with SECRET of length SECRETLEN.  Use a
@@ -38,7 +37,7 @@ extern "C" {
    SECRET, respectively, is zero terminated.  The RESPONSE buffer must
    be allocated by the caller, and must have room for
    CRAM_MD5_DIGEST_LEN characters.*/
-    #[no_mangle]
+
     fn cram_md5_digest(challenge: *const libc::c_char, challengelen: size_t,
                        secret: *const libc::c_char, secretlen: size_t,
                        response: *mut libc::c_char);
@@ -92,7 +91,7 @@ extern "C" {
 /* Get cram_md5_digest. */
 #[no_mangle]
 pub unsafe extern "C" fn _gsasl_cram_md5_client_step(mut sctx: *mut Gsasl_session,
-                                                     mut mech_data: *mut libc::c_void,
+                                                     mut _mech_data: *mut libc::c_void,
                                                      mut input: *const libc::c_char,
                                                      mut input_len: size_t,
                                                      mut output: *mut *mut libc::c_char,

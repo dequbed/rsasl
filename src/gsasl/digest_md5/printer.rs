@@ -18,9 +18,9 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
+
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
+
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,
                 _: ...) -> libc::c_int;
     /* validate.h --- Validate consistency of DIGEST-MD5 tokens.
@@ -45,13 +45,13 @@ extern "C" {
  *
  */
     /* Get token types. */
-    #[no_mangle]
+
     fn digest_md5_validate_challenge(c: *mut digest_md5_challenge)
      -> libc::c_int;
-    #[no_mangle]
+
     fn digest_md5_validate_response(r: *mut digest_md5_response)
      -> libc::c_int;
-    #[no_mangle]
+
     fn digest_md5_validate_finish(f: *mut digest_md5_finish) -> libc::c_int;
 }
 

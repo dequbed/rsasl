@@ -114,7 +114,7 @@ extern "C" {
 /* Get specification. */
 #[no_mangle]
 pub static mut gsasl_digest_md5_mechanism: Gsasl_mechanism =
-    unsafe {
+    {
         {
             let mut init =
                 Gsasl_mechanism{name:

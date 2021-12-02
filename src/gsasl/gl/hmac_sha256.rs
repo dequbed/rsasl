@@ -20,18 +20,18 @@ extern "C" {
     /* ≥ 0, ≤ 128 */
     /* 128 bytes; the first buflen bytes are in use */
     /* Initialize structure containing state of computation. */
-    #[no_mangle]
+
     fn sha256_init_ctx(ctx: *mut sha256_ctx);
-    #[no_mangle]
+
     fn sha256_process_bytes(buffer: *const libc::c_void, len: size_t,
                             ctx: *mut sha256_ctx);
-    #[no_mangle]
+
     fn sha256_finish_ctx(ctx: *mut sha256_ctx, resbuf: *mut libc::c_void)
      -> *mut libc::c_void;
-    #[no_mangle]
+
     fn sha256_process_block(buffer: *const libc::c_void, len: size_t,
                             ctx: *mut sha256_ctx);
-    #[no_mangle]
+
     fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong)
      -> *mut libc::c_void;
     /* memxor.h -- perform binary exclusive OR operation on memory blocks.
@@ -54,7 +54,7 @@ extern "C" {
     /* Compute binary exclusive OR of memory areas DEST and SRC, putting
    the result in DEST, of length N bytes.  Returns a pointer to
    DEST. */
-    #[no_mangle]
+
     fn memxor(dest: *mut libc::c_void, src: *const libc::c_void, n: size_t)
      -> *mut libc::c_void;
 }

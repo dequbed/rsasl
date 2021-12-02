@@ -1,10 +1,7 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
     fn abort() -> !;
-    #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
 }
 pub type ptrdiff_t = libc::c_long;
@@ -202,7 +199,7 @@ pub unsafe extern "C" fn mmalloca(mut n: size_t) -> *mut libc::c_void {
             let mut umemplus: uintptr_t = 0;
             /* The INT_ADD_WRAPV avoids signed integer overflow on
              theoretical platforms where UINTPTR_MAX <= INT_MAX.  */
-            let (fresh2, fresh3) =
+            let (fresh2, _fresh3) =
                 umem.overflowing_add((::std::mem::size_of::<small_t>() as
                                           libc::c_ulong).wrapping_add(sa_alignment_max
                                                                           as

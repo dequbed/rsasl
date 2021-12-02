@@ -4,19 +4,14 @@ use crate::gsasl::consts::*;
 use crate::gsasl::gsasl::{Gsasl, Gsasl_mechanism, Gsasl_session};
 
 extern "C" {
-    #[no_mangle]
     fn strcat(_: *mut libc::c_char, _: *const libc::c_char)
      -> *mut libc::c_char;
     /* Authentication functions: xstart.c, xstep.c, xfinish.c */
-    #[no_mangle]
     fn gsasl_finish(sctx: *mut Gsasl_session);
-    #[no_mangle]
     fn gsasl_server_start(ctx: *mut Gsasl, mech: *const libc::c_char,
                           sctx: *mut *mut Gsasl_session) -> libc::c_int;
-    #[no_mangle]
     fn gsasl_client_start(ctx: *mut Gsasl, mech: *const libc::c_char,
                           sctx: *mut *mut Gsasl_session) -> libc::c_int;
-    #[no_mangle]
     fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
 }
 pub type C2RustUnnamed = libc::c_uint;

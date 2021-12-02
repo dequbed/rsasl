@@ -6,18 +6,12 @@ use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set, gsasl_property_set_raw};
 
 extern "C" {
-    #[no_mangle]
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
-    #[no_mangle]
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    #[no_mangle]
     fn rpl_free(_: *mut libc::c_void);
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> size_t;
-    #[no_mangle]
     fn malloc(_: size_t) -> *mut libc::c_void;
-    #[no_mangle]
     fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
     /* mechtools.h --- Helper functions available for use by any mechanism.
  * Copyright (C) 2010-2021 Simon Josefsson
@@ -42,7 +36,6 @@ extern "C" {
  */
     /* Get size_t. */
     /* Get bool. */
-    #[no_mangle]
     fn _gsasl_parse_gs2_header(data: *const libc::c_char, len: size_t,
                                authzid: *mut *mut libc::c_char,
                                headerlen: *mut size_t) -> libc::c_int;
@@ -58,7 +51,7 @@ pub struct openid20_server_state {
     pub allow_error_step: libc::c_int,
 }
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_openid20_server_start(mut sctx:
+pub unsafe extern "C" fn _gsasl_openid20_server_start(mut _sctx:
                                                           *mut Gsasl_session,
                                                       mut mech_data:
                                                           *mut *mut libc::c_void)
@@ -211,7 +204,7 @@ pub unsafe extern "C" fn _gsasl_openid20_server_step(mut sctx:
  *
  */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_openid20_server_finish(mut sctx:
+pub unsafe extern "C" fn _gsasl_openid20_server_finish(mut _sctx:
                                                            *mut Gsasl_session,
                                                        mut mech_data:
                                                            *mut libc::c_void) {

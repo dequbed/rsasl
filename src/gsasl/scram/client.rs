@@ -9,12 +9,9 @@ use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep};
 
 extern "C" {
-    #[no_mangle]
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,
                 _: ...) -> libc::c_int;
-    #[no_mangle]
     fn gsasl_hash_length(hash: Gsasl_hash) -> size_t;
-    #[no_mangle]
     fn gsasl_scram_secrets_from_salted_password(hash: Gsasl_hash,
                                                 salted_password:
                                                     *const libc::c_char,
@@ -22,7 +19,6 @@ extern "C" {
                                                 server_key: *mut libc::c_char,
                                                 stored_key: *mut libc::c_char)
      -> libc::c_int;
-    #[no_mangle]
     fn gsasl_scram_secrets_from_password(hash: Gsasl_hash,
                                          password: *const libc::c_char,
                                          iteration_count: libc::c_uint,
@@ -33,9 +29,7 @@ extern "C" {
                                          server_key: *mut libc::c_char,
                                          stored_key: *mut libc::c_char)
      -> libc::c_int;
-    #[no_mangle]
     fn malloc(_: size_t) -> *mut libc::c_void;
-    #[no_mangle]
     fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <stdlib.h>.
@@ -71,32 +65,19 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t) -> *mut libc::c_void;
-    #[no_mangle]
     fn memcmp(_: *const libc::c_void, _: *const libc::c_void, _: size_t) -> libc::c_int;
-    #[no_mangle]
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    #[no_mangle]
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    #[no_mangle]
     fn strchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> size_t;
-    #[no_mangle]
     fn scram_free_client_first(cf: *mut scram_client_first);
-    #[no_mangle]
     fn scram_free_server_first(sf: *mut scram_server_first);
-    #[no_mangle]
     fn scram_free_client_final(cl: *mut scram_client_final);
-    #[no_mangle]
     fn scram_free_server_final(sl: *mut scram_server_final);
-    #[no_mangle]
     fn scram_parse_server_first(str: *const libc::c_char, len: size_t,
                                 cf: *mut scram_server_first) -> libc::c_int;
-    #[no_mangle]
     fn scram_parse_server_final(str: *const libc::c_char, len: size_t,
                                 sl: *mut scram_server_final) -> libc::c_int;
     /* printer.h --- Convert SCRAM token structures into strings.
@@ -121,10 +102,8 @@ extern "C" {
  *
  */
     /* Get token types. */
-    #[no_mangle]
     fn scram_print_client_first(cf: *mut scram_client_first,
                                 out: *mut *mut libc::c_char) -> libc::c_int;
-    #[no_mangle]
     fn scram_print_client_final(cl: *mut scram_client_final,
                                 out: *mut *mut libc::c_char) -> libc::c_int;
     /* memxor.h -- perform binary exclusive OR operation on memory blocks.
@@ -147,7 +126,6 @@ extern "C" {
     /* Compute binary exclusive OR of memory areas DEST and SRC, putting
    the result in DEST, of length N bytes.  Returns a pointer to
    DEST. */
-    #[no_mangle]
     fn memxor(dest: *mut libc::c_void, src: *const libc::c_void, n: size_t)
      -> *mut libc::c_void;
     /* tools.h --- Shared client/server SCRAM code
@@ -171,14 +149,10 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-    #[no_mangle]
     fn set_saltedpassword(sctx: *mut Gsasl_session, hash: Gsasl_hash,
                           hashbuf: *const libc::c_char) -> libc::c_int;
-    #[no_mangle]
     fn _gsasl_hex_decode(hexstr: *const libc::c_char, bin: *mut libc::c_char);
-    #[no_mangle]
     fn _gsasl_hex_p(hexstr: *const libc::c_char) -> bool;
-    #[no_mangle]
     fn _gsasl_hmac(hash: Gsasl_hash, key: *const libc::c_char, keylen: size_t,
                    in_0: *const libc::c_char, inlen: size_t,
                    outhash: *mut libc::c_char) -> libc::c_int;
@@ -270,7 +244,7 @@ pub struct scram_client_first {
     pub username: *mut libc::c_char,
     pub client_nonce: *mut libc::c_char,
 }
-unsafe extern "C" fn scram_start(mut sctx: *mut Gsasl_session,
+unsafe extern "C" fn scram_start(mut _sctx: *mut Gsasl_session,
                                  mut mech_data: *mut *mut libc::c_void,
                                  mut plus: bool, mut hash: Gsasl_hash)
  -> libc::c_int {
@@ -599,10 +573,8 @@ pub unsafe extern "C" fn _gsasl_scram_client_step(mut sctx:
     return res;
 }
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_scram_client_finish(mut sctx:
-                                                        *mut Gsasl_session,
-                                                    mut mech_data:
-                                                        *mut libc::c_void) {
+pub unsafe extern "C" fn _gsasl_scram_client_finish(mut _sctx: *mut Gsasl_session,
+                                                    mut mech_data: *mut libc::c_void) {
     let mut state: *mut scram_client_state =
         mech_data as *mut scram_client_state;
     if state.is_null() { return }

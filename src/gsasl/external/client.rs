@@ -5,9 +5,7 @@ use crate::gsasl::gsasl::Gsasl_session;
 use crate::gsasl::property::gsasl_property_get;
 
 extern "C" {
-    #[no_mangle]
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> size_t;
 }
 /* external.h --- Prototypes for EXTERNAL mechanism as defined in RFC 2222.
@@ -55,18 +53,14 @@ extern "C" {
 /* Get specification. */
 /* Get strdup, strlen. */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_external_client_step(mut sctx:
-                                                         *mut Gsasl_session,
-                                                     mut mech_data:
-                                                         *mut libc::c_void,
-                                                     mut input:
-                                                         *const libc::c_char,
-                                                     mut input_len: size_t,
-                                                     mut output:
-                                                         *mut *mut libc::c_char,
-                                                     mut output_len:
-                                                         *mut size_t)
- -> libc::c_int {
+pub unsafe extern "C" fn _gsasl_external_client_step(mut sctx: *mut Gsasl_session,
+                                                     mut _mech_data: *mut libc::c_void,
+                                                     mut _input: *const libc::c_char,
+                                                     mut _input_len: size_t,
+                                                     mut output: *mut *mut libc::c_char,
+                                                     mut output_len: *mut size_t
+    ) -> libc::c_int
+{
     let mut p: *const libc::c_char = 0 as *const libc::c_char;
     p = gsasl_property_get(sctx, GSASL_AUTHZID);
     if p.is_null() { p = b"\x00" as *const u8 as *const libc::c_char }

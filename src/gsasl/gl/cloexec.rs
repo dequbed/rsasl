@@ -18,7 +18,6 @@ extern "C" {
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
     /* written by Paul Eggert */
-    #[no_mangle]
     fn rpl_fcntl(fd: libc::c_int, action: libc::c_int, _: ...) -> libc::c_int;
 }
 /* cloexec.c - set or clear the close-on-exec descriptor flag

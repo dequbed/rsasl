@@ -52,10 +52,8 @@ pub mod gl {
     pub mod base64;
     pub mod c_ctype;
     pub mod cloexec;
-    pub mod fd_hook;
     pub mod fflush;
     pub mod fpurge;
-    pub mod freading;
     pub mod free;
     pub mod fseek;
     pub mod fseeko;
@@ -75,8 +73,6 @@ pub mod gl {
     pub mod sha256;
     pub mod sha256_stream;
     pub mod stat_time;
-    pub mod sys_socket;
-    pub mod unistd;
     pub mod xsize;
 }
 
