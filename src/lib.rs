@@ -81,8 +81,6 @@
 //! }
 //! ```
 
-use gsasl_sys::*;
-pub use gsasl_sys::Gsasl_rc::*;
 use std::ptr;
 use std::ffi::{CString, CStr};
 
