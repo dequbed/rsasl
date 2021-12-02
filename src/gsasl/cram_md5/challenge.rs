@@ -1,15 +1,12 @@
 use ::libc;
 use libc::size_t;
-use crate::gsasl::gc::{GC_OK, Gc_rc};
+use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::gc_gnulib::gc_nonce;
 
 extern "C" {
-    #[no_mangle]
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> size_t;
-    #[no_mangle]
     fn __assert_fail(__assertion: *const libc::c_char,
                      __file: *const libc::c_char, __line: libc::c_uint,
                      __function: *const libc::c_char) -> !;

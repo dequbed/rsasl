@@ -1,14 +1,12 @@
 use ::libc;
 use libc::size_t;
-use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD, Gsasl_property};
+use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD};
 use crate::gsasl::gsasl::Gsasl_session;
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
 use crate::gsasl::saslprep::{gsasl_saslprep, Gsasl_saslprep_flags};
 
 extern "C" {
-    #[no_mangle]
     fn malloc(_: size_t) -> *mut libc::c_void;
-    #[no_mangle]
     fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
@@ -27,23 +25,17 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
-    #[no_mangle]
     fn memcmp(_: *const libc::c_void, _: *const libc::c_void,
               _: size_t) -> libc::c_int;
-    #[no_mangle]
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> size_t;
     /* Store zero terminated CRAM-MD5 challenge in output buffer.  The
    CHALLENGE buffer must be allocated by the caller, and must have
    room for CRAM_MD5_CHALLENGE_LEN characters.  Returns 0 on success,
    and -1 on randomness problems.  */
-    #[no_mangle]
     fn cram_md5_challenge(challenge: *mut libc::c_char) -> libc::c_int;
     /* digest.h --- Generate a CRAM-MD5 hex encoded HMAC-MD5 response string.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -73,7 +65,6 @@ extern "C" {
    SECRET, respectively, is zero terminated.  The RESPONSE buffer must
    be allocated by the caller, and must have room for
    CRAM_MD5_DIGEST_LEN characters.*/
-    #[no_mangle]
     fn cram_md5_digest(challenge: *const libc::c_char, challengelen: size_t,
                        secret: *const libc::c_char, secretlen: size_t,
                        response: *mut libc::c_char);
@@ -141,7 +132,7 @@ pub unsafe extern "C" fn _gsasl_cram_md5_server_step(mut sctx: *mut Gsasl_sessio
     if memcmp(&*input.offset(input_len.wrapping_sub(32) as isize)
                   as *const libc::c_char as *const libc::c_void,
               hash.as_mut_ptr() as *const libc::c_void,
-              (2 * 16)) == 0
+              2 * 16) == 0
     {
         res = GSASL_OK as libc::c_int
     }

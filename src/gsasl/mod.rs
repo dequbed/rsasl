@@ -49,7 +49,6 @@ pub mod external {
 
 // mod external
 pub mod gl {
-    pub mod af_alg;
     pub mod base64;
     pub mod c_ctype;
     pub mod cloexec;

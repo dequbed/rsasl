@@ -3,18 +3,15 @@ use libc::size_t;
 use crate::gsasl::base64::gsasl_base64_to;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_CRYPTO_ERROR, GSASL_DIGEST_MD5_HASHED_PASSWORD, GSASL_INTEGRITY_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD, GSASL_QOPS, GSASL_REALM};
 use crate::gsasl::crypto::gsasl_nonce;
-use crate::gsasl::gc::{GC_OK, Gc_rc};
+use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::gc_gnulib::gc_md5;
 use crate::gsasl::gsasl::Gsasl_session;
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
 
 extern "C" {
-    #[no_mangle]
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,
                 _: ...) -> libc::c_int;
-    #[no_mangle]
     fn malloc(_: size_t) -> *mut libc::c_void;
-    #[no_mangle]
     fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
@@ -33,155 +30,141 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    #[no_mangle]
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> size_t;
     /* nonascii.h --- Prototypes for UTF-8 vs Latin-1 conversion for DIGEST-MD5
- * Copyright (C) 2002-2021 Simon Josefsson
- *
- * This file is part of GNU SASL Library.
- *
- * GNU SASL Library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * GNU SASL Library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with GNU SASL Library; if not, write to the Free
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
-    #[no_mangle]
+     * Copyright (C) 2002-2021 Simon Josefsson
+     *
+     * This file is part of GNU SASL Library.
+     *
+     * GNU SASL Library is free software; you can redistribute it and/or
+     * modify it under the terms of the GNU Lesser General Public License
+     * as published by the Free Software Foundation; either version 2.1 of
+     * the License, or (at your option) any later version.
+     *
+     * GNU SASL Library is distributed in the hope that it will be useful,
+     * but WITHOUT ANY WARRANTY; without even the implied warranty of
+     * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     * Lesser General Public License for more details.
+     *
+     * You should have received a copy of the GNU Lesser General Public
+     * License along with GNU SASL Library; if not, write to the Free
+     * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+     * Boston, MA 02110-1301, USA.
+     *
+     */
     fn latin1toutf8(str: *const libc::c_char) -> *mut libc::c_char;
-    #[no_mangle]
     fn utf8tolatin1ifpossible(passwd: *const libc::c_char)
      -> *mut libc::c_char;
-    #[no_mangle]
     fn digest_md5_parse_response(response: *const libc::c_char, len: size_t,
                                  out: *mut digest_md5_response)
      -> libc::c_int;
     /* printer.h --- Convert DIGEST-MD5 token structures into strings.
- * Copyright (C) 2004-2021 Simon Josefsson
- *
- * This file is part of GNU SASL Library.
- *
- * GNU SASL Library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * GNU SASL Library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with GNU SASL Library; if not, write to the Free
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
+     * Copyright (C) 2004-2021 Simon Josefsson
+     *
+     * This file is part of GNU SASL Library.
+     *
+     * GNU SASL Library is free software; you can redistribute it and/or
+     * modify it under the terms of the GNU Lesser General Public License
+     * as published by the Free Software Foundation; either version 2.1 of
+     * the License, or (at your option) any later version.
+     *
+     * GNU SASL Library is distributed in the hope that it will be useful,
+     * but WITHOUT ANY WARRANTY; without even the implied warranty of
+     * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     * Lesser General Public License for more details.
+     *
+     * You should have received a copy of the GNU Lesser General Public
+     * License along with GNU SASL Library; if not, write to the Free
+     * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+     * Boston, MA 02110-1301, USA.
+     *
+     */
     /* Get token types. */
-    #[no_mangle]
     fn digest_md5_print_challenge(challenge: *mut digest_md5_challenge)
      -> *mut libc::c_char;
-    #[no_mangle]
     fn digest_md5_print_finish(out: *mut digest_md5_finish)
      -> *mut libc::c_char;
     /* free.h --- Free allocated data in DIGEST-MD5 token structures.
- * Copyright (C) 2004-2021 Simon Josefsson
- *
- * This file is part of GNU SASL Library.
- *
- * GNU SASL Library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * GNU SASL Library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with GNU SASL Library; if not, write to the Free
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
+     * Copyright (C) 2004-2021 Simon Josefsson
+     *
+     * This file is part of GNU SASL Library.
+     *
+     * GNU SASL Library is free software; you can redistribute it and/or
+     * modify it under the terms of the GNU Lesser General Public License
+     * as published by the Free Software Foundation; either version 2.1 of
+     * the License, or (at your option) any later version.
+     *
+     * GNU SASL Library is distributed in the hope that it will be useful,
+     * but WITHOUT ANY WARRANTY; without even the implied warranty of
+     * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     * Lesser General Public License for more details.
+     *
+     * You should have received a copy of the GNU Lesser General Public
+     * License along with GNU SASL Library; if not, write to the Free
+     * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+     * Boston, MA 02110-1301, USA.
+     *
+     */
     /* Get token types. */
-    #[no_mangle]
     fn digest_md5_free_challenge(c: *mut digest_md5_challenge);
-    #[no_mangle]
     fn digest_md5_free_response(r: *mut digest_md5_response);
-    #[no_mangle]
     fn digest_md5_free_finish(f: *mut digest_md5_finish);
     /* session.h --- Data integrity/privacy protection of DIGEST-MD5.
- * Copyright (C) 2002-2021 Simon Josefsson
- *
- * This file is part of GNU SASL Library.
- *
- * GNU SASL Library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * GNU SASL Library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with GNU SASL Library; if not, write to the Free
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
+     * Copyright (C) 2002-2021 Simon Josefsson
+     *
+     * This file is part of GNU SASL Library.
+     *
+     * GNU SASL Library is free software; you can redistribute it and/or
+     * modify it under the terms of the GNU Lesser General Public License
+     * as published by the Free Software Foundation; either version 2.1 of
+     * the License, or (at your option) any later version.
+     *
+     * GNU SASL Library is distributed in the hope that it will be useful,
+     * but WITHOUT ANY WARRANTY; without even the implied warranty of
+     * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     * Lesser General Public License for more details.
+     *
+     * You should have received a copy of the GNU Lesser General Public
+     * License along with GNU SASL Library; if not, write to the Free
+     * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+     * Boston, MA 02110-1301, USA.
+     *
+     */
     /* Get token types. */
-    #[no_mangle]
     fn digest_md5_encode(input: *const libc::c_char, input_len: size_t,
                          output: *mut *mut libc::c_char,
                          output_len: *mut size_t, qop: digest_md5_qop,
                          sendseqnum: libc::c_ulong, key: *mut libc::c_char)
      -> libc::c_int;
-    #[no_mangle]
     fn digest_md5_decode(input: *const libc::c_char, input_len: size_t,
                          output: *mut *mut libc::c_char,
                          output_len: *mut size_t, qop: digest_md5_qop,
                          readseqnum: libc::c_ulong, key: *mut libc::c_char)
      -> libc::c_int;
     /* digesthmac.h --- Compute DIGEST-MD5 response value.
- * Copyright (C) 2004-2021 Simon Josefsson
- *
- * This file is part of GNU SASL Library.
- *
- * GNU SASL Library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * GNU SASL Library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with GNU SASL Library; if not, write to the Free
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
+     * Copyright (C) 2004-2021 Simon Josefsson
+     *
+     * This file is part of GNU SASL Library.
+     *
+     * GNU SASL Library is free software; you can redistribute it and/or
+     * modify it under the terms of the GNU Lesser General Public License
+     * as published by the Free Software Foundation; either version 2.1 of
+     * the License, or (at your option) any later version.
+     *
+     * GNU SASL Library is distributed in the hope that it will be useful,
+     * but WITHOUT ANY WARRANTY; without even the implied warranty of
+     * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     * Lesser General Public License for more details.
+     *
+     * You should have received a copy of the GNU Lesser General Public
+     * License along with GNU SASL Library; if not, write to the Free
+     * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+     * Boston, MA 02110-1301, USA.
+     *
+     */
     /* Get token types. */
     /* Compute in 33 bytes large array OUTPUT the DIGEST-MD5 response
    value.  SECRET holds the 16 bytes MD5 hash SS, i.e.,
@@ -196,7 +179,6 @@ extern "C" {
    authentication.  CIPHER is the cipher to use.  KIC, KIS, KCC, KCS
    are either NULL, or points to 16 byte arrays that will hold the
    computed keys on output.  Returns 0 on success. */
-    #[no_mangle]
     fn digest_md5_hmac(output: *mut libc::c_char, secret: *mut libc::c_char,
                        nonce: *const libc::c_char, nc: libc::c_ulong,
                        cnonce: *const libc::c_char, qop: digest_md5_qop,
@@ -205,31 +187,30 @@ extern "C" {
                        cipher: digest_md5_cipher, kic: *mut libc::c_char,
                        kis: *mut libc::c_char, kcc: *mut libc::c_char,
                        kcs: *mut libc::c_char) -> libc::c_int;
-    #[no_mangle]
+
     fn digest_md5_validate(c: *mut digest_md5_challenge,
                            r: *mut digest_md5_response) -> libc::c_int;
     /* qop.h --- Prototypes for DIGEST-MD5 qop handling.
- * Copyright (C) 2009-2021 Simon Josefsson
- *
- * This file is part of GNU SASL Library.
- *
- * GNU SASL Library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * GNU SASL Library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with GNU SASL Library; if not, write to the Free
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
-    #[no_mangle]
+     * Copyright (C) 2009-2021 Simon Josefsson
+     *
+     * This file is part of GNU SASL Library.
+     *
+     * GNU SASL Library is free software; you can redistribute it and/or
+     * modify it under the terms of the GNU Lesser General Public License
+     * as published by the Free Software Foundation; either version 2.1 of
+     * the License, or (at your option) any later version.
+     *
+     * GNU SASL Library is distributed in the hope that it will be useful,
+     * but WITHOUT ANY WARRANTY; without even the implied warranty of
+     * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     * Lesser General Public License for more details.
+     *
+     * You should have received a copy of the GNU Lesser General Public
+     * License along with GNU SASL Library; if not, write to the Free
+     * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+     * Boston, MA 02110-1301, USA.
+     *
+     */
     fn digest_md5_qopstr2qops(qopstr: *const libc::c_char) -> libc::c_int;
 }
 
