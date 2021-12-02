@@ -101,6 +101,8 @@ mod mechanisms;
 
 mod gsasl;
 
+pub use gsasl::consts;
+
 pub use callback::Callback;
 pub use session::Session;
 pub use buffer::SaslString;
@@ -521,7 +523,7 @@ mod tests {
     #[test]
     fn suggest_good() {
         let mechs = vec!["PLAIN", "INVALID", "SCRAM-SHA-256"];
-        let mut sasl = SASL::new_untyped().unwrap();
+        let sasl = SASL::new_untyped().unwrap();
         let suggest = sasl.suggest_client_mechanism(Mechanisms::from_iter(mechs.iter()));
 
         assert!(suggest.is_ok());
@@ -531,7 +533,7 @@ mod tests {
     #[test]
     fn suggest_fail_on_invalid() {
         let mechs = vec!["INVALID", "ALSOINV", "MOREINV3"];
-        let mut sasl = SASL::new_untyped().unwrap();
+        let sasl = SASL::new_untyped().unwrap();
         let suggest = sasl.suggest_client_mechanism(Mechanisms::from_iter(mechs.iter()));
 
         assert_eq!(Err(SaslError(GSASL_UNKNOWN_MECHANISM)), suggest);

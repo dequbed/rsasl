@@ -1,5 +1,12 @@
 use std::ffi::CString;
-use rsasl_c2rust::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_NO_AUTHID, GSASL_NO_CALLBACK, GSASL_NO_PASSWORD, GSASL_PASSWORD};
+use rsasl::consts::{
+    GSASL_AUTHENTICATION_ERROR,
+    GSASL_AUTHID,
+    GSASL_NO_AUTHID,
+    GSASL_NO_CALLBACK,
+    GSASL_NO_PASSWORD,
+    GSASL_PASSWORD
+};
 use rsasl::{
     SASL,
     Session,

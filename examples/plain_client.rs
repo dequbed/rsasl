@@ -1,6 +1,5 @@
 use std::io;
-use rsasl_c2rust::consts::{GSASL_AUTHID, GSASL_PASSWORD};
-
+use rsasl::consts::{GSASL_AUTHID, GSASL_PASSWORD};
 use rsasl::{SASL, Property, Step::{Done, NeedsMore}};
 
 

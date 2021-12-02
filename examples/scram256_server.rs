@@ -1,6 +1,6 @@
 use std::ffi::CString;
 use std::io;
-use rsasl_c2rust::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_NO_AUTHID,
+use rsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_NO_AUTHID,
                            GSASL_NO_CALLBACK, GSASL_PASSWORD};
 use rsasl::{
     SASL,
