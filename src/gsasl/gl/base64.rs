@@ -389,9 +389,9 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                (if ((if 1 as libc::c_int != 0 {
                                          0 as libc::c_int
                                      } else {
-                                         ((if 1 as libc::c_int != 0 {
+                                         (if 1 as libc::c_int != 0 {
                                                0 as libc::c_int
-                                           } else { 127 as libc::c_int })) +
+                                           } else { 127 as libc::c_int }) +
                                              4 as libc::c_int
                                      }) - 1 as libc::c_int) < 0 as libc::c_int
                                    {
@@ -428,11 +428,11 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                         2 as libc::c_int +
                                                         1 as libc::c_int)
                                               } else {
-                                                  ((if 1 as libc::c_int != 0 {
+                                                  (if 1 as libc::c_int != 0 {
                                                         0 as libc::c_int
                                                     } else {
                                                         4 as libc::c_int
-                                                    })) + 0 as libc::c_int
+                                                    }) + 0 as libc::c_int
                                               }) < 0 as libc::c_int {
                                               ((4 as libc::c_int) <
                                                    -(if ((if 1 as libc::c_int
@@ -476,14 +476,14 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                              +
                                                              1 as libc::c_int
                                                      } else {
-                                                         ((if 1 as libc::c_int
+                                                         (if 1 as libc::c_int
                                                                   != 0 {
                                                                0 as
                                                                    libc::c_int
                                                            } else {
                                                                4 as
                                                                    libc::c_int
-                                                           })) -
+                                                           }) -
                                                              1 as libc::c_int
                                                      })) as libc::c_int
                                           } else {
@@ -517,11 +517,11 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                (if (if (if ((if 1 as libc::c_int != 0 {
                                                  0 as libc::c_int
                                              } else {
-                                                 ((if 1 as libc::c_int != 0 {
+                                                 (if 1 as libc::c_int != 0 {
                                                        0 as libc::c_int
                                                    } else {
                                                        4 as libc::c_int
-                                                   })) +
+                                                   }) +
                                                      (-(127 as libc::c_int) -
                                                           1 as libc::c_int)
                                              }) - 1 as libc::c_int) <
@@ -529,12 +529,12 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                             !(((((if 1 as libc::c_int != 0 {
                                                       0 as libc::c_int
                                                   } else {
-                                                      ((if 1 as libc::c_int !=
+                                                      (if 1 as libc::c_int !=
                                                                0 {
                                                             0 as libc::c_int
                                                         } else {
                                                             4 as libc::c_int
-                                                        })) +
+                                                        }) +
                                                           (-(127 as
                                                                  libc::c_int)
                                                                -
@@ -556,7 +556,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                   2 as libc::c_int +
                                                   1 as libc::c_int)
                                         } else {
-                                            ((if 1 as libc::c_int != 0 {
+                                            (if 1 as libc::c_int != 0 {
                                                   0 as libc::c_int
                                               } else {
                                                   ((if 1 as libc::c_int != 0 {
@@ -566,7 +566,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                     })) +
                                                       (-(127 as libc::c_int) -
                                                            1 as libc::c_int)
-                                              })) + 0 as libc::c_int
+                                              }) + 0 as libc::c_int
                                         }) < 0 as libc::c_int {
                                         (((if 1 as libc::c_int != 0 {
                                                0 as libc::c_int
@@ -576,12 +576,12 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                              -(if ((if 1 as libc::c_int != 0 {
                                                         0 as libc::c_int
                                                     } else {
-                                                        ((if 1 as libc::c_int
+                                                        (if 1 as libc::c_int
                                                                  != 0 {
                                                               0 as libc::c_int
                                                           } else {
                                                               4 as libc::c_int
-                                                          })) +
+                                                          }) +
                                                             (-(127 as
                                                                    libc::c_int)
                                                                  -
@@ -593,7 +593,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                0 {
                                                             0 as libc::c_int
                                                         } else {
-                                                            ((if 1 as
+                                                            (if 1 as
                                                                      libc::c_int
                                                                      != 0 {
                                                                   0 as
@@ -601,7 +601,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                               } else {
                                                                   4 as
                                                                       libc::c_int
-                                                              })) +
+                                                              }) +
                                                                 (-(127 as
                                                                        libc::c_int)
                                                                      -
