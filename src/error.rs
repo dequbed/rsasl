@@ -1,6 +1,6 @@
 use std::fmt;
 use std::ffi::CStr;
-use rsasl_c2rust::error::{gsasl_strerror, gsasl_strerror_name};
+use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 
 pub type Result<T> = std::result::Result<T, SaslError>;
 

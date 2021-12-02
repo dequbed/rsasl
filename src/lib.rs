@@ -89,13 +89,17 @@ use std::ffi::{CString, CStr};
 // Re-Export DiscardOnDrop so people can write rsasl::DiscardOnDrop<SASL<D,E>> without having to
 // import the discard crate.
 pub use discard::{Discard, DiscardOnDrop};
-use rsasl_c2rust::callback::{gsasl_callback, gsasl_callback_hook_get, gsasl_callback_hook_set, gsasl_callback_set};
+
+use gsasl::callback::{gsasl_callback, gsasl_callback_hook_get, gsasl_callback_hook_set,
+                gsasl_callback_set};
 
 pub mod buffer;
 pub mod session;
 pub mod error;
 mod callback;
 mod mechanisms;
+
+mod gsasl;
 
 pub use callback::Callback;
 pub use session::Session;
@@ -104,16 +108,15 @@ pub use mechanisms::Mechanisms;
 
 pub use session::Step;
 
-use rsasl_c2rust::consts::{GSASL_MECHANISM_PARSE_ERROR, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
-use rsasl_c2rust::done::gsasl_done;
-use rsasl_c2rust::gsasl::{Gsasl, Gsasl_callback_function, Gsasl_session};
-use rsasl_c2rust::init::gsasl_init;
-use rsasl_c2rust::listmech::{gsasl_client_mechlist, gsasl_server_mechlist};
-use rsasl_c2rust::suggest::gsasl_client_suggest_mechanism;
-use rsasl_c2rust::supportp::{gsasl_client_support_p, gsasl_server_support_p};
-use rsasl_c2rust::xstart::{gsasl_client_start, gsasl_server_start};
-
-pub use rsasl_c2rust::consts::Gsasl_property as Property;
+use crate::gsasl::consts::{GSASL_MECHANISM_PARSE_ERROR, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
+use crate::gsasl::done::gsasl_done;
+use crate::gsasl::gsasl::{Gsasl, Gsasl_callback_function, Gsasl_session};
+use crate::gsasl::init::gsasl_init;
+use crate::gsasl::listmech::{gsasl_client_mechlist, gsasl_server_mechlist};
+use crate::gsasl::suggest::gsasl_client_suggest_mechanism;
+use crate::gsasl::supportp::{gsasl_client_support_p, gsasl_server_support_p};
+use crate::gsasl::xstart::{gsasl_client_start, gsasl_server_start};
+pub use crate::gsasl::consts::Gsasl_property as Property;
 
 pub use error::{
     SaslError,

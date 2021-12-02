@@ -4,7 +4,7 @@ version = "2.0.0-preview"
 authors = ["Nadja Reitzenstein <me@dequbed.space>"]
 edition = "2018"
 description = "A SASL crate based on GNU gsasl"
-license = "MIT"
+license = "LGPL-2.1-or-later"
 repository = "https://github.com/dequbed/rsasl"
 readme = "README.md"
 categories = ["authentication"]
@@ -15,7 +15,6 @@ documentation = "https://docs.rs/rsasl"
 
 [dependencies]
 libc = "0.2"
-gsasl = { path = "gsasl" }
 
 # Discard is used to make the `SASL` and `Session` structs more ergonomic to use in callbacks
 discard = "1.0.4"
