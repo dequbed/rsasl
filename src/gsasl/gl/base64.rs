@@ -1498,7 +1498,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                   }
              }
         } else {
-            (if ::std::mem::size_of::<idx_t>() as libc::c_ulong ==
+            if ::std::mem::size_of::<idx_t>() as libc::c_ulong ==
                     ::std::mem::size_of::<libc::c_short>() as libc::c_ulong {
                  if !((0 as libc::c_int as idx_t) <
                            -(1 as libc::c_int) as idx_t) {
@@ -8739,7 +8739,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                             }
                        }
                   }
-             })
+             }
         }) != 0 || inlen < 0 as libc::c_int as libc::c_long {
         *out = 0 as *mut libc::c_char;
         return 0 as libc::c_int as idx_t

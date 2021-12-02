@@ -1,6 +1,6 @@
 use std::io;
 use rsasl::consts::{GSASL_AUTHID, GSASL_PASSWORD};
-use rsasl::{SASL, Property, Step::{Done, NeedsMore}};
+use rsasl::{SASL, Step::{Done, NeedsMore}};
 
 
 pub fn main() {

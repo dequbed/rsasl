@@ -2,7 +2,7 @@ use std::io;
 use std::ffi::CString;
 use rsasl::consts::{GSASL_AUTHID, GSASL_PASSWORD};
 
-use rsasl::{SASL, Property, Step::{Done, NeedsMore}};
+use rsasl::{SASL, Step::{Done, NeedsMore}};
 
 
 // A SCRAM-SHA-1 authentication exchange.

@@ -15,13 +15,13 @@ use rsasl::{
 struct OurCallback;
 
 impl Callback<(), ()> for OurCallback {
-    fn callback(sasl: &mut SASL<(), ()>, session: &mut Session<()>, prop: Property) 
+    fn callback(_sasl: &mut SASL<(), ()>, session: &mut Session<()>, prop: Property) 
         -> Result<(), u32>
     {
         match prop {
             GSASL_PASSWORD => {
                 // Access the authentication id, i.e. the username to check the password for
-                let authcid = session.get_property(GSASL_AUTHID)
+                let _authcid = session.get_property(GSASL_AUTHID)
                     .ok_or(GSASL_NO_AUTHID)?;
 
                 session.set_property(GSASL_PASSWORD, "secret".as_bytes());

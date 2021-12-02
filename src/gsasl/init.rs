@@ -7,7 +7,7 @@ use crate::gsasl::done::gsasl_done;
 use crate::gsasl::external::mechinfo::gsasl_external_mechanism;
 use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::gc_gnulib::gc_init;
-use crate::gsasl::gsasl::{Gsasl, Gsasl_mechanism};
+use crate::gsasl::gsasl::{Gsasl};
 use crate::gsasl::login::mechinfo::gsasl_login_mechanism;
 use crate::gsasl::openid20::mechinfo::gsasl_openid20_mechanism;
 use crate::gsasl::plain::mechinfo::gsasl_plain_mechanism;
