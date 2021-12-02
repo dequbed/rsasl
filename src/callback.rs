@@ -167,9 +167,9 @@ pub trait Callback<D,E> {
 }
 
 pub(crate) extern "C" fn wrap<C: Callback<D,E>, D, E>(
-    ctx: *mut gsasl_sys::Gsasl, 
-    sctx: *mut gsasl_sys::Gsasl_session, 
-    prop: gsasl_sys::Gsasl_property)
+    ctx: *mut Gsasl,
+    sctx: *mut Gsasl_session,
+    prop: Gsasl_property)
     -> libc::c_int
 {
     let mut sasl = SASL::from_ptr(ctx);

@@ -100,12 +100,6 @@ pub use session::Session;
 pub use buffer::SaslString;
 pub use mechanisms::Mechanisms;
 
-pub use gsasl_sys::{
-    self as sys,
-    Gsasl_rc as ReturnCode,
-    Gsasl_property as Property,
-};
-
 pub use session::Step;
 
 pub use error::{
