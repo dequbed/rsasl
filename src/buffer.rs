@@ -1,4 +1,3 @@
-use gsasl_sys::*;
 use std::ffi::CStr;
 
 ///  A type representing an owned buffer compatible to libgsasl

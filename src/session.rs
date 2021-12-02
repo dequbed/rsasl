@@ -1,7 +1,7 @@
+use libc::size_t;
 use std::ptr;
 use std::ffi::CStr;
-use gsasl_sys::*;
-use gsasl_sys::Gsasl_rc::*;
+use rsasl_c2rust::src::src::listmech::{GSASL_OK, Gsasl_session};
 
 use crate::Property;
 use crate::buffer::{SaslBuffer, SaslString};
