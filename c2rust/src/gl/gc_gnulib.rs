@@ -1,7 +1,10 @@
 use ::libc;
+use libc::size_t;
+use crate::gc::{GC_INVALID_CIPHER, GC_INVALID_HASH, GC_MALLOC_ERROR, GC_OK, GC_RANDOM_ERROR, Gc_rc};
+
 extern "C" {
     #[no_mangle]
-    fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
+    fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
 
@@ -22,7 +25,7 @@ extern "C" {
     #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
     #[no_mangle]
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
     #[no_mangle]
     fn __errno_location() -> *mut libc::c_int;
@@ -131,7 +134,6 @@ extern "C" {
                    in_0: *const libc::c_void, inlen: size_t,
                    resbuf: *mut libc::c_void) -> libc::c_int;
 }
-pub type size_t = libc::c_ulong;
 /* gc.h --- Header file for implementation agnostic crypto wrapper API.
  * Copyright (C) 2002-2005, 2007-2008, 2011-2021 Free Software Foundation, Inc.
  *
@@ -149,17 +151,6 @@ pub type size_t = libc::c_ulong;
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-/* Get size_t. */
-pub type Gc_rc = libc::c_uint;
-pub const GC_PKCS5_DERIVED_KEY_TOO_LONG: Gc_rc = 8;
-pub const GC_PKCS5_INVALID_DERIVED_KEY_LENGTH: Gc_rc = 7;
-pub const GC_PKCS5_INVALID_ITERATION_COUNT: Gc_rc = 6;
-pub const GC_INVALID_HASH: Gc_rc = 5;
-pub const GC_INVALID_CIPHER: Gc_rc = 4;
-pub const GC_RANDOM_ERROR: Gc_rc = 3;
-pub const GC_INIT_ERROR: Gc_rc = 2;
-pub const GC_MALLOC_ERROR: Gc_rc = 1;
-pub const GC_OK: Gc_rc = 0;
 /* Hash types. */
 pub type Gc_hash = libc::c_uint;
 pub const GC_SM3: Gc_hash = 9;
@@ -331,7 +322,7 @@ unsafe extern "C" fn randomize(mut buffer: *mut libc::c_void,
     let mut buf: *mut libc::c_char = buffer as *mut libc::c_char;
     loop  {
         let mut bytes: ssize_t = 0;
-        if length == 0 as libc::c_int as libc::c_ulong {
+        if length == 0 {
             return GC_OK as libc::c_int
         }
         loop  {
@@ -386,8 +377,7 @@ pub unsafe extern "C" fn gc_cipher_open(mut alg: Gc_cipher,
     let mut ctx: *mut _gc_cipher_ctx = 0 as *mut _gc_cipher_ctx;
     let mut rc: Gc_rc = GC_OK;
     ctx =
-        calloc(::std::mem::size_of::<_gc_cipher_ctx>() as libc::c_ulong,
-               1 as libc::c_int as libc::c_ulong) as *mut _gc_cipher_ctx;
+        calloc(::std::mem::size_of::<_gc_cipher_ctx>(), 1) as *mut _gc_cipher_ctx;
     if ctx.is_null() { return GC_MALLOC_ERROR }
     (*ctx).alg = alg;
     (*ctx).mode = mode;
@@ -455,8 +445,7 @@ pub unsafe extern "C" fn gc_hash_open(mut hash: Gc_hash,
         return GC_INVALID_HASH
     }
     ctx =
-        calloc(::std::mem::size_of::<_gc_hash_ctx>() as libc::c_ulong,
-               1 as libc::c_int as libc::c_ulong) as *mut _gc_hash_ctx;
+        calloc(::std::mem::size_of::<_gc_hash_ctx>(), 1) as *mut _gc_hash_ctx;
     if ctx.is_null() { return GC_MALLOC_ERROR }
     (*ctx).alg = hash;
     (*ctx).mode = mode;
@@ -478,12 +467,11 @@ pub unsafe extern "C" fn gc_hash_clone(mut handle: gc_hash_handle,
     let mut in_0: *mut _gc_hash_ctx = handle as *mut _gc_hash_ctx;
     let mut out: *mut _gc_hash_ctx = 0 as *mut _gc_hash_ctx;
     out =
-        calloc(::std::mem::size_of::<_gc_hash_ctx>() as libc::c_ulong,
-               1 as libc::c_int as libc::c_ulong) as *mut _gc_hash_ctx;
+        calloc(::std::mem::size_of::<_gc_hash_ctx>(), 1) as *mut _gc_hash_ctx;
     *outhandle = out as gc_hash_handle;
     if out.is_null() { return GC_MALLOC_ERROR }
     memcpy(out as *mut libc::c_void, in_0 as *const libc::c_void,
-           ::std::mem::size_of::<_gc_hash_ctx>() as libc::c_ulong);
+           ::std::mem::size_of::<_gc_hash_ctx>());
     return GC_OK;
 }
 #[no_mangle]

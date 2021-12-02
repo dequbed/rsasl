@@ -2,25 +2,14 @@ use ::libc;
 use libc::size_t;
 use crate::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD, Gsasl_property};
 use crate::gsasl::Gsasl_session;
-use crate::saslprep::Gsasl_saslprep_flags;
+use crate::property::{gsasl_property_get, gsasl_property_set};
+use crate::saslprep::{gsasl_saslprep, Gsasl_saslprep_flags};
 
 extern "C" {
-    /* Property handling: property.c */
     #[no_mangle]
-    fn gsasl_property_set(sctx: *mut Gsasl_session, prop: Gsasl_property,
-                          data: *const libc::c_char) -> libc::c_int;
+    fn malloc(_: size_t) -> *mut libc::c_void;
     #[no_mangle]
-    fn gsasl_property_get(sctx: *mut Gsasl_session, prop: Gsasl_property)
-     -> *const libc::c_char;
-    /* Internationalized string processing: stringprep.c */
-    #[no_mangle]
-    fn gsasl_saslprep(in_0: *const libc::c_char, flags: Gsasl_saslprep_flags,
-                      out: *mut *mut libc::c_char,
-                      stringpreprc: *mut libc::c_int) -> libc::c_int;
-    #[no_mangle]
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
-    fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
+    fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
 
@@ -41,15 +30,15 @@ extern "C" {
     #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
     #[no_mangle]
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
     #[no_mangle]
     fn memcmp(_: *const libc::c_void, _: *const libc::c_void,
-              _: libc::c_ulong) -> libc::c_int;
+              _: size_t) -> libc::c_int;
     #[no_mangle]
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
     #[no_mangle]
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn strlen(_: *const libc::c_char) -> size_t;
     /* Store zero terminated CRAM-MD5 challenge in output buffer.  The
    CHALLENGE buffer must be allocated by the caller, and must have
    room for CRAM_MD5_CHALLENGE_LEN characters.  Returns 0 on success,
@@ -91,15 +80,14 @@ extern "C" {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_cram_md5_server_start(mut sctx:
-                                                          *mut Gsasl_session,
-                                                      mut mech_data:
-                                                          *mut *mut libc::c_void)
- -> libc::c_int {
+pub unsafe extern "C" fn _gsasl_cram_md5_server_start(mut sctx: *mut Gsasl_session,
+                                                      mut mech_data: *mut *mut libc::c_void
+    ) -> libc::c_int
+{
     let mut challenge: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut rc: libc::c_int = 0;
     challenge =
-        malloc(35 as libc::c_int as libc::c_ulong) as *mut libc::c_char;
+        malloc(35) as *mut libc::c_char;
     if challenge.is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
     rc = cram_md5_challenge(challenge);
     if rc != 0 { return GSASL_CRYPTO_ERROR as libc::c_int }
@@ -107,18 +95,14 @@ pub unsafe extern "C" fn _gsasl_cram_md5_server_start(mut sctx:
     return GSASL_OK as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_cram_md5_server_step(mut sctx:
-                                                         *mut Gsasl_session,
-                                                     mut mech_data:
-                                                         *mut libc::c_void,
-                                                     mut input:
-                                                         *const libc::c_char,
+pub unsafe extern "C" fn _gsasl_cram_md5_server_step(mut sctx: *mut Gsasl_session,
+                                                     mut mech_data: *mut libc::c_void,
+                                                     mut input: *const libc::c_char,
                                                      mut input_len: size_t,
-                                                     mut output:
-                                                         *mut *mut libc::c_char,
-                                                     mut output_len:
-                                                         *mut size_t)
- -> libc::c_int {
+                                                     mut output: *mut *mut libc::c_char,
+                                                     mut output_len: *mut size_t
+    ) -> libc::c_int
+{
     let mut challenge: *mut libc::c_char = mech_data as *mut libc::c_char;
     let mut hash: [libc::c_char; 32] = [0; 32];
     let mut password: *const libc::c_char = 0 as *const libc::c_char;
@@ -136,10 +120,10 @@ pub unsafe extern "C" fn _gsasl_cram_md5_server_step(mut sctx:
     if *input.offset(input_len.wrapping_sub(16 * 2).wrapping_sub(1) as isize) != ' ' as i8 {
         return GSASL_MECHANISM_PARSE_ERROR as libc::c_int
     }
-    username = calloc(1, input_len.wrapping_sub(16 * 2) as u64) as *mut libc::c_char;
+    username = calloc(1, input_len.wrapping_sub(16 * 2)) as *mut libc::c_char;
     if username.is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
     memcpy(username as *mut libc::c_void, input as *const libc::c_void,
-           input_len.wrapping_sub(16 * 2).wrapping_sub(1) as u64);
+           input_len.wrapping_sub(16 * 2).wrapping_sub(1));
     res = gsasl_property_set(sctx, GSASL_AUTHID, username);
     rpl_free(username as *mut libc::c_void);
     if res != GSASL_OK as libc::c_int { return res }
@@ -157,10 +141,14 @@ pub unsafe extern "C" fn _gsasl_cram_md5_server_step(mut sctx:
     if memcmp(&*input.offset(input_len.wrapping_sub(32) as isize)
                   as *const libc::c_char as *const libc::c_void,
               hash.as_mut_ptr() as *const libc::c_void,
-              (2 as libc::c_int * 16 as libc::c_int) as libc::c_ulong) ==
-           0 as libc::c_int {
+              (2 * 16)) == 0
+    {
         res = GSASL_OK as libc::c_int
-    } else { res = GSASL_AUTHENTICATION_ERROR as libc::c_int }
+    }
+    else
+    {
+        res = GSASL_AUTHENTICATION_ERROR as libc::c_int
+    }
     *output_len = 0 as libc::c_int as size_t;
     *output = 0 as *mut libc::c_char;
     return res;

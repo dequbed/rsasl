@@ -1,7 +1,10 @@
 use ::libc;
+use libc::size_t;
+use crate::gl::gc_gnulib::gc_md5;
+
 extern "C" {
     #[no_mangle]
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
+    fn malloc(_: size_t) -> *mut libc::c_void;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <stdlib.h>.
 
@@ -39,18 +42,14 @@ extern "C" {
     #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
     #[no_mangle]
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
     #[no_mangle]
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn strlen(_: *const libc::c_char) -> size_t;
     #[no_mangle]
     fn sprintf(_: *mut libc::c_char, _: *const libc::c_char, _: ...)
      -> libc::c_int;
-    #[no_mangle]
-    fn gc_md5(in_0: *const libc::c_void, inlen: size_t,
-              resbuf: *mut libc::c_void) -> Gc_rc;
 }
-pub type size_t = libc::c_ulong;
 pub type digest_md5_qop = libc::c_uint;
 pub const DIGEST_MD5_QOP_AUTH_CONF: digest_md5_qop = 4;
 pub const DIGEST_MD5_QOP_AUTH_INT: digest_md5_qop = 2;
@@ -79,17 +78,6 @@ pub const DIGEST_MD5_CIPHER_DES: digest_md5_cipher = 1;
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-/* Get size_t. */
-pub type Gc_rc = libc::c_uint;
-pub const GC_PKCS5_DERIVED_KEY_TOO_LONG: Gc_rc = 8;
-pub const GC_PKCS5_INVALID_DERIVED_KEY_LENGTH: Gc_rc = 7;
-pub const GC_PKCS5_INVALID_ITERATION_COUNT: Gc_rc = 6;
-pub const GC_INVALID_HASH: Gc_rc = 5;
-pub const GC_INVALID_CIPHER: Gc_rc = 4;
-pub const GC_RANDOM_ERROR: Gc_rc = 3;
-pub const GC_INIT_ERROR: Gc_rc = 2;
-pub const GC_MALLOC_ERROR: Gc_rc = 1;
-pub const GC_OK: Gc_rc = 0;
 /* digesthmac.h --- Compute DIGEST-MD5 response value.
  * Copyright (C) 2004-2021 Simon Josefsson
  *
@@ -170,27 +158,20 @@ pub unsafe extern "C" fn digest_md5_hmac(mut output: *mut libc::c_char,
     let mut rc: libc::c_int = 0;
     let mut i: libc::c_int = 0;
     /* A1 */
-    tmplen =
-        (16 as libc::c_int as
-             libc::c_ulong).wrapping_add(strlen(b":\x00" as *const u8 as
-                                                    *const libc::c_char)).wrapping_add(strlen(nonce)).wrapping_add(strlen(b":\x00"
-                                                                                                                              as
-                                                                                                                              *const u8
-                                                                                                                              as
-                                                                                                                              *const libc::c_char)).wrapping_add(strlen(cnonce));
-    if !authzid.is_null() &&
-           strlen(authzid) > 0 as libc::c_int as libc::c_ulong {
-        tmplen =
-            (tmplen as
-                 libc::c_ulong).wrapping_add(strlen(b":\x00" as *const u8 as
-                                                        *const libc::c_char).wrapping_add(strlen(authzid)))
-                as size_t as size_t
+    tmplen = 16usize.wrapping_add(strlen(b":\x00" as *const u8 as *const libc::c_char))
+                    .wrapping_add(strlen(nonce))
+                    .wrapping_add(strlen(b":\x00" as *const u8 as *const libc::c_char))
+                    .wrapping_add(strlen(cnonce));
+
+    if !authzid.is_null() && strlen(authzid) > 0 {
+        tmplen = tmplen.wrapping_add(strlen(b":\x00" as *const u8 as *const libc::c_char)
+                            .wrapping_add(strlen(authzid)))
     }
     tmp = malloc(tmplen) as *mut libc::c_char;
     p = tmp;
     if tmp.is_null() { return -(1 as libc::c_int) }
-    memcpy(p as *mut libc::c_void, secret as *const libc::c_void,
-           16 as libc::c_int as libc::c_ulong);
+    memcpy(p as *mut libc::c_void, secret as *const libc::c_void, 16);
+
     p = p.offset(16 as libc::c_int as isize);
     memcpy(p as *mut libc::c_void,
            b":\x00" as *const u8 as *const libc::c_char as
@@ -212,8 +193,7 @@ pub unsafe extern "C" fn digest_md5_hmac(mut output: *mut libc::c_char,
     memcpy(p as *mut libc::c_void, cnonce as *const libc::c_void,
            strlen(cnonce));
     p = p.offset(strlen(cnonce) as isize);
-    if !authzid.is_null() &&
-           strlen(authzid) > 0 as libc::c_int as libc::c_ulong {
+    if !authzid.is_null() && strlen(authzid) > 0 {
         memcpy(p as *mut libc::c_void,
                b":\x00" as *const u8 as *const libc::c_char as
                    *const libc::c_void,
@@ -237,19 +217,19 @@ pub unsafe extern "C" fn digest_md5_hmac(mut output: *mut libc::c_char,
             (16 as libc::c_int + 65 as libc::c_int) as size_t;
         memcpy(q.as_mut_ptr() as *mut libc::c_void,
                hash.as_mut_ptr() as *const libc::c_void,
-               16 as libc::c_int as libc::c_ulong);
+               16);
         memcpy(q.as_mut_ptr().offset(16 as libc::c_int as isize) as
                    *mut libc::c_void,
                b"Digest session key to client-to-server signing key magic constant\x00"
                    as *const u8 as *const libc::c_char as *const libc::c_void,
-               65 as libc::c_int as libc::c_ulong);
+               65);
         rc =
             gc_md5(q.as_mut_ptr() as *const libc::c_void, qlen,
                    hash2.as_mut_ptr() as *mut libc::c_void) as libc::c_int;
         if rc != 0 { return rc }
         memcpy(kic as *mut libc::c_void,
                hash2.as_mut_ptr() as *const libc::c_void,
-               16 as libc::c_int as libc::c_ulong);
+               16);
     }
     if !kis.is_null() {
         let mut hash2_0: [libc::c_char; 16] = [0; 16];
@@ -258,19 +238,19 @@ pub unsafe extern "C" fn digest_md5_hmac(mut output: *mut libc::c_char,
             (16 as libc::c_int + 65 as libc::c_int) as size_t;
         memcpy(q_0.as_mut_ptr() as *mut libc::c_void,
                hash.as_mut_ptr() as *const libc::c_void,
-               16 as libc::c_int as libc::c_ulong);
+               16);
         memcpy(q_0.as_mut_ptr().offset(16 as libc::c_int as isize) as
                    *mut libc::c_void,
                b"Digest session key to server-to-client signing key magic constant\x00"
                    as *const u8 as *const libc::c_char as *const libc::c_void,
-               65 as libc::c_int as libc::c_ulong);
+               65);
         rc =
             gc_md5(q_0.as_mut_ptr() as *const libc::c_void, qlen_0,
                    hash2_0.as_mut_ptr() as *mut libc::c_void) as libc::c_int;
         if rc != 0 { return rc }
         memcpy(kis as *mut libc::c_void,
                hash2_0.as_mut_ptr() as *const libc::c_void,
-               16 as libc::c_int as libc::c_ulong);
+               16);
     }
     if !kcc.is_null() {
         let mut hash2_1: [libc::c_char; 16] = [0; 16];
@@ -285,19 +265,19 @@ pub unsafe extern "C" fn digest_md5_hmac(mut output: *mut libc::c_char,
             n = 7 as libc::c_int
         } else { n = 16 as libc::c_int }
         memcpy(q_1.as_mut_ptr() as *mut libc::c_void,
-               hash.as_mut_ptr() as *const libc::c_void, n as libc::c_ulong);
+               hash.as_mut_ptr() as *const libc::c_void, n as size_t);
         memcpy(q_1.as_mut_ptr().offset(n as isize) as *mut libc::c_void,
                b"Digest H(A1) to client-to-server sealing key magic constant\x00"
                    as *const u8 as *const libc::c_char as *const libc::c_void,
-               59 as libc::c_int as libc::c_ulong);
+               59);
         rc =
             gc_md5(q_1.as_mut_ptr() as *const libc::c_void,
-                   (n + 59 as libc::c_int) as size_t,
+                   (n + 59) as size_t,
                    hash2_1.as_mut_ptr() as *mut libc::c_void) as libc::c_int;
         if rc != 0 { return rc }
         memcpy(kcc as *mut libc::c_void,
                hash2_1.as_mut_ptr() as *const libc::c_void,
-               16 as libc::c_int as libc::c_ulong);
+               16);
     }
     if !kcs.is_null() {
         let mut hash2_2: [libc::c_char; 16] = [0; 16];
@@ -313,19 +293,19 @@ pub unsafe extern "C" fn digest_md5_hmac(mut output: *mut libc::c_char,
         } else { n_0 = 16 as libc::c_int }
         memcpy(q_2.as_mut_ptr() as *mut libc::c_void,
                hash.as_mut_ptr() as *const libc::c_void,
-               n_0 as libc::c_ulong);
+               n_0 as size_t);
         memcpy(q_2.as_mut_ptr().offset(n_0 as isize) as *mut libc::c_void,
                b"Digest H(A1) to server-to-client sealing key magic constant\x00"
                    as *const u8 as *const libc::c_char as *const libc::c_void,
-               59 as libc::c_int as libc::c_ulong);
+               59);
         rc =
             gc_md5(q_2.as_mut_ptr() as *const libc::c_void,
-                   (n_0 + 59 as libc::c_int) as size_t,
+                   (n_0 + 59) as size_t,
                    hash2_2.as_mut_ptr() as *mut libc::c_void) as libc::c_int;
         if rc != 0 { return rc }
         memcpy(kcs as *mut libc::c_void,
                hash2_2.as_mut_ptr() as *const libc::c_void,
-               16 as libc::c_int as libc::c_ulong);
+               16);
     }
     i = 0 as libc::c_int;
     while i < 16 as libc::c_int {
@@ -358,12 +338,9 @@ pub unsafe extern "C" fn digest_md5_hmac(mut output: *mut libc::c_char,
            DIGEST_MD5_QOP_AUTH_INT as libc::c_int as libc::c_uint != 0 ||
            qop as libc::c_uint &
                DIGEST_MD5_QOP_AUTH_CONF as libc::c_int as libc::c_uint != 0 {
-        tmplen =
-            (tmplen as
-                 libc::c_ulong).wrapping_add(strlen(b":00000000000000000000000000000000\x00"
+        tmplen = tmplen.wrapping_add(strlen(b":00000000000000000000000000000000\x00"
                                                         as *const u8 as
                                                         *const libc::c_char))
-                as size_t as size_t
     }
     tmp = malloc(tmplen) as *mut libc::c_char;
     p = tmp;
@@ -417,68 +394,33 @@ pub unsafe extern "C" fn digest_md5_hmac(mut output: *mut libc::c_char,
     /* response_value */
     sprintf(nchex.as_mut_ptr(),
             b"%08lx\x00" as *const u8 as *const libc::c_char, nc);
-    tmplen =
-        ((2 as libc::c_int * 16 as libc::c_int) as
-             libc::c_ulong).wrapping_add(strlen(b":\x00" as *const u8 as
-                                                    *const libc::c_char)).wrapping_add(strlen(nonce)).wrapping_add(strlen(b":\x00"
-                                                                                                                              as
-                                                                                                                              *const u8
-                                                                                                                              as
-                                                                                                                              *const libc::c_char)).wrapping_add(strlen(nchex.as_mut_ptr())).wrapping_add(strlen(b":\x00"
-                                                                                                                                                                                                                     as
-                                                                                                                                                                                                                     *const u8
-                                                                                                                                                                                                                     as
-                                                                                                                                                                                                                     *const libc::c_char)).wrapping_add(strlen(cnonce)).wrapping_add(strlen(b":\x00"
-                                                                                                                                                                                                                                                                                                as
-                                                                                                                                                                                                                                                                                                *const u8
-                                                                                                                                                                                                                                                                                                as
-                                                                                                                                                                                                                                                                                                *const libc::c_char));
-    if qop as libc::c_uint &
-           DIGEST_MD5_QOP_AUTH_CONF as libc::c_int as libc::c_uint != 0 {
-        tmplen =
-            (tmplen as
-                 libc::c_ulong).wrapping_add(strlen(b"auth-conf\x00" as
-                                                        *const u8 as
-                                                        *const libc::c_char))
-                as size_t as size_t
+    tmplen = (2usize * 16).wrapping_add(strlen(b":\x00" as *const u8 as *const libc::c_char))
+                          .wrapping_add(strlen(nonce))
+                          .wrapping_add(strlen(b":\x00" as *const u8 as *const libc::c_char))
+                          .wrapping_add(strlen(nchex.as_mut_ptr()))
+                          .wrapping_add(strlen(b":\x00" as *const u8 as *const libc::c_char))
+                          .wrapping_add(strlen(cnonce))
+                          .wrapping_add(strlen(b":\x00" as *const u8 as *const libc::c_char));
+    if qop as libc::c_uint & DIGEST_MD5_QOP_AUTH_CONF != 0 {
+        tmplen = tmplen.wrapping_add(strlen(b"auth-conf\x00" as *const u8 as *const libc::c_char))
     } else if qop as libc::c_uint &
                   DIGEST_MD5_QOP_AUTH_INT as libc::c_int as libc::c_uint != 0
      {
-        tmplen =
-            (tmplen as
-                 libc::c_ulong).wrapping_add(strlen(b"auth-int\x00" as
-                                                        *const u8 as
-                                                        *const libc::c_char))
-                as size_t as size_t
-    } else if qop as libc::c_uint &
-                  DIGEST_MD5_QOP_AUTH as libc::c_int as libc::c_uint != 0 {
-        tmplen =
-            (tmplen as
-                 libc::c_ulong).wrapping_add(strlen(b"auth\x00" as *const u8
-                                                        as
-                                                        *const libc::c_char))
-                as size_t as size_t
+        tmplen = tmplen.wrapping_add(strlen(b"auth-int\x00" as *const u8 as *const libc::c_char))
+    } else if qop as libc::c_uint & DIGEST_MD5_QOP_AUTH != 0 {
+        tmplen = tmplen.wrapping_add(strlen(b"auth\x00" as *const u8 as *const libc::c_char))
     }
-    tmplen =
-        (tmplen as
-             libc::c_ulong).wrapping_add(strlen(b":\x00" as *const u8 as
-                                                    *const libc::c_char).wrapping_add((2
-                                                                                           as
-                                                                                           libc::c_int
-                                                                                           *
-                                                                                           16
-                                                                                               as
-                                                                                               libc::c_int)
-                                                                                          as
-                                                                                          libc::c_ulong))
-            as size_t as size_t;
+    tmplen = tmplen.wrapping_add(
+        strlen(b":\x00" as *const u8 as *const libc::c_char).wrapping_add(2 * 16)
+    );
     tmp = malloc(tmplen) as *mut libc::c_char;
+
     p = tmp;
     if tmp.is_null() { return -(1 as libc::c_int) }
     memcpy(p as *mut libc::c_void,
            a1hexhash.as_mut_ptr() as *const libc::c_void,
-           (2 as libc::c_int * 16 as libc::c_int) as libc::c_ulong);
-    p = p.offset((2 as libc::c_int * 16 as libc::c_int) as isize);
+           2 * 16);
+    p = p.offset((2 * 16) as isize);
     memcpy(p as *mut libc::c_void,
            b":\x00" as *const u8 as *const libc::c_char as
                *const libc::c_void,
@@ -525,9 +467,7 @@ pub unsafe extern "C" fn digest_md5_hmac(mut output: *mut libc::c_char,
         p =
             p.offset(strlen(b"auth-conf\x00" as *const u8 as
                                 *const libc::c_char) as isize)
-    } else if qop as libc::c_uint &
-                  DIGEST_MD5_QOP_AUTH_INT as libc::c_int as libc::c_uint != 0
-     {
+    } else if qop as libc::c_uint & DIGEST_MD5_QOP_AUTH_INT != 0 {
         memcpy(p as *mut libc::c_void,
                b"auth-int\x00" as *const u8 as *const libc::c_char as
                    *const libc::c_void,
@@ -554,7 +494,7 @@ pub unsafe extern "C" fn digest_md5_hmac(mut output: *mut libc::c_char,
                      isize);
     memcpy(p as *mut libc::c_void,
            a2hexhash.as_mut_ptr() as *const libc::c_void,
-           (2 as libc::c_int * 16 as libc::c_int) as libc::c_ulong);
+           2 * 16);
     rc =
         gc_md5(tmp as *const libc::c_void, tmplen,
                hash.as_mut_ptr() as *mut libc::c_void) as libc::c_int;

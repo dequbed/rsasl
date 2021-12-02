@@ -2,17 +2,12 @@ use ::libc;
 use libc::size_t;
 use crate::consts::*;
 use crate::gsasl::Gsasl_session;
+use crate::property::gsasl_property_get;
+use crate::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep};
 
 extern "C" {
     #[no_mangle]
-    fn gsasl_property_get(sctx: *mut Gsasl_session, prop: Gsasl_property)
-     -> *const libc::c_char;
-    #[no_mangle]
-    fn gsasl_saslprep(in_0: *const libc::c_char, flags: Gsasl_saslprep_flags,
-                      out: *mut *mut libc::c_char,
-                      stringpreprc: *mut libc::c_int) -> libc::c_int;
-    #[no_mangle]
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
+    fn malloc(_: size_t) -> *mut libc::c_void;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
 
@@ -33,10 +28,10 @@ extern "C" {
     #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
     #[no_mangle]
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
     #[no_mangle]
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn strlen(_: *const libc::c_char) -> size_t;
     /* Compute hex encoded HMAC-MD5 on the CHALLENGELEN long string
    CHALLENGE, keyed with SECRET of length SECRETLEN.  Use a
    CHALLENGELEN or SECRETLEN of 0 to indicate that CHALLENGE or
@@ -48,9 +43,6 @@ extern "C" {
                        secret: *const libc::c_char, secretlen: size_t,
                        response: *mut libc::c_char);
 }
-
-pub type Gsasl_saslprep_flags = libc::c_uint;
-pub const GSASL_ALLOW_UNASSIGNED: Gsasl_saslprep_flags = 1;
 
 /* cram-md5.h --- Prototypes for CRAM-MD5 mechanism as defined in RFC 2195.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -145,18 +137,18 @@ pub unsafe extern "C" fn _gsasl_cram_md5_client_step(mut sctx: *mut Gsasl_sessio
     *output_len =
         len.wrapping_add(strlen(b" \x00" as *const u8 as *const libc::c_char) as size_t)
            .wrapping_add(32);
-    *output = malloc(*output_len as u64) as *mut libc::c_char;
+    *output = malloc(*output_len) as *mut libc::c_char;
     if (*output).is_null() {
         rpl_free(authid as *mut libc::c_void);
         return GSASL_MALLOC_ERROR as libc::c_int
     }
-    memcpy(*output as *mut libc::c_void, authid as *const libc::c_void, len as u64);
+    memcpy(*output as *mut libc::c_void, authid as *const libc::c_void, len);
     let fresh0 = len;
     len = len.wrapping_add(1);
     *(*output).offset(fresh0 as isize) = ' ' as i32 as libc::c_char;
     memcpy((*output).offset(len as isize) as *mut libc::c_void,
            response.as_mut_ptr() as *const libc::c_void,
-           32 as libc::c_int as libc::c_ulong);
+           32);
     rpl_free(authid as *mut libc::c_void);
     return GSASL_OK as libc::c_int;
 }
