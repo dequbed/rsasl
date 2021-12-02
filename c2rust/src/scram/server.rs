@@ -537,7 +537,7 @@ pub unsafe extern "C" fn _gsasl_scram_server_step(mut sctx:
             p_0 = p_0.offset(1);
             p_0 =
                 memchr(p_0 as *const libc::c_void, ',' as i32,
-                       input_len.wrapping_sub(p_0.wrapping_offset_from(input)
+                       input_len.wrapping_sub(p_0.offset_from(input)
                                                   as libc::c_long as
                                                   libc::c_ulong)) as
                     *const libc::c_char;
@@ -546,7 +546,7 @@ pub unsafe extern "C" fn _gsasl_scram_server_step(mut sctx:
             }
             p_0 = p_0.offset(1);
             (*state).gs2header =
-                malloc((p_0.wrapping_offset_from(input) as libc::c_long +
+                malloc((p_0.offset_from(input) as libc::c_long +
                             1 as libc::c_int as libc::c_long) as
                            libc::c_ulong) as *mut libc::c_char;
             if (*state).gs2header.is_null() {
@@ -554,13 +554,13 @@ pub unsafe extern "C" fn _gsasl_scram_server_step(mut sctx:
             }
             memcpy((*state).gs2header as *mut libc::c_void,
                    input as *const libc::c_void,
-                   p_0.wrapping_offset_from(input) as libc::c_long as
+                   p_0.offset_from(input) as libc::c_long as
                        libc::c_ulong);
-            *(*state).gs2header.offset(p_0.wrapping_offset_from(input) as
+            *(*state).gs2header.offset(p_0.offset_from(input) as
                                            libc::c_long as isize) =
                 '\u{0}' as i32 as libc::c_char;
             (*state).cfmb_str =
-                malloc(input_len.wrapping_sub(p_0.wrapping_offset_from(input)
+                malloc(input_len.wrapping_sub(p_0.offset_from(input)
                                                   as libc::c_long as
                                                   libc::c_ulong).wrapping_add(1
                                                                                   as
@@ -573,9 +573,9 @@ pub unsafe extern "C" fn _gsasl_scram_server_step(mut sctx:
             }
             memcpy((*state).cfmb_str as *mut libc::c_void,
                    p_0 as *const libc::c_void,
-                   input_len.wrapping_sub(p_0.wrapping_offset_from(input) as
+                   input_len.wrapping_sub(p_0.offset_from(input) as
                                               libc::c_long as libc::c_ulong));
-            *(*state).cfmb_str.offset(input_len.wrapping_sub(p_0.wrapping_offset_from(input)
+            *(*state).cfmb_str.offset(input_len.wrapping_sub(p_0.offset_from(input)
                                                                  as
                                                                  libc::c_long
                                                                  as
@@ -799,7 +799,7 @@ pub unsafe extern "C" fn _gsasl_scram_server_step(mut sctx:
             if p_3.is_null() {
                 return GSASL_MECHANISM_PARSE_ERROR as libc::c_int
             }
-            len_1 = p_3.wrapping_offset_from(input) as libc::c_long as size_t;
+            len_1 = p_3.offset_from(input) as libc::c_long as size_t;
             n_0 =
                 asprintf(&mut (*state).authmessage as *mut *mut libc::c_char,
                          b"%s,%.*s,%.*s\x00" as *const u8 as

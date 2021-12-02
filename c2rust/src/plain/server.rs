@@ -125,7 +125,7 @@ pub unsafe extern "C" fn _gsasl_plain_server_step(mut sctx: *mut Gsasl_session,
        (U+0000) character MUST NOT appear in authzid, authcid, or passwd
        productions. */
     tmplen =
-        input_len.wrapping_sub(passwordptr.wrapping_offset_from(input) as
+        input_len.wrapping_sub(passwordptr.offset_from(input) as
                                    libc::c_long as size_t);
     if !memchr(passwordptr as *const libc::c_void, 0 as libc::c_int,
                tmplen).is_null() {
@@ -146,7 +146,7 @@ pub unsafe extern "C" fn _gsasl_plain_server_step(mut sctx: *mut Gsasl_session,
     rpl_free(authidprep as *mut libc::c_void);
     /* Store passwd, after preparing it... */
     let mut passwdzlen: size_t =
-        input_len.wrapping_sub(passwordptr.wrapping_offset_from(input) as
+        input_len.wrapping_sub(passwordptr.offset_from(input) as
                                    libc::c_long as size_t);
     /* Need to zero terminate password... */
     passwdz = malloc(passwdzlen.wrapping_add(1)) as *mut libc::c_char;

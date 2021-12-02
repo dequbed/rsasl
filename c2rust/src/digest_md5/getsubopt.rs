@@ -69,7 +69,7 @@ pub unsafe extern "C" fn digest_md5_getsubopt(mut optionp:
     /* Find start of value.  */
     vstart =
         memchr(*optionp as *const libc::c_void, '=' as i32,
-               endp.wrapping_offset_from(*optionp) as size_t) as *mut libc::c_char;
+               endp.offset_from(*optionp) as size_t) as *mut libc::c_char;
     if vstart.is_null() { vstart = endp }
     /* Try to match the characters between *OPTIONP and VSTART against
      one of the TOKENS.  */
@@ -77,10 +77,10 @@ pub unsafe extern "C" fn digest_md5_getsubopt(mut optionp:
     while !(*tokens.offset(cnt as isize)).is_null() {
         if memcmp(*optionp as *const libc::c_void,
                   *tokens.offset(cnt as isize) as *const libc::c_void,
-                  vstart.wrapping_offset_from(*optionp) as size_t) == 0
+                  vstart.offset_from(*optionp) as size_t) == 0
             &&
                *(*tokens.offset(cnt as
-                                    isize)).offset(vstart.wrapping_offset_from(*optionp)
+                                    isize)).offset(vstart.offset_from(*optionp)
                                                        as libc::c_long as
                                                        isize) as libc::c_int
                    == '\u{0}' as i32 {
