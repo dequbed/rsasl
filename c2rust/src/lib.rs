@@ -8,7 +8,7 @@
 #![feature(asm)]
 #![feature(c_variadic)]
 #![feature(const_transmute)]
-#![feature(extern_types)]
+//#![feature(extern_types)]
 #![feature(label_break_value)]
 #![feature(linkage)]
 #![feature(ptr_wrapping_offset_from)]

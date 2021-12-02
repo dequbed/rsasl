@@ -1,6 +1,7 @@
 use ::libc;
+use crate::gsasl::Gsasl_session;
+
 extern "C" {
-    pub type Gsasl_session;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
 

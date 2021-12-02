@@ -1,6 +1,7 @@
 use ::libc;
+use crate::gsasl::Gsasl_session;
+
 extern "C" {
-    pub type Gsasl_session;
     #[no_mangle]
     fn gsasl_hash_length(hash: Gsasl_hash) -> size_t;
     #[no_mangle]

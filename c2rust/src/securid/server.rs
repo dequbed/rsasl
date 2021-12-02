@@ -1,7 +1,7 @@
 use ::libc;
+use crate::gsasl::{Gsasl, Gsasl_session};
+
 extern "C" {
-    pub type Gsasl;
-    pub type Gsasl_session;
     #[no_mangle]
     fn gsasl_property_get(sctx: *mut Gsasl_session, prop: Gsasl_property)
      -> *const libc::c_char;
