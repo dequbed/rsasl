@@ -1,5 +1,5 @@
 [package]
-name = "rsasl-c2rust"
+name = "gsasl"
 authors = ["C2Rust"]
 version = "0.0.0"
 publish = false
@@ -12,7 +12,6 @@ crate-type = ["staticlib", "rlib"]
 
 
 [dependencies]
-c2rust-asm-casts = "0.2"
 libc = "0.2"
 
 

@@ -15,7 +15,7 @@ documentation = "https://docs.rs/rsasl"
 
 [dependencies]
 libc = "0.2"
-rsasl-c2rust = { path = "c2rust" }
+gsasl = { path = "gsasl" }
 
 # Discard is used to make the `SASL` and `Session` structs more ergonomic to use in callbacks
 discard = "1.0.4"
