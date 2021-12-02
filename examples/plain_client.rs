@@ -1,4 +1,5 @@
 use std::io;
+use rsasl_c2rust::consts::{GSASL_AUTHID, GSASL_PASSWORD};
 
 use rsasl::{SASL, Property, Step::{Done, NeedsMore}};
 
@@ -30,10 +31,10 @@ pub fn main() {
     print!("\n");
 
     // Set the username that will be used in the PLAIN authentication
-    session.set_property(Property::GSASL_AUTHID, username.as_bytes());
+    session.set_property(GSASL_AUTHID, username.as_bytes());
 
     // Now set the password that will be used in the PLAIN authentication
-    session.set_property(Property::GSASL_PASSWORD, password.as_bytes());
+    session.set_property(GSASL_PASSWORD, password.as_bytes());
 
 
     // Do an authentication step. In a PLAIN exchange there is only one step, with no data.

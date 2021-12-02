@@ -13,13 +13,8 @@ documentation = "https://docs.rs/rsasl"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[features]
-#default = ["build_bindgen"]
-#build_bindgen = ["gsasl-sys/build_bindgen"]
-
 [dependencies]
 libc = "0.2"
-#gsasl-sys = { path = "gsasl-sys", version = "0.2.3", default-features = false }
 rsasl-c2rust = { path = "c2rust" }
 
 # Discard is used to make the `SASL` and `Session` structs more ergonomic to use in callbacks

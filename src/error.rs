@@ -1,6 +1,6 @@
 use std::fmt;
 use std::ffi::CStr;
-use rsasl_c2rust::src::src::error::gsasl_strerror;
+use rsasl_c2rust::error::{gsasl_strerror, gsasl_strerror_name};
 
 pub type Result<T> = std::result::Result<T, SaslError>;
 
@@ -10,30 +10,30 @@ static UNKNOWN_ERROR: &'static str = "The given error code is unknown to gsasl";
 /// The gsasl error type
 ///
 /// gsasl has its own error type providing access to human-readable descriptions
-pub struct SaslError(pub libc::c_int);
+pub struct SaslError(pub u32);
 
 impl SaslError {
-    pub fn new(rc: crate::ReturnCode) -> Self {
-        Self(rc as libc::c_int)
+    pub fn new(rc: u32) -> Self {
+        Self(rc as u32)
     }
-    pub fn matches(&self, rc: crate::ReturnCode) -> bool {
-        self.0 == (rc as libc::c_int)
+    pub fn matches(&self, rc: u32) -> bool {
+        self.0 == rc
     }
 }
 
 impl fmt::Debug for SaslError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({}): {}", self.0, gsasl_err_to_str_internal(self.0))
+        write!(f, "({}): {}", self.0, gsasl_err_to_str_internal(self.0 as i32))
     }
 }
 impl fmt::Display for SaslError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", gsasl_err_to_str_internal(self.0))
+        write!(f, "{}", gsasl_err_to_str_internal(self.0 as i32))
     }
 }
 
 /// Convert an error code to a human readable description of that error
-pub fn rsasl_err_to_str(err: Gsasl_rc) -> Option<&'static str> {
+pub fn rsasl_err_to_str(err: libc::c_int) -> Option<&'static str> {
     // gsasl returns the normal zero-terminated string
     let cstr = unsafe { 
         let ptr = gsasl_strerror(err as libc::c_int);
@@ -71,9 +71,9 @@ fn gsasl_err_to_str_internal(err: libc::c_int) -> &'static str {
 
 
 /// Convert an error type to the human readable name of that error.
-/// i.e. rsasl_errname_to_str(GSASL_OK) -> "GSASL_OK". Returns `None` when an invalid Gsasl_rc is
+/// i.e. rsasl_errname_to_str(GSASL_OK) -> "GSASL_OK". Returns `None` when an invalid libc::c_int is
 /// passed.
-pub fn rsasl_errname_to_str(err: Gsasl_rc) -> Option<&'static str> {
+pub fn rsasl_errname_to_str(err: libc::c_uint) -> Option<&'static str> {
     // gsasl returns the normal zero-terminated string
     let cstr = unsafe { 
         let ptr = gsasl_strerror_name(err as libc::c_int);
@@ -109,8 +109,8 @@ pub fn gsasl_errname_to_str(err: libc::c_int) -> &'static str {
 
 #[cfg(test)]
 mod tests {
+    use rsasl_c2rust::consts::*;
     use super::*;
-    use super::Gsasl_rc::*;
 
     #[test]
     fn errname_to_str_valid() {
@@ -149,8 +149,6 @@ mod tests {
         assert_eq!(rsasl_errname_to_str(GSASL_GSSAPI_ACQUIRE_CRED_ERROR), Some("GSASL_GSSAPI_ACQUIRE_CRED_ERROR"));
         assert_eq!(rsasl_errname_to_str(GSASL_GSSAPI_DISPLAY_NAME_ERROR), Some("GSASL_GSSAPI_DISPLAY_NAME_ERROR"));
         assert_eq!(rsasl_errname_to_str(GSASL_GSSAPI_UNSUPPORTED_PROTECTION_ERROR), Some("GSASL_GSSAPI_UNSUPPORTED_PROTECTION_ERROR"));
-        assert_eq!(rsasl_errname_to_str(GSASL_KERBEROS_V5_INIT_ERROR), Some("GSASL_KERBEROS_V5_INIT_ERROR"));
-        assert_eq!(rsasl_errname_to_str(GSASL_KERBEROS_V5_INTERNAL_ERROR), Some("GSASL_KERBEROS_V5_INTERNAL_ERROR"));
         assert_eq!(rsasl_errname_to_str(GSASL_SECURID_SERVER_NEED_ADDITIONAL_PASSCODE), Some("GSASL_SECURID_SERVER_NEED_ADDITIONAL_PASSCODE"));
         assert_eq!(rsasl_errname_to_str(GSASL_SECURID_SERVER_NEED_NEW_PIN), Some("GSASL_SECURID_SERVER_NEED_NEW_PIN"));
         assert_eq!(rsasl_errname_to_str(GSASL_GSSAPI_ENCAPSULATE_TOKEN_ERROR), Some("GSASL_GSSAPI_ENCAPSULATE_TOKEN_ERROR"));
@@ -172,6 +170,6 @@ mod tests {
     #[test]
     #[ignore]
     fn err_to_str_valid() {
-        assert_eq!(rsasl_err_to_str(GSASL_OK), Some(""));
+        assert_eq!(rsasl_err_to_str(GSASL_OK as i32), Some(""));
     }
 }

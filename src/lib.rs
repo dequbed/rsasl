@@ -54,10 +54,11 @@
 //!
 //! ```
 //! use rsasl::{SASL, Property, Step::{Done, NeedsMore}};
+//! use rsasl_c2rust::consts::{GSASL_AUTHID, GSASL_PASSWORD};
 //! pub fn main() {
 //!     // Create an untyped SASL because we won't store/retrieve information in the context since
 //!     // we don't use callbacks.
-//!     let mut sasl = SASL::new_untyped().unwrap();
+//! let mut sasl = SASL::new_untyped().unwrap();
 //!
 //!     // Usually you would first agree on a mechanism with the server, for demostration purposes
 //!     // we directly start a PLAIN "exchange"
@@ -65,10 +66,10 @@
 //!
 //!
 //!     // Set the username that will be used in the PLAIN authentication
-//!     session.set_property(Property::GSASL_AUTHID, "username".as_bytes());
+//!     session.set_property(GSASL_AUTHID, "username".as_bytes());
 //!
 //!     // Now set the password that will be used in the PLAIN authentication
-//!     session.set_property(Property::GSASL_PASSWORD, "secret".as_bytes());
+//!     session.set_property(GSASL_PASSWORD, "secret".as_bytes());
 //!
 //!
 //!     // Do an authentication step. In a PLAIN exchange there is only one step, with no data.
@@ -88,6 +89,7 @@ use std::ffi::{CString, CStr};
 // Re-Export DiscardOnDrop so people can write rsasl::DiscardOnDrop<SASL<D,E>> without having to
 // import the discard crate.
 pub use discard::{Discard, DiscardOnDrop};
+use rsasl_c2rust::callback::{gsasl_callback, gsasl_callback_hook_get, gsasl_callback_hook_set, gsasl_callback_set};
 
 pub mod buffer;
 pub mod session;
@@ -101,6 +103,17 @@ pub use buffer::SaslString;
 pub use mechanisms::Mechanisms;
 
 pub use session::Step;
+
+use rsasl_c2rust::consts::{GSASL_MECHANISM_PARSE_ERROR, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
+use rsasl_c2rust::done::gsasl_done;
+use rsasl_c2rust::gsasl::{Gsasl, Gsasl_callback_function, Gsasl_session};
+use rsasl_c2rust::init::gsasl_init;
+use rsasl_c2rust::listmech::{gsasl_client_mechlist, gsasl_server_mechlist};
+use rsasl_c2rust::suggest::gsasl_client_suggest_mechanism;
+use rsasl_c2rust::supportp::{gsasl_client_support_p, gsasl_server_support_p};
+use rsasl_c2rust::xstart::{gsasl_client_start, gsasl_server_start};
+
+pub use rsasl_c2rust::consts::Gsasl_property as Property;
 
 pub use error::{
     SaslError,
@@ -179,7 +192,7 @@ impl<D, E> SASL<D,E> {
         };
 
         if res != (GSASL_OK as libc::c_int) {
-            return Err(error::SaslError(res));
+            return Err(error::SaslError(res as u32));
         }
 
         Ok(())
@@ -206,7 +219,7 @@ impl<D, E> SASL<D,E> {
         if ret != (GSASL_OK as libc::c_int) {
             // In the error case `s` will simply be dropped and freed.
 
-            Err(error::SaslError(ret))
+            Err(error::SaslError(ret as u32))
         } else {
             // If libgsasl does not return an error we can assume that out has been filled with
             // valid data.
@@ -235,7 +248,7 @@ impl<D, E> SASL<D,E> {
         if ret != (GSASL_OK as libc::c_int) {
             // In the error case `s` will simply be dropped and freed.
 
-            Err(error::SaslError(ret))
+            Err(error::SaslError(ret as u32))
         } else {
             // If libgsasl does not return an error we can assume that out has been filled with
             // valid string data.
@@ -252,12 +265,12 @@ impl<D, E> SASL<D,E> {
         unsafe {
             let ptr = gsasl_client_suggest_mechanism(self.ctx, mechs.as_raw_ptr());
             if ptr.is_null() {
-                Err(SaslError(GSASL_UNKNOWN_MECHANISM as libc::c_int))
+                Err(SaslError(GSASL_UNKNOWN_MECHANISM))
             } else {
                 let cstr = CStr::from_ptr(ptr);
                 cstr.to_str()
                     .map_err(|_: std::str::Utf8Error|
-                        SaslError(GSASL_MECHANISM_PARSE_ERROR as libc::c_int))
+                        SaslError(GSASL_MECHANISM_PARSE_ERROR))
             }
         }
     }
@@ -317,7 +330,7 @@ impl<D, E> SASL<D,E> {
 
         // Convert the mechanism &str to a zero-terminated String.
         let cmech = CString::new(mech)
-            .map_err(|_| SaslError(ReturnCode::GSASL_MECHANISM_PARSE_ERROR as libc::c_int))?;
+            .map_err(|_| SaslError(GSASL_MECHANISM_PARSE_ERROR))?;
 
         let res = unsafe {
             gsasl_client_start(
@@ -327,7 +340,7 @@ impl<D, E> SASL<D,E> {
         };
 
         if res != (GSASL_OK as libc::c_int) {
-            Err(error::SaslError(res))
+            Err(error::SaslError(res as u32))
         } else {
             let session = Session::from_ptr(ptr);
             Ok(DiscardOnDrop::new(session))
@@ -348,7 +361,7 @@ impl<D, E> SASL<D,E> {
 
         // Convert the mechanism &str to a zero-terminated String.
         let cmech = CString::new(mech)
-            .map_err(|_| SaslError(ReturnCode::GSASL_MECHANISM_PARSE_ERROR as libc::c_int))?;
+            .map_err(|_| SaslError(GSASL_MECHANISM_PARSE_ERROR))?;
 
         let res = unsafe {
             gsasl_server_start(
@@ -359,7 +372,7 @@ impl<D, E> SASL<D,E> {
         };
 
         if res != (GSASL_OK as libc::c_int) {
-            Err(error::SaslError(res))
+            Err(error::SaslError(res as u32))
         } else {
             let session = Session::from_ptr(ptr);
             Ok(DiscardOnDrop::new(session))
@@ -456,13 +469,14 @@ impl<D,E> Discard for SASL<D,E> {
 mod tests {
     use super::*;
     use std::iter::FromIterator;
+    use rsasl_c2rust::consts::GSASL_VALIDATE_SIMPLE;
 
     #[test]
     fn callback_test() {
         struct CB;
         impl Callback<u32, u64> for CB {
             fn callback(sasl: &mut SASL<u32, u64>, session: &mut Session<u64>, _prop: Property) 
-                -> Result<(), ReturnCode>
+                -> Result<(), u32>
             {
                 assert_eq!(sasl.retrieve_mut(), Some(&mut 0x55555555));
                 assert_eq!(session.retrieve_mut(), Some(&mut 0xAAAAAAAAAAAAAAAA));
@@ -477,7 +491,7 @@ mod tests {
         session.store(Box::new(0xAAAAAAAAAAAAAAAA));
 
         assert_eq!(GSASL_OK as libc::c_int,
-            sasl.callback(&mut session, Property::GSASL_VALIDATE_SIMPLE));
+            sasl.callback(&mut session, GSASL_VALIDATE_SIMPLE));
     }
 
     #[test]
@@ -485,7 +499,7 @@ mod tests {
         struct CB;
         impl Callback<u32, u64> for CB {
             fn callback(sasl: &mut SASL<u32, u64>, session: &mut Session<u64>, _prop: Property) 
-                -> Result<(), ReturnCode>
+                -> Result<(), u32>
             {
                 assert_eq!(sasl.retrieve_mut(), None);
                 assert_eq!(session.retrieve_mut(), None);
@@ -498,17 +512,17 @@ mod tests {
         let mut session = sasl.client_start("PLAIN").unwrap();
 
         assert_eq!(GSASL_OK as libc::c_int,
-            sasl.callback(&mut session, Property::GSASL_VALIDATE_SIMPLE));
+            sasl.callback(&mut session, GSASL_VALIDATE_SIMPLE));
     }
 
     #[test]
     fn suggest_good() {
-        let mechs = vec!["PLAIN", "GSSAPI", "INVALID", "SCRAM-SHA-256"];
+        let mechs = vec!["PLAIN", "INVALID", "SCRAM-SHA-256"];
         let mut sasl = SASL::new_untyped().unwrap();
         let suggest = sasl.suggest_client_mechanism(Mechanisms::from_iter(mechs.iter()));
 
         assert!(suggest.is_ok());
-        assert_eq!("GSSAPI", suggest.unwrap());
+        assert_eq!("SCRAM-SHA-256", suggest.unwrap());
     }
 
     #[test]
@@ -517,6 +531,6 @@ mod tests {
         let mut sasl = SASL::new_untyped().unwrap();
         let suggest = sasl.suggest_client_mechanism(Mechanisms::from_iter(mechs.iter()));
 
-        assert_eq!(Err(SaslError(GSASL_UNKNOWN_MECHANISM as libc::c_int)), suggest);
+        assert_eq!(Err(SaslError(GSASL_UNKNOWN_MECHANISM)), suggest);
     }
 }

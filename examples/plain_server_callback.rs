@@ -1,10 +1,10 @@
 use std::ffi::CString;
+use rsasl_c2rust::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_NO_AUTHID, GSASL_NO_CALLBACK, GSASL_NO_PASSWORD, GSASL_PASSWORD};
 use rsasl::{
     SASL,
     Session,
     Callback,
     Property,
-    ReturnCode,
     Step,
     session::StepResult,
     buffer::SaslBuffer
@@ -15,17 +15,17 @@ struct OurCallback;
 
 impl Callback<(), ()> for OurCallback {
     fn callback(sasl: &mut SASL<(), ()>, session: &mut Session<()>, prop: Property) 
-        -> Result<(), ReturnCode> 
+        -> Result<(), u32>
     {
         match prop {
-            Property::GSASL_VALIDATE_SIMPLE => {
+            GSASL_VALIDATE_SIMPLE => {
                 // Access the authentication id, i.e. the username to check the password for
-                let authcid = session.get_property(Property::GSASL_AUTHID)
-                    .ok_or(ReturnCode::GSASL_NO_AUTHID)?;
+                let authcid = session.get_property(GSASL_AUTHID)
+                    .ok_or(GSASL_NO_AUTHID)?;
 
                 // Access the password itself
-                let password = session.get_property(Property::GSASL_PASSWORD)
-                    .ok_or(ReturnCode::GSASL_NO_PASSWORD)?;
+                let password = session.get_property(GSASL_PASSWORD)
+                    .ok_or(GSASL_NO_PASSWORD)?;
 
                 // For brevity sake we use hard-coded credentials here.
                 if authcid == CString::new("username").unwrap().as_ref()
@@ -33,10 +33,10 @@ impl Callback<(), ()> for OurCallback {
                 {
                     Ok(())
                 } else {
-                    Err(ReturnCode::GSASL_AUTHENTICATION_ERROR)
+                    Err(GSASL_AUTHENTICATION_ERROR)
                 }
             },
-            _ => Err(ReturnCode::GSASL_NO_CALLBACK)
+            _ => Err(GSASL_NO_CALLBACK)
         }
     }
 }
@@ -75,7 +75,7 @@ fn print_outcome(step_result: StepResult<SaslBuffer>) {
             println!("Authentication successful, bytes to return to client: {:?}", buffer.as_ref());
         },
         Ok(Step::NeedsMore(_)) => assert!(false, "PLAIN exchange took more than one step"),
-        Err(e) if e.matches(ReturnCode::GSASL_AUTHENTICATION_ERROR) 
+        Err(e) if e.matches(GSASL_AUTHENTICATION_ERROR)
             => println!("Authentication failed, bad username or password"),
         Err(e) => println!("Authentication errored: {}", e),
     }

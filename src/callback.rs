@@ -3,7 +3,9 @@
 // your system has is ABI-compatible with the one you built your software with).
 #![allow(improper_ctypes_definitions)]
 
-use crate::{SASL, Property, ReturnCode};
+use rsasl_c2rust::consts::{GSASL_OK, Gsasl_property};
+use rsasl_c2rust::gsasl::{Gsasl, Gsasl_session};
+use crate::{SASL, Property};
 use crate::session::Session;
 
 /// Typesafe Callbacks via trait implementations
@@ -23,7 +25,8 @@ use crate::session::Session;
 ///
 /// ```
 /// use std::ffi::CString;
-/// use rsasl::{SASL, Session, Callback, Property, ReturnCode};
+/// use rsasl_c2rust::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_NO_AUTHID, GSASL_NO_CALLBACK, GSASL_NO_PASSWORD, GSASL_PASSWORD, GSASL_VALIDATE_SIMPLE};
+/// use rsasl::{SASL, Session, Callback, Property};
 ///
 /// // Callback is an unit struct since no data can be accessed from it.
 /// struct OurCallback;
@@ -32,26 +35,26 @@ use crate::session::Session;
 ///     // Note that this function does not take `self`. The callback function has no access to
 ///     // data stored in the type the trait is implemented on.
 ///     fn callback(sasl: &mut SASL<(), ()>, session: &mut Session<()>, prop: Property) 
-///         -> Result<(), ReturnCode> 
+///         -> Result<(), u32>
 ///     {
 ///         // For brevity sake we use hard-coded credentials here.
 ///         match prop {
-///             Property::GSASL_VALIDATE_SIMPLE => {
-///                 let authcid = session.get_property(Property::GSASL_AUTHID)
-///                     .ok_or(ReturnCode::GSASL_NO_AUTHID)?;
+///             GSASL_VALIDATE_SIMPLE => {
+///                 let authcid = session.get_property(GSASL_AUTHID)
+///                     .ok_or(GSASL_NO_AUTHID)?;
 ///
-///                 let password = session.get_property(Property::GSASL_PASSWORD)
-///                     .ok_or(ReturnCode::GSASL_NO_PASSWORD)?;
+///                 let password = session.get_property(GSASL_PASSWORD)
+///                     .ok_or(GSASL_NO_PASSWORD)?;
 ///
 ///                 if authcid == CString::new("username").unwrap().as_ref()
 ///                     && password == CString::new("secret").unwrap().as_ref()
 ///                 {
 ///                     Ok(())
 ///                 } else {
-///                     Err(ReturnCode::GSASL_AUTHENTICATION_ERROR)
+///                     Err(GSASL_AUTHENTICATION_ERROR)
 ///                 }
-///             },
-///             _ => Err(ReturnCode::GSASL_NO_CALLBACK)
+///             }
+///             _ => Err(GSASL_NO_CALLBACK)
 ///         }
 ///     }
 /// }
@@ -75,12 +78,12 @@ use crate::session::Session;
 /// not necessary to spell out the types for the `SASL` and `Session` structs:
 ///
 /// ```
-/// use rsasl::{SASL, Session, Callback, Property, ReturnCode};
+/// use rsasl::{SASL, Session, Callback, Property};
 /// struct TypedCallback;
 ///
 /// impl Callback<u64, String> for TypedCallback {
 ///     fn callback(sasl: &mut SASL<u64, String>, session: &mut Session<String>, _prop: Property)
-///         -> Result<(), ReturnCode>
+///         -> Result<(), u32>
 ///     {
 ///         // retrieve the stored global data
 ///         let global_data: &mut u64 = sasl.retrieve_mut().unwrap();
@@ -112,7 +115,8 @@ use crate::session::Session;
 /// }
 ///
 /// fn main() {
-///     let mut sasl = SASL::new().unwrap();
+///     use rsasl_c2rust::consts::{GSASL_OK, GSASL_SERVICE};
+/// let mut sasl = SASL::new().unwrap();
 ///     sasl.install_callback::<TypedCallback>();
 ///
 ///     {
@@ -125,8 +129,8 @@ use crate::session::Session;
 ///         // This data however is only valid for this one session
 ///         session.store(Box::new("Hello SASL".to_string()));
 ///
-///         let rt = sasl.callback(&mut session, Property::GSASL_SERVICE);
-///         assert_eq!(rt, ReturnCode::GSASL_OK as libc::c_int)
+///         let rt = sasl.callback(&mut session, GSASL_SERVICE);
+///         assert_eq!(rt, GSASL_OK as libc::c_int)
 ///     }
 ///
 ///     {
@@ -134,8 +138,8 @@ use crate::session::Session;
 ///         let mut session = sasl.client_start("PLAIN").unwrap();
 ///         // ...but don't store any session-specific data
 ///
-///         let rt = sasl.callback(&mut session, Property::GSASL_SERVICE);
-///         assert_eq!(rt, ReturnCode::GSASL_OK as libc::c_int)
+///         let rt = sasl.callback(&mut session, GSASL_SERVICE);
+///         assert_eq!(rt, GSASL_OK as libc::c_int)
 ///     }
 ///
 ///     {
@@ -144,8 +148,8 @@ use crate::session::Session;
 ///         // ...and store different data than the first time
 ///         session.store(Box::new("Hello again".to_string()));
 ///
-///         let rt = sasl.callback(&mut session, Property::GSASL_SERVICE);
-///         assert_eq!(rt, ReturnCode::GSASL_OK as libc::c_int)
+///         let rt = sasl.callback(&mut session, GSASL_SERVICE);
+///         assert_eq!(rt, GSASL_OK as libc::c_int)
 ///     }
 ///
 /// }
@@ -163,7 +167,8 @@ pub trait Callback<D,E> {
     ///
     /// See the [gsasl website](https://www.gnu.org/software/gsasl/manual/gsasl.html#Error-values)
     /// for a list of possible return value with their descriptions.
-    fn callback(sasl: &mut SASL<D,E>, session: &mut Session<E>, prop: Property) -> Result<(), ReturnCode>;
+    fn callback(sasl: &mut SASL<D,E>, session: &mut Session<E>, prop: Property) -> Result<(),
+        u32>;
 }
 
 pub(crate) extern "C" fn wrap<C: Callback<D,E>, D, E>(
@@ -176,6 +181,6 @@ pub(crate) extern "C" fn wrap<C: Callback<D,E>, D, E>(
     let mut session = Session::from_ptr(sctx);
     C::callback(&mut sasl, &mut session, prop as Property)
         .err()                              // Extract the error return code if it exists
-        .unwrap_or(ReturnCode::GSASL_OK)    // Otherwise set the return value to GSASL_OK
-        as libc::c_int
+        .unwrap_or(GSASL_OK)    // Otherwise set the return value to GSASL_OK
+        as i32
 }

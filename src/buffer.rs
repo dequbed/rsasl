@@ -1,4 +1,5 @@
 use std::ffi::CStr;
+use rsasl_c2rust::free::gsasl_free;
 
 ///  A type representing an owned buffer compatible to libgsasl
 ///
