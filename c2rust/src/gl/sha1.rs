@@ -78,14 +78,7 @@ pub unsafe extern "C" fn sha1_read_ctx(mut ctx: *const sha1_ctx,
                                 (__x & 0xff as libc::c_int as libc::c_uint) <<
                                     24 as libc::c_int
                     } else {
-                        let fresh0 = &mut __v;
-                        let fresh1;
-                        let fresh2 = __x;
-                        asm!("bswap $0" : "=r" (fresh1) : "0"
-                             (c2rust_asm_casts::AsmCast::cast_in(fresh0, fresh2))
-                             :);
-                        c2rust_asm_casts::AsmCast::cast_out(fresh0, fresh2,
-                                                            fresh1);
+                        __v = __x.to_be();
                     }
                     __v
                 }));
@@ -108,14 +101,7 @@ pub unsafe extern "C" fn sha1_read_ctx(mut ctx: *const sha1_ctx,
                                 (__x & 0xff as libc::c_int as libc::c_uint) <<
                                     24 as libc::c_int
                     } else {
-                        let fresh3 = &mut __v;
-                        let fresh4;
-                        let fresh5 = __x;
-                        asm!("bswap $0" : "=r" (fresh4) : "0"
-                             (c2rust_asm_casts::AsmCast::cast_in(fresh3, fresh5))
-                             :);
-                        c2rust_asm_casts::AsmCast::cast_out(fresh3, fresh5,
-                                                            fresh4);
+                        __v = __x.to_be();
                     }
                     __v
                 }));
@@ -138,16 +124,9 @@ pub unsafe extern "C" fn sha1_read_ctx(mut ctx: *const sha1_ctx,
                                 (__x & 0xff as libc::c_int as libc::c_uint) <<
                                     24 as libc::c_int
                     } else {
-                        let fresh6 = &mut __v;
-                        let fresh7;
-                        let fresh8 = __x;
-                        asm!("bswap $0" : "=r" (fresh7) : "0"
-                             (c2rust_asm_casts::AsmCast::cast_in(fresh6, fresh8))
-                             :);
-                        c2rust_asm_casts::AsmCast::cast_out(fresh6, fresh8,
-                                                            fresh7);
+                        __v = __x.to_be();
                     }
-                    __v
+                   __v
                 }));
     set_uint32(r.offset((3 as libc::c_int as
                              libc::c_ulong).wrapping_mul(::std::mem::size_of::<uint32_t>()
@@ -168,14 +147,7 @@ pub unsafe extern "C" fn sha1_read_ctx(mut ctx: *const sha1_ctx,
                                 (__x & 0xff as libc::c_int as libc::c_uint) <<
                                     24 as libc::c_int
                     } else {
-                        let fresh9 = &mut __v;
-                        let fresh10;
-                        let fresh11 = __x;
-                        asm!("bswap $0" : "=r" (fresh10) : "0"
-                             (c2rust_asm_casts::AsmCast::cast_in(fresh9, fresh11))
-                             :);
-                        c2rust_asm_casts::AsmCast::cast_out(fresh9, fresh11,
-                                                            fresh10);
+                        __v = __x.to_be();
                     }
                     __v
                 }));
@@ -198,14 +170,7 @@ pub unsafe extern "C" fn sha1_read_ctx(mut ctx: *const sha1_ctx,
                                 (__x & 0xff as libc::c_int as libc::c_uint) <<
                                     24 as libc::c_int
                     } else {
-                        let fresh12 = &mut __v;
-                        let fresh13;
-                        let fresh14 = __x;
-                        asm!("bswap $0" : "=r" (fresh13) : "0"
-                             (c2rust_asm_casts::AsmCast::cast_in(fresh12, fresh14))
-                             :);
-                        c2rust_asm_casts::AsmCast::cast_out(fresh12, fresh14,
-                                                            fresh13);
+                        __v = __x.to_be();
                     }
                     __v
                 }));
@@ -251,14 +216,7 @@ pub unsafe extern "C" fn sha1_finish_ctx(mut ctx: *mut sha1_ctx,
                          (__x & 0xff as libc::c_int as libc::c_uint) <<
                              24 as libc::c_int
              } else {
-                 let fresh15 = &mut __v;
-                 let fresh16;
-                 let fresh17 = __x;
-                 asm!("bswap $0" : "=r" (fresh16) : "0"
-                      (c2rust_asm_casts::AsmCast::cast_in(fresh15, fresh17))
-                      :);
-                 c2rust_asm_casts::AsmCast::cast_out(fresh15, fresh17,
-                                                     fresh16);
+                 __v = __x.to_be();
              }
              __v
          });
@@ -278,14 +236,7 @@ pub unsafe extern "C" fn sha1_finish_ctx(mut ctx: *mut sha1_ctx,
                          (__x & 0xff as libc::c_int as libc::c_uint) <<
                              24 as libc::c_int
              } else {
-                 let fresh18 = &mut __v;
-                 let fresh19;
-                 let fresh20 = __x;
-                 asm!("bswap $0" : "=r" (fresh19) : "0"
-                      (c2rust_asm_casts::AsmCast::cast_in(fresh18, fresh20))
-                      :);
-                 c2rust_asm_casts::AsmCast::cast_out(fresh18, fresh20,
-                                                     fresh19);
+                 __v = __x.to_be();
              }
              __v
          });
@@ -542,14 +493,7 @@ pub unsafe extern "C" fn sha1_process_block(mut buffer: *const libc::c_void,
                                  (__x & 0xff as libc::c_int as libc::c_uint)
                                      << 24 as libc::c_int
                      } else {
-                         let fresh21 = &mut __v;
-                         let fresh22;
-                         let fresh23 = __x;
-                         asm!("bswap $0" : "=r" (fresh22) : "0"
-                              (c2rust_asm_casts::AsmCast::cast_in(fresh21, fresh23))
-                              :);
-                         c2rust_asm_casts::AsmCast::cast_out(fresh21, fresh23,
-                                                             fresh22);
+                         __v = __x.to_be();
                      }
                      __v
                  });
@@ -3424,3 +3368,4 @@ pub unsafe extern "C" fn sha1_process_block(mut buffer: *const libc::c_void,
  * coding: utf-8
  * End:
  */
+
