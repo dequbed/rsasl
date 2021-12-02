@@ -5,7 +5,6 @@
 #![allow(non_upper_case_globals)]
 #![allow(unused_assignments)]
 #![allow(unused_mut)]
-#![feature(c_variadic)]
 #![feature(ptr_wrapping_offset_from)]
 
 
@@ -57,11 +56,9 @@ pub mod external {
 // mod external
 pub mod gl {
     pub mod af_alg;
-    pub mod asnprintf;
     pub mod base64;
     pub mod c_ctype;
     pub mod cloexec;
-    pub mod fcntl;
     pub mod fd_hook;
     pub mod fflush;
     pub mod fpurge;
@@ -79,7 +76,6 @@ pub mod gl {
     pub mod md5;
     pub mod md5_stream;
     pub mod memxor;
-    pub mod printf_args;
     pub mod printf_parse;
     pub mod sha1;
     pub mod sha1_stream;
@@ -88,7 +84,6 @@ pub mod gl {
     pub mod stat_time;
     pub mod sys_socket;
     pub mod unistd;
-    pub mod vasnprintf;
     pub mod xsize;
 }
 
