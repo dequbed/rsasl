@@ -1,13 +1,19 @@
 use libc::size_t;
 use std::ptr;
 use std::ffi::CStr;
-use rsasl_c2rust::src::src::listmech::{GSASL_OK, Gsasl_session};
+use rsasl_c2rust::consts::GSASL_OK;
 
 use crate::Property;
 use crate::buffer::{SaslBuffer, SaslString};
 use crate::error::{Result, SaslError};
 
 use discard::{Discard};
+use rsasl_c2rust::callback::{gsasl_session_hook_get, gsasl_session_hook_set};
+use rsasl_c2rust::consts::{GSASL_NEEDS_MORE, Gsasl_property};
+use rsasl_c2rust::gsasl::Gsasl_session;
+use rsasl_c2rust::property::{gsasl_property_fast, gsasl_property_set_raw};
+use rsasl_c2rust::xfinish::gsasl_finish;
+use rsasl_c2rust::xstep::{gsasl_step, gsasl_step64};
 
 #[derive(Debug)]
 /// The context of an authentication exchange
@@ -62,7 +68,7 @@ impl<D> Session<D> {
         } else if res == (GSASL_NEEDS_MORE as libc::c_int) {
             Ok(Step::NeedsMore(SaslBuffer::from_parts(output, output_len as usize)))
         } else {
-            Err(SaslError(res))
+            Err(SaslError(res as u32))
         }
     }
 
@@ -82,7 +88,7 @@ impl<D> Session<D> {
         } else if res == (GSASL_NEEDS_MORE as libc::c_int) {
             Ok(Step::NeedsMore(SaslString::from_raw(output)))
         } else {
-            Err(SaslError(res))
+            Err(SaslError(res as u32))
         }
     }
 

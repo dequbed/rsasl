@@ -1,11 +1,11 @@
 use std::ffi::CString;
 use std::io;
+use rsasl_c2rust::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_NO_AUTHID, GSASL_NO_CALLBACK, GSASL_PASSWORD};
 use rsasl::{
     SASL,
     Session,
     Callback,
     Property,
-    ReturnCode,
     Step::{Done, NeedsMore},
     session::StepResult,
     buffer::SaslBuffer
@@ -16,19 +16,19 @@ struct OurCallback;
 
 impl Callback<(), ()> for OurCallback {
     fn callback(sasl: &mut SASL<(), ()>, session: &mut Session<()>, prop: Property) 
-        -> Result<(), ReturnCode> 
+        -> Result<(), u32>
     {
         match prop {
-            Property::GSASL_PASSWORD => {
+            GSASL_PASSWORD => {
                 // Access the authentication id, i.e. the username to check the password for
-                let authcid = session.get_property(Property::GSASL_AUTHID)
-                    .ok_or(ReturnCode::GSASL_NO_AUTHID)?;
+                let authcid = session.get_property(GSASL_AUTHID)
+                    .ok_or(GSASL_NO_AUTHID)?;
 
-                session.set_property(Property::GSASL_PASSWORD, "secret".as_bytes());
+                session.set_property(GSASL_PASSWORD, "secret".as_bytes());
 
                 Ok(())
             },
-            _ => Err(ReturnCode::GSASL_NO_CALLBACK)
+            _ => Err(GSASL_NO_CALLBACK)
         }
     }
 }
@@ -73,7 +73,7 @@ fn print_outcome(step_result: StepResult<SaslBuffer>) {
             println!("Authentication successful, bytes to return to client: {:?}", buffer.as_ref());
         },
         Ok(NeedsMore(_)) => assert!(false, "PLAIN exchange took more than one step"),
-        Err(e) if e.matches(ReturnCode::GSASL_AUTHENTICATION_ERROR) 
+        Err(e) if e.matches(GSASL_AUTHENTICATION_ERROR)
             => println!("Authentication failed, bad username or password"),
         Err(e) => println!("Authentication errored: {}", e),
     }

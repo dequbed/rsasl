@@ -1,7 +1,8 @@
 use std::io;
 use std::ffi::CString;
+use rsasl_c2rust::consts::{GSASL_AUTHID, GSASL_PASSWORD};
 
-use rsasl::{SASL, Property, Step::{Done, NeedsMore}};
+use rsasl::{SASL, Step::{Done, NeedsMore}};
 
 
 // A SCRAM-SHA-1 authentication exchange.
@@ -38,10 +39,10 @@ pub fn main() {
     print!("\n");
 
     // Set the username that will be used in the SCRAM-SHA-1 authentication
-    session.set_property(Property::GSASL_AUTHID, CString::new(username).unwrap().as_bytes_with_nul());
+    session.set_property(GSASL_AUTHID, CString::new(username).unwrap().as_bytes_with_nul());
 
     // Now set the password that will be used in the SCRAM-SHA-1 authentication
-    session.set_property(Property::GSASL_PASSWORD, CString::new(password).unwrap().as_bytes_with_nul());
+    session.set_property(GSASL_PASSWORD, CString::new(password).unwrap().as_bytes_with_nul());
 
 
     let mut data = CString::new("").unwrap();

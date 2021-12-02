@@ -21,6 +21,7 @@ extern crate c2rust_asm_casts;
 extern crate libc;
 
 pub mod consts;
+pub mod gsasl;
 
 pub mod anonymous {
     pub mod client;
