@@ -6,11 +6,7 @@
 #![allow(unused_assignments)]
 #![allow(unused_mut)]
 #![feature(c_variadic)]
-#![feature(label_break_value)]
-#![feature(linkage)]
 #![feature(ptr_wrapping_offset_from)]
-#![feature(register_tool)]
-#![register_tool(c2rust)]
 
 
 #[macro_use]

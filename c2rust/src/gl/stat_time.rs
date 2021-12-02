@@ -77,7 +77,6 @@ pub struct stat {
    is intended to be private to this .h file.  */
 #[no_mangle]
 #[inline]
-#[linkage = "external"]
 pub unsafe extern "C" fn stat_time_normalize(mut result: libc::c_int,
                                              mut st: *mut stat)
  -> libc::c_int {
@@ -85,7 +84,6 @@ pub unsafe extern "C" fn stat_time_normalize(mut result: libc::c_int,
 }
 #[no_mangle]
 #[inline]
-#[linkage = "external"]
 pub unsafe extern "C" fn get_stat_birthtime(mut st: *const stat) -> timespec {
     let mut t: timespec = timespec{tv_sec: 0, tv_nsec: 0,};
     t.tv_sec = -(1 as libc::c_int) as __time_t;
@@ -94,47 +92,40 @@ pub unsafe extern "C" fn get_stat_birthtime(mut st: *const stat) -> timespec {
 }
 #[no_mangle]
 #[inline]
-#[linkage = "external"]
 pub unsafe extern "C" fn get_stat_mtime(mut st: *const stat) -> timespec {
     return (*st).st_mtim;
 }
 #[no_mangle]
 #[inline]
-#[linkage = "external"]
 pub unsafe extern "C" fn get_stat_ctime(mut st: *const stat) -> timespec {
     return (*st).st_ctim;
 }
 #[no_mangle]
 #[inline]
-#[linkage = "external"]
 pub unsafe extern "C" fn get_stat_atime_ns(mut st: *const stat)
  -> libc::c_long {
     return (*st).st_atim.tv_nsec;
 }
 #[no_mangle]
 #[inline]
-#[linkage = "external"]
 pub unsafe extern "C" fn get_stat_ctime_ns(mut st: *const stat)
  -> libc::c_long {
     return (*st).st_ctim.tv_nsec;
 }
 #[no_mangle]
 #[inline]
-#[linkage = "external"]
 pub unsafe extern "C" fn get_stat_mtime_ns(mut st: *const stat)
  -> libc::c_long {
     return (*st).st_mtim.tv_nsec;
 }
 #[no_mangle]
 #[inline]
-#[linkage = "external"]
 pub unsafe extern "C" fn get_stat_birthtime_ns(mut st: *const stat)
  -> libc::c_long {
     return 0 as libc::c_int as libc::c_long;
 }
 #[no_mangle]
 #[inline]
-#[linkage = "external"]
 pub unsafe extern "C" fn get_stat_atime(mut st: *const stat) -> timespec {
     return (*st).st_atim;
 }
