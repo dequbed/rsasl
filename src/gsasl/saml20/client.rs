@@ -6,15 +6,10 @@ use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set_raw};
 
 extern "C" {
-    #[no_mangle]
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> size_t;
-    #[no_mangle]
     fn rpl_free(_: *mut libc::c_void);
-    #[no_mangle]
     fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
-    #[no_mangle]
     fn _gsasl_gs2_generate_header(nonstd: bool, cbflag: libc::c_char,
                                   cbname: *const libc::c_char,
                                   authzid: *const libc::c_char,
@@ -56,7 +51,7 @@ pub struct saml20_client_state {
     pub step: libc::c_int,
 }
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_saml20_client_start(mut sctx:
+pub unsafe extern "C" fn _gsasl_saml20_client_start(mut _sctx:
                                                         *mut Gsasl_session,
                                                     mut mech_data:
                                                         *mut *mut libc::c_void)
@@ -143,10 +138,9 @@ pub unsafe extern "C" fn _gsasl_saml20_client_step(mut sctx: *mut Gsasl_session,
  *
  */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_saml20_client_finish(mut sctx:
-                                                         *mut Gsasl_session,
-                                                     mut mech_data:
-                                                         *mut libc::c_void) {
+pub unsafe extern "C" fn _gsasl_saml20_client_finish(mut _sctx: *mut Gsasl_session,
+                                                     mut mech_data: *mut libc::c_void)
+{
     let mut state: *mut saml20_client_state =
         mech_data as *mut saml20_client_state;
     if state.is_null() { return }

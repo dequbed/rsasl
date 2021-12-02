@@ -23,7 +23,7 @@ extern "C" {
  *
  */
     /* Get token types. */
-    #[no_mangle]
+
     fn digest_md5_getsubopt(optionp: *mut *mut libc::c_char,
                             tokens: *const *const libc::c_char,
                             valuep: *mut *mut libc::c_char) -> libc::c_int;
@@ -61,26 +61,26 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
+
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
+
     fn strtoul(_: *const libc::c_char, _: *mut *mut libc::c_char,
                _: libc::c_int) -> size_t;
-    #[no_mangle]
+
     fn realloc(_: *mut libc::c_void, _: size_t) -> *mut libc::c_void;
-    #[no_mangle]
+
     fn memset(_: *mut libc::c_void, _: libc::c_int, _: size_t)
      -> *mut libc::c_void;
-    #[no_mangle]
+
     fn strcpy(_: *mut libc::c_char, _: *const libc::c_char)
      -> *mut libc::c_char;
-    #[no_mangle]
+
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    #[no_mangle]
+
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    #[no_mangle]
+
     fn strndup(_: *const libc::c_char, _: size_t) -> *mut libc::c_char;
-    #[no_mangle]
+
     fn strlen(_: *const libc::c_char) -> size_t;
     /* validate.h --- Validate consistency of DIGEST-MD5 tokens.
  * Copyright (C) 2004-2021 Simon Josefsson
@@ -104,13 +104,13 @@ extern "C" {
  *
  */
     /* Get token types. */
-    #[no_mangle]
+
     fn digest_md5_validate_challenge(c: *mut digest_md5_challenge)
      -> libc::c_int;
-    #[no_mangle]
+
     fn digest_md5_validate_response(r: *mut digest_md5_response)
      -> libc::c_int;
-    #[no_mangle]
+
     fn digest_md5_validate_finish(f: *mut digest_md5_finish) -> libc::c_int;
 }
 pub type digest_md5_qop = libc::c_uint;

@@ -1,9 +1,9 @@
 use ::libc;
 use libc::size_t;
 extern "C" {
-    #[no_mangle]
+
     fn memcmp(_: *const libc::c_void, _: *const libc::c_void, _: size_t) -> libc::c_int;
-    #[no_mangle]
+
     fn memchr(_: *const libc::c_void, _: libc::c_int, _: size_t) -> *mut libc::c_void;
 }
 /* getsubopt.c --- Parse comma separate list into words, DIGEST-MD5 style.

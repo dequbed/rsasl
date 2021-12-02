@@ -1,6 +1,5 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
@@ -19,15 +18,11 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,
                 _: ...) -> libc::c_int;
-    #[no_mangle]
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
      -> *mut libc::c_void;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
     /* validate.h --- Validate consistency of SCRAM tokens.
  * Copyright (C) 2009-2021 Simon Josefsson
@@ -52,13 +47,9 @@ extern "C" {
  */
     /* Get token types. */
     /* Get bool. */
-    #[no_mangle]
     fn scram_valid_client_first(cf: *mut scram_client_first) -> bool;
-    #[no_mangle]
     fn scram_valid_server_first(sf: *mut scram_server_first) -> bool;
-    #[no_mangle]
     fn scram_valid_client_final(cl: *mut scram_client_final) -> bool;
-    #[no_mangle]
     fn scram_valid_server_final(sl: *mut scram_server_final) -> bool;
 }
 pub type size_t = libc::c_ulong;

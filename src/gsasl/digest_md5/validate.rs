@@ -1,9 +1,7 @@
 use ::libc;
 use libc::size_t;
 extern "C" {
-    #[no_mangle]
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> size_t;
 }
 

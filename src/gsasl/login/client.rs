@@ -22,13 +22,9 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
     fn malloc(_: size_t) -> *mut libc::c_void;
-    #[no_mangle]
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> size_t;
 }
 
@@ -62,7 +58,7 @@ pub struct _Gsasl_login_client_state {
     pub step: libc::c_int,
 }
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_login_client_start(mut sctx: *mut Gsasl_session,
+pub unsafe extern "C" fn _gsasl_login_client_start(mut _sctx: *mut Gsasl_session,
                                                    mut mech_data: *mut *mut libc::c_void
     ) -> libc::c_int
 {
@@ -78,8 +74,8 @@ pub unsafe extern "C" fn _gsasl_login_client_start(mut sctx: *mut Gsasl_session,
 #[no_mangle]
 pub unsafe extern "C" fn _gsasl_login_client_step(mut sctx: *mut Gsasl_session,
                                                   mut mech_data: *mut libc::c_void,
-                                                  mut input: *const libc::c_char,
-                                                  mut input_len: size_t,
+                                                  mut _input: *const libc::c_char,
+                                                  mut _input_len: size_t,
                                                   mut output: *mut *mut libc::c_char,
                                                   mut output_len: *mut size_t
     ) -> libc::c_int
@@ -134,7 +130,7 @@ pub unsafe extern "C" fn _gsasl_login_client_step(mut sctx: *mut Gsasl_session,
  *
  */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_login_client_finish(mut sctx: *mut Gsasl_session,
+pub unsafe extern "C" fn _gsasl_login_client_finish(mut _sctx: *mut Gsasl_session,
                                                     mut mech_data: *mut libc::c_void
     )
 {

@@ -3,25 +3,25 @@ use libc::size_t;
 use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions, Gsasl_session};
 
 extern "C" {
-    #[no_mangle]
+
     fn _gsasl_cram_md5_client_step(sctx: *mut Gsasl_session,
                                    mech_data: *mut libc::c_void,
                                    input: *const libc::c_char,
                                    input_len: size_t,
                                    output: *mut *mut libc::c_char,
                                    output_len: *mut size_t) -> libc::c_int;
-    #[no_mangle]
+
     fn _gsasl_cram_md5_server_start(sctx: *mut Gsasl_session,
                                     mech_data: *mut *mut libc::c_void)
      -> libc::c_int;
-    #[no_mangle]
+
     fn _gsasl_cram_md5_server_step(sctx: *mut Gsasl_session,
                                    mech_data: *mut libc::c_void,
                                    input: *const libc::c_char,
                                    input_len: size_t,
                                    output: *mut *mut libc::c_char,
                                    output_len: *mut size_t) -> libc::c_int;
-    #[no_mangle]
+
     fn _gsasl_cram_md5_server_finish(sctx: *mut Gsasl_session,
                                      mech_data: *mut libc::c_void);
 }
@@ -83,7 +83,7 @@ extern "C" {
 /* Get specification. */
 #[no_mangle]
 pub static mut gsasl_cram_md5_mechanism: Gsasl_mechanism =
-    unsafe {
+    {
         {
             let mut init =
                 Gsasl_mechanism{name:

@@ -472,7 +472,7 @@ impl<D,E> Discard for SASL<D,E> {
 mod tests {
     use super::*;
     use std::iter::FromIterator;
-    use rsasl_c2rust::consts::GSASL_VALIDATE_SIMPLE;
+    use crate::gsasl::consts::GSASL_VALIDATE_SIMPLE;
 
     #[test]
     fn callback_test() {

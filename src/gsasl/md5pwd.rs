@@ -1,8 +1,6 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
     fn fclose(__stream: *mut FILE) -> libc::c_int;
-    #[no_mangle]
     fn fopen(_: *const libc::c_char, _: *const libc::c_char) -> *mut FILE;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
@@ -38,22 +36,14 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
-    #[no_mangle]
-    fn strcpy(_: *mut libc::c_char, _: *const libc::c_char)
-     -> *mut libc::c_char;
-    #[no_mangle]
+    fn strcpy(_: *mut libc::c_char, _: *const libc::c_char) -> *mut libc::c_char;
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char,
                _: libc::c_ulong) -> libc::c_int;
-    #[no_mangle]
     fn __getdelim(__lineptr: *mut *mut libc::c_char, __n: *mut size_t,
                   __delimiter: libc::c_int, __stream: *mut FILE) -> __ssize_t;
-    #[no_mangle]
     fn feof(__stream: *mut FILE) -> libc::c_int;
 }
 pub type size_t = libc::c_ulong;

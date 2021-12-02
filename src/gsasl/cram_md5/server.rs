@@ -71,7 +71,7 @@ extern "C" {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_cram_md5_server_start(mut sctx: *mut Gsasl_session,
+pub unsafe extern "C" fn _gsasl_cram_md5_server_start(mut _sctx: *mut Gsasl_session,
                                                       mut mech_data: *mut *mut libc::c_void
     ) -> libc::c_int
 {
@@ -166,7 +166,7 @@ pub unsafe extern "C" fn _gsasl_cram_md5_server_step(mut sctx: *mut Gsasl_sessio
  *
  */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_cram_md5_server_finish(mut sctx: *mut Gsasl_session,
+pub unsafe extern "C" fn _gsasl_cram_md5_server_finish(mut _sctx: *mut Gsasl_session,
                                                        mut mech_data: *mut libc::c_void)
 {
     let mut challenge: *mut libc::c_char = mech_data as *mut libc::c_char;

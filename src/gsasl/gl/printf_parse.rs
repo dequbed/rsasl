@@ -34,16 +34,11 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(_: *mut libc::c_void);
-    #[no_mangle]
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
     fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
      -> *mut libc::c_void;
-    #[no_mangle]
     fn __errno_location() -> *mut libc::c_int;
 }
 pub type ptrdiff_t = libc::c_long;

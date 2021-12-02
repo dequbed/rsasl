@@ -1,51 +1,41 @@
 use ::libc;
-use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
+use libc::size_t;
+use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions, Gsasl_session};
 
 extern "C" {
-    #[no_mangle]
     fn _gsasl_scram_sha256_plus_client_start(sctx: *mut Gsasl_session,
                                              mech_data:
                                                  *mut *mut libc::c_void)
      -> libc::c_int;
-    #[no_mangle]
     fn _gsasl_scram_sha256_plus_server_start(sctx: *mut Gsasl_session,
                                              mech_data:
                                                  *mut *mut libc::c_void)
      -> libc::c_int;
-    #[no_mangle]
     fn _gsasl_scram_sha256_client_start(sctx: *mut Gsasl_session,
                                         mech_data: *mut *mut libc::c_void)
      -> libc::c_int;
-    #[no_mangle]
     fn _gsasl_scram_sha256_server_start(sctx: *mut Gsasl_session,
                                         mech_data: *mut *mut libc::c_void)
      -> libc::c_int;
-    #[no_mangle]
     fn _gsasl_scram_sha1_plus_client_start(sctx: *mut Gsasl_session,
                                            mech_data: *mut *mut libc::c_void)
      -> libc::c_int;
-    #[no_mangle]
     fn _gsasl_scram_sha1_plus_server_start(sctx: *mut Gsasl_session,
                                            mech_data: *mut *mut libc::c_void)
      -> libc::c_int;
-    #[no_mangle]
     fn _gsasl_scram_sha1_client_start(sctx: *mut Gsasl_session,
                                       mech_data: *mut *mut libc::c_void)
      -> libc::c_int;
-    #[no_mangle]
     fn _gsasl_scram_client_step(sctx: *mut Gsasl_session,
                                 mech_data: *mut libc::c_void,
                                 input: *const libc::c_char, input_len: size_t,
                                 output: *mut *mut libc::c_char,
                                 output_len: *mut size_t) -> libc::c_int;
-    #[no_mangle]
     fn _gsasl_scram_client_finish(sctx: *mut Gsasl_session,
                                   mech_data: *mut libc::c_void);
-    #[no_mangle]
     fn _gsasl_scram_sha1_server_start(sctx: *mut Gsasl_session,
                                       mech_data: *mut *mut libc::c_void)
      -> libc::c_int;
-    #[no_mangle]
     fn _gsasl_scram_server_step(sctx: *mut Gsasl_session,
                                 mech_data: *mut libc::c_void,
                                 input: *const libc::c_char, input_len: size_t,
@@ -72,54 +62,8 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-    #[no_mangle]
     fn _gsasl_scram_server_finish(sctx: *mut Gsasl_session,
                                   mech_data: *mut libc::c_void);
-}
-pub type size_t = libc::c_ulong;
-pub type Gsasl_init_function
-    =
-    Option<unsafe extern "C" fn(_: *mut Gsasl) -> libc::c_int>;
-pub type Gsasl_done_function
-    =
-    Option<unsafe extern "C" fn(_: *mut Gsasl) -> ()>;
-pub type Gsasl_start_function
-    =
-    Option<unsafe extern "C" fn(_: *mut Gsasl_session,
-                                _: *mut *mut libc::c_void) -> libc::c_int>;
-pub type Gsasl_step_function
-    =
-    Option<unsafe extern "C" fn(_: *mut Gsasl_session, _: *mut libc::c_void,
-                                _: *const libc::c_char, _: size_t,
-                                _: *mut *mut libc::c_char, _: *mut size_t)
-               -> libc::c_int>;
-pub type Gsasl_finish_function
-    =
-    Option<unsafe extern "C" fn(_: *mut Gsasl_session, _: *mut libc::c_void)
-               -> ()>;
-pub type Gsasl_code_function
-    =
-    Option<unsafe extern "C" fn(_: *mut Gsasl_session, _: *mut libc::c_void,
-                                _: *const libc::c_char, _: size_t,
-                                _: *mut *mut libc::c_char, _: *mut size_t)
-               -> libc::c_int>;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Gsasl_mechanism_functions {
-    pub init: Gsasl_init_function,
-    pub done: Gsasl_done_function,
-    pub start: Gsasl_start_function,
-    pub step: Gsasl_step_function,
-    pub finish: Gsasl_finish_function,
-    pub encode: Gsasl_code_function,
-    pub decode: Gsasl_code_function,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Gsasl_mechanism {
-    pub name: *const libc::c_char,
-    pub client: Gsasl_mechanism_functions,
-    pub server: Gsasl_mechanism_functions,
 }
 /* mechinfo.c --- Definition of SCRAM mechanism.
  * Copyright (C) 2009-2021 Simon Josefsson
@@ -145,7 +89,7 @@ pub struct Gsasl_mechanism {
 /* Get specification. */
 #[no_mangle]
 pub static mut gsasl_scram_sha1_mechanism: Gsasl_mechanism =
-    unsafe {
+    {
         {
             let mut init =
                 Gsasl_mechanism{name:
@@ -252,7 +196,7 @@ pub static mut gsasl_scram_sha1_mechanism: Gsasl_mechanism =
     };
 #[no_mangle]
 pub static mut gsasl_scram_sha1_plus_mechanism: Gsasl_mechanism =
-    unsafe {
+    {
         {
             let mut init =
                 Gsasl_mechanism{name:
@@ -359,7 +303,7 @@ pub static mut gsasl_scram_sha1_plus_mechanism: Gsasl_mechanism =
     };
 #[no_mangle]
 pub static mut gsasl_scram_sha256_mechanism: Gsasl_mechanism =
-    unsafe {
+    {
         {
             let mut init =
                 Gsasl_mechanism{name:
@@ -466,7 +410,7 @@ pub static mut gsasl_scram_sha256_mechanism: Gsasl_mechanism =
     };
 #[no_mangle]
 pub static mut gsasl_scram_sha256_plus_mechanism: Gsasl_mechanism =
-    unsafe {
+    {
         {
             let mut init =
                 Gsasl_mechanism{name:

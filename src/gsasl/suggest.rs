@@ -4,22 +4,21 @@ use crate::gsasl::consts::GSASL_OK;
 use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
 
 extern "C" {
-    #[no_mangle]
     static mut GSASL_VALID_MECHANISM_CHARACTERS: *const libc::c_char;
     /* Authentication functions: xstart.c, xstep.c, xfinish.c */
-    #[no_mangle]
+
     fn gsasl_finish(sctx: *mut Gsasl_session);
-    #[no_mangle]
+
     fn gsasl_client_start(ctx: *mut Gsasl, mech: *const libc::c_char,
                           sctx: *mut *mut Gsasl_session) -> libc::c_int;
-    #[no_mangle]
+
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char,
-               _: libc::c_ulong) -> libc::c_int;
-    #[no_mangle]
+               _: size_t) -> libc::c_int;
+
     fn strspn(_: *const libc::c_char, _: *const libc::c_char)
-     -> libc::c_ulong;
-    #[no_mangle]
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+     -> size_t;
+
+    fn strlen(_: *const libc::c_char) -> size_t;
 }
 
 /* *
@@ -80,13 +79,7 @@ pub unsafe extern "C" fn gsasl_client_suggest_mechanism(mut ctx: *mut Gsasl,
                     break ;
                 } else { j = j.wrapping_add(1) }
             }
-            i =
-                (i as
-                     libc::c_ulong).wrapping_add(len.wrapping_add(1 as
-                                                                      libc::c_int
-                                                                      as
-                                                                      libc::c_ulong))
-                    as size_t as size_t
+            i = i.wrapping_add(len.wrapping_add(1))
         }
     }
     return if target_mech < (*ctx).n_client_mechs {

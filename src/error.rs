@@ -109,7 +109,7 @@ pub fn gsasl_errname_to_str(err: libc::c_int) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use rsasl_c2rust::consts::*;
+    use crate::gsasl::consts::*;
     use super::*;
 
     #[test]

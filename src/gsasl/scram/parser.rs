@@ -1,14 +1,10 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
      -> *mut libc::c_void;
-    #[no_mangle]
     fn memchr(_: *const libc::c_void, _: libc::c_int, _: libc::c_ulong)
      -> *mut libc::c_void;
-    #[no_mangle]
     fn strnlen(__string: *const libc::c_char, __maxlen: size_t) -> size_t;
     /* validate.h --- Validate consistency of SCRAM tokens.
  * Copyright (C) 2009-2021 Simon Josefsson
@@ -33,13 +29,9 @@ extern "C" {
  */
     /* Get token types. */
     /* Get bool. */
-    #[no_mangle]
     fn scram_valid_client_first(cf: *mut scram_client_first) -> bool;
-    #[no_mangle]
     fn scram_valid_server_first(sf: *mut scram_server_first) -> bool;
-    #[no_mangle]
     fn scram_valid_client_final(cl: *mut scram_client_final) -> bool;
-    #[no_mangle]
     fn scram_valid_server_final(sl: *mut scram_server_final) -> bool;
 }
 pub type size_t = libc::c_ulong;

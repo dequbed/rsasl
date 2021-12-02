@@ -1,11 +1,11 @@
 use ::libc;
 use libc::size_t;
 extern "C" {
-    #[no_mangle]
+
     fn malloc(_: size_t) -> *mut libc::c_void;
-    #[no_mangle]
+
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    #[no_mangle]
+
     fn strlen(_: *const libc::c_char) -> size_t;
 }
 

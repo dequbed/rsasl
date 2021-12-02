@@ -337,11 +337,10 @@ pub struct digest_md5_challenge {
     pub ciphers: libc::c_int,
 }
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_server_start(mut sctx:
-                                                            *mut Gsasl_session,
-                                                        mut mech_data:
-                                                            *mut *mut libc::c_void)
- -> libc::c_int {
+pub unsafe extern "C" fn _gsasl_digest_md5_server_start(mut _sctx: *mut Gsasl_session,
+                                                        mut mech_data: *mut *mut libc::c_void
+    ) -> libc::c_int
+{
     let mut state: *mut _Gsasl_digest_md5_server_state =
         0 as *mut _Gsasl_digest_md5_server_state;
     let mut nonce: [libc::c_char; 16] = [0; 16];
@@ -614,7 +613,7 @@ pub unsafe extern "C" fn _gsasl_digest_md5_server_step(mut sctx:
     return res;
 }
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_server_finish(mut sctx:
+pub unsafe extern "C" fn _gsasl_digest_md5_server_finish(mut _sctx:
                                                              *mut Gsasl_session,
                                                          mut mech_data:
                                                              *mut libc::c_void) {
@@ -627,7 +626,7 @@ pub unsafe extern "C" fn _gsasl_digest_md5_server_finish(mut sctx:
     rpl_free(state as *mut libc::c_void);
 }
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_server_encode(mut sctx:
+pub unsafe extern "C" fn _gsasl_digest_md5_server_encode(mut _sctx:
                                                              *mut Gsasl_session,
                                                          mut mech_data:
                                                              *mut libc::c_void,
@@ -679,7 +678,7 @@ pub unsafe extern "C" fn _gsasl_digest_md5_server_encode(mut sctx:
  *
  */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_server_decode(mut sctx:
+pub unsafe extern "C" fn _gsasl_digest_md5_server_decode(mut _sctx:
                                                              *mut Gsasl_session,
                                                          mut mech_data:
                                                              *mut libc::c_void,

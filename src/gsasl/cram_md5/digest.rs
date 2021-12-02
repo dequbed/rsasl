@@ -3,9 +3,9 @@ use libc::size_t;
 use crate::gsasl::gc::Gc_rc;
 
 extern "C" {
-    #[no_mangle]
+
     fn strlen(_: *const libc::c_char) -> size_t;
-    #[no_mangle]
+
     fn gc_hmac_md5(key: *const libc::c_void, keylen: size_t,
                    in_0: *const libc::c_void, inlen: size_t,
                    resbuf: *mut libc::c_char) -> Gc_rc;

@@ -1,10 +1,9 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
     fn gc_hmac_sha1(key: *const libc::c_void, keylen: size_t,
                     in_0: *const libc::c_void, inlen: size_t,
                     resbuf: *mut libc::c_char) -> Gc_rc;
-    #[no_mangle]
+
     fn gc_hmac_sha256(key: *const libc::c_void, keylen: size_t,
                       in_0: *const libc::c_void, inlen: size_t,
                       resbuf: *mut libc::c_char) -> Gc_rc;
@@ -42,14 +41,14 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
+
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
+
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
+
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
      -> *mut libc::c_void;
-    #[no_mangle]
+
     fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong)
      -> *mut libc::c_void;
 }

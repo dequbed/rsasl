@@ -4,11 +4,8 @@ use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_CLIENT_CODE, GSASL_NO_SE
 use crate::gsasl::gsasl::{Gsasl, Gsasl_mechanism, Gsasl_session};
 
 extern "C" {
-    #[no_mangle]
     fn gsasl_finish(sctx: *mut Gsasl_session);
-    #[no_mangle]
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    #[no_mangle]
     fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
 }
 /* xstart.c --- Start libgsasl session.

@@ -3,16 +3,12 @@ use crate::gsasl::consts::{GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR, GSASL_OK};
 use crate::gsasl::gsasl::{Gsasl, Gsasl_mechanism};
 
 extern "C" {
-    #[no_mangle]
     fn gsasl_done(ctx: *mut Gsasl);
     /* Register new mechanism: register.c. */
-    #[no_mangle]
     fn gsasl_register(ctx: *mut Gsasl, mech: *const Gsasl_mechanism)
      -> libc::c_int;
-    #[no_mangle]
     fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
     /* Call before respectively after any other functions. */
-    #[no_mangle]
     fn gc_init() -> Gc_rc;
     /* cram-md5.h --- Prototypes for CRAM-MD5 mechanism as defined in RFC 2195.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -35,7 +31,6 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-    #[no_mangle]
     static mut gsasl_cram_md5_mechanism: Gsasl_mechanism;
     /* external.h --- Prototypes for EXTERNAL mechanism as defined in RFC 2222.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -58,7 +53,6 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-    #[no_mangle]
     static mut gsasl_external_mechanism: Gsasl_mechanism;
     /* anonymous.h --- Prototypes for ANONYMOUS mechanism as defined in RFC 2245.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -81,7 +75,6 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-    #[no_mangle]
     static mut gsasl_anonymous_mechanism: Gsasl_mechanism;
     /* plain.h --- Prototypes for SASL mechanism PLAIN as defined in RFC 2595.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -104,7 +97,6 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-    #[no_mangle]
     static mut gsasl_plain_mechanism: Gsasl_mechanism;
     /* securid.h --- Prototypes for SASL mechanism SECURID as defined in RFC 2808.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -127,7 +119,6 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-    #[no_mangle]
     static mut gsasl_securid_mechanism: Gsasl_mechanism;
     /* digest-md5.h --- Prototypes for DIGEST-MD5 mechanism as defined in RFC 2831.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -150,7 +141,6 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-    #[no_mangle]
     static mut gsasl_digest_md5_mechanism: Gsasl_mechanism;
     /* scram.h --- Prototypes for SCRAM mechanism
  * Copyright (C) 2009-2021 Simon Josefsson
@@ -173,13 +163,9 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-    #[no_mangle]
     static mut gsasl_scram_sha1_mechanism: Gsasl_mechanism;
-    #[no_mangle]
     static mut gsasl_scram_sha1_plus_mechanism: Gsasl_mechanism;
-    #[no_mangle]
     static mut gsasl_scram_sha256_mechanism: Gsasl_mechanism;
-    #[no_mangle]
     static mut gsasl_scram_sha256_plus_mechanism: Gsasl_mechanism;
     /* saml20.h --- Prototypes for SAML20.
  * Copyright (C) 2010-2021 Simon Josefsson
@@ -202,7 +188,6 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-    #[no_mangle]
     static mut gsasl_saml20_mechanism: Gsasl_mechanism;
     /* openid20.h --- Prototypes for OPENID20.
  * Copyright (C) 2011-2021 Simon Josefsson
@@ -225,7 +210,6 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-    #[no_mangle]
     static mut gsasl_openid20_mechanism: Gsasl_mechanism;
     /* login.h --- Prototypes for non-standard SASL mechanism LOGIN.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -248,7 +232,6 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-    #[no_mangle]
     static mut gsasl_login_mechanism: Gsasl_mechanism;
 }
 pub type size_t = libc::c_ulong;

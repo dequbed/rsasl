@@ -6,12 +6,9 @@ use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set_raw};
 
 extern "C" {
-    #[no_mangle]
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char,
                _: size_t) -> libc::c_int;
-    #[no_mangle]
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> size_t;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <stdlib.h>.
@@ -30,11 +27,8 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(_: *mut libc::c_void);
-    #[no_mangle]
     fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
-    #[no_mangle]
     fn _gsasl_gs2_generate_header(nonstd: bool, cbflag: libc::c_char,
                                   cbname: *const libc::c_char,
                                   authzid: *const libc::c_char,
@@ -76,7 +70,7 @@ pub struct openid20_client_state {
     pub step: libc::c_int,
 }
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_openid20_client_start(mut sctx: *mut Gsasl_session,
+pub unsafe extern "C" fn _gsasl_openid20_client_start(mut _sctx: *mut Gsasl_session,
                                                       mut mech_data: *mut *mut libc::c_void
     ) -> libc::c_int
 {
@@ -204,10 +198,8 @@ pub unsafe extern "C" fn _gsasl_openid20_client_step(mut sctx: *mut Gsasl_sessio
  *
  */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_openid20_client_finish(mut sctx:
-                                                           *mut Gsasl_session,
-                                                       mut mech_data:
-                                                           *mut libc::c_void) {
+pub unsafe extern "C" fn _gsasl_openid20_client_finish(mut _sctx: *mut Gsasl_session,
+                                                       mut mech_data: *mut libc::c_void) {
     let mut state: *mut openid20_client_state =
         mech_data as *mut openid20_client_state;
     if state.is_null() { return }

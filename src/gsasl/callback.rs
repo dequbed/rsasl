@@ -1,5 +1,4 @@
 use ::libc;
-use libc::size_t;
 use crate::gsasl::consts::{GSASL_NO_CALLBACK, Gsasl_property};
 use crate::gsasl::gsasl::{Gsasl, Gsasl_callback_function, Gsasl_session};
 

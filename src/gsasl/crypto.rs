@@ -6,11 +6,9 @@ use crate::gsasl::mechtools::{Gsasl_hash, GSASL_HASH_SHA1_SIZE, GSASL_HASH_SHA25
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, Gsasl_saslprep_flags};
 
 extern "C" {
-    #[no_mangle]
     fn gsasl_saslprep(in_0: *const libc::c_char, flags: Gsasl_saslprep_flags,
                       out: *mut *mut libc::c_char,
                       stringpreprc: *mut libc::c_int) -> libc::c_int;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
@@ -46,24 +44,18 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
     fn _gsasl_hash(hash: Gsasl_hash, in_0: *const libc::c_char, inlen: size_t,
                    out: *mut libc::c_char) -> libc::c_int;
-    #[no_mangle]
     fn _gsasl_hmac(hash: Gsasl_hash, key: *const libc::c_char, keylen: size_t,
                    in_0: *const libc::c_char, inlen: size_t,
                    outhash: *mut libc::c_char) -> libc::c_int;
-    #[no_mangle]
     fn _gsasl_pbkdf2(hash: Gsasl_hash, password: *const libc::c_char,
                      passwordlen: size_t, salt: *const libc::c_char,
                      saltlen: size_t, c: libc::c_uint, dk: *mut libc::c_char,
                      dklen: size_t) -> libc::c_int;
     /* Randomness. */
-    #[no_mangle]
     fn gc_nonce(data: *mut libc::c_char, datalen: size_t) -> Gc_rc;
-    #[no_mangle]
     fn gc_random(data: *mut libc::c_char, datalen: size_t) -> Gc_rc;
 }
 /* gc.h --- Header file for implementation agnostic crypto wrapper API.

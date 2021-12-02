@@ -1,6 +1,7 @@
 use ::libc;
+use crate::gsasl::base64::base64_decode_context;
+
 extern "C" {
-    #[no_mangle]
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
@@ -19,11 +20,8 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
     fn __errno_location() -> *mut libc::c_int;
-    #[no_mangle]
     fn memchr(_: *const libc::c_void, _: libc::c_int, _: libc::c_ulong)
      -> *mut libc::c_void;
 }
@@ -143,12 +141,6 @@ pub type ptrdiff_t = libc::c_long;
 /* Note: ISO C does not mandate that 'size_t' and 'ptrdiff_t' have the same
    size, but it is so on all platforms we have seen since 1990.  */
 pub type idx_t = ptrdiff_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct base64_decode_context {
-    pub i: libc::c_int,
-    pub buf: [libc::c_char; 4],
-}
 #[cold]
 #[inline]
 unsafe extern "C" fn _gl_alloc_nomem() -> *mut libc::c_void {
@@ -559,11 +551,11 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                             (if 1 as libc::c_int != 0 {
                                                   0 as libc::c_int
                                               } else {
-                                                  ((if 1 as libc::c_int != 0 {
+                                                  (if 1 as libc::c_int != 0 {
                                                         0 as libc::c_int
                                                     } else {
                                                         4 as libc::c_int
-                                                    })) +
+                                                    }) +
                                                       (-(127 as libc::c_int) -
                                                            1 as libc::c_int)
                                               }) + 0 as libc::c_int
@@ -624,7 +616,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                         2 as libc::c_int) +
                                                        1 as libc::c_int
                                                } else {
-                                                   ((if 1 as libc::c_int != 0
+                                                   (if 1 as libc::c_int != 0
                                                         {
                                                          0 as libc::c_int
                                                      } else {
@@ -641,7 +633,7 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                                   -
                                                                   1 as
                                                                       libc::c_int)
-                                                     })) - 1 as libc::c_int
+                                                     }) - 1 as libc::c_int
                                                })) as libc::c_int
                                     } else {
                                         ((0 as libc::c_int) <
@@ -695,12 +687,12 @@ pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                                       0 as libc::c_int as
                                                           libc::c_long
                                                   } else {
-                                                      ((if 1 as libc::c_int !=
+                                                      (if 1 as libc::c_int !=
                                                                0 {
                                                             0 as libc::c_int
                                                                 as
                                                                 libc::c_long
-                                                        } else { in_over_3 }))
+                                                        } else { in_over_3 })
                                                           +
                                                           (-(127 as
                                                                  libc::c_int)
@@ -8770,8 +8762,7 @@ pub unsafe extern "C" fn isbase64(mut ch: libc::c_char) -> bool {
 }
 /* Initialize decode-context buffer, CTX.  */
 #[no_mangle]
-pub unsafe extern "C" fn base64_decode_ctx_init(mut ctx:
-                                                    *mut base64_decode_context) {
+pub unsafe extern "C" fn base64_decode_ctx_init(mut ctx: *mut base64_decode_context) {
     (*ctx).i = 0 as libc::c_int;
 }
 /* If CTX->i is 0 or 4, there are four or more bytes in [*IN..IN_END), and
@@ -8998,13 +8989,10 @@ pub unsafe extern "C" fn base64_decode_ctx(mut ctx:
    input was invalid, in which case *OUT is NULL and *OUTLEN is
    undefined. */
 #[no_mangle]
-pub unsafe extern "C" fn base64_decode_alloc_ctx(mut ctx:
-                                                     *mut base64_decode_context,
-                                                 mut in_0:
-                                                     *const libc::c_char,
+pub unsafe extern "C" fn base64_decode_alloc_ctx(mut ctx: *mut base64_decode_context,
+                                                 mut in_0: *const libc::c_char,
                                                  mut inlen: idx_t,
-                                                 mut out:
-                                                     *mut *mut libc::c_char,
+                                                 mut out: *mut *mut libc::c_char,
                                                  mut outlen: *mut idx_t)
  -> bool {
     /* This may allocate a few bytes too many, depending on input,

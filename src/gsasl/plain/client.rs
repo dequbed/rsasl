@@ -5,12 +5,9 @@ use crate::gsasl::gsasl::Gsasl_session;
 use crate::gsasl::property::gsasl_property_get;
 
 extern "C" {
-    #[no_mangle]
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> size_t;
-    #[no_mangle]
     fn malloc(_: size_t) -> *mut libc::c_void;
 }
 
@@ -60,15 +57,11 @@ extern "C" {
 /* Get memcpy, strdup, strlen. */
 /* Get malloc, free. */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_plain_client_step(mut sctx:
-                                                      *mut Gsasl_session,
-                                                  mut mech_data:
-                                                      *mut libc::c_void,
-                                                  mut input:
-                                                      *const libc::c_char,
-                                                  mut input_len: size_t,
-                                                  mut output:
-                                                      *mut *mut libc::c_char,
+pub unsafe extern "C" fn _gsasl_plain_client_step(mut sctx: *mut Gsasl_session,
+                                                  mut _mech_data: *mut libc::c_void,
+                                                  mut _input: *const libc::c_char,
+                                                  mut _input_len: size_t,
+                                                  mut output: *mut *mut libc::c_char,
                                                   mut output_len: *mut size_t)
  -> libc::c_int {
     let mut authzid: *const libc::c_char =

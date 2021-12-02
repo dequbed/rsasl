@@ -22,11 +22,9 @@ extern "C" {
  *
  */
     /* Get token types. */
-    #[no_mangle]
     fn digest_md5_getsubopt(optionp: *mut *mut libc::c_char,
                             tokens: *const *const libc::c_char,
                             valuep: *mut *mut libc::c_char) -> libc::c_int;
-    #[no_mangle]
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <stdlib.h>.
@@ -45,7 +43,6 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(_: *mut libc::c_void);
 }
 pub const DIGEST_MD5_QOP_AUTH_CONF: digest_md5_qop = 4;

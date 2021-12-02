@@ -1,6 +1,6 @@
 use ::libc;
 use libc::size_t;
-use crate::gsasl::gsasl::{Gsasl, Gsasl_mechanism, Gsasl_mechanism_functions, Gsasl_session};
+use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions, Gsasl_session};
 use crate::gsasl::saml20::client::{_gsasl_saml20_client_finish, _gsasl_saml20_client_start, _gsasl_saml20_client_step};
 use crate::gsasl::saml20::server::{_gsasl_saml20_server_finish, _gsasl_saml20_server_start, _gsasl_saml20_server_step};
 
@@ -63,7 +63,7 @@ use crate::gsasl::saml20::server::{_gsasl_saml20_server_finish, _gsasl_saml20_se
 /* Get specification. */
 #[no_mangle]
 pub static mut gsasl_saml20_mechanism: Gsasl_mechanism =
-    unsafe {
+    {
         {
             let mut init =
                 Gsasl_mechanism{name:

@@ -4,15 +4,11 @@ use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_OK, Gsasl_property};
 use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
 
 extern "C" {
-    #[no_mangle]
     fn gsasl_callback(ctx: *mut Gsasl, sctx: *mut Gsasl_session,
                       prop: Gsasl_property) -> libc::c_int;
-    #[no_mangle]
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
-    #[no_mangle]
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
      -> *mut libc::c_void;
-    #[no_mangle]
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
@@ -48,7 +44,6 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
     fn rpl_free(ptr: *mut libc::c_void);
 }
 

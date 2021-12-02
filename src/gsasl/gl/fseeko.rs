@@ -1,11 +1,8 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
     fn fseeko(__stream: *mut FILE, __off: __off_t, __whence: libc::c_int)
      -> libc::c_int;
-    #[no_mangle]
     fn fileno(__stream: *mut FILE) -> libc::c_int;
-    #[no_mangle]
     fn lseek(__fd: libc::c_int, __offset: __off_t, __whence: libc::c_int)
      -> __off_t;
 }

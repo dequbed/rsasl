@@ -6,7 +6,6 @@ use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
 use crate::gsasl::property::{gsasl_property_set, gsasl_property_set_raw};
 
 extern "C" {
-    #[no_mangle]
     fn memchr(_: *const libc::c_void, _: libc::c_int, _: size_t)
      -> *mut libc::c_void;
 }
@@ -57,7 +56,7 @@ extern "C" {
 /* Get memchr. */
 #[no_mangle]
 pub unsafe extern "C" fn _gsasl_external_server_step(mut sctx: *mut Gsasl_session,
-                                                     mut mech_data: *mut libc::c_void,
+                                                     mut _mech_data: *mut libc::c_void,
                                                      mut input: *const libc::c_char,
                                                      mut input_len: size_t,
                                                      mut output: *mut *mut libc::c_char,

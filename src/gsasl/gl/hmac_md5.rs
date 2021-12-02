@@ -1,18 +1,18 @@
 use ::libc;
+use libc::size_t;
 extern "C" {
-    #[no_mangle]
     fn md5_init_ctx(ctx: *mut md5_ctx);
-    #[no_mangle]
+
     fn md5_process_block(buffer: *const libc::c_void, len: size_t,
                          ctx: *mut md5_ctx);
-    #[no_mangle]
+
     fn md5_process_bytes(buffer: *const libc::c_void, len: size_t,
                          ctx: *mut md5_ctx);
-    #[no_mangle]
+
     fn md5_finish_ctx(ctx: *mut md5_ctx, resbuf: *mut libc::c_void)
      -> *mut libc::c_void;
-    #[no_mangle]
-    fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong)
+
+    fn memset(_: *mut libc::c_void, _: libc::c_int, _: size_t)
      -> *mut libc::c_void;
     /* memxor.h -- perform binary exclusive OR operation on memory blocks.
    Copyright (C) 2005, 2009-2021 Free Software Foundation, Inc.
@@ -34,11 +34,11 @@ extern "C" {
     /* Compute binary exclusive OR of memory areas DEST and SRC, putting
    the result in DEST, of length N bytes.  Returns a pointer to
    DEST. */
-    #[no_mangle]
+
     fn memxor(dest: *mut libc::c_void, src: *const libc::c_void, n: size_t)
      -> *mut libc::c_void;
 }
-pub type size_t = libc::c_ulong;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct md5_ctx {
@@ -67,13 +67,11 @@ unsafe extern "C" fn hmac_hash(mut key: *const libc::c_void,
                 buflen: 0,
                 buffer: [0; 32],};
     let mut block: [libc::c_char; 64] = [0; 64];
-    memset(block.as_mut_ptr() as *mut libc::c_void, pad,
-           ::std::mem::size_of::<[libc::c_char; 64]>() as libc::c_ulong);
+    memset(block.as_mut_ptr() as *mut libc::c_void, pad, ::std::mem::size_of::<[libc::c_char; 64]>());
     memxor(block.as_mut_ptr() as *mut libc::c_void, key, keylen);
     md5_init_ctx(&mut hmac_ctx);
     md5_process_block(block.as_mut_ptr() as *const libc::c_void,
-                      ::std::mem::size_of::<[libc::c_char; 64]>() as
-                          libc::c_ulong, &mut hmac_ctx);
+                      ::std::mem::size_of::<[libc::c_char; 64]>(), &mut hmac_ctx);
     md5_process_bytes(in_0, inlen, &mut hmac_ctx);
     md5_finish_ctx(&mut hmac_ctx, resbuf);
 }
@@ -107,7 +105,7 @@ pub unsafe extern "C" fn hmac_md5(mut key: *const libc::c_void,
     let mut optkeybuf: [libc::c_char; 16] = [0; 16];
     let mut innerhash: [libc::c_char; 16] = [0; 16];
     /* Ensure key size is <= block size.  */
-    if keylen > 64 as libc::c_int as libc::c_ulong {
+    if keylen > 64 {
         let mut keyhash: md5_ctx =
             md5_ctx{A: 0,
                     B: 0,
@@ -123,14 +121,14 @@ pub unsafe extern "C" fn hmac_md5(mut key: *const libc::c_void,
         key = optkeybuf.as_mut_ptr() as *const libc::c_void;
         /* zero padding of the key to the block size
          is implicit in the memxor.  */
-        keylen = ::std::mem::size_of::<[libc::c_char; 16]>() as libc::c_ulong
+        keylen = ::std::mem::size_of::<[libc::c_char; 16]>()
     }
     /* Compute INNERHASH from KEY and IN.  */
     hmac_hash(key, keylen, in_0, inlen, 0x36 as libc::c_int,
               innerhash.as_mut_ptr() as *mut libc::c_void);
     /* Compute result from KEY and INNERHASH.  */
     hmac_hash(key, keylen, innerhash.as_mut_ptr() as *const libc::c_void,
-              ::std::mem::size_of::<[libc::c_char; 16]>() as libc::c_ulong,
+              ::std::mem::size_of::<[libc::c_char; 16]>(),
               0x5c as libc::c_int, resbuf);
     return 0 as libc::c_int;
 }

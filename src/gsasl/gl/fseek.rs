@@ -1,8 +1,6 @@
 use ::libc;
 extern "C" {
-    #[no_mangle]
-    fn rpl_fseeko(fp: *mut FILE, offset: off_t, whence: libc::c_int)
-     -> libc::c_int;
+    fn rpl_fseeko(fp: *mut FILE, offset: off_t, whence: libc::c_int) -> libc::c_int;
 }
 pub type size_t = libc::c_ulong;
 pub type __off_t = libc::c_long;

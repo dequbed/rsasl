@@ -9,10 +9,10 @@ use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
 use crate::gsasl::property::{gsasl_property_fast, gsasl_property_get, gsasl_property_set};
 
 extern "C" {
-    #[no_mangle]
+
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,
                 _: ...) -> libc::c_int;
-    #[no_mangle]
+
     fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
@@ -31,28 +31,28 @@ extern "C" {
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    #[no_mangle]
+
     fn rpl_free(ptr: *mut libc::c_void);
-    #[no_mangle]
+
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    #[no_mangle]
+
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    #[no_mangle]
+
     fn strlen(_: *const libc::c_char) -> size_t;
-    #[no_mangle]
+
     fn gc_md5(in_0: *const libc::c_void, inlen: size_t,
               resbuf: *mut libc::c_void) -> Gc_rc;
-    #[no_mangle]
+
     fn utf8tolatin1ifpossible(passwd: *const libc::c_char)
      -> *mut libc::c_char;
-    #[no_mangle]
+
     fn digest_md5_parse_challenge(challenge: *const libc::c_char, len: size_t,
                                   out: *mut digest_md5_challenge)
      -> libc::c_int;
-    #[no_mangle]
+
     fn digest_md5_parse_finish(finish: *const libc::c_char, len: size_t,
                                out: *mut digest_md5_finish) -> libc::c_int;
-    #[no_mangle]
+
     fn digest_md5_print_response(response: *mut digest_md5_response)
      -> *mut libc::c_char;
     /* free.h --- Free allocated data in DIGEST-MD5 token structures.
@@ -77,11 +77,11 @@ extern "C" {
  *
  */
     /* Get token types. */
-    #[no_mangle]
+
     fn digest_md5_free_challenge(c: *mut digest_md5_challenge);
-    #[no_mangle]
+
     fn digest_md5_free_response(r: *mut digest_md5_response);
-    #[no_mangle]
+
     fn digest_md5_free_finish(f: *mut digest_md5_finish);
     /* session.h --- Data integrity/privacy protection of DIGEST-MD5.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -105,13 +105,13 @@ extern "C" {
  *
  */
     /* Get token types. */
-    #[no_mangle]
+
     fn digest_md5_encode(input: *const libc::c_char, input_len: size_t,
                          output: *mut *mut libc::c_char,
                          output_len: *mut size_t, qop: digest_md5_qop,
                          sendseqnum: libc::c_ulong, key: *mut libc::c_char)
      -> libc::c_int;
-    #[no_mangle]
+
     fn digest_md5_decode(input: *const libc::c_char, input_len: size_t,
                          output: *mut *mut libc::c_char,
                          output_len: *mut size_t, qop: digest_md5_qop,
@@ -152,7 +152,7 @@ extern "C" {
    authentication.  CIPHER is the cipher to use.  KIC, KIS, KCC, KCS
    are either NULL, or points to 16 byte arrays that will hold the
    computed keys on output.  Returns 0 on success. */
-    #[no_mangle]
+
     fn digest_md5_hmac(output: *mut libc::c_char, secret: *mut libc::c_char,
                        nonce: *const libc::c_char, nc: libc::c_ulong,
                        cnonce: *const libc::c_char, qop: digest_md5_qop,
@@ -161,7 +161,7 @@ extern "C" {
                        cipher: digest_md5_cipher, kic: *mut libc::c_char,
                        kis: *mut libc::c_char, kcc: *mut libc::c_char,
                        kcs: *mut libc::c_char) -> libc::c_int;
-    #[no_mangle]
+
     fn digest_md5_qops2qopstr(qops: libc::c_int) -> *const libc::c_char;
 }
 
@@ -328,11 +328,10 @@ pub struct digest_md5_challenge {
  *
  */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_client_start(mut sctx:
-                                                            *mut Gsasl_session,
-                                                        mut mech_data:
-                                                            *mut *mut libc::c_void)
- -> libc::c_int {
+pub unsafe extern "C" fn _gsasl_digest_md5_client_start(mut _sctx: *mut Gsasl_session,
+                                                        mut mech_data: *mut *mut libc::c_void
+    ) -> libc::c_int
+{
     let mut state: *mut _Gsasl_digest_md5_client_state =
         0 as *mut _Gsasl_digest_md5_client_state;
     let mut nonce: [libc::c_char; 16] = [0; 16];
@@ -547,7 +546,7 @@ pub unsafe extern "C" fn _gsasl_digest_md5_client_step(mut sctx: *mut Gsasl_sess
     return res;
 }
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_client_finish(mut sctx: *mut Gsasl_session,
+pub unsafe extern "C" fn _gsasl_digest_md5_client_finish(mut _sctx: *mut Gsasl_session,
                                                          mut mech_data: *mut libc::c_void
 )
 {
@@ -560,7 +559,7 @@ pub unsafe extern "C" fn _gsasl_digest_md5_client_finish(mut sctx: *mut Gsasl_se
     rpl_free(state as *mut libc::c_void);
 }
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_client_encode(mut sctx: *mut Gsasl_session,
+pub unsafe extern "C" fn _gsasl_digest_md5_client_encode(mut _sctx: *mut Gsasl_session,
                                                          mut mech_data: *mut libc::c_void,
                                                          mut input: *const libc::c_char,
                                                          mut input_len: size_t,
@@ -586,7 +585,7 @@ pub unsafe extern "C" fn _gsasl_digest_md5_client_encode(mut sctx: *mut Gsasl_se
     return GSASL_OK as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_client_decode(mut sctx: *mut Gsasl_session,
+pub unsafe extern "C" fn _gsasl_digest_md5_client_decode(mut _sctx: *mut Gsasl_session,
                                                          mut mech_data: *mut libc::c_void,
                                                          mut input: *const libc::c_char,
                                                          mut input_len: size_t,
