@@ -5,11 +5,7 @@
 #![allow(non_upper_case_globals)]
 #![allow(unused_assignments)]
 #![allow(unused_mut)]
-//#![feature(ptr_wrapping_offset_from)]
 
-
-#[macro_use]
-extern crate c2rust_asm_casts;
 extern crate libc;
 
 pub mod consts;
