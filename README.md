@@ -1,6 +1,9 @@
 # SASL in Rust
 
-[![Latest Version]][crates.io] [![docs]][docs.rs] ![maintenance]
+[![Latest Version]][crates.io]
+[![docs]][docs.rs]
+![maintenance]
+![license]
 
 rsasl is an implementation of the Simple Authentication and Security Layer — SASL.
 
@@ -31,6 +34,10 @@ Version `2.0.0-preview` is a pure-Rust rewrite using sources transpiled using [c
 Keep in mind that despite being Rust this code is as least as unsafe as the original C code. Most of this unsafe 
 code will be removed before the first non-preview `2.0.0` release.
 
+# License
+
+Version 2 of this library is a transpilation of gsasl and thus under the very same [license of LGPL 2.1 or later](LICENSE).
+
 # Examples
 
 You can find a few examples on [GitHub](examples/).
@@ -40,3 +47,4 @@ You can find a few examples on [GitHub](examples/).
 [docs]: https://docs.rs/rsasl/badge.svg
 [docs.rs]: https://docs.rs/rsasl/
 [maintenance]: https://img.shields.io/badge/maintenance-actively%20developed-green.svg
+[license]: https://img.shields.io/github/license/dequbed/rsasl
