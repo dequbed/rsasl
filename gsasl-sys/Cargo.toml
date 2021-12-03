@@ -1,11 +1,11 @@
 [package]
 name = "gsasl-sys"
-version = "0.2.3"
-authors = ["Gregor Reitzenstein <me@dequbed.space>"]
+version = "0.2.4"
+authors = ["Nadja Reitzenstein <me@dequbed.space>"]
 edition = "2018"
 description = "Raw FFI wrapper for GNU sasl (gsasl)"
 license = "MIT"
-repository = "https://github.com/dequbed/rsasl"
+repository = "https://github.com/dequbed/rsasl/tree/1.X.X/gsasl-sys"
 readme = "README.md"
 links = "gsasl"
 categories = ["external-ffi-bindings", "authentication"]
