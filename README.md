@@ -24,12 +24,12 @@ Since it links to gsasl rsasl can provide a large number of mechanisms:
 - KERBEROS_V5
 
 
-# Alternatives
+# Versions
 
-Please see [sasl-rs](https://gitlab.com/xmpp-rs/sasl-rs) for a pure Rust SASL
-implementation. It provides less Mechanisms but does not need `unsafe` like
-rsasl does due to it's FFI-bindings and does not rely on an old (albeit
-well written) C library.
+Major version 1 of this crate uses gsasl-sys which are binding to GNU gsasl. This makes the use of unsafe code and FFI necessary. You can find the latest 1.X.Y version in the branch 1.X.X
+
+Version 2.0.0-preview is a pure-Rust rewrite using sources transpiled using c2rust. Keep in mind that despite being Rust this code is as least as unsafe as the original C code. Most of this unsafe code will be removed before the first non-preview 2.0.0 release.
+You can find these versions on the default `main` branch.
 
 # Examples
 

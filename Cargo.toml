@@ -1,11 +1,11 @@
 [package]
 name = "rsasl"
-version = "1.4.1"
-authors = ["Gregor Reitzenstein <me@dequbed.space>"]
+version = "1.4.2"
+authors = ["Najda Reitzenstein <me@dequbed.space>"]
 edition = "2018"
 description = "A SASL crate based on GNU gsasl"
 license = "MIT"
-repository = "https://github.com/dequbed/rsasl"
+repository = "https://github.com/dequbed/rsasl/tree/1.X.X/"
 readme = "README.md"
 categories = ["authentication"]
 keywords = ["SASL"]
