@@ -1,15 +1,16 @@
 use ::libc;
+use libc::size_t;
 extern "C" {
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,
                 _: ...) -> libc::c_int;
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
-    fn memchr(_: *const libc::c_void, _: libc::c_int, _: libc::c_ulong)
+    fn memchr(_: *const libc::c_void, _: libc::c_int, _: size_t)
      -> *mut libc::c_void;
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char,
-               _: libc::c_ulong) -> libc::c_int;
+               _: size_t) -> libc::c_int;
     fn strchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn strlen(_: *const libc::c_char) -> size_t;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <stdlib.h>.
 
@@ -28,7 +29,7 @@ extern "C" {
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
     fn rpl_free(_: *mut libc::c_void);
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
+    fn malloc(_: size_t) -> *mut libc::c_void;
     fn gc_sha1(in_0: *const libc::c_void, inlen: size_t,
                resbuf: *mut libc::c_void) -> Gc_rc;
     fn gc_sha256(in_0: *const libc::c_void, inlen: size_t,
@@ -51,7 +52,6 @@ extern "C" {
                       S: *const libc::c_char, Slen: size_t, c: libc::c_uint,
                       DK: *mut libc::c_char, dkLen: size_t) -> Gc_rc;
 }
-pub type size_t = libc::c_ulong;
 pub type C2RustUnnamed = libc::c_uint;
 pub const GSASL_GSSAPI_RELEASE_OID_SET_ERROR: C2RustUnnamed = 64;
 pub const GSASL_GSSAPI_TEST_OID_SET_MEMBER_ERROR: C2RustUnnamed = 63;
@@ -182,14 +182,13 @@ unsafe extern "C" fn unescape_authzid(mut str: *const libc::c_char,
     if !memchr(str as *const libc::c_void, ',' as i32, len).is_null() {
         return GSASL_MECHANISM_PARSE_ERROR as libc::c_int
     }
-    *authzid =
-        malloc(len.wrapping_add(1 as libc::c_int as libc::c_ulong)) as
-            *mut libc::c_char;
+    *authzid = malloc(len.wrapping_add(1)) as *mut libc::c_char;
+
     p = *authzid;
     if p.is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
-    while len > 0 as libc::c_int as libc::c_ulong && *str as libc::c_int != 0
+    while len > 0 && *str as libc::c_int != 0
           {
-        if len >= 3 as libc::c_int as libc::c_ulong &&
+        if len >= 3 &&
                *str.offset(0 as libc::c_int as isize) as libc::c_int ==
                    '=' as i32 &&
                *str.offset(1 as libc::c_int as isize) as libc::c_int ==
@@ -205,7 +204,7 @@ unsafe extern "C" fn unescape_authzid(mut str: *const libc::c_char,
                      libc::c_ulong).wrapping_sub(3 as libc::c_int as
                                                      libc::c_ulong) as size_t
                     as size_t
-        } else if len >= 3 as libc::c_int as libc::c_ulong &&
+        } else if len >= 3 &&
                       *str.offset(0 as libc::c_int as isize) as libc::c_int ==
                           '=' as i32 &&
                       *str.offset(1 as libc::c_int as isize) as libc::c_int ==
@@ -250,25 +249,21 @@ pub unsafe extern "C" fn _gsasl_parse_gs2_header(mut data:
                                                  mut headerlen: *mut size_t)
  -> libc::c_int {
     let mut authzid_endptr: *mut libc::c_char = 0 as *mut libc::c_char;
-    if len < 3 as libc::c_int as libc::c_ulong {
+    if len < 3 {
         return GSASL_MECHANISM_PARSE_ERROR as libc::c_int
     }
-    if strncmp(data, b"n,,\x00" as *const u8 as *const libc::c_char,
-               3 as libc::c_int as libc::c_ulong) == 0 as libc::c_int {
+    if strncmp(data, b"n,,\x00" as *const u8 as *const libc::c_char, 3) == 0 {
         *headerlen = 3 as libc::c_int as size_t;
         *authzid = 0 as *mut libc::c_char
-    } else if strncmp(data, b"n,a=\x00" as *const u8 as *const libc::c_char,
-                      4 as libc::c_int as libc::c_ulong) == 0 as libc::c_int
-                  &&
-                  {
-                      authzid_endptr =
-                          memchr(data.offset(4 as libc::c_int as isize) as
-                                     *const libc::c_void, ',' as i32,
-                                 len.wrapping_sub(4 as libc::c_int as
-                                                      libc::c_ulong)) as
-                              *mut libc::c_char;
-                      !authzid_endptr.is_null()
-                  } {
+    } else if strncmp(data, b"n,a=\x00" as *const u8 as *const libc::c_char, 4) == 0
+              && {
+                  authzid_endptr = memchr(
+                      data.offset(4) as *const libc::c_void,
+                      ',' as i32,
+                      len.wrapping_sub(4),
+                  ) as *mut libc::c_char;
+                  !authzid_endptr.is_null()
+              } {
         let mut res: libc::c_int = 0;
         if authzid_endptr.is_null() {
             return GSASL_MECHANISM_PARSE_ERROR as libc::c_int
@@ -288,26 +283,20 @@ pub unsafe extern "C" fn _gsasl_parse_gs2_header(mut data:
 unsafe extern "C" fn escape_authzid(mut str: *const libc::c_char)
  -> *mut libc::c_char {
     let mut out: *mut libc::c_char =
-        malloc(strlen(str).wrapping_mul(3 as libc::c_int as
-                                            libc::c_ulong).wrapping_add(1 as
-                                                                            libc::c_int
-                                                                            as
-                                                                            libc::c_ulong))
-            as *mut libc::c_char;
+        malloc(strlen(str).wrapping_mul(3).wrapping_add(1)) as *mut libc::c_char;
+
     let mut p: *mut libc::c_char = out;
     if out.is_null() { return 0 as *mut libc::c_char }
     while *str != 0 {
         if *str as libc::c_int == ',' as i32 {
             memcpy(p as *mut libc::c_void,
-                   b"=2C\x00" as *const u8 as *const libc::c_char as
-                       *const libc::c_void,
-                   3 as libc::c_int as libc::c_ulong);
+                   b"=2C\x00" as *const u8 as *const libc::c_char as *const libc::c_void,
+                   3);
             p = p.offset(3 as libc::c_int as isize)
         } else if *str as libc::c_int == '=' as i32 {
             memcpy(p as *mut libc::c_void,
-                   b"=3D\x00" as *const u8 as *const libc::c_char as
-                       *const libc::c_void,
-                   3 as libc::c_int as libc::c_ulong);
+                   b"=3D\x00" as *const u8 as *const libc::c_char as *const libc::c_void,
+                   3);
             p = p.offset(3 as libc::c_int as isize)
         } else { *p = *str; p = p.offset(1) }
         str = str.offset(1)
@@ -394,7 +383,7 @@ pub unsafe extern "C" fn _gsasl_hex_encode(mut in_0: *const libc::c_char,
     let mut i: size_t = 0;
     let mut p: *const libc::c_char = in_0;
     i = 0 as libc::c_int as size_t;
-    while i < (2 as libc::c_int as libc::c_ulong).wrapping_mul(inlen) {
+    while i < inlen.wrapping_mul(2) {
         let fresh3 = p;
         p = p.offset(1);
         let mut c: libc::c_uchar = *fresh3 as libc::c_uchar;
@@ -609,13 +598,13 @@ pub unsafe extern "C" fn _gsasl_pbkdf2(mut hash: Gsasl_hash,
     let mut gch: Gc_hash = GC_MD4;
     match hash as libc::c_uint {
         2 => {
-            if dklen == 0 as libc::c_int as libc::c_ulong {
+            if dklen == 0 {
                 dklen = GSASL_HASH_SHA1_SIZE as libc::c_int as size_t
             }
             gch = GC_SHA1
         }
         3 => {
-            if dklen == 0 as libc::c_int as libc::c_ulong {
+            if dklen == 0 {
                 dklen = GSASL_HASH_SHA256_SIZE as libc::c_int as size_t
             }
             gch = GC_SHA256

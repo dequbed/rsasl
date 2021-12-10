@@ -10,9 +10,11 @@ extern "C" {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_register(mut ctx: *mut Gsasl,
-                                        mut mech: *const Gsasl_mechanism)
- -> libc::c_int {
+pub unsafe extern "C" fn gsasl_register(
+        mut ctx: *mut Gsasl,
+        mut mech: *const Gsasl_mechanism
+    ) -> libc::c_int
+{
     let mut tmp: *mut Gsasl_mechanism = 0 as *mut Gsasl_mechanism;
     if (*mech).client.init.is_none() ||
            (*mech).client.init.expect("non-null function pointer")(ctx) ==

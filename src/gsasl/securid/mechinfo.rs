@@ -1,6 +1,5 @@
 use ::libc;
-use libc::size_t;
-use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions, Gsasl_session};
+use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
 use crate::gsasl::securid::client::{_gsasl_securid_client_finish, _gsasl_securid_client_start, _gsasl_securid_client_step};
 use crate::gsasl::securid::server::_gsasl_securid_server_step;
 
@@ -31,21 +30,9 @@ pub static mut gsasl_securid_mechanism: Gsasl_mechanism = Gsasl_mechanism {
     client: Gsasl_mechanism_functions {
         init: None,
         done: None,
-        start: Some(_gsasl_securid_client_start as
-            unsafe extern "C" fn(_: *mut Gsasl_session, _: *mut *mut libc::c_void)
-                -> libc::c_int
-        ),
-        step: Some(_gsasl_securid_client_step as
-            unsafe extern "C" fn(_: *mut Gsasl_session,
-                                 _: *mut libc::c_void,
-                                 _: *const libc::c_char,
-                                 _: size_t,
-                                 _: *mut *mut libc::c_char,
-                                 _: *mut size_t) -> libc::c_int
-        ),
-        finish: Some(_gsasl_securid_client_finish as
-            unsafe extern "C" fn(_: *mut Gsasl_session, _: *mut libc::c_void) -> ()
-        ),
+        start: Some(_gsasl_securid_client_start),
+        step: Some(_gsasl_securid_client_step),
+        finish: Some(_gsasl_securid_client_finish),
         encode: None,
         decode: None,
     },
@@ -53,14 +40,7 @@ pub static mut gsasl_securid_mechanism: Gsasl_mechanism = Gsasl_mechanism {
         init: None,
         done: None,
         start: None,
-        step: Some(_gsasl_securid_server_step as
-            unsafe extern "C" fn(_: *mut Gsasl_session,
-                                 _: *mut libc::c_void,
-                                 _: *const libc::c_char,
-                                 _: size_t,
-                                 _: *mut *mut libc::c_char,
-                                 _: *mut size_t) -> libc::c_int
-        ),
+        step: Some(_gsasl_securid_server_step),
         finish: None,
         encode: None,
         decode: None,

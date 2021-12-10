@@ -1,8 +1,10 @@
 use ::libc;
+use crate::gsasl::scram::client::{scram_client_final, scram_client_first};
+use crate::gsasl::scram::server::{scram_server_final, scram_server_first};
+
 extern "C" {
     fn strchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
 }
-pub type size_t = libc::c_ulong;
 /* tokens.h --- Types for SCRAM tokens.
  * Copyright (C) 2009-2021 Simon Josefsson
  *
@@ -24,35 +26,7 @@ pub type size_t = libc::c_ulong;
  * Boston, MA 02110-1301, USA.
  *
  */
-/* Get size_t. */
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct scram_client_first {
-    pub cbflag: libc::c_char,
-    pub cbname: *mut libc::c_char,
-    pub authzid: *mut libc::c_char,
-    pub username: *mut libc::c_char,
-    pub client_nonce: *mut libc::c_char,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct scram_server_first {
-    pub nonce: *mut libc::c_char,
-    pub salt: *mut libc::c_char,
-    pub iter: size_t,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct scram_client_final {
-    pub cbind: *mut libc::c_char,
-    pub nonce: *mut libc::c_char,
-    pub proof: *mut libc::c_char,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct scram_server_final {
-    pub verifier: *mut libc::c_char,
-}
+
 /* validate.c --- Validate consistency of SCRAM tokens.
  * Copyright (C) 2009-2021 Simon Josefsson
  *
@@ -77,9 +51,7 @@ pub struct scram_server_final {
 /* Get prototypes. */
 /* Get strcmp, strlen. */
 #[no_mangle]
-pub unsafe extern "C" fn scram_valid_client_first(mut cf:
-                                                      *mut scram_client_first)
- -> bool {
+pub unsafe extern "C" fn scram_valid_client_first(mut cf: *mut scram_client_first) -> bool {
     /* Check that cbflag is one of permitted values. */
     match (*cf).cbflag as libc::c_int {
         112 | 110 | 121 => { }
@@ -121,9 +93,7 @@ pub unsafe extern "C" fn scram_valid_client_first(mut cf:
     return 1 as libc::c_int != 0;
 }
 #[no_mangle]
-pub unsafe extern "C" fn scram_valid_server_first(mut sf:
-                                                      *mut scram_server_first)
- -> bool {
+pub unsafe extern "C" fn scram_valid_server_first(mut sf: *mut scram_server_first) -> bool {
     /* We require a non-zero nonce. */
     if (*sf).nonce.is_null() || *(*sf).nonce as libc::c_int == '\u{0}' as i32
        {
@@ -141,15 +111,13 @@ pub unsafe extern "C" fn scram_valid_server_first(mut sf:
     if !strchr((*sf).salt, ',' as i32).is_null() {
         return 0 as libc::c_int != 0
     }
-    if (*sf).iter == 0 as libc::c_int as libc::c_ulong {
+    if (*sf).iter == 0 {
         return 0 as libc::c_int != 0
     }
     return 1 as libc::c_int != 0;
 }
 #[no_mangle]
-pub unsafe extern "C" fn scram_valid_client_final(mut cl:
-                                                      *mut scram_client_final)
- -> bool {
+pub unsafe extern "C" fn scram_valid_client_final(mut cl: *mut scram_client_final) -> bool {
     /* We require a non-zero cbind. */
     if (*cl).cbind.is_null() || *(*cl).cbind as libc::c_int == '\u{0}' as i32
        {
@@ -203,9 +171,7 @@ pub unsafe extern "C" fn scram_valid_client_final(mut cl:
 /* Get token types. */
 /* Get bool. */
 #[no_mangle]
-pub unsafe extern "C" fn scram_valid_server_final(mut sl:
-                                                      *mut scram_server_final)
- -> bool {
+pub unsafe extern "C" fn scram_valid_server_final(mut sl: *mut scram_server_final) -> bool {
     /* We require a non-zero verifier. */
     if (*sl).verifier.is_null() ||
            *(*sl).verifier as libc::c_int == '\u{0}' as i32 {

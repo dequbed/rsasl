@@ -1,6 +1,6 @@
 use std::ffi::CString;
 use std::io;
-use rsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_NO_AUTHID,
+use rsasl::consts::{GSASL_AUTHID, GSASL_NO_AUTHID,
                            GSASL_NO_CALLBACK, GSASL_PASSWORD};
 use rsasl::{
     SASL,
@@ -8,8 +8,6 @@ use rsasl::{
     Callback,
     Property,
     Step::{Done, NeedsMore},
-    session::StepResult,
-    buffer::SaslBuffer
 };
 
 // Callback is an unit struct since no data can be accessed from it.
@@ -65,17 +63,5 @@ pub fn main() {
             }
             Err(e) => println!("{}", e),
         }
-    }
-}
-
-fn print_outcome(step_result: StepResult<SaslBuffer>) {
-    match step_result {
-        Ok(Done(buffer)) => {
-            println!("Authentication successful, bytes to return to client: {:?}", buffer.as_ref());
-        },
-        Ok(NeedsMore(_)) => assert!(false, "PLAIN exchange took more than one step"),
-        Err(e) if e.matches(GSASL_AUTHENTICATION_ERROR)
-            => println!("Authentication failed, bad username or password"),
-        Err(e) => println!("Authentication errored: {}", e),
     }
 }

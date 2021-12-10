@@ -50,8 +50,7 @@ extern "C" {
 pub struct saml20_client_state {
     pub step: libc::c_int,
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_saml20_client_start(mut _sctx:
+pub unsafe fn _gsasl_saml20_client_start(mut _sctx:
                                                         *mut Gsasl_session,
                                                     mut mech_data:
                                                         *mut *mut libc::c_void)
@@ -63,8 +62,7 @@ pub unsafe extern "C" fn _gsasl_saml20_client_start(mut _sctx:
     *mech_data = state as *mut libc::c_void;
     return GSASL_OK as libc::c_int;
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_saml20_client_step(mut sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_saml20_client_step(mut sctx: *mut Gsasl_session,
                                                    mut mech_data: *mut libc::c_void,
                                                    mut input: *const libc::c_char,
                                                    mut input_len: size_t,
@@ -137,8 +135,7 @@ pub unsafe extern "C" fn _gsasl_saml20_client_step(mut sctx: *mut Gsasl_session,
  * Boston, MA 02110-1301, USA.
  *
  */
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_saml20_client_finish(mut _sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_saml20_client_finish(mut _sctx: *mut Gsasl_session,
                                                      mut mech_data: *mut libc::c_void)
 {
     let mut state: *mut saml20_client_state =

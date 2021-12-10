@@ -24,8 +24,8 @@ extern "C" {
 pub static mut GSASL_VALID_MECHANISM_CHARACTERS: *const libc::c_char =
     b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_\x00" as *const u8 as
         *const libc::c_char;
-unsafe extern "C" fn register_builtin_mechs(mut ctx: *mut Gsasl)
- -> libc::c_int {
+
+unsafe extern "C" fn register_builtin_mechs(mut ctx: *mut Gsasl) -> libc::c_int {
     let mut rc: libc::c_int = GSASL_OK as libc::c_int;
     rc = gsasl_register(ctx, &mut gsasl_anonymous_mechanism);
     if rc != GSASL_OK as libc::c_int { return rc }

@@ -1,21 +1,8 @@
 use ::libc;
-use libc::size_t;
-use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions, Gsasl_session};
+use crate::gsasl::anonymous::client::_gsasl_anonymous_client_step;
+use crate::gsasl::anonymous::server::_gsasl_anonymous_server_step;
+use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
 
-extern "C" {
-    fn _gsasl_anonymous_client_step(sctx: *mut Gsasl_session,
-                                    mech_data: *mut libc::c_void,
-                                    input: *const libc::c_char,
-                                    input_len: size_t,
-                                    output: *mut *mut libc::c_char,
-                                    output_len: *mut size_t) -> libc::c_int;
-    fn _gsasl_anonymous_server_step(sctx: *mut Gsasl_session,
-                                    mech_data: *mut libc::c_void,
-                                    input: *const libc::c_char,
-                                    input_len: size_t,
-                                    output: *mut *mut libc::c_char,
-                                    output_len: *mut size_t) -> libc::c_int;
-}
 /* mechinfo.c --- Definition of ANONYMOUS mechanism.
  * Copyright (C) 2002-2021 Simon Josefsson
  *
@@ -37,89 +24,25 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-/* Get specification. */
-#[no_mangle]
-pub static mut gsasl_anonymous_mechanism: Gsasl_mechanism =
-    {
-        {
-            let mut init =
-                Gsasl_mechanism {
-                    name:
-                    b"ANONYMOUS\x00" as *const u8 as
-                        *const libc::c_char,
-                    client:
-                    {
-                        let mut init =
-                            Gsasl_mechanism_functions {
-                                init:
-                                None,
-                                done:
-                                None,
-                                start:
-                                None,
-                                step:
-                                Some(_gsasl_anonymous_client_step
-                                    as
-                                    unsafe extern "C" fn(_:
-                                                         *mut Gsasl_session,
-                                                         _:
-                                                         *mut libc::c_void,
-                                                         _:
-                                                         *const libc::c_char,
-                                                         _:
-                                                         size_t,
-                                                         _:
-                                                         *mut *mut libc::c_char,
-                                                         _:
-                                                         *mut size_t)
-                                        ->
-                                        libc::c_int),
-                                finish:
-                                None,
-                                encode:
-                                None,
-                                decode:
-                                None,
-                            };
-                        init
-                    },
-                    server:
-                    {
-                        let mut init =
-                            Gsasl_mechanism_functions {
-                                init:
-                                None,
-                                done:
-                                None,
-                                start:
-                                None,
-                                step:
-                                Some(_gsasl_anonymous_server_step
-                                    as
-                                    unsafe extern "C" fn(_:
-                                                         *mut Gsasl_session,
-                                                         _:
-                                                         *mut libc::c_void,
-                                                         _:
-                                                         *const libc::c_char,
-                                                         _:
-                                                         size_t,
-                                                         _:
-                                                         *mut *mut libc::c_char,
-                                                         _:
-                                                         *mut size_t)
-                                        ->
-                                        libc::c_int),
-                                finish:
-                                None,
-                                encode:
-                                None,
-                                decode:
-                                None,
-                            };
-                        init
-                    },
-                };
-            init
-        }
-    };
+
+pub static mut gsasl_anonymous_mechanism: Gsasl_mechanism = Gsasl_mechanism {
+    name: b"ANONYMOUS\x00" as *const u8 as *const libc::c_char,
+    client: Gsasl_mechanism_functions {
+        init: None,
+        done: None,
+        start: None,
+        step: Some(_gsasl_anonymous_client_step),
+        finish: None,
+        encode: None,
+        decode: None,
+    },
+    server: Gsasl_mechanism_functions {
+        init: None,
+        done: None,
+        start: None,
+        step: Some(_gsasl_anonymous_server_step),
+        finish: None,
+        encode: None,
+        decode: None,
+    },
+};

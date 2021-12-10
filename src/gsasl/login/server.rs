@@ -62,8 +62,7 @@ pub struct _Gsasl_login_server_state {
     pub username: *mut libc::c_char,
     pub password: *mut libc::c_char,
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_login_server_start(mut _sctx:
+pub unsafe fn _gsasl_login_server_start(mut _sctx:
                                                        *mut Gsasl_session,
                                                    mut mech_data:
                                                        *mut *mut libc::c_void)
@@ -76,8 +75,7 @@ pub unsafe extern "C" fn _gsasl_login_server_start(mut _sctx:
     *mech_data = state as *mut libc::c_void;
     return GSASL_OK as libc::c_int;
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_login_server_step(mut sctx:
+pub unsafe fn _gsasl_login_server_step(mut sctx:
                                                       *mut Gsasl_session,
                                                   mut mech_data:
                                                       *mut libc::c_void,
@@ -178,8 +176,7 @@ pub unsafe extern "C" fn _gsasl_login_server_step(mut sctx:
  * Boston, MA 02110-1301, USA.
  *
  */
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_login_server_finish(mut _sctx:
+pub unsafe fn _gsasl_login_server_finish(mut _sctx:
                                                         *mut Gsasl_session,
                                                     mut mech_data:
                                                         *mut libc::c_void) {

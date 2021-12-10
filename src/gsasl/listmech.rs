@@ -2,16 +2,12 @@ use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::*;
 use crate::gsasl::gsasl::{Gsasl, Gsasl_mechanism, Gsasl_session};
+use crate::{gsasl_client_start, gsasl_server_start};
+use crate::gsasl::xfinish::gsasl_finish;
 
 extern "C" {
     fn strcat(_: *mut libc::c_char, _: *const libc::c_char)
      -> *mut libc::c_char;
-    /* Authentication functions: xstart.c, xstep.c, xfinish.c */
-    fn gsasl_finish(sctx: *mut Gsasl_session);
-    fn gsasl_server_start(ctx: *mut Gsasl, mech: *const libc::c_char,
-                          sctx: *mut *mut Gsasl_session) -> libc::c_int;
-    fn gsasl_client_start(ctx: *mut Gsasl, mech: *const libc::c_char,
-                          sctx: *mut *mut Gsasl_session) -> libc::c_int;
     fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
 }
 pub type C2RustUnnamed = libc::c_uint;
