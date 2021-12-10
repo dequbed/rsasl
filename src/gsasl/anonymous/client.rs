@@ -56,8 +56,7 @@ extern "C" {
 /* Get strdup, strlen. */
 pub unsafe fn _gsasl_anonymous_client_step(mut sctx: *mut Gsasl_session,
                                                       mut _mech_data: *mut libc::c_void,
-                                                      mut _input: *const libc::c_char,
-                                                      mut _input_len: size_t,
+                                                      mut _input: Option<&[u8]>,
                                                       mut output: *mut *mut libc::c_char,
                                                       mut output_len: *mut size_t)
  -> libc::c_int {

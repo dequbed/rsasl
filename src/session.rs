@@ -52,8 +52,7 @@ impl<D> Session<D> {
 
         let res = unsafe {
             gsasl_step(self.ptr,
-                input.as_ptr() as *const libc::c_char,
-                input.len() as size_t,
+                Some(input),
                 &mut output as *mut *mut libc::c_char,
                 &mut output_len as *mut size_t
             )

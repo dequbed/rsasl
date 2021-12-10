@@ -79,11 +79,19 @@ pub type Gsasl_finish_function = Option<unsafe fn(
     _: *mut Gsasl_session, _: *mut libc::c_void
 ) -> ()>;
 
+/*
+pub unsafe fn step(
+    mut sctx: *mut Gsasl_session,
+    mut _mech_data: *mut libc::c_void,
+    mut _input: *const libc::c_char,
+    mut _input_len: size_t,
+    mut output: *mut *mut libc::c_char,
+    mut output_len: *mut size_t);
+ */
 pub type Gsasl_step_function = Option<unsafe fn(
     _: *mut Gsasl_session,
     _: *mut libc::c_void,
-    _: *const libc::c_char,
-    _: size_t,
+    _: Option<&[u8]>,
     _: *mut *mut libc::c_char,
     _: *mut size_t
 ) -> libc::c_int>;

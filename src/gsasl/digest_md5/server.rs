@@ -417,14 +417,16 @@ pub unsafe fn _gsasl_digest_md5_server_step(mut sctx:
                                                            *mut Gsasl_session,
                                                        mut mech_data:
                                                            *mut libc::c_void,
-                                                       mut input:
-                                                           *const libc::c_char,
-                                                       mut input_len: size_t,
+                                                       mut input: Option<&[u8]>,
                                                        mut output:
                                                            *mut *mut libc::c_char,
                                                        mut output_len:
                                                            *mut size_t)
  -> libc::c_int {
+    let input_len = input.map(|i| i.len()).unwrap_or(0);
+    let input: *const libc::c_char = input.map(|i| i.as_ptr().cast()).unwrap_or(std::ptr::null());
+
+
     let mut state: *mut _Gsasl_digest_md5_server_state =
         mech_data as *mut _Gsasl_digest_md5_server_state;
     let mut rc: libc::c_int = 0;
