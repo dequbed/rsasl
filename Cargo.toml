@@ -13,13 +13,23 @@ documentation = "https://docs.rs/rsasl"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["step64"]
+step64 = ["base64"]
+scram-sha1 = ["sha-1"]
+scram-sha2 = ["sha2"]
+md5-algs = ["md-5"]
+
 [dependencies]
 libc = "0.2"
 
 # Discard is used to make the `SASL` and `Session` structs more ergonomic to use in callbacks
 discard = "1.0.4"
 
-base64 = "0.13"
+base64 = { version = "0.13", optional = true }
+sha-1 = { version = "0.10", optional = true }
+sha2 = { version = "0.10", optional = true }
+md-5 = { version = "0.10", optional = true }
 
 [package.metadata.docs.rs]
 no-default-features = true # Don'd build or depend on bindgen when on docs.rs

@@ -275,18 +275,16 @@ pub unsafe fn gsasl_done(mut ctx: *mut Gsasl) {
     if ctx.is_null() { return }
     i = 0 as libc::c_int as size_t;
     while i < (*ctx).n_client_mechs {
-        if (*(*ctx).client_mechs.offset(i as isize)).client.done.is_some() {
-            (*(*ctx).client_mechs.offset(i as
-                                             isize)).client.done.expect("non-null function pointer")(ctx);
+        if let Some(done) = (*(*ctx).client_mechs.offset(i as isize)).client.done {
+            done(ctx);
         }
         i = i.wrapping_add(1)
     }
     rpl_free((*ctx).client_mechs as *mut libc::c_void);
     i = 0 as libc::c_int as size_t;
     while i < (*ctx).n_server_mechs {
-        if (*(*ctx).server_mechs.offset(i as isize)).server.done.is_some() {
-            (*(*ctx).server_mechs.offset(i as
-                                             isize)).server.done.expect("non-null function pointer")(ctx);
+        if let Some(done) = (*(*ctx).server_mechs.offset(i as isize)).server.done {
+            done(ctx);
         }
         i = i.wrapping_add(1)
     }

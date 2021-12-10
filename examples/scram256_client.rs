@@ -69,7 +69,10 @@ pub fn main() {
                 data = CString::new(in_data.as_bytes()).unwrap();
 
             }
-            Err(e) => println!("{}", e),
+            Err(e) => {
+                println!("{}", e);
+                break;
+            },
         }
     }
 }
