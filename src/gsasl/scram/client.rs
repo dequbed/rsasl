@@ -5,7 +5,7 @@ use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZ
 use crate::gsasl::crypto::{gsasl_hash_length, gsasl_nonce, gsasl_scram_secrets_from_password, gsasl_scram_secrets_from_salted_password};
 use crate::gsasl::free::gsasl_free;
 use crate::gsasl::gsasl::Gsasl_session;
-use crate::gsasl::mechtools::{_gsasl_hex_decode, _gsasl_hex_p, _gsasl_hmac};
+use crate::gsasl::mechtools::{_gsasl_hex_decode, _gsasl_hex_p, _gsasl_hmac, Gsasl_hash, GSASL_HASH_SHA1, GSASL_HASH_SHA256};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep};
 use crate::gsasl::scram::parser::{scram_parse_server_final, scram_parse_server_first};
@@ -46,10 +46,6 @@ extern "C" {
    *
    * Since: 1.10
    */
-pub type Gsasl_hash = libc::c_uint;
-pub const GSASL_HASH_SHA256: Gsasl_hash = 3;
-/* Hash algorithm identifiers. */
-pub const GSASL_HASH_SHA1: Gsasl_hash = 2;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct scram_client_state {
