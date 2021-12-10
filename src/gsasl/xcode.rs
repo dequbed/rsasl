@@ -32,7 +32,7 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-unsafe extern "C" fn _gsasl_code(mut sctx: *mut Gsasl_session,
+unsafe fn _gsasl_code(mut sctx: *mut Gsasl_session,
                                  mut code: Gsasl_code_function,
                                  mut input: *const libc::c_char,
                                  mut input_len: size_t,
@@ -68,8 +68,7 @@ unsafe extern "C" fn _gsasl_code(mut sctx: *mut Gsasl_session,
  * Return value: Returns %GSASL_OK if encoding was successful,
  *   otherwise an error code.
  **/
-#[no_mangle]
-pub unsafe extern "C" fn gsasl_encode(mut sctx: *mut Gsasl_session,
+pub unsafe fn gsasl_encode(mut sctx: *mut Gsasl_session,
                                       mut input: *const libc::c_char,
                                       mut input_len: size_t,
                                       mut output: *mut *mut libc::c_char,
@@ -306,8 +305,7 @@ pub unsafe extern "C" fn gsasl_encode(mut sctx: *mut Gsasl_session,
  * Return value: Returns %GSASL_OK if encoding was successful,
  *   otherwise an error code.
  **/
-#[no_mangle]
-pub unsafe extern "C" fn gsasl_decode(mut sctx: *mut Gsasl_session,
+pub unsafe fn gsasl_decode(mut sctx: *mut Gsasl_session,
                                       mut input: *const libc::c_char,
                                       mut input_len: size_t,
                                       mut output: *mut *mut libc::c_char,
