@@ -379,22 +379,28 @@ pub unsafe fn gsasl_step64(mut sctx: *mut Gsasl_session,
                                       mut b64input: *const libc::c_char,
                                       mut b64output: *mut *mut libc::c_char)
  -> libc::c_int {
-    let mut input_len: size_t = 0 as libc::c_int as size_t;
+    let input = if !b64input.is_null() {
+        let inlen = strlen(b64input) as usize;
+        let input = std::slice::from_raw_parts(b64input.cast(), inlen);
+        let config = base64::Config::new(base64::CharacterSet::Standard, true);
+        let mut output = match base64::decode_config(input, config) {
+            Ok(output) => output,
+            Err(e) => {
+                println!("{:?}", e);
+                return GSASL_BASE64_ERROR as libc::c_int
+            },
+        };
+        output.push(b'\0');
+        Some(output)
+    } else {
+        None
+    };
+
     let mut output_len: size_t = 0 as libc::c_int as size_t;
-    let mut input: *mut libc::c_char = std::ptr::null_mut();
     let mut output: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut res: libc::c_int = 0;
-    if !b64input.is_null() {
-        res =
-            gsasl_base64_from(b64input, strlen(b64input) as usize, &mut input,
-                              &mut input_len);
-        if res != GSASL_OK as libc::c_int {
-            return GSASL_BASE64_ERROR as libc::c_int
-        }
-    }
-    let inslice = slice_from_raw_parts(input.cast(), input_len).as_ref();
-    res = gsasl_step(sctx, inslice, &mut output, &mut output_len);
-    rpl_free(input as *mut libc::c_void);
+
+    res = gsasl_step(sctx, input.as_ref().map(|v| &v[..]), &mut output, &mut output_len);
     if res == GSASL_OK as libc::c_int ||
            res == GSASL_NEEDS_MORE as libc::c_int {
         let mut tmpres: libc::c_int =

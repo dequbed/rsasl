@@ -1,4 +1,5 @@
 use libc::size_t;
+use crate::consts::RetunCode;
 use crate::gsasl::consts::Gsasl_property;
 
 #[derive(Copy, Clone)]
@@ -88,6 +89,13 @@ pub unsafe fn step(
     mut output: *mut *mut libc::c_char,
     mut output_len: *mut size_t);
  */
+
+pub enum Step {
+    Done(Option<Box<[u8]>>),
+    NeedsMore(Option<Box<[u8]>>),
+}
+pub type StepResult = Result<Step, RetunCode>;
+
 pub type Gsasl_step_function = Option<unsafe fn(
     _: *mut Gsasl_session,
     _: *mut libc::c_void,
