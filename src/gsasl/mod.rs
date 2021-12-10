@@ -50,29 +50,19 @@ pub mod external {
 // mod external
 pub mod gl {
     pub mod c_ctype;
-    pub mod cloexec;
-    pub mod fflush;
-    pub mod fpurge;
     pub mod free;
-    pub mod fseek;
-    pub mod fseeko;
     pub mod gc_gnulib;
     pub mod gc_pbkdf2;
     pub mod hmac_md5;
     pub mod hmac_sha1;
     pub mod hmac_sha256;
-    pub mod ialloc;
-    pub mod malloca;
     pub mod md5;
     pub mod md5_stream;
     pub mod memxor;
-    pub mod printf_parse;
     pub mod sha1;
     pub mod sha1_stream;
     pub mod sha256;
     pub mod sha256_stream;
-    pub mod stat_time;
-    pub mod xsize;
 }
 
 // mod gl
