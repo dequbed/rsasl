@@ -92,8 +92,7 @@ pub type Gsasl_step_function = Option<unsafe fn(
     _: *mut Gsasl_session,
     _: *mut libc::c_void,
     _: Option<&[u8]>,
-    _: *mut *mut libc::c_char,
-    _: *mut size_t
+    _: *mut *mut libc::c_char, _: *mut size_t
 ) -> libc::c_int>;
 
 pub type Gsasl_start_function = Option<unsafe fn(

@@ -1,4 +1,8 @@
 use ::libc;
+use libc::size_t;
+use crate::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_MALLOC_ERROR};
+use crate::GSASL_OK;
+
 extern "C" {
     fn fclose(__stream: *mut FILE) -> libc::c_int;
     fn fopen(_: *const libc::c_char, _: *const libc::c_char) -> *mut FILE;
@@ -37,16 +41,16 @@ extern "C" {
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
     fn rpl_free(ptr: *mut libc::c_void);
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn strlen(_: *const libc::c_char) -> size_t;
     fn strcpy(_: *mut libc::c_char, _: *const libc::c_char) -> *mut libc::c_char;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
+    fn malloc(_: size_t) -> *mut libc::c_void;
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char,
-               _: libc::c_ulong) -> libc::c_int;
+               _: size_t) -> libc::c_int;
     fn __getdelim(__lineptr: *mut *mut libc::c_char, __n: *mut size_t,
                   __delimiter: libc::c_int, __stream: *mut FILE) -> __ssize_t;
     fn feof(__stream: *mut FILE) -> libc::c_int;
 }
-pub type size_t = libc::c_ulong;
+
 pub type __off_t = libc::c_long;
 pub type __off64_t = libc::c_long;
 pub type __ssize_t = libc::c_long;
@@ -92,49 +96,7 @@ pub struct _IO_marker {
     pub _pos: libc::c_int,
 }
 pub type FILE = _IO_FILE;
-pub type C2RustUnnamed = libc::c_uint;
-pub const GSASL_GSSAPI_RELEASE_OID_SET_ERROR: C2RustUnnamed = 64;
-pub const GSASL_GSSAPI_TEST_OID_SET_MEMBER_ERROR: C2RustUnnamed = 63;
-pub const GSASL_GSSAPI_INQUIRE_MECH_FOR_SASLNAME_ERROR: C2RustUnnamed = 62;
-pub const GSASL_GSSAPI_DECAPSULATE_TOKEN_ERROR: C2RustUnnamed = 61;
-pub const GSASL_GSSAPI_ENCAPSULATE_TOKEN_ERROR: C2RustUnnamed = 60;
-pub const GSASL_SECURID_SERVER_NEED_NEW_PIN: C2RustUnnamed = 49;
-pub const GSASL_SECURID_SERVER_NEED_ADDITIONAL_PASSCODE: C2RustUnnamed = 48;
-pub const GSASL_GSSAPI_UNSUPPORTED_PROTECTION_ERROR: C2RustUnnamed = 45;
-pub const GSASL_GSSAPI_DISPLAY_NAME_ERROR: C2RustUnnamed = 44;
-pub const GSASL_GSSAPI_ACQUIRE_CRED_ERROR: C2RustUnnamed = 43;
-pub const GSASL_GSSAPI_WRAP_ERROR: C2RustUnnamed = 42;
-pub const GSASL_GSSAPI_UNWRAP_ERROR: C2RustUnnamed = 41;
-pub const GSASL_GSSAPI_ACCEPT_SEC_CONTEXT_ERROR: C2RustUnnamed = 40;
-pub const GSASL_GSSAPI_INIT_SEC_CONTEXT_ERROR: C2RustUnnamed = 39;
-pub const GSASL_GSSAPI_IMPORT_NAME_ERROR: C2RustUnnamed = 38;
-pub const GSASL_GSSAPI_RELEASE_BUFFER_ERROR: C2RustUnnamed = 37;
-pub const GSASL_NO_OPENID20_REDIRECT_URL: C2RustUnnamed = 68;
-pub const GSASL_NO_SAML20_REDIRECT_URL: C2RustUnnamed = 67;
-pub const GSASL_NO_SAML20_IDP_IDENTIFIER: C2RustUnnamed = 66;
-pub const GSASL_NO_CB_TLS_UNIQUE: C2RustUnnamed = 65;
-pub const GSASL_NO_HOSTNAME: C2RustUnnamed = 59;
-pub const GSASL_NO_SERVICE: C2RustUnnamed = 58;
-pub const GSASL_NO_PIN: C2RustUnnamed = 57;
-pub const GSASL_NO_PASSCODE: C2RustUnnamed = 56;
-pub const GSASL_NO_PASSWORD: C2RustUnnamed = 55;
-pub const GSASL_NO_AUTHZID: C2RustUnnamed = 54;
-pub const GSASL_NO_AUTHID: C2RustUnnamed = 53;
-pub const GSASL_NO_ANONYMOUS_TOKEN: C2RustUnnamed = 52;
-pub const GSASL_NO_CALLBACK: C2RustUnnamed = 51;
-pub const GSASL_NO_SERVER_CODE: C2RustUnnamed = 36;
-pub const GSASL_NO_CLIENT_CODE: C2RustUnnamed = 35;
-pub const GSASL_INTEGRITY_ERROR: C2RustUnnamed = 33;
-pub const GSASL_AUTHENTICATION_ERROR: C2RustUnnamed = 31;
-pub const GSASL_MECHANISM_PARSE_ERROR: C2RustUnnamed = 30;
-pub const GSASL_SASLPREP_ERROR: C2RustUnnamed = 29;
-pub const GSASL_CRYPTO_ERROR: C2RustUnnamed = 9;
-pub const GSASL_BASE64_ERROR: C2RustUnnamed = 8;
-pub const GSASL_MALLOC_ERROR: C2RustUnnamed = 7;
-pub const GSASL_MECHANISM_CALLED_TOO_MANY_TIMES: C2RustUnnamed = 3;
-pub const GSASL_UNKNOWN_MECHANISM: C2RustUnnamed = 2;
-pub const GSASL_NEEDS_MORE: C2RustUnnamed = 1;
-pub const GSASL_OK: C2RustUnnamed = 0;
+
 #[inline]
 unsafe fn getline(mut __lineptr: *mut *mut libc::c_char,
                              mut __n: *mut size_t, mut __stream: *mut FILE)
@@ -447,17 +409,17 @@ pub unsafe fn gsasl_simple_getpass(mut filename:
                 continue ;
             }
             if *line.offset(strlen(line).wrapping_sub(1 as libc::c_int as
-                                                          libc::c_ulong) as
+                                                          size_t) as
                                 isize) as libc::c_int == '\r' as i32 {
                 *line.offset(strlen(line).wrapping_sub(1 as libc::c_int as
-                                                           libc::c_ulong) as
+                                                           size_t) as
                                  isize) = '\u{0}' as i32 as libc::c_char
             }
             if *line.offset(strlen(line).wrapping_sub(1 as libc::c_int as
-                                                          libc::c_ulong) as
+                                                          size_t) as
                                 isize) as libc::c_int == '\n' as i32 {
                 *line.offset(strlen(line).wrapping_sub(1 as libc::c_int as
-                                                           libc::c_ulong) as
+                                                           size_t) as
                                  isize) = '\u{0}' as i32 as libc::c_char
             }
             if strncmp(line, username, userlen) == 0 as libc::c_int &&

@@ -19,5 +19,7 @@ libc = "0.2"
 # Discard is used to make the `SASL` and `Session` structs more ergonomic to use in callbacks
 discard = "1.0.4"
 
+base64 = "0.13"
+
 [package.metadata.docs.rs]
 no-default-features = true # Don'd build or depend on bindgen when on docs.rs

@@ -1,6 +1,7 @@
 use ::libc;
 use libc::size_t;
-use crate::gsasl::gl::gc_gnulib::{gc_hmac_sha1, gc_hmac_sha256};
+use crate::gsasl::gc::{GC_INVALID_HASH, GC_MALLOC_ERROR, GC_OK, GC_PKCS5_DERIVED_KEY_TOO_LONG, GC_PKCS5_INVALID_DERIVED_KEY_LENGTH, GC_PKCS5_INVALID_ITERATION_COUNT, Gc_rc};
+use crate::gsasl::gl::gc_gnulib::{Gc_hash, gc_hmac_sha1, gc_hmac_sha256};
 
 extern "C" {
     fn rpl_free(ptr: *mut libc::c_void);
@@ -30,29 +31,6 @@ extern "C" {
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-/* Get size_t. */
-pub type Gc_rc = libc::c_uint;
-pub const GC_PKCS5_DERIVED_KEY_TOO_LONG: Gc_rc = 8;
-pub const GC_PKCS5_INVALID_DERIVED_KEY_LENGTH: Gc_rc = 7;
-pub const GC_PKCS5_INVALID_ITERATION_COUNT: Gc_rc = 6;
-pub const GC_INVALID_HASH: Gc_rc = 5;
-pub const GC_INVALID_CIPHER: Gc_rc = 4;
-pub const GC_RANDOM_ERROR: Gc_rc = 3;
-pub const GC_INIT_ERROR: Gc_rc = 2;
-pub const GC_MALLOC_ERROR: Gc_rc = 1;
-pub const GC_OK: Gc_rc = 0;
-/* Hash types. */
-pub type Gc_hash = libc::c_uint;
-pub const GC_SM3: Gc_hash = 9;
-pub const GC_SHA224: Gc_hash = 8;
-pub const GC_SHA512: Gc_hash = 7;
-pub const GC_SHA384: Gc_hash = 6;
-pub const GC_SHA256: Gc_hash = 5;
-pub const GC_RMD160: Gc_hash = 4;
-pub const GC_MD2: Gc_hash = 3;
-pub const GC_SHA1: Gc_hash = 2;
-pub const GC_MD5: Gc_hash = 1;
-pub const GC_MD4: Gc_hash = 0;
 /* gc-pbkdf2.c --- Password-Based Key Derivation Function a'la PKCS#5
    Copyright (C) 2002-2006, 2009-2021 Free Software Foundation, Inc.
 

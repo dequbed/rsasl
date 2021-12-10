@@ -1,5 +1,11 @@
 use ::libc;
 use libc::size_t;
+use crate::consts::{GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR};
+use crate::{GSASL_MECHANISM_PARSE_ERROR, GSASL_OK};
+use crate::gsasl::gc::GC_OK;
+use crate::gsasl::gl::gc_gnulib::{Gc_hash, gc_hmac_sha1, gc_hmac_sha256, GC_MD4, gc_sha1, GC_SHA1, gc_sha256, GC_SHA256};
+use crate::gsasl::gl::gc_pbkdf2::gc_pbkdf2_hmac;
+
 extern "C" {
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,
                 _: ...) -> libc::c_int;
@@ -30,71 +36,7 @@ extern "C" {
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
     fn rpl_free(_: *mut libc::c_void);
     fn malloc(_: size_t) -> *mut libc::c_void;
-    fn gc_sha1(in_0: *const libc::c_void, inlen: size_t,
-               resbuf: *mut libc::c_void) -> Gc_rc;
-    fn gc_sha256(in_0: *const libc::c_void, inlen: size_t,
-                 resbuf: *mut libc::c_void) -> Gc_rc;
-    fn gc_hmac_sha1(key: *const libc::c_void, keylen: size_t,
-                    in_0: *const libc::c_void, inlen: size_t,
-                    resbuf: *mut libc::c_char) -> Gc_rc;
-    fn gc_hmac_sha256(key: *const libc::c_void, keylen: size_t,
-                      in_0: *const libc::c_void, inlen: size_t,
-                      resbuf: *mut libc::c_char) -> Gc_rc;
-    /* Derive cryptographic keys using PKCS#5 PBKDF2 (RFC 2898) from a
-   password P of length PLEN, with salt S of length SLEN, placing the
-   result in pre-allocated buffer DK of length DKLEN.  The PRF is hard
-   coded to be HMAC with HASH.  An iteration count is specified in C
-   (> 0), where a larger value means this function take more time
-   (typical iteration counts are 1000-20000).  This function
-   "stretches" the key to be exactly dkLen bytes long.  GC_OK is
-   returned on success, otherwise a Gc_rc error code is returned.  */
-    fn gc_pbkdf2_hmac(hash: Gc_hash, P: *const libc::c_char, Plen: size_t,
-                      S: *const libc::c_char, Slen: size_t, c: libc::c_uint,
-                      DK: *mut libc::c_char, dkLen: size_t) -> Gc_rc;
 }
-pub type C2RustUnnamed = libc::c_uint;
-pub const GSASL_GSSAPI_RELEASE_OID_SET_ERROR: C2RustUnnamed = 64;
-pub const GSASL_GSSAPI_TEST_OID_SET_MEMBER_ERROR: C2RustUnnamed = 63;
-pub const GSASL_GSSAPI_INQUIRE_MECH_FOR_SASLNAME_ERROR: C2RustUnnamed = 62;
-pub const GSASL_GSSAPI_DECAPSULATE_TOKEN_ERROR: C2RustUnnamed = 61;
-pub const GSASL_GSSAPI_ENCAPSULATE_TOKEN_ERROR: C2RustUnnamed = 60;
-pub const GSASL_SECURID_SERVER_NEED_NEW_PIN: C2RustUnnamed = 49;
-pub const GSASL_SECURID_SERVER_NEED_ADDITIONAL_PASSCODE: C2RustUnnamed = 48;
-pub const GSASL_GSSAPI_UNSUPPORTED_PROTECTION_ERROR: C2RustUnnamed = 45;
-pub const GSASL_GSSAPI_DISPLAY_NAME_ERROR: C2RustUnnamed = 44;
-pub const GSASL_GSSAPI_ACQUIRE_CRED_ERROR: C2RustUnnamed = 43;
-pub const GSASL_GSSAPI_WRAP_ERROR: C2RustUnnamed = 42;
-pub const GSASL_GSSAPI_UNWRAP_ERROR: C2RustUnnamed = 41;
-pub const GSASL_GSSAPI_ACCEPT_SEC_CONTEXT_ERROR: C2RustUnnamed = 40;
-pub const GSASL_GSSAPI_INIT_SEC_CONTEXT_ERROR: C2RustUnnamed = 39;
-pub const GSASL_GSSAPI_IMPORT_NAME_ERROR: C2RustUnnamed = 38;
-pub const GSASL_GSSAPI_RELEASE_BUFFER_ERROR: C2RustUnnamed = 37;
-pub const GSASL_NO_OPENID20_REDIRECT_URL: C2RustUnnamed = 68;
-pub const GSASL_NO_SAML20_REDIRECT_URL: C2RustUnnamed = 67;
-pub const GSASL_NO_SAML20_IDP_IDENTIFIER: C2RustUnnamed = 66;
-pub const GSASL_NO_CB_TLS_UNIQUE: C2RustUnnamed = 65;
-pub const GSASL_NO_HOSTNAME: C2RustUnnamed = 59;
-pub const GSASL_NO_SERVICE: C2RustUnnamed = 58;
-pub const GSASL_NO_PIN: C2RustUnnamed = 57;
-pub const GSASL_NO_PASSCODE: C2RustUnnamed = 56;
-pub const GSASL_NO_PASSWORD: C2RustUnnamed = 55;
-pub const GSASL_NO_AUTHZID: C2RustUnnamed = 54;
-pub const GSASL_NO_AUTHID: C2RustUnnamed = 53;
-pub const GSASL_NO_ANONYMOUS_TOKEN: C2RustUnnamed = 52;
-pub const GSASL_NO_CALLBACK: C2RustUnnamed = 51;
-pub const GSASL_NO_SERVER_CODE: C2RustUnnamed = 36;
-pub const GSASL_NO_CLIENT_CODE: C2RustUnnamed = 35;
-pub const GSASL_INTEGRITY_ERROR: C2RustUnnamed = 33;
-pub const GSASL_AUTHENTICATION_ERROR: C2RustUnnamed = 31;
-pub const GSASL_MECHANISM_PARSE_ERROR: C2RustUnnamed = 30;
-pub const GSASL_SASLPREP_ERROR: C2RustUnnamed = 29;
-pub const GSASL_CRYPTO_ERROR: C2RustUnnamed = 9;
-pub const GSASL_BASE64_ERROR: C2RustUnnamed = 8;
-pub const GSASL_MALLOC_ERROR: C2RustUnnamed = 7;
-pub const GSASL_MECHANISM_CALLED_TOO_MANY_TIMES: C2RustUnnamed = 3;
-pub const GSASL_UNKNOWN_MECHANISM: C2RustUnnamed = 2;
-pub const GSASL_NEEDS_MORE: C2RustUnnamed = 1;
-pub const GSASL_OK: C2RustUnnamed = 0;
 pub type Gsasl_hash = libc::c_uint;
 pub const GSASL_HASH_SHA256: Gsasl_hash = 3;
 pub const GSASL_HASH_SHA1: Gsasl_hash = 2;
@@ -102,46 +44,6 @@ pub type C2RustUnnamed_0 = libc::c_uint;
 pub const GSASL_HASH_MAX_SIZE: C2RustUnnamed_0 = 32;
 pub const GSASL_HASH_SHA256_SIZE: C2RustUnnamed_0 = 32;
 pub const GSASL_HASH_SHA1_SIZE: C2RustUnnamed_0 = 20;
-/* gc.h --- Header file for implementation agnostic crypto wrapper API.
- * Copyright (C) 2002-2005, 2007-2008, 2011-2021 Free Software Foundation, Inc.
- *
- * This file is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This file is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- */
-/* Get size_t. */
-pub type Gc_rc = libc::c_uint;
-pub const GC_PKCS5_DERIVED_KEY_TOO_LONG: Gc_rc = 8;
-pub const GC_PKCS5_INVALID_DERIVED_KEY_LENGTH: Gc_rc = 7;
-pub const GC_PKCS5_INVALID_ITERATION_COUNT: Gc_rc = 6;
-pub const GC_INVALID_HASH: Gc_rc = 5;
-pub const GC_INVALID_CIPHER: Gc_rc = 4;
-pub const GC_RANDOM_ERROR: Gc_rc = 3;
-pub const GC_INIT_ERROR: Gc_rc = 2;
-pub const GC_MALLOC_ERROR: Gc_rc = 1;
-pub const GC_OK: Gc_rc = 0;
-/* Hash types. */
-pub type Gc_hash = libc::c_uint;
-pub const GC_SM3: Gc_hash = 9;
-pub const GC_SHA224: Gc_hash = 8;
-pub const GC_SHA512: Gc_hash = 7;
-pub const GC_SHA384: Gc_hash = 6;
-pub const GC_SHA256: Gc_hash = 5;
-pub const GC_RMD160: Gc_hash = 4;
-pub const GC_MD2: Gc_hash = 3;
-pub const GC_SHA1: Gc_hash = 2;
-pub const GC_MD5: Gc_hash = 1;
-pub const GC_MD4: Gc_hash = 0;
 /* mechtools.c --- Helper functions available for use by any mechanism.
  * Copyright (C) 2010-2021 Simon Josefsson
  *

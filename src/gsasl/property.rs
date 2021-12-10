@@ -216,8 +216,11 @@ pub unsafe fn gsasl_property_fast(mut sctx: *mut Gsasl_session,
                                              mut prop: Gsasl_property)
  -> *const libc::c_char {
     let mut p: *mut *mut libc::c_char = map(sctx, prop);
-    if !p.is_null() { return *p }
-    return 0 as *const libc::c_char;
+    if !p.is_null() {
+        return *p
+    } else {
+        std::ptr::null()
+    }
 }
 /* gsasl.h --- Header file for GNU SASL Library.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -442,7 +445,6 @@ pub unsafe fn gsasl_property_fast(mut sctx: *mut Gsasl_session,
  *
  * Since: 0.2.0
  **/
-#[no_mangle]
 pub unsafe fn gsasl_property_get(mut sctx: *mut Gsasl_session,
                                             mut prop: Gsasl_property)
  -> *const libc::c_char {
