@@ -53,16 +53,16 @@ pub mod gl {
     pub mod free;
     pub mod gc_gnulib;
     pub mod gc_pbkdf2;
-    pub mod hmac_md5;
-    pub mod hmac_sha1;
-    pub mod hmac_sha256;
-    pub mod md5;
-    pub mod md5_stream;
+    //pub mod hmac_md5;
+    //pub mod hmac_sha1;
+    //pub mod hmac_sha256;
+    //pub mod md5;
+    //pub mod md5_stream;
     pub mod memxor;
-    pub mod sha1;
-    pub mod sha1_stream;
-    pub mod sha256;
-    pub mod sha256_stream;
+    //pub mod sha1;
+    //pub mod sha1_stream;
+    //pub mod sha256;
+    //pub mod sha256_stream;
 }
 
 // mod gl

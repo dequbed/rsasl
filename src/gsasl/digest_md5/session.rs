@@ -1,97 +1,27 @@
 use ::libc;
+use libc::size_t;
+use crate::gsasl::digest_md5::qop::{digest_md5_qop, DIGEST_MD5_QOP_AUTH_CONF, DIGEST_MD5_QOP_AUTH_INT};
 use crate::gsasl::gc::Gc_rc;
+use crate::gsasl::gl::gc_gnulib::gc_hmac_md5;
 
 extern "C" {
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <string.h>.
-
-   Copyright (C) 1995-1996, 2001-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-
     fn rpl_free(ptr: *mut libc::c_void);
 
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
+    fn malloc(_: size_t) -> *mut libc::c_void;
 
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
 
     fn memcmp(_: *const libc::c_void, _: *const libc::c_void,
-              _: libc::c_ulong) -> libc::c_int;
-
-    fn gc_hmac_md5(key: *const libc::c_void, keylen: size_t,
-                   in_0: *const libc::c_void, inlen: size_t,
-                   resbuf: *mut libc::c_char) -> Gc_rc;
+              _: size_t) -> libc::c_int;
 }
-pub type size_t = libc::c_ulong;
-/* tokens.h --- Types for DIGEST-MD5 tokens.
- * Copyright (C) 2004-2021 Simon Josefsson
- *
- * This file is part of GNU SASL Library.
- *
- * GNU SASL Library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * GNU SASL Library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with GNU SASL Library; if not, write to the Free
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
-/* Get size_t. */
-/* Length of MD5 output. */
-/* Quality of Protection types. */
-pub type digest_md5_qop = libc::c_uint;
-pub const DIGEST_MD5_QOP_AUTH_CONF: digest_md5_qop = 4;
-pub const DIGEST_MD5_QOP_AUTH_INT: digest_md5_qop = 2;
-pub const DIGEST_MD5_QOP_AUTH: digest_md5_qop = 1;
-/* session.h --- Data integrity/privacy protection of DIGEST-MD5.
- * Copyright (C) 2002-2021 Simon Josefsson
- *
- * This file is part of GNU SASL Library.
- *
- * GNU SASL Library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * GNU SASL Library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with GNU SASL Library; if not, write to the Free
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
-/* Get token types. */
-#[no_mangle]
+
 pub unsafe fn digest_md5_encode(mut input: *const libc::c_char,
                                            mut input_len: size_t,
                                            mut output: *mut *mut libc::c_char,
                                            mut output_len: *mut size_t,
                                            mut qop: digest_md5_qop,
-                                           mut sendseqnum: libc::c_ulong,
+                                           mut sendseqnum: size_t,
                                            mut key: *mut libc::c_char)
  -> libc::c_int {
     let mut res: libc::c_int = 0;
@@ -104,110 +34,72 @@ pub unsafe fn digest_md5_encode(mut input: *const libc::c_char,
             let mut seqnumin: *mut libc::c_char = 0 as *mut libc::c_char;
             let mut hash: [libc::c_char; 16] = [0; 16];
             let mut len: size_t = 0;
-            seqnumin =
-                malloc((4 as libc::c_int as
-                            libc::c_ulong).wrapping_add(input_len)) as
-                    *mut libc::c_char;
+            seqnumin = malloc(input_len.wrapping_add(4)) as *mut libc::c_char;
             if seqnumin.is_null() { return -(1 as libc::c_int) }
             *seqnumin.offset(0 as libc::c_int as isize) =
-                (sendseqnum >> 24 as libc::c_int &
-                     0xff as libc::c_int as libc::c_ulong) as libc::c_char;
+                (sendseqnum >> 24 & 0xff) as libc::c_char;
             *seqnumin.offset(1 as libc::c_int as isize) =
-                (sendseqnum >> 16 as libc::c_int &
-                     0xff as libc::c_int as libc::c_ulong) as libc::c_char;
+                (sendseqnum >> 16 & 0xff) as libc::c_char;
             *seqnumin.offset(2 as libc::c_int as isize) =
-                (sendseqnum >> 8 as libc::c_int &
-                     0xff as libc::c_int as libc::c_ulong) as libc::c_char;
+                (sendseqnum >> 8 & 0xff) as libc::c_char;
             *seqnumin.offset(3 as libc::c_int as isize) =
-                (sendseqnum & 0xff as libc::c_int as libc::c_ulong) as
-                    libc::c_char;
-            memcpy(seqnumin.offset(4 as libc::c_int as isize) as
-                       *mut libc::c_void, input as *const libc::c_void,
+                (sendseqnum & 0xff) as libc::c_char;
+            memcpy(seqnumin.offset(4) as *mut libc::c_void,
+                   input as *const libc::c_void,
                    input_len);
             res =
                 gc_hmac_md5(key as *const libc::c_void,
                             16 as libc::c_int as size_t,
                             seqnumin as *const libc::c_void,
-                            (4 as libc::c_int as
-                                 libc::c_ulong).wrapping_add(input_len),
+                            input_len.wrapping_add(4),
                             hash.as_mut_ptr()) as libc::c_int;
             rpl_free(seqnumin as *mut libc::c_void);
             if res != 0 { return -(1 as libc::c_int) }
-            *output_len =
-                (4 as libc::c_int as
-                     libc::c_ulong).wrapping_add(input_len).wrapping_add(10 as
-                                                                             libc::c_int
-                                                                             as
-                                                                             libc::c_ulong).wrapping_add(2
-                                                                                                             as
-                                                                                                             libc::c_int
-                                                                                                             as
-                                                                                                             libc::c_ulong).wrapping_add(4
-                                                                                                                                             as
-                                                                                                                                             libc::c_int
-                                                                                                                                             as
-                                                                                                                                             libc::c_ulong);
+            *output_len = input_len.wrapping_add(4)
+                                   .wrapping_add(10)
+                                   .wrapping_add(2)
+                                   .wrapping_add(4);
+
             *output = malloc(*output_len) as *mut libc::c_char;
             if (*output).is_null() { return -(1 as libc::c_int) }
             len = 4 as libc::c_int as size_t;
             memcpy((*output).offset(len as isize) as *mut libc::c_void,
                    input as *const libc::c_void, input_len);
-            len =
-                (len as libc::c_ulong).wrapping_add(input_len) as size_t as
-                    size_t;
+            len = len.wrapping_add(input_len);
             memcpy((*output).offset(len as isize) as *mut libc::c_void,
                    hash.as_mut_ptr() as *const libc::c_void,
-                   10 as libc::c_int as libc::c_ulong);
+                   10);
             len =
                 (len as
                      libc::c_ulong).wrapping_add(10 as libc::c_int as
                                                      libc::c_ulong) as size_t
                     as size_t;
             memcpy((*output).offset(len as isize) as *mut libc::c_void,
-                   b"\x00\x01\x00" as *const u8 as *const libc::c_char as
-                       *const libc::c_void,
-                   2 as libc::c_int as libc::c_ulong);
+                   b"\x00\x01\x00" as *const u8 as *const libc::c_char as *const libc::c_void,
+                   2);
             len =
                 (len as
                      libc::c_ulong).wrapping_add(2 as libc::c_int as
                                                      libc::c_ulong) as size_t
                     as size_t;
             *(*output).offset(len as isize).offset(0 as libc::c_int as isize)
-                =
-                (sendseqnum >> 24 as libc::c_int &
-                     0xff as libc::c_int as libc::c_ulong) as libc::c_char;
+                = (sendseqnum >> 24 & 0xff) as libc::c_char;
             *(*output).offset(len as isize).offset(1 as libc::c_int as isize)
                 =
-                (sendseqnum >> 16 as libc::c_int &
-                     0xff as libc::c_int as libc::c_ulong) as libc::c_char;
+                (sendseqnum >> 16 & 0xff) as libc::c_char;
             *(*output).offset(len as isize).offset(2 as libc::c_int as isize)
-                =
-                (sendseqnum >> 8 as libc::c_int &
-                     0xff as libc::c_int as libc::c_ulong) as libc::c_char;
+                = (sendseqnum >> 8 & 0xff) as libc::c_char;
             *(*output).offset(len as isize).offset(3 as libc::c_int as isize)
-                =
-                (sendseqnum & 0xff as libc::c_int as libc::c_ulong) as
-                    libc::c_char;
-            len =
-                (len as
-                     libc::c_ulong).wrapping_add(4 as libc::c_int as
-                                                     libc::c_ulong) as size_t
-                    as size_t;
-            *(*output).offset(0 as libc::c_int as isize) =
-                (len.wrapping_sub(4 as libc::c_int as libc::c_ulong) >>
-                     24 as libc::c_int & 0xff as libc::c_int as libc::c_ulong)
-                    as libc::c_char;
-            *(*output).offset(1 as libc::c_int as isize) =
-                (len.wrapping_sub(4 as libc::c_int as libc::c_ulong) >>
-                     16 as libc::c_int & 0xff as libc::c_int as libc::c_ulong)
-                    as libc::c_char;
-            *(*output).offset(2 as libc::c_int as isize) =
-                (len.wrapping_sub(4 as libc::c_int as libc::c_ulong) >>
-                     8 as libc::c_int & 0xff as libc::c_int as libc::c_ulong)
-                    as libc::c_char;
-            *(*output).offset(3 as libc::c_int as isize) =
-                (len.wrapping_sub(4 as libc::c_int as libc::c_ulong) &
-                     0xff as libc::c_int as libc::c_ulong) as libc::c_char
+                = (sendseqnum & 0xff) as libc::c_char;
+            len = len.wrapping_add(4);
+            *(*output).offset(0)
+                = (len.wrapping_sub(4) >> 24 & 0xff) as libc::c_char;
+            *(*output).offset(1 as libc::c_int as isize)
+                = (len.wrapping_sub(4) >> 16 & 0xff) as libc::c_char;
+            *(*output).offset(2 as libc::c_int as isize)
+                = (len.wrapping_sub(4) >> 8 & 0xff) as libc::c_char;
+            *(*output).offset(3 as libc::c_int as isize)
+                = (len.wrapping_sub(4) & 0xff) as libc::c_char
         } else {
             *output_len = input_len;
             *output = malloc(input_len) as *mut libc::c_char;
@@ -224,7 +116,7 @@ pub unsafe fn digest_md5_decode(mut input: *const libc::c_char,
                                            mut output: *mut *mut libc::c_char,
                                            mut output_len: *mut size_t,
                                            mut qop: digest_md5_qop,
-                                           mut readseqnum: libc::c_ulong,
+                                           mut readseqnum: size_t,
                                            mut key: *mut libc::c_char)
  -> libc::c_int {
     if qop as libc::c_uint &
@@ -235,10 +127,10 @@ pub unsafe fn digest_md5_decode(mut input: *const libc::c_char,
                DIGEST_MD5_QOP_AUTH_INT as libc::c_int as libc::c_uint != 0 {
             let mut seqnumin: *mut libc::c_char = 0 as *mut libc::c_char;
             let mut hash: [libc::c_char; 16] = [0; 16];
-            let mut len: libc::c_ulong = 0;
+            let mut len: size_t = 0;
             let mut tmpbuf: [libc::c_char; 4] = [0; 4];
             let mut res: libc::c_int = 0;
-            if input_len < 4 as libc::c_int as libc::c_ulong {
+            if input_len < 4 {
                 return -(2 as libc::c_int)
             }
             len =
@@ -250,33 +142,29 @@ pub unsafe fn digest_md5_decode(mut input: *const libc::c_char,
                           & 0xff as libc::c_int) << 16 as libc::c_int |
                      (*input.offset(0 as libc::c_int as isize) as libc::c_int
                           & 0xff as libc::c_int) << 24 as libc::c_int) as
-                    libc::c_ulong;
+                    size_t;
             if input_len <
-                   (4 as libc::c_int as libc::c_ulong).wrapping_add(len) {
+                   (4 as libc::c_int as size_t).wrapping_add(len) {
                 return -(2 as libc::c_int)
             }
             len =
                 len.wrapping_sub((10 as libc::c_int + 2 as libc::c_int +
-                                      4 as libc::c_int) as libc::c_ulong);
+                                      4 as libc::c_int) as size_t);
             seqnumin =
-                malloc((4 as libc::c_int as libc::c_ulong).wrapping_add(len))
+                malloc((4 as libc::c_int as size_t).wrapping_add(len))
                     as *mut libc::c_char;
             if seqnumin.is_null() { return -(1 as libc::c_int) }
             tmpbuf[0 as libc::c_int as usize] =
-                (readseqnum >> 24 as libc::c_int &
-                     0xff as libc::c_int as libc::c_ulong) as libc::c_char;
+                (readseqnum >> 24 & 0xff) as libc::c_char;
             tmpbuf[1 as libc::c_int as usize] =
-                (readseqnum >> 16 as libc::c_int &
-                     0xff as libc::c_int as libc::c_ulong) as libc::c_char;
+                (readseqnum >> 16 & 0xff) as libc::c_char;
             tmpbuf[2 as libc::c_int as usize] =
-                (readseqnum >> 8 as libc::c_int &
-                     0xff as libc::c_int as libc::c_ulong) as libc::c_char;
+                (readseqnum >> 8 & 0xff) as libc::c_char;
             tmpbuf[3 as libc::c_int as usize] =
-                (readseqnum & 0xff as libc::c_int as libc::c_ulong) as
-                    libc::c_char;
+                (readseqnum & 0xff) as libc::c_char;
             memcpy(seqnumin as *mut libc::c_void,
                    tmpbuf.as_mut_ptr() as *const libc::c_void,
-                   4 as libc::c_int as libc::c_ulong);
+                   4 as libc::c_int as size_t);
             memcpy(seqnumin.offset(4 as libc::c_int as isize) as
                        *mut libc::c_void,
                    input.offset(4 as libc::c_int as isize) as
@@ -285,8 +173,7 @@ pub unsafe fn digest_md5_decode(mut input: *const libc::c_char,
                 gc_hmac_md5(key as *const libc::c_void,
                             16 as libc::c_int as size_t,
                             seqnumin as *const libc::c_void,
-                            (4 as libc::c_int as
-                                 libc::c_ulong).wrapping_add(len),
+                            len.wrapping_add(4),
                             hash.as_mut_ptr()) as libc::c_int;
             rpl_free(seqnumin as *mut libc::c_void);
             if res != 0 { return -(1 as libc::c_int) }
@@ -303,7 +190,7 @@ pub unsafe fn digest_md5_decode(mut input: *const libc::c_char,
                                                                                                      as
                                                                                                      isize))
                           as *const libc::c_void,
-                      10 as libc::c_int as libc::c_ulong) == 0 as libc::c_int
+                      10) == 0 as libc::c_int
                    &&
                    memcmp(b"\x00\x01\x00" as *const u8 as *const libc::c_char
                               as *const libc::c_void,
@@ -315,14 +202,14 @@ pub unsafe fn digest_md5_decode(mut input: *const libc::c_char,
                                                                                     as
                                                                                     isize))
                               as *const libc::c_void,
-                          2 as libc::c_int as libc::c_ulong) ==
+                          2) ==
                        0 as libc::c_int &&
                    memcmp(tmpbuf.as_mut_ptr() as *const libc::c_void,
                           input.offset(input_len as
                                            isize).offset(-(4 as libc::c_int as
                                                                isize)) as
                               *const libc::c_void,
-                          4 as libc::c_int as libc::c_ulong) ==
+                          4) ==
                        0 as libc::c_int {
                 *output_len = len;
                 *output = malloc(*output_len) as *mut libc::c_char;

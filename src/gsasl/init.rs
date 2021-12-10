@@ -6,7 +6,6 @@ use crate::gsasl::digest_md5::mechinfo::gsasl_digest_md5_mechanism;
 use crate::gsasl::done::gsasl_done;
 use crate::gsasl::external::mechinfo::gsasl_external_mechanism;
 use crate::gsasl::gc::GC_OK;
-use crate::gsasl::gl::gc_gnulib::gc_init;
 use crate::gsasl::gsasl::{Gsasl};
 use crate::gsasl::login::mechinfo::gsasl_login_mechanism;
 use crate::gsasl::openid20::mechinfo::gsasl_openid20_mechanism;
@@ -84,9 +83,6 @@ unsafe fn register_builtin_mechs(mut ctx: *mut Gsasl) -> libc::c_int {
 #[no_mangle]
 pub unsafe fn gsasl_init(mut ctx: *mut *mut Gsasl) -> libc::c_int {
     let mut rc: libc::c_int = 0;
-    if gc_init() as libc::c_uint != GC_OK as libc::c_int as libc::c_uint {
-        return GSASL_CRYPTO_ERROR as libc::c_int
-    }
     *ctx =
         calloc(1 as libc::c_int as libc::c_ulong,
                ::std::mem::size_of::<Gsasl>() as libc::c_ulong) as *mut Gsasl;
