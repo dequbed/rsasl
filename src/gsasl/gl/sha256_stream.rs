@@ -1,19 +1,11 @@
 use ::libc;
+use crate::gsasl::gl::sha256::{sha224_finish_ctx, sha224_init_ctx, sha256_ctx, sha256_finish_ctx, sha256_init_ctx, sha256_process_block, sha256_process_bytes};
+
 extern "C" {
     fn fread(_: *mut libc::c_void, _: libc::c_ulong, _: libc::c_ulong,
              _: *mut FILE) -> libc::c_ulong;
     fn feof(__stream: *mut FILE) -> libc::c_int;
     fn ferror(__stream: *mut FILE) -> libc::c_int;
-    fn sha256_init_ctx(ctx: *mut sha256_ctx);
-    fn sha224_init_ctx(ctx: *mut sha256_ctx);
-    fn sha256_process_block(buffer: *const libc::c_void, len: size_t,
-                            ctx: *mut sha256_ctx);
-    fn sha256_process_bytes(buffer: *const libc::c_void, len: size_t,
-                            ctx: *mut sha256_ctx);
-    fn sha256_finish_ctx(ctx: *mut sha256_ctx, resbuf: *mut libc::c_void)
-     -> *mut libc::c_void;
-    fn sha224_finish_ctx(ctx: *mut sha256_ctx, resbuf: *mut libc::c_void)
-     -> *mut libc::c_void;
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <stdlib.h>.
@@ -87,14 +79,7 @@ pub type C2RustUnnamed = libc::c_uint;
 pub const SHA224_DIGEST_SIZE: C2RustUnnamed = 28;
 pub type C2RustUnnamed_0 = libc::c_uint;
 pub const SHA256_DIGEST_SIZE: C2RustUnnamed_0 = 32;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct sha256_ctx {
-    pub state: [uint32_t; 8],
-    pub total: [uint32_t; 2],
-    pub buflen: size_t,
-    pub buffer: [uint32_t; 32],
-}
+
 /* af_alg.h - Compute message digests from file streams and buffers.
    Copyright (C) 2018-2021 Free Software Foundation, Inc.
 
@@ -120,7 +105,7 @@ pub struct sha256_ctx {
    For a more complete set of facilities that use the Linux kernel crypto API,
    look at libkcapi.  */
 #[inline]
-unsafe extern "C" fn afalg_stream(mut _stream: *mut FILE,
+unsafe fn afalg_stream(mut _stream: *mut FILE,
                                   mut _alg: *const libc::c_char,
                                   mut _resblock: *mut libc::c_void,
                                   mut _hashlen: ssize_t) -> libc::c_int {
@@ -130,16 +115,16 @@ unsafe extern "C" fn afalg_stream(mut _stream: *mut FILE,
    Write the message digest into RESBLOCK, which contains HASHLEN bytes.
    The initial and finishing operations are INIT_CTX and FINISH_CTX.
    Return zero if and only if successful.  */
-unsafe extern "C" fn shaxxx_stream(mut stream: *mut FILE,
+unsafe fn shaxxx_stream(mut stream: *mut FILE,
                                    mut alg: *const libc::c_char,
                                    mut resblock: *mut libc::c_void,
                                    mut hashlen: ssize_t,
                                    mut init_ctx:
-                                       Option<unsafe extern "C" fn(_:
+                                       Option<unsafe fn(_:
                                                                        *mut sha256_ctx)
                                                   -> ()>,
                                    mut finish_ctx:
-                                       Option<unsafe extern "C" fn(_:
+                                       Option<unsafe fn(_:
                                                                        *mut sha256_ctx,
                                                                    _:
                                                                        *mut libc::c_void)
@@ -211,20 +196,15 @@ unsafe extern "C" fn shaxxx_stream(mut stream: *mut FILE,
     return 0 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn sha256_stream(mut stream: *mut FILE,
+pub unsafe fn sha256_stream(mut stream: *mut FILE,
                                        mut resblock: *mut libc::c_void)
  -> libc::c_int {
     return shaxxx_stream(stream,
                          b"sha256\x00" as *const u8 as *const libc::c_char,
                          resblock,
                          SHA256_DIGEST_SIZE as libc::c_int as ssize_t,
-                         Some(sha256_init_ctx as
-                                  unsafe extern "C" fn(_: *mut sha256_ctx)
-                                      -> ()),
-                         Some(sha256_finish_ctx as
-                                  unsafe extern "C" fn(_: *mut sha256_ctx,
-                                                       _: *mut libc::c_void)
-                                      -> *mut libc::c_void));
+                         Some(sha256_init_ctx),
+                         Some(sha256_finish_ctx));
 }
 /* Declarations of functions and data types used for SHA256 and SHA224 sum
    library functions.
@@ -272,20 +252,15 @@ pub unsafe extern "C" fn sha256_stream(mut stream: *mut FILE,
    The resulting message digest number will be written into the 32 (28) bytes
    beginning at RESBLOCK.  */
 #[no_mangle]
-pub unsafe extern "C" fn sha224_stream(mut stream: *mut FILE,
+pub unsafe fn sha224_stream(mut stream: *mut FILE,
                                        mut resblock: *mut libc::c_void)
  -> libc::c_int {
     return shaxxx_stream(stream,
                          b"sha224\x00" as *const u8 as *const libc::c_char,
                          resblock,
                          SHA224_DIGEST_SIZE as libc::c_int as ssize_t,
-                         Some(sha224_init_ctx as
-                                  unsafe extern "C" fn(_: *mut sha256_ctx)
-                                      -> ()),
-                         Some(sha224_finish_ctx as
-                                  unsafe extern "C" fn(_: *mut sha256_ctx,
-                                                       _: *mut libc::c_void)
-                                      -> *mut libc::c_void));
+                         Some(sha224_init_ctx),
+                         Some(sha224_finish_ctx));
 }
 /*
  * Hey Emacs!

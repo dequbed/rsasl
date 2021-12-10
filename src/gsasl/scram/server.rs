@@ -105,7 +105,7 @@ pub struct scram_server_first {
  *
  */
 /* Get size_t. */
-unsafe extern "C" fn scram_start(
+unsafe fn scram_start(
     mut _sctx: *mut Gsasl_session,
     mut mech_data: *mut *mut libc::c_void,
     mut plus: bool, mut hash: Gsasl_hash,

@@ -122,7 +122,7 @@ pub type digest_md5_qop = libc::c_uint;
  */
 /* Get prototypes. */
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_qopstr2qops(mut qopstr:
+pub unsafe fn digest_md5_qopstr2qops(mut qopstr:
                                                     *const libc::c_char)
  -> libc::c_int {
     let mut qops: libc::c_int = 0 as libc::c_int;
@@ -151,7 +151,7 @@ pub unsafe extern "C" fn digest_md5_qopstr2qops(mut qopstr:
     return qops;
 }
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_qops2qopstr(mut qops: libc::c_int)
+pub unsafe fn digest_md5_qops2qopstr(mut qops: libc::c_int)
  -> *const libc::c_char {
     let mut qopstr: [*const libc::c_char; 8] =
         [b"qop-auth\x00" as *const u8 as *const libc::c_char,

@@ -54,7 +54,7 @@ extern "C" {
 /* Get free. */
 /* Get memset. */
 #[no_mangle]
-pub unsafe extern "C" fn scram_free_client_first(mut cf: *mut scram_client_first) {
+pub unsafe fn scram_free_client_first(mut cf: *mut scram_client_first) {
     rpl_free((*cf).cbname as *mut libc::c_void);
     rpl_free((*cf).authzid as *mut libc::c_void);
     rpl_free((*cf).username as *mut libc::c_void);
@@ -62,20 +62,20 @@ pub unsafe extern "C" fn scram_free_client_first(mut cf: *mut scram_client_first
     memset(cf as *mut libc::c_void, 0 as libc::c_int, ::std::mem::size_of::<scram_client_first>());
 }
 #[no_mangle]
-pub unsafe extern "C" fn scram_free_server_first(mut sf: *mut scram_server_first) {
+pub unsafe fn scram_free_server_first(mut sf: *mut scram_server_first) {
     rpl_free((*sf).nonce as *mut libc::c_void);
     rpl_free((*sf).salt as *mut libc::c_void);
     memset(sf as *mut libc::c_void, 0 as libc::c_int, ::std::mem::size_of::<scram_server_first>());
 }
 #[no_mangle]
-pub unsafe extern "C" fn scram_free_client_final(mut cl: *mut scram_client_final) {
+pub unsafe fn scram_free_client_final(mut cl: *mut scram_client_final) {
     rpl_free((*cl).cbind as *mut libc::c_void);
     rpl_free((*cl).nonce as *mut libc::c_void);
     rpl_free((*cl).proof as *mut libc::c_void);
     memset(cl as *mut libc::c_void, 0 as libc::c_int, ::std::mem::size_of::<scram_client_final>());
 }
 #[no_mangle]
-pub unsafe extern "C" fn scram_free_server_final(mut sl: *mut scram_server_final) {
+pub unsafe fn scram_free_server_final(mut sl: *mut scram_server_final) {
     rpl_free((*sl).verifier as *mut libc::c_void);
     memset(sl as *mut libc::c_void, 0 as libc::c_int, ::std::mem::size_of::<scram_server_final>());
 }

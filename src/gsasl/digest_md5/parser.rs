@@ -311,7 +311,7 @@ static mut cipher_opts: [*const libc::c_char; 7] =
      b"rc4-56\x00" as *const u8 as *const libc::c_char,
      b"aes-cbc\x00" as *const u8 as *const libc::c_char,
      0 as *const libc::c_char];
-unsafe extern "C" fn parse_challenge(mut challenge: *mut libc::c_char,
+unsafe fn parse_challenge(mut challenge: *mut libc::c_char,
                                      mut out: *mut digest_md5_challenge)
  -> libc::c_int {
     let mut done_algorithm: libc::c_int = 0 as libc::c_int;
@@ -508,7 +508,7 @@ static mut digest_response_opts: [*const libc::c_char; 13] =
      b"cipher\x00" as *const u8 as *const libc::c_char,
      b"authzid\x00" as *const u8 as *const libc::c_char,
      0 as *const libc::c_char];
-unsafe extern "C" fn parse_response(mut response: *mut libc::c_char,
+unsafe fn parse_response(mut response: *mut libc::c_char,
                                     mut out: *mut digest_md5_response)
  -> libc::c_int {
     let mut value: *mut libc::c_char = 0 as *mut libc::c_char;
@@ -684,7 +684,7 @@ unsafe extern "C" fn parse_response(mut response: *mut libc::c_char,
 static mut digest_responseauth_opts: [*const libc::c_char; 2] =
     [b"rspauth\x00" as *const u8 as *const libc::c_char,
      0 as *const libc::c_char];
-unsafe extern "C" fn parse_finish(mut finish: *mut libc::c_char,
+unsafe fn parse_finish(mut finish: *mut libc::c_char,
                                   mut out: *mut digest_md5_finish)
  -> libc::c_int {
     let mut value: *mut libc::c_char = 0 as *mut libc::c_char;
@@ -717,7 +717,7 @@ unsafe extern "C" fn parse_finish(mut finish: *mut libc::c_char,
     return 0 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_parse_challenge(mut challenge:
+pub unsafe fn digest_md5_parse_challenge(mut challenge:
                                                         *const libc::c_char,
                                                     mut len: size_t,
                                                     mut out:
@@ -732,7 +732,7 @@ pub unsafe extern "C" fn digest_md5_parse_challenge(mut challenge:
     return rc;
 }
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_parse_response(mut response:
+pub unsafe fn digest_md5_parse_response(mut response:
                                                        *const libc::c_char,
                                                    mut len: size_t,
                                                    mut out:
@@ -747,7 +747,7 @@ pub unsafe extern "C" fn digest_md5_parse_response(mut response:
     return rc;
 }
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_parse_finish(mut finish:
+pub unsafe fn digest_md5_parse_finish(mut finish:
                                                      *const libc::c_char,
                                                  mut len: size_t,
                                                  mut out:

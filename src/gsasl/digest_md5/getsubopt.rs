@@ -42,7 +42,7 @@ extern "C" {
 
    This function is NOT identical to standard getsubopt! */
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_getsubopt(mut optionp:
+pub unsafe fn digest_md5_getsubopt(mut optionp:
                                                   *mut *mut libc::c_char,
                                               mut tokens:
                                                   *const *const libc::c_char,

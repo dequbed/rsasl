@@ -219,7 +219,7 @@ pub struct digest_md5_finish {
 /* Get free. */
 /* Get memset. */
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_free_challenge(mut c:
+pub unsafe fn digest_md5_free_challenge(mut c:
                                                        *mut digest_md5_challenge) {
     let mut i: size_t = 0;
     i = 0 as libc::c_int as size_t;
@@ -232,7 +232,7 @@ pub unsafe extern "C" fn digest_md5_free_challenge(mut c:
     memset(c as *mut libc::c_void, 0, ::std::mem::size_of::<digest_md5_challenge>());
 }
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_free_response(mut r:
+pub unsafe fn digest_md5_free_response(mut r:
                                                       *mut digest_md5_response) {
     rpl_free((*r).username as *mut libc::c_void);
     rpl_free((*r).realm as *mut libc::c_void);
@@ -243,6 +243,6 @@ pub unsafe extern "C" fn digest_md5_free_response(mut r:
     memset(r as *mut libc::c_void, 0, ::std::mem::size_of::<digest_md5_response>());
 }
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_free_finish(mut f: *mut digest_md5_finish) {
+pub unsafe fn digest_md5_free_finish(mut f: *mut digest_md5_finish) {
     memset(f as *mut libc::c_void, 0, ::std::mem::size_of::<digest_md5_finish>());
 }

@@ -14,7 +14,7 @@ pub const GSASL_ALLOW_UNASSIGNED: Gsasl_saslprep_flags = 1;
 
 /* HAVE_LIBIDN */
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_saslprep(mut in_0: *const libc::c_char,
+pub unsafe fn gsasl_saslprep(mut in_0: *const libc::c_char,
                                         mut _flags: Gsasl_saslprep_flags,
                                         mut out: *mut *mut libc::c_char,
                                         mut _stringpreprc: *mut libc::c_int)

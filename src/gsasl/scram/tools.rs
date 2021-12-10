@@ -8,7 +8,7 @@ use crate::gsasl::property::gsasl_property_set;
 /* Hex encode HASHBUF which is HASH digest output and set salted
    password property to the hex encoded value. */
 #[no_mangle]
-pub unsafe extern "C" fn set_saltedpassword(mut sctx: *mut Gsasl_session,
+pub unsafe fn set_saltedpassword(mut sctx: *mut Gsasl_session,
                                             mut hash: Gsasl_hash,
                                             mut hashbuf: *const libc::c_char)
  -> libc::c_int {

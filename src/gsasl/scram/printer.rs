@@ -38,7 +38,7 @@ extern "C" {
 /* Get asprintf. */
 /* Get strdup. */
 /* Get token validator. */
-unsafe extern "C" fn scram_escape(mut str: *const libc::c_char)
+unsafe fn scram_escape(mut str: *const libc::c_char)
  -> *mut libc::c_char {
     let mut out: *mut libc::c_char =
         malloc(strlen(str).wrapping_mul(3).wrapping_add(1)) as *mut libc::c_char;
@@ -93,7 +93,7 @@ unsafe extern "C" fn scram_escape(mut str: *const libc::c_char)
    OUT.  Returns 0 on success, -1 on invalid token, and -2 on memory
    allocation errors. */
 #[no_mangle]
-pub unsafe extern "C" fn scram_print_client_first(
+pub unsafe fn scram_print_client_first(
     mut cf: *mut scram_client_first,
     mut out: *mut *mut libc::c_char
 ) -> libc::c_int {
@@ -138,7 +138,7 @@ pub unsafe extern "C" fn scram_print_client_first(
    OUT.  Returns 0 on success, -1 on invalid token, and -2 on memory
    allocation errors. */
 #[no_mangle]
-pub unsafe extern "C" fn scram_print_server_first(
+pub unsafe fn scram_print_server_first(
     mut sf: *mut scram_server_first,
     mut out: *mut *mut libc::c_char
 ) -> libc::c_int {
@@ -159,7 +159,7 @@ pub unsafe extern "C" fn scram_print_server_first(
    OUT.  Returns 0 on success, -1 on invalid token, and -2 on memory
    allocation errors. */
 #[no_mangle]
-pub unsafe extern "C" fn scram_print_client_final(
+pub unsafe fn scram_print_client_final(
     mut cl: *mut scram_client_final,
     mut out: *mut *mut libc::c_char
 ) -> libc::c_int {
@@ -180,7 +180,7 @@ pub unsafe extern "C" fn scram_print_client_final(
    OUT.  Returns 0 on success, -1 on invalid token, and -2 on memory
    allocation errors. */
 #[no_mangle]
-pub unsafe extern "C" fn scram_print_server_final(
+pub unsafe fn scram_print_server_final(
     mut sl: *mut scram_server_final,
     mut out: *mut *mut libc::c_char,
 )

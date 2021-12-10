@@ -151,7 +151,7 @@ pub type idx_t = ptrdiff_t;
 /*_GL_ATTRIBUTE_DEALLOC_FREE*/
 #[no_mangle]
 #[inline]
-pub unsafe extern "C" fn ireallocarray(mut p: *mut libc::c_void, mut n: idx_t,
+pub unsafe fn ireallocarray(mut p: *mut libc::c_void, mut n: idx_t,
                                        mut s: idx_t) -> *mut libc::c_void {
     /* Work around GNU reallocarray glitch by treating a zero size as if
      it were 1, so that returning NULL is equivalent to failing.  */
@@ -168,7 +168,7 @@ pub unsafe extern "C" fn ireallocarray(mut p: *mut libc::c_void, mut n: idx_t,
 }
 #[no_mangle]
 #[inline]
-pub unsafe extern "C" fn icalloc(mut n: idx_t, mut s: idx_t)
+pub unsafe fn icalloc(mut n: idx_t, mut s: idx_t)
  -> *mut libc::c_void {
     if (18446744073709551615 as libc::c_ulong) < n as libc::c_ulong {
         if s != 0 as libc::c_int as libc::c_long { return _gl_alloc_nomem() }
@@ -182,7 +182,7 @@ pub unsafe extern "C" fn icalloc(mut n: idx_t, mut s: idx_t)
 }
 #[no_mangle]
 #[inline]
-pub unsafe extern "C" fn irealloc(mut p: *mut libc::c_void, mut s: idx_t)
+pub unsafe fn irealloc(mut p: *mut libc::c_void, mut s: idx_t)
  -> *mut libc::c_void {
     return if s as libc::c_ulong <= 18446744073709551615 as libc::c_ulong {
                realloc(p,
@@ -192,7 +192,7 @@ pub unsafe extern "C" fn irealloc(mut p: *mut libc::c_void, mut s: idx_t)
 }
 #[no_mangle]
 #[inline]
-pub unsafe extern "C" fn imalloc(mut s: idx_t) -> *mut libc::c_void {
+pub unsafe fn imalloc(mut s: idx_t) -> *mut libc::c_void {
     return if s as libc::c_ulong <= 18446744073709551615 as libc::c_ulong {
                malloc(s as libc::c_ulong)
            } else { _gl_alloc_nomem() };
@@ -200,7 +200,7 @@ pub unsafe extern "C" fn imalloc(mut s: idx_t) -> *mut libc::c_void {
 #[no_mangle]
 #[cold]
 #[inline]
-pub unsafe extern "C" fn _gl_alloc_nomem() -> *mut libc::c_void {
+pub unsafe fn _gl_alloc_nomem() -> *mut libc::c_void {
     *__errno_location() = 12 as libc::c_int;
     return 0 as *mut libc::c_void;
 }

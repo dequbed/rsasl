@@ -204,7 +204,7 @@ pub type __intmax_t = libc::c_long;
 /* Convert an arbitrary value >= 0 to type size_t.  */
 /* Sum of two sizes, with overflow check.  */
 #[inline]
-unsafe extern "C" fn xsum(mut size1: size_t, mut size2: size_t) -> size_t {
+unsafe fn xsum(mut size1: size_t, mut size2: size_t) -> size_t {
     let mut sum: size_t = size1.wrapping_add(size2);
     return if sum >= size1 {
                sum
@@ -250,7 +250,7 @@ unsafe extern "C" fn xsum(mut size1: size_t, mut size2: size_t) -> size_t {
 /* errno.  */
 /* Checked size_t computations.  */
 #[no_mangle]
-pub unsafe extern "C" fn printf_parse(mut format: *const libc::c_char,
+pub unsafe fn printf_parse(mut format: *const libc::c_char,
                                       mut d: *mut char_directives,
                                       mut a: *mut arguments) -> libc::c_int {
     let mut current_block: u64; /* pointer into format */

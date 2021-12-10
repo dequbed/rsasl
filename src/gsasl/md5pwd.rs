@@ -136,7 +136,7 @@ pub const GSASL_UNKNOWN_MECHANISM: C2RustUnnamed = 2;
 pub const GSASL_NEEDS_MORE: C2RustUnnamed = 1;
 pub const GSASL_OK: C2RustUnnamed = 0;
 #[inline]
-unsafe extern "C" fn getline(mut __lineptr: *mut *mut libc::c_char,
+unsafe fn getline(mut __lineptr: *mut *mut libc::c_char,
                              mut __n: *mut size_t, mut __stream: *mut FILE)
  -> __ssize_t {
     return __getdelim(__lineptr, __n, '\n' as i32, __stream);
@@ -425,7 +425,7 @@ unsafe extern "C" fn getline(mut __lineptr: *mut *mut libc::c_char,
  *   found, or other error code.
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_simple_getpass(mut filename:
+pub unsafe fn gsasl_simple_getpass(mut filename:
                                                   *const libc::c_char,
                                               mut username:
                                                   *const libc::c_char,

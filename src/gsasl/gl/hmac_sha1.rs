@@ -53,7 +53,7 @@ pub struct sha1_ctx {
 pub type uint32_t = __uint32_t;
 pub type __uint32_t = libc::c_uint;
 /* Concatenate two preprocessor tokens.  */
-unsafe extern "C" fn hmac_hash(mut key: *const libc::c_void,
+unsafe fn hmac_hash(mut key: *const libc::c_void,
                                mut keylen: size_t,
                                mut in_0: *const libc::c_void,
                                mut inlen: size_t, mut pad: libc::c_int,
@@ -83,7 +83,7 @@ unsafe extern "C" fn hmac_hash(mut key: *const libc::c_void,
    output to pre-allocated 20 byte minimum RESBUF buffer.  Return 0 on
    success.  */
 #[no_mangle]
-pub unsafe extern "C" fn hmac_sha1(mut key: *const libc::c_void,
+pub unsafe fn hmac_sha1(mut key: *const libc::c_void,
                                    mut keylen: size_t,
                                    mut in_0: *const libc::c_void,
                                    mut inlen: size_t,

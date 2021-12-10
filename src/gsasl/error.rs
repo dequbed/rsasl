@@ -719,7 +719,7 @@ static mut errors: [C2RustUnnamed_0; 69] =
  *   containing an explanation of the error code @err.
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_strerror(mut err: libc::c_int)
+pub unsafe fn gsasl_strerror(mut err: libc::c_int)
  -> *const libc::c_char {
     static mut unknown: *const libc::c_char =
         b"Libgsasl unknown error\x00" as *const u8 as *const libc::c_char;
@@ -969,7 +969,7 @@ pub unsafe extern "C" fn gsasl_strerror(mut err: libc::c_int)
  * Since: 0.2.29
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_strerror_name(mut err: libc::c_int)
+pub unsafe fn gsasl_strerror_name(mut err: libc::c_int)
  -> *const libc::c_char {
     if err < 0 as libc::c_int ||
            err >=

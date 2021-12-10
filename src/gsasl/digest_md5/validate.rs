@@ -159,7 +159,7 @@ pub struct digest_md5_finish {
 /* Get prototypes. */
 /* Get strcmp, strlen. */
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_validate_challenge(mut c:
+pub unsafe fn digest_md5_validate_challenge(mut c:
                                                            *mut digest_md5_challenge)
  -> libc::c_int {
     /* This directive is required and MUST appear exactly once; if
@@ -179,7 +179,7 @@ pub unsafe extern "C" fn digest_md5_validate_challenge(mut c:
     return 0 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_validate_response(mut r:
+pub unsafe fn digest_md5_validate_response(mut r:
                                                           *mut digest_md5_response)
  -> libc::c_int {
     /* This directive is required and MUST be present exactly
@@ -244,7 +244,7 @@ pub unsafe extern "C" fn digest_md5_validate_response(mut r:
  */
 /* Get token types. */
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_validate_finish(mut f:
+pub unsafe fn digest_md5_validate_finish(mut f:
                                                         *mut digest_md5_finish)
  -> libc::c_int {
     if (*f).rspauth.as_mut_ptr().is_null() { return -(1 as libc::c_int) }
@@ -255,7 +255,7 @@ pub unsafe extern "C" fn digest_md5_validate_finish(mut f:
     return 0 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_validate(mut c: *mut digest_md5_challenge,
+pub unsafe fn digest_md5_validate(mut c: *mut digest_md5_challenge,
                                              mut r: *mut digest_md5_response)
  -> libc::c_int {
     if (*c).nonce.is_null() || (*r).nonce.is_null() {

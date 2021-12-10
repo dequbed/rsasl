@@ -29,7 +29,7 @@ static mut fillbuf: [libc::c_uchar; 64] =
   must be called before using hash in the call to sha256_hash
 */
 #[no_mangle]
-pub unsafe extern "C" fn sha256_init_ctx(mut ctx: *mut sha256_ctx) {
+pub unsafe fn sha256_init_ctx(mut ctx: *mut sha256_ctx) {
     (*ctx).state[0 as libc::c_int as usize] =
         0x6a09e667 as libc::c_ulong as uint32_t;
     (*ctx).state[1 as libc::c_int as usize] =
@@ -52,7 +52,7 @@ pub unsafe extern "C" fn sha256_init_ctx(mut ctx: *mut sha256_ctx) {
     (*ctx).buflen = 0 as libc::c_int as size_t;
 }
 #[no_mangle]
-pub unsafe extern "C" fn sha224_init_ctx(mut ctx: *mut sha256_ctx) {
+pub unsafe fn sha224_init_ctx(mut ctx: *mut sha256_ctx) {
     (*ctx).state[0 as libc::c_int as usize] =
         0xc1059ed8 as libc::c_ulong as uint32_t;
     (*ctx).state[1 as libc::c_int as usize] =
@@ -77,7 +77,7 @@ pub unsafe extern "C" fn sha224_init_ctx(mut ctx: *mut sha256_ctx) {
 /* Copy the value from v into the memory location pointed to by *CP,
    If your architecture allows unaligned access, this is equivalent to
    * (__typeof__ (v) *) cp = v  */
-unsafe extern "C" fn set_uint32(mut cp: *mut libc::c_char, mut v: uint32_t) {
+unsafe fn set_uint32(mut cp: *mut libc::c_char, mut v: uint32_t) {
     memcpy(cp as *mut libc::c_void,
            &mut v as *mut uint32_t as *const libc::c_void,
            ::std::mem::size_of::<uint32_t>() as libc::c_ulong);
@@ -85,7 +85,7 @@ unsafe extern "C" fn set_uint32(mut cp: *mut libc::c_char, mut v: uint32_t) {
 /* Put result from CTX in first 32 bytes following RESBUF.
    The result must be in little endian byte order.  */
 #[no_mangle]
-pub unsafe extern "C" fn sha256_read_ctx(mut ctx: *const sha256_ctx,
+pub unsafe fn sha256_read_ctx(mut ctx: *const sha256_ctx,
                                          mut resbuf: *mut libc::c_void)
  -> *mut libc::c_void {
     let mut i: libc::c_int = 0;
@@ -125,7 +125,7 @@ pub unsafe extern "C" fn sha256_read_ctx(mut ctx: *const sha256_ctx,
     return resbuf;
 }
 #[no_mangle]
-pub unsafe extern "C" fn sha224_read_ctx(mut ctx: *const sha256_ctx,
+pub unsafe fn sha224_read_ctx(mut ctx: *const sha256_ctx,
                                          mut resbuf: *mut libc::c_void)
  -> *mut libc::c_void {
     let mut i: libc::c_int = 0;
@@ -166,7 +166,7 @@ pub unsafe extern "C" fn sha224_read_ctx(mut ctx: *const sha256_ctx,
 }
 /* Process the remaining bytes in the internal buffer and the usual
    prolog according to the standard and write the result to RESBUF.  */
-unsafe extern "C" fn sha256_conclude_ctx(mut ctx: *mut sha256_ctx) {
+unsafe fn sha256_conclude_ctx(mut ctx: *mut sha256_ctx) {
     /* Take yet unprocessed bytes into account.  */
     let mut bytes: size_t = (*ctx).buflen;
     let mut size: size_t =
@@ -259,14 +259,14 @@ unsafe extern "C" fn sha256_conclude_ctx(mut ctx: *mut sha256_ctx) {
                          ctx);
 }
 #[no_mangle]
-pub unsafe extern "C" fn sha256_finish_ctx(mut ctx: *mut sha256_ctx,
+pub unsafe fn sha256_finish_ctx(mut ctx: *mut sha256_ctx,
                                            mut resbuf: *mut libc::c_void)
  -> *mut libc::c_void {
     sha256_conclude_ctx(ctx);
     return sha256_read_ctx(ctx, resbuf);
 }
 #[no_mangle]
-pub unsafe extern "C" fn sha224_finish_ctx(mut ctx: *mut sha256_ctx,
+pub unsafe fn sha224_finish_ctx(mut ctx: *mut sha256_ctx,
                                            mut resbuf: *mut libc::c_void)
  -> *mut libc::c_void {
     sha256_conclude_ctx(ctx);
@@ -277,7 +277,7 @@ pub unsafe extern "C" fn sha224_finish_ctx(mut ctx: *mut sha256_ctx,
    output yields to the wanted ASCII representation of the message
    digest.  */
 #[no_mangle]
-pub unsafe extern "C" fn sha256_buffer(mut buffer: *const libc::c_char,
+pub unsafe fn sha256_buffer(mut buffer: *const libc::c_char,
                                        mut len: size_t,
                                        mut resblock: *mut libc::c_void)
  -> *mut libc::c_void {
@@ -302,7 +302,7 @@ pub unsafe extern "C" fn sha256_buffer(mut buffer: *const libc::c_char,
    output yields to the wanted ASCII representation of the message
    digest.  */
 #[no_mangle]
-pub unsafe extern "C" fn sha224_buffer(mut buffer: *const libc::c_char,
+pub unsafe fn sha224_buffer(mut buffer: *const libc::c_char,
                                        mut len: size_t,
                                        mut resblock: *mut libc::c_void)
  -> *mut libc::c_void {
@@ -320,7 +320,7 @@ pub unsafe extern "C" fn sha224_buffer(mut buffer: *const libc::c_char,
    starting at BUFFER.
    It is NOT required that LEN is a multiple of 64.  */
 #[no_mangle]
-pub unsafe extern "C" fn sha256_process_bytes(mut buffer: *const libc::c_void,
+pub unsafe fn sha256_process_bytes(mut buffer: *const libc::c_void,
                                               mut len: size_t,
                                               mut ctx: *mut sha256_ctx) {
     /* When we already have some bits in our internal buffer concatenate
@@ -508,7 +508,7 @@ static mut sha256_round_constants: [uint32_t; 64] =
    It is assumed that LEN % 64 == 0.
    Most of this code comes from GnuPG's cipher/sha1.c.  */
 #[no_mangle]
-pub unsafe extern "C" fn sha256_process_block(mut buffer: *const libc::c_void,
+pub unsafe fn sha256_process_block(mut buffer: *const libc::c_void,
                                               mut len: size_t,
                                               mut ctx: *mut sha256_ctx) {
     let mut words: *const uint32_t = buffer as *const uint32_t;

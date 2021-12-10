@@ -212,7 +212,7 @@ pub struct digest_md5_finish {
 /* Get token validator. */
 /* Append a key/value pair to a comma'd string list.  Additionally enclose
    the value in quotes if requested. */
-unsafe extern "C" fn comma_append(mut dst: *mut *mut libc::c_char,
+unsafe fn comma_append(mut dst: *mut *mut libc::c_char,
                                   mut key: *const libc::c_char,
                                   mut value: *const libc::c_char,
                                   mut quotes: libc::c_int) -> libc::c_int {
@@ -282,7 +282,7 @@ unsafe extern "C" fn comma_append(mut dst: *mut *mut libc::c_char,
  */
 /* Get token types. */
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_print_challenge(mut c:
+pub unsafe fn digest_md5_print_challenge(mut c:
                                                         *mut digest_md5_challenge)
  -> *mut libc::c_char {
     let mut out: *mut libc::c_char = 0 as *mut libc::c_char;
@@ -467,7 +467,7 @@ pub unsafe extern "C" fn digest_md5_print_challenge(mut c:
     return out;
 }
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_print_response(mut r:
+pub unsafe fn digest_md5_print_response(mut r:
                                                        *mut digest_md5_response)
  -> *mut libc::c_char {
     let mut out: *mut libc::c_char = 0 as *mut libc::c_char;
@@ -628,7 +628,7 @@ pub unsafe extern "C" fn digest_md5_print_response(mut r:
     return out;
 }
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_print_finish(mut finish:
+pub unsafe fn digest_md5_print_finish(mut finish:
                                                      *mut digest_md5_finish)
  -> *mut libc::c_char {
     let mut out: *mut libc::c_char = 0 as *mut libc::c_char;

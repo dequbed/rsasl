@@ -86,7 +86,7 @@ pub const DIGEST_MD5_QOP_AUTH: digest_md5_qop = 1;
  */
 /* Get token types. */
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_encode(mut input: *const libc::c_char,
+pub unsafe fn digest_md5_encode(mut input: *const libc::c_char,
                                            mut input_len: size_t,
                                            mut output: *mut *mut libc::c_char,
                                            mut output_len: *mut size_t,
@@ -219,7 +219,7 @@ pub unsafe extern "C" fn digest_md5_encode(mut input: *const libc::c_char,
     return 0 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_decode(mut input: *const libc::c_char,
+pub unsafe fn digest_md5_decode(mut input: *const libc::c_char,
                                            mut input_len: size_t,
                                            mut output: *mut *mut libc::c_char,
                                            mut output_len: *mut size_t,

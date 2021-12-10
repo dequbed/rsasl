@@ -143,12 +143,12 @@ pub type ptrdiff_t = libc::c_long;
 pub type idx_t = ptrdiff_t;
 #[cold]
 #[inline]
-unsafe extern "C" fn _gl_alloc_nomem() -> *mut libc::c_void {
+unsafe fn _gl_alloc_nomem() -> *mut libc::c_void {
     *__errno_location() = 12 as libc::c_int;
     return 0 as *mut libc::c_void;
 }
 #[inline]
-unsafe extern "C" fn imalloc(mut s: idx_t) -> *mut libc::c_void {
+unsafe fn imalloc(mut s: idx_t) -> *mut libc::c_void {
     return if s as libc::c_ulong <= 18446744073709551615 as libc::c_ulong {
                malloc(s as libc::c_ulong)
            } else { _gl_alloc_nomem() };
@@ -196,7 +196,7 @@ unsafe extern "C" fn imalloc(mut s: idx_t) -> *mut libc::c_void {
 /* Get imalloc. */
 /* Get UCHAR_MAX. */
 /* Convert 'char' to 'unsigned char' without casting.  */
-unsafe extern "C" fn to_uchar(mut ch: libc::c_char) -> libc::c_uchar {
+unsafe fn to_uchar(mut ch: libc::c_char) -> libc::c_uchar {
     return ch as libc::c_uchar;
 }
 static mut b64c: &'static [libc::c_char; 64] = &[
@@ -217,7 +217,7 @@ static mut b64c: &'static [libc::c_char; 64] = &[
 /* Base64 encode IN array of size INLEN into OUT array. OUT needs
    to be of length >= BASE64_LENGTH(INLEN), and INLEN needs to be
    a multiple of 3.  */
-unsafe extern "C" fn base64_encode_fast(mut in_0: *const libc::c_char,
+unsafe fn base64_encode_fast(mut in_0: *const libc::c_char,
                                         mut inlen: idx_t,
                                         mut out: *mut libc::c_char) {
     while inlen != 0 {
@@ -277,7 +277,7 @@ unsafe extern "C" fn base64_encode_fast(mut in_0: *const libc::c_char,
    possible.  If OUTLEN is larger than BASE64_LENGTH(INLEN), also zero
    terminate the output buffer. */
 #[no_mangle]
-pub unsafe extern "C" fn base64_encode(mut in_0: *const libc::c_char,
+pub unsafe fn base64_encode(mut in_0: *const libc::c_char,
                                        mut inlen: idx_t,
                                        mut out: *mut libc::c_char,
                                        mut outlen: idx_t) {
@@ -359,7 +359,7 @@ pub unsafe extern "C" fn base64_encode(mut in_0: *const libc::c_char,
    indicates length of the requested memory block, i.e.,
    BASE64_LENGTH(inlen) + 1. */
 #[no_mangle]
-pub unsafe extern "C" fn base64_encode_alloc(mut in_0: *const libc::c_char,
+pub unsafe fn base64_encode_alloc(mut in_0: *const libc::c_char,
                                              mut inlen: idx_t,
                                              mut out: *mut *mut libc::c_char)
  -> idx_t {
@@ -8756,13 +8756,13 @@ static mut b64: [libc::c_schar; 256] = [0; 256];
    false otherwise.  Note that '=' is padding and not considered to be
    part of the alphabet.  */
 #[no_mangle]
-pub unsafe extern "C" fn isbase64(mut ch: libc::c_char) -> bool {
+pub unsafe fn isbase64(mut ch: libc::c_char) -> bool {
     return 1 as libc::c_int != 0 &&
                0 as libc::c_int <= b64[to_uchar(ch) as usize] as libc::c_int;
 }
 /* Initialize decode-context buffer, CTX.  */
 #[no_mangle]
-pub unsafe extern "C" fn base64_decode_ctx_init(mut ctx: *mut base64_decode_context) {
+pub unsafe fn base64_decode_ctx_init(mut ctx: *mut base64_decode_context) {
     (*ctx).i = 0 as libc::c_int;
 }
 /* If CTX->i is 0 or 4, there are four or more bytes in [*IN..IN_END), and
@@ -8772,7 +8772,7 @@ pub unsafe extern "C" fn base64_decode_ctx_init(mut ctx: *mut base64_decode_cont
    and return CTX->buf.  In either case, advance *IN to point to the byte
    after the last one processed, and set *N_NON_NEWLINE to the number of
    verified non-newline bytes accessible through the returned pointer.  */
-unsafe extern "C" fn get_4(mut ctx: *mut base64_decode_context,
+unsafe fn get_4(mut ctx: *mut base64_decode_context,
                            mut in_0: *mut *const libc::c_char,
                            mut in_end: *const libc::c_char,
                            mut n_non_newline: *mut idx_t)
@@ -8812,7 +8812,7 @@ unsafe extern "C" fn get_4(mut ctx: *mut base64_decode_context,
    as many bytes as possible are written to *OUT.  On return, advance
    *OUT to point to the byte after the last one written, and decrement
    *OUTLEN to reflect the number of bytes remaining in *OUT.  */
-unsafe extern "C" fn decode_4(mut in_0: *const libc::c_char, mut inlen: idx_t,
+unsafe fn decode_4(mut in_0: *const libc::c_char, mut inlen: idx_t,
                               mut outp: *mut *mut libc::c_char,
                               mut outleft: *mut idx_t) -> bool {
     let mut out: *mut libc::c_char = *outp;
@@ -8914,7 +8914,7 @@ unsafe extern "C" fn decode_4(mut in_0: *const libc::c_char, mut inlen: idx_t,
    If CTX is NULL then newlines are treated as garbage and the input
    buffer is processed as a unit.  */
 #[no_mangle]
-pub unsafe extern "C" fn base64_decode_ctx(mut ctx:
+pub unsafe fn base64_decode_ctx(mut ctx:
                                                *mut base64_decode_context,
                                            mut in_0: *const libc::c_char,
                                            mut inlen: idx_t,
@@ -8989,7 +8989,7 @@ pub unsafe extern "C" fn base64_decode_ctx(mut ctx:
    input was invalid, in which case *OUT is NULL and *OUTLEN is
    undefined. */
 #[no_mangle]
-pub unsafe extern "C" fn base64_decode_alloc_ctx(mut ctx: *mut base64_decode_context,
+pub unsafe fn base64_decode_alloc_ctx(mut ctx: *mut base64_decode_context,
                                                  mut in_0: *const libc::c_char,
                                                  mut inlen: idx_t,
                                                  mut out: *mut *mut libc::c_char,
@@ -9013,7 +9013,7 @@ pub unsafe extern "C" fn base64_decode_alloc_ctx(mut ctx: *mut base64_decode_con
     if !outlen.is_null() { *outlen = needlen }
     return 1 as libc::c_int != 0;
 }
-unsafe extern "C" fn run_static_initializers() {
+unsafe fn run_static_initializers() {
     b64 =
         [if 0 as libc::c_int == 'A' as i32 {
              0 as libc::c_int
@@ -42044,4 +42044,4 @@ unsafe extern "C" fn run_static_initializers() {
 #[cfg_attr(target_os = "linux", link_section = ".init_array")]
 #[cfg_attr(target_os = "windows", link_section = ".CRT$XIB")]
 #[cfg_attr(target_os = "macos", link_section = "__DATA,__mod_init_func")]
-static INIT_ARRAY: [unsafe extern "C" fn(); 1] = [run_static_initializers];
+static INIT_ARRAY: [unsafe fn(); 1] = [run_static_initializers];

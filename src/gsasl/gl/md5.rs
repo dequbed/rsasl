@@ -28,7 +28,7 @@ static mut fillbuf: [libc::c_uchar; 64] =
 /* Initialize structure containing state of computation.
    (RFC 1321, 3.3: Step 3)  */
 #[no_mangle]
-pub unsafe extern "C" fn md5_init_ctx(mut ctx: *mut md5_ctx) {
+pub unsafe fn md5_init_ctx(mut ctx: *mut md5_ctx) {
     (*ctx).A = 0x67452301 as libc::c_int as uint32_t;
     (*ctx).B = 0xefcdab89 as libc::c_uint;
     (*ctx).C = 0x98badcfe as libc::c_uint;
@@ -41,7 +41,7 @@ pub unsafe extern "C" fn md5_init_ctx(mut ctx: *mut md5_ctx) {
 /* Copy the 4 byte value from v into the memory location pointed to by *cp,
    If your architecture allows unaligned access this is equivalent to
    * (uint32_t *) cp = v  */
-unsafe extern "C" fn set_uint32(mut cp: *mut libc::c_char, mut v: uint32_t) {
+unsafe fn set_uint32(mut cp: *mut libc::c_char, mut v: uint32_t) {
     memcpy(cp as *mut libc::c_void,
            &mut v as *mut uint32_t as *const libc::c_void,
            ::std::mem::size_of::<uint32_t>() as libc::c_ulong);
@@ -49,7 +49,7 @@ unsafe extern "C" fn set_uint32(mut cp: *mut libc::c_char, mut v: uint32_t) {
 /* Put result from CTX in first 16 bytes following RESBUF.  The result
    must be in little endian byte order.  */
 #[no_mangle]
-pub unsafe extern "C" fn md5_read_ctx(mut ctx: *const md5_ctx,
+pub unsafe fn md5_read_ctx(mut ctx: *const md5_ctx,
                                       mut resbuf: *mut libc::c_void)
  -> *mut libc::c_void {
     let mut r: *mut libc::c_char = resbuf as *mut libc::c_char;
@@ -74,7 +74,7 @@ pub unsafe extern "C" fn md5_read_ctx(mut ctx: *const md5_ctx,
 /* Process the remaining bytes in the internal buffer and the usual
    prolog according to the standard and write the result to RESBUF.  */
 #[no_mangle]
-pub unsafe extern "C" fn md5_finish_ctx(mut ctx: *mut md5_ctx,
+pub unsafe fn md5_finish_ctx(mut ctx: *mut md5_ctx,
                                         mut resbuf: *mut libc::c_void)
  -> *mut libc::c_void {
     /* Take yet unprocessed bytes into account.  */
@@ -132,7 +132,7 @@ pub unsafe extern "C" fn md5_finish_ctx(mut ctx: *mut md5_ctx,
    output yields to the wanted ASCII representation of the message
    digest.  */
 #[no_mangle]
-pub unsafe extern "C" fn md5_buffer(mut buffer: *const libc::c_char,
+pub unsafe fn md5_buffer(mut buffer: *const libc::c_char,
                                     mut len: size_t,
                                     mut resblock: *mut libc::c_void)
  -> *mut libc::c_void {
@@ -156,7 +156,7 @@ pub unsafe extern "C" fn md5_buffer(mut buffer: *const libc::c_char,
    starting at BUFFER.
    It is NOT required that LEN is a multiple of 64.  */
 #[no_mangle]
-pub unsafe extern "C" fn md5_process_bytes(mut buffer: *const libc::c_void,
+pub unsafe fn md5_process_bytes(mut buffer: *const libc::c_void,
                                            mut len: size_t,
                                            mut ctx: *mut md5_ctx) {
     /* When we already have some bits in our internal buffer concatenate
@@ -300,7 +300,7 @@ pub unsafe extern "C" fn md5_process_bytes(mut buffer: *const libc::c_void,
 /* Process LEN bytes of BUFFER, accumulating context into CTX.
    It is assumed that LEN % 64 == 0.  */
 #[no_mangle]
-pub unsafe extern "C" fn md5_process_block(mut buffer: *const libc::c_void,
+pub unsafe fn md5_process_block(mut buffer: *const libc::c_void,
                                            mut len: size_t,
                                            mut ctx: *mut md5_ctx) {
     let mut correct_words: [uint32_t; 16] = [0; 16];
