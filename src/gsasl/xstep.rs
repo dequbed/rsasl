@@ -1,3 +1,4 @@
+use std::ptr::slice_from_raw_parts;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_BASE64_ERROR, GSASL_NEEDS_MORE, GSASL_OK};
@@ -135,8 +136,7 @@ extern "C" {
  **/
 #[no_mangle]
 pub unsafe fn gsasl_step(mut sctx: *mut Gsasl_session,
-                                    mut input: *const libc::c_char,
-                                    mut input_len: size_t,
+                                    mut input: Option<&[u8]>,
                                     mut output: *mut *mut libc::c_char,
                                     mut output_len: *mut size_t)
  -> libc::c_int {
@@ -145,7 +145,7 @@ pub unsafe fn gsasl_step(mut sctx: *mut Gsasl_session,
         step = (*(*sctx).mech).client.step
     } else { step = (*(*sctx).mech).server.step }
     return step.expect("non-null function pointer")(sctx, (*sctx).mech_data,
-                                                    input, input_len, output,
+                                                    input, output,
                                                     output_len);
 }
 /* gsasl.h --- Header file for GNU SASL Library.
@@ -381,7 +381,7 @@ pub unsafe fn gsasl_step64(mut sctx: *mut Gsasl_session,
  -> libc::c_int {
     let mut input_len: size_t = 0 as libc::c_int as size_t;
     let mut output_len: size_t = 0 as libc::c_int as size_t;
-    let mut input: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut input: *mut libc::c_char = std::ptr::null_mut();
     let mut output: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut res: libc::c_int = 0;
     if !b64input.is_null() {
@@ -392,7 +392,8 @@ pub unsafe fn gsasl_step64(mut sctx: *mut Gsasl_session,
             return GSASL_BASE64_ERROR as libc::c_int
         }
     }
-    res = gsasl_step(sctx, input, input_len, &mut output, &mut output_len);
+    let inslice = slice_from_raw_parts(input.cast(), input_len).as_ref();
+    res = gsasl_step(sctx, inslice, &mut output, &mut output_len);
     rpl_free(input as *mut libc::c_void);
     if res == GSASL_OK as libc::c_int ||
            res == GSASL_NEEDS_MORE as libc::c_int {

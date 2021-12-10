@@ -72,8 +72,7 @@ pub unsafe fn _gsasl_login_client_start(mut _sctx: *mut Gsasl_session,
 }
 pub unsafe fn _gsasl_login_client_step(mut sctx: *mut Gsasl_session,
                                                   mut mech_data: *mut libc::c_void,
-                                                  mut _input: *const libc::c_char,
-                                                  mut _input_len: size_t,
+                                                  mut _input: Option<&[u8]>,
                                                   mut output: *mut *mut libc::c_char,
                                                   mut output_len: *mut size_t
     ) -> libc::c_int

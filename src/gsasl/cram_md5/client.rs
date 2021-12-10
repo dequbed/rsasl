@@ -91,12 +91,14 @@ extern "C" {
 /* Get cram_md5_digest. */
 pub unsafe fn _gsasl_cram_md5_client_step(mut sctx: *mut Gsasl_session,
                                                      mut _mech_data: *mut libc::c_void,
-                                                     mut input: *const libc::c_char,
-                                                     mut input_len: size_t,
+                                                     mut input: Option<&[u8]>,
                                                      mut output: *mut *mut libc::c_char,
                                                      mut output_len: *mut size_t
     ) -> libc::c_int
 {
+    let input_len = input.map(|i| i.len()).unwrap_or(0);
+    let input: *const libc::c_char = input.map(|i| i.as_ptr().cast()).unwrap_or(std::ptr::null());
+
     let mut response: [libc::c_char; 32] = [0; 32];
     let mut p: *const libc::c_char = 0 as *const libc::c_char;
     let mut len: size_t = 0;

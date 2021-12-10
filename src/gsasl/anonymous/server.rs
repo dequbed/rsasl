@@ -50,8 +50,7 @@ use crate::gsasl::property::gsasl_property_set_raw;
 /* Get specification. */
 pub unsafe fn _gsasl_anonymous_server_step(mut sctx: *mut Gsasl_session,
                                                       mut _mech_data: *mut libc::c_void,
-                                                      mut input: *const libc::c_char,
-                                                      mut input_len: size_t,
+                                                      mut input: Option<&[u8]>,
                                                       mut output: *mut *mut libc::c_char,
                                                       mut output_len: *mut size_t
 ) -> libc::c_int
@@ -59,16 +58,17 @@ pub unsafe fn _gsasl_anonymous_server_step(mut sctx: *mut Gsasl_session,
     let mut rc: libc::c_int = 0;
     *output = 0 as *mut libc::c_char;
     *output_len = 0 as libc::c_int as size_t;
-    if input.is_null() { return GSASL_NEEDS_MORE as libc::c_int; }
+    if input.is_none() { return GSASL_NEEDS_MORE as libc::c_int; }
+    let input = input.unwrap();
     /* token       = 1*255TCHAR
      The <token> production is restricted to 255 UTF-8 encoded Unicode
      characters.   As the encoding of a characters uses a sequence of 1
      to 4 octets, a token may be long as 1020 octets. */
-    if input_len == 0 || input_len > 1020 {
+    if input.len() == 0 || input.len() > 1020 {
         return GSASL_MECHANISM_PARSE_ERROR as libc::c_int;
     }
     /* FIXME: Validate that input is UTF-8. */
-    rc = gsasl_property_set_raw(sctx, GSASL_ANONYMOUS_TOKEN, input, input_len);
+    rc = gsasl_property_set_raw(sctx, GSASL_ANONYMOUS_TOKEN, input.as_ptr().cast(), input.len());
     if rc != GSASL_OK as libc::c_int { return rc; }
     return gsasl_callback(0 as *mut Gsasl, sctx, GSASL_VALIDATE_ANONYMOUS);
 }

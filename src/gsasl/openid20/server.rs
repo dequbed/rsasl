@@ -69,13 +69,16 @@ pub unsafe fn _gsasl_openid20_server_step(mut sctx:
                                                      mut mech_data:
                                                          *mut libc::c_void,
                                                      mut input:
-                                                         *const libc::c_char,
-                                                     mut input_len: size_t,
+                                                         Option<&[u8]>,
                                                      mut output:
                                                          *mut *mut libc::c_char,
                                                      mut output_len:
                                                          *mut size_t)
  -> libc::c_int {
+    let mut input_len = input.map(|i| i.len()).unwrap_or(0);
+    let mut input: *const libc::c_char =
+        input.map(|i| i.as_ptr().cast()).unwrap_or(std::ptr::null());
+
     let mut state: *mut openid20_server_state =
         mech_data as *mut openid20_server_state;
     let mut res: libc::c_int =
@@ -100,9 +103,7 @@ pub unsafe fn _gsasl_openid20_server_step(mut sctx:
                 if res != GSASL_OK as libc::c_int { return res }
             }
             input = input.offset(headerlen as isize);
-            input_len =
-                (input_len as libc::c_ulong).wrapping_sub(headerlen as u64) as size_t
-                    as size_t;
+            input_len = input_len.wrapping_sub(headerlen);
             res =
                 gsasl_property_set_raw(sctx, GSASL_AUTHID, input, input_len);
             if res != GSASL_OK as libc::c_int { return res }

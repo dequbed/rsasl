@@ -83,12 +83,14 @@ pub unsafe fn _gsasl_openid20_client_start(mut _sctx: *mut Gsasl_session,
 }
 pub unsafe fn _gsasl_openid20_client_step(mut sctx: *mut Gsasl_session,
                                                      mut mech_data: *mut libc::c_void,
-                                                     mut input: *const libc::c_char,
-                                                     mut input_len: size_t,
+                                                     mut input: Option<&[u8]>,
                                                      mut output: *mut *mut libc::c_char,
                                                      mut output_len: *mut size_t
     ) -> libc::c_int
 {
+    let input_len = input.map(|i| i.len()).unwrap_or(0);
+    let input: *const libc::c_char = input.map(|i| i.as_ptr().cast()).unwrap_or(std::ptr::null());
+
     let mut state: *mut openid20_client_state = mech_data as *mut openid20_client_state;
     let mut res: libc::c_int = GSASL_MECHANISM_CALLED_TOO_MANY_TIMES as libc::c_int;
     match (*state).step {
