@@ -35,13 +35,14 @@ unsafe fn _gsasl_support_p(mut mechs: *mut Gsasl_mechanism,
     i = 0 as libc::c_int as size_t;
     while i < n_mechs {
         if !name.is_null() &&
-               strcmp(name, (*mechs.offset(i as isize)).name) ==
-                   0 as libc::c_int {
-            return 1 as libc::c_int
+               strcmp(name, (*mechs.offset(i as isize)).name.as_ptr() as *const libc::c_char)
+                   == 0
+        {
+            return 1;
         }
         i = i.wrapping_add(1)
     }
-    return 0 as libc::c_int;
+    return 0;
 }
 /* *
  * gsasl_client_support_p:

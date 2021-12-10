@@ -1,4 +1,3 @@
-use ::libc;
 use crate::gsasl::anonymous::client::_gsasl_anonymous_client_step;
 use crate::gsasl::anonymous::server::_gsasl_anonymous_server_step;
 use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
@@ -26,7 +25,7 @@ use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
  */
 
 pub static mut gsasl_anonymous_mechanism: Gsasl_mechanism = Gsasl_mechanism {
-    name: b"ANONYMOUS\x00" as *const u8 as *const libc::c_char,
+    name: "ANONYMOUS",
     client: Gsasl_mechanism_functions {
         init: None,
         done: None,

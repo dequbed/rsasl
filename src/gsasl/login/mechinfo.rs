@@ -1,4 +1,3 @@
-use ::libc;
 use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
 use crate::gsasl::login::client::{_gsasl_login_client_finish, _gsasl_login_client_start, _gsasl_login_client_step};
 use crate::gsasl::login::server::{_gsasl_login_server_finish, _gsasl_login_server_start, _gsasl_login_server_step};
@@ -61,7 +60,7 @@ use crate::gsasl::login::server::{_gsasl_login_server_finish, _gsasl_login_serve
  */
 /* Get specification. */
 pub static mut gsasl_login_mechanism: Gsasl_mechanism = Gsasl_mechanism {
-    name: b"LOGIN\x00" as *const u8 as *const libc::c_char,
+    name: "LOGIN",
     client: Gsasl_mechanism_functions {
         init: None,
         done: None,

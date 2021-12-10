@@ -51,7 +51,7 @@ pub struct Gsasl_session {
 
 #[derive(Copy, Clone)]
 pub struct Gsasl_mechanism {
-    pub name: *const libc::c_char,
+    pub name: &'static str,
     pub client: Gsasl_mechanism_functions,
     pub server: Gsasl_mechanism_functions,
 }

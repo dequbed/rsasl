@@ -1,4 +1,3 @@
-use ::libc;
 use crate::gsasl::external::client::_gsasl_external_client_step;
 use crate::gsasl::external::server::_gsasl_external_server_step;
 use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
@@ -27,7 +26,7 @@ use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
 /* Get specification. */
 
 pub static mut gsasl_external_mechanism: Gsasl_mechanism = Gsasl_mechanism {
-    name: b"EXTERNAL\x00" as *const u8 as *const libc::c_char,
+    name: "EXTERNAL",
     client: Gsasl_mechanism_functions {
         init: None,
         done: None,

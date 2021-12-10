@@ -1,4 +1,3 @@
-use ::libc;
 use crate::Gsasl_session;
 
 /* *
@@ -13,10 +12,9 @@ use crate::Gsasl_session;
  *
  * Since: 0.2.28
  **/
-#[no_mangle]
-pub unsafe fn gsasl_mechanism_name(sctx: &Gsasl_session) -> *const libc::c_char {
+pub unsafe fn gsasl_mechanism_name(sctx: &Gsasl_session) -> &'static str {
     if (*sctx).mech.is_null() {
-        return std::ptr::null() as *const libc::c_char
+        return ""
     }
     return (*(*sctx).mech).name;
 }

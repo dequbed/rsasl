@@ -1,4 +1,3 @@
-use ::libc;
 use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
 use crate::gsasl::openid20::client::{_gsasl_openid20_client_finish, _gsasl_openid20_client_start, _gsasl_openid20_client_step};
 use crate::gsasl::openid20::server::{_gsasl_openid20_server_finish, _gsasl_openid20_server_start, _gsasl_openid20_server_step};
@@ -61,7 +60,7 @@ use crate::gsasl::openid20::server::{_gsasl_openid20_server_finish, _gsasl_openi
  */
 /* Get specification. */
 pub static mut gsasl_openid20_mechanism: Gsasl_mechanism = Gsasl_mechanism {
-    name: b"OPENID20\x00" as *const u8 as *const libc::c_char,
+    name: "OPENID20",
     client: Gsasl_mechanism_functions {
         init:
         None,

@@ -60,7 +60,8 @@ pub unsafe fn gsasl_client_suggest_mechanism(mut ctx: *mut Gsasl,
                     target_mech.wrapping_add(1)
                 } else { 0 };
             while j < (*ctx).n_client_mechs {
-                if strncmp((*(*ctx).client_mechs.offset(j as isize)).name,
+                if strncmp((*(*ctx).client_mechs.offset(j as isize)).name.as_ptr()
+                               as *const libc::c_char,
                            mechlist.offset(i as isize), len) ==
                        0 as libc::c_int {
                     let mut sctx: *mut Gsasl_session =
@@ -80,6 +81,7 @@ pub unsafe fn gsasl_client_suggest_mechanism(mut ctx: *mut Gsasl,
         }
     }
     return if target_mech < (*ctx).n_client_mechs {
-               (*(*ctx).client_mechs.offset(target_mech as isize)).name
+               (*(*ctx).client_mechs.offset(target_mech as isize)).name.as_ptr()
+                   as *const libc::c_char
            } else { 0 as *const libc::c_char };
 }
