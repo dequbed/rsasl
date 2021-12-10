@@ -45,19 +45,21 @@ pub fn main() {
     session.set_property(GSASL_PASSWORD, CString::new(password).unwrap().as_bytes_with_nul());
 
 
-    let mut data = CString::new("").unwrap();
+    let mut data: Box<[u8]> = Box::new([]);
 
     loop {
         // Do an authentication step. In a SCRAM-SHA-1 exchange there is only one step, with no data.
-        let step_result = session.step64(&data);
+        let step_result = session.step(&data);
 
         match step_result {
             Ok(Done(buffer)) => {
-                println!("Done: {:?}", buffer.as_ref());
+                let output = std::str::from_utf8(buffer.as_ref()).unwrap();
+                println!("Done: {:?}", output);
                 break;
             },
             Ok(NeedsMore(buffer)) => {
-                println!("Data to send: {:?}", buffer.as_ref());
+                let output = std::str::from_utf8(buffer.as_ref()).unwrap();
+                println!("Data to send: {:?}", output);
 
                 let mut in_data = String::new();
                 if let Err(error) = io::stdin().read_line(&mut in_data) {
@@ -66,7 +68,7 @@ pub fn main() {
                 }
                 in_data.pop(); // Remove the newline char at the end of the string
 
-                data = CString::new(in_data.as_bytes()).unwrap();
+                data = in_data.into_boxed_str().into_boxed_bytes();
 
             }
             Err(e) => {

@@ -1,91 +1,13 @@
-use std::ptr::slice_from_raw_parts;
 use ::libc;
 use libc::size_t;
+use crate::gsasl::base64::{gsasl_base64_from, gsasl_base64_to};
 use crate::gsasl::consts::{GSASL_BASE64_ERROR, GSASL_NEEDS_MORE, GSASL_OK};
 use crate::gsasl::gsasl::{Gsasl_session, Gsasl_step_function};
 
 extern "C" {
-    /* Session functions: xcode.c, mechname.c */
-    /* Error handling: error.c */
-    /* Internationalized string processing: stringprep.c */
-    /* Crypto functions: crypto.c */
-    /* *
-   * Gsasl_hash:
-   * @GSASL_HASH_SHA1: Hash function SHA-1.
-   * @GSASL_HASH_SHA256: Hash function SHA-256.
-   *
-   * Hash functions.  You may use gsasl_hash_length() to get the
-   * output size of a hash function.
-   *
-   * Currently only used as parameter to
-   * gsasl_scram_secrets_from_salted_password() and
-   * gsasl_scram_secrets_from_password() to specify for which SCRAM
-   * mechanism to prepare secrets for.
-   *
-   * Since: 1.10
-   */
-    /* Hash algorithm identifiers. */
-    /* *
-   * Gsasl_hash_length:
-   * @GSASL_HASH_SHA1_SIZE: Output size of hash function SHA-1.
-   * @GSASL_HASH_SHA256_SIZE: Output size of hash function SHA-256.
-   * @GSASL_HASH_MAX_SIZE: Maximum output size of any %Gsasl_hash_length.
-   *
-   * Identifiers specifying the output size of hash functions.
-   *
-   * These can be used when statically allocating the buffers needed
-   * for, e.g., gsasl_scram_secrets_from_password().
-   *
-   * Since: 1.10
-   */
-    /* Output sizes of hashes. */
-    /* Utilities: md5pwd.c, base64.c, free.c */
-
-    fn gsasl_base64_to(in_0: *const libc::c_char, inlen: size_t,
-                       out: *mut *mut libc::c_char, outlen: *mut size_t)
-     -> libc::c_int;
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <string.h>.
-
-   Copyright (C) 1995-1996, 2001-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <stdlib.h>.
-
-   Copyright (C) 1995, 2001-2004, 2006-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-
     fn rpl_free(ptr: *mut libc::c_void);
 
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
-
-    fn gsasl_base64_from(in_0: *const libc::c_char, inlen: size_t,
-                         out: *mut *mut libc::c_char, outlen: *mut size_t)
-     -> libc::c_int;
 }
 
 /* xstep.c --- Perform one SASL authentication step.
@@ -379,28 +301,26 @@ pub unsafe fn gsasl_step64(mut sctx: *mut Gsasl_session,
                                       mut b64input: *const libc::c_char,
                                       mut b64output: *mut *mut libc::c_char)
  -> libc::c_int {
-    let input = if !b64input.is_null() {
-        let inlen = strlen(b64input) as usize;
-        let input = std::slice::from_raw_parts(b64input.cast(), inlen);
-        let config = base64::Config::new(base64::CharacterSet::Standard, true);
-        let mut output = match base64::decode_config(input, config) {
-            Ok(output) => output,
-            Err(e) => {
-                println!("{:?}", e);
-                return GSASL_BASE64_ERROR as libc::c_int
-            },
-        };
-        output.push(b'\0');
-        Some(output)
+    let mut input_len: size_t = 0;
+    let mut input: *mut libc::c_char = std::ptr::null_mut();
+    let mut output_len: size_t = 0;
+    let mut output: *mut libc::c_char = std::ptr::null_mut();
+    let mut res: libc::c_int = 0;
+
+    let inslice = if !b64input.is_null() {
+        res = gsasl_base64_from(b64input, strlen(b64input) as usize, &mut input, &mut input_len);
+        if res != GSASL_OK as libc::c_int {
+            return GSASL_BASE64_ERROR as libc::c_int;
+        }
+
+        let inslice = std::slice::from_raw_parts(input.cast(), input_len);
+
+        Some(inslice)
     } else {
         None
     };
 
-    let mut output_len: size_t = 0 as libc::c_int as size_t;
-    let mut output: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut res: libc::c_int = 0;
-
-    res = gsasl_step(sctx, input.as_ref().map(|v| &v[..]), &mut output, &mut output_len);
+    res = gsasl_step(sctx, inslice, &mut output, &mut output_len);
     if res == GSASL_OK as libc::c_int ||
            res == GSASL_NEEDS_MORE as libc::c_int {
         let mut tmpres: libc::c_int =
