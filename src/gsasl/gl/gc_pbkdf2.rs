@@ -1,58 +1,18 @@
 use ::libc;
+use libc::size_t;
+use crate::gsasl::gl::gc_gnulib::{gc_hmac_sha1, gc_hmac_sha256};
+
 extern "C" {
-    fn gc_hmac_sha1(key: *const libc::c_void, keylen: size_t,
-                    in_0: *const libc::c_void, inlen: size_t,
-                    resbuf: *mut libc::c_char) -> Gc_rc;
-
-    fn gc_hmac_sha256(key: *const libc::c_void, keylen: size_t,
-                      in_0: *const libc::c_void, inlen: size_t,
-                      resbuf: *mut libc::c_char) -> Gc_rc;
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <stdlib.h>.
-
-   Copyright (C) 1995, 2001-2004, 2006-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <string.h>.
-
-   Copyright (C) 1995-1996, 2001-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-
     fn rpl_free(ptr: *mut libc::c_void);
 
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
+    fn malloc(_: size_t) -> *mut libc::c_void;
 
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
+    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
 
-    fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong)
+    fn memset(_: *mut libc::c_void, _: libc::c_int, _: size_t)
      -> *mut libc::c_void;
 }
-pub type size_t = libc::c_ulong;
 /* gc.h --- Header file for implementation agnostic crypto wrapper API.
  * Copyright (C) 2002-2005, 2007-2008, 2011-2021 Free Software Foundation, Inc.
  *
@@ -111,10 +71,10 @@ pub const GC_MD4: Gc_hash = 0;
 /* Written by Simon Josefsson. */
 pub type gc_prf_func
     =
-    Option<unsafe extern "C" fn(_: *const libc::c_void, _: size_t,
+    Option<unsafe fn(_: *const libc::c_void, _: size_t,
                                 _: *const libc::c_void, _: size_t,
                                 _: *mut libc::c_char) -> Gc_rc>;
-unsafe extern "C" fn gc_pbkdf2_prf(mut prf: gc_prf_func, mut hLen: size_t,
+unsafe fn gc_pbkdf2_prf(mut prf: gc_prf_func, mut hLen: size_t,
                                    mut P: *const libc::c_char,
                                    mut Plen: size_t,
                                    mut S: *const libc::c_char,
@@ -131,28 +91,19 @@ unsafe extern "C" fn gc_pbkdf2_prf(mut prf: gc_prf_func, mut hLen: size_t,
     let mut rc: libc::c_int = 0;
     let mut tmp: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut tmplen: size_t =
-        Slen.wrapping_add(4 as libc::c_int as libc::c_ulong);
+        Slen.wrapping_add(4);
     if c == 0 as libc::c_int as libc::c_uint {
         return GC_PKCS5_INVALID_ITERATION_COUNT
     }
-    if dkLen == 0 as libc::c_int as libc::c_ulong {
+    if dkLen == 0 {
         return GC_PKCS5_INVALID_DERIVED_KEY_LENGTH
     }
-    if dkLen > 4294967295 as libc::c_uint as libc::c_ulong {
+    if dkLen > 4294967295 {
         return GC_PKCS5_DERIVED_KEY_TOO_LONG
     }
-    l =
-        dkLen.wrapping_sub(1 as libc::c_int as
-                               libc::c_ulong).wrapping_div(hLen).wrapping_add(1
-                                                                                  as
-                                                                                  libc::c_int
-                                                                                  as
-                                                                                  libc::c_ulong)
-            as libc::c_uint;
-    r =
-        dkLen.wrapping_sub((l.wrapping_sub(1 as libc::c_int as libc::c_uint)
-                                as libc::c_ulong).wrapping_mul(hLen)) as
-            libc::c_uint;
+    l = dkLen.wrapping_sub(1).wrapping_div(hLen).wrapping_add(1) as libc::c_uint;
+    r = dkLen.wrapping_sub((l.wrapping_sub(1).wrapping_mul(hLen as u32)) as size_t)
+        as libc::c_uint;
     tmp = malloc(tmplen) as *mut libc::c_char;
     if tmp.is_null() { return GC_MALLOC_ERROR }
     memcpy(tmp as *mut libc::c_void, S as *const libc::c_void, Slen);
@@ -162,20 +113,16 @@ unsafe extern "C" fn gc_pbkdf2_prf(mut prf: gc_prf_func, mut hLen: size_t,
         u = 1 as libc::c_int as libc::c_uint;
         while u <= c {
             if u == 1 as libc::c_int as libc::c_uint {
-                *tmp.offset(Slen.wrapping_add(0 as libc::c_int as
-                                                  libc::c_ulong) as isize) =
+                *tmp.offset(Slen.wrapping_add(0) as isize) =
                     ((i & 0xff000000 as libc::c_uint) >> 24 as libc::c_int) as
                         libc::c_char;
-                *tmp.offset(Slen.wrapping_add(1 as libc::c_int as
-                                                  libc::c_ulong) as isize) =
+                *tmp.offset(Slen.wrapping_add(1) as isize) =
                     ((i & 0xff0000 as libc::c_int as libc::c_uint) >>
                          16 as libc::c_int) as libc::c_char;
-                *tmp.offset(Slen.wrapping_add(2 as libc::c_int as
-                                                  libc::c_ulong) as isize) =
+                *tmp.offset(Slen.wrapping_add(2) as isize) =
                     ((i & 0xff00 as libc::c_int as libc::c_uint) >>
                          8 as libc::c_int) as libc::c_char;
-                *tmp.offset(Slen.wrapping_add(3 as libc::c_int as
-                                                  libc::c_ulong) as isize) =
+                *tmp.offset(Slen.wrapping_add(3) as isize) =
                     ((i & 0xff as libc::c_int as libc::c_uint) >>
                          0 as libc::c_int) as libc::c_char;
                 rc =
@@ -203,7 +150,7 @@ unsafe extern "C" fn gc_pbkdf2_prf(mut prf: gc_prf_func, mut hLen: size_t,
                 return rc as Gc_rc
             }
             k = 0 as libc::c_int as libc::c_uint;
-            while (k as libc::c_ulong) < hLen {
+            while (k as size_t) < hLen {
                 T[k as usize] =
                     (T[k as usize] as libc::c_int ^
                          U[k as usize] as libc::c_int) as libc::c_char;
@@ -212,9 +159,9 @@ unsafe extern "C" fn gc_pbkdf2_prf(mut prf: gc_prf_func, mut hLen: size_t,
             u = u.wrapping_add(1)
         }
         memcpy(DK.offset((i.wrapping_sub(1 as libc::c_int as libc::c_uint) as
-                              libc::c_ulong).wrapping_mul(hLen) as isize) as
+                              size_t).wrapping_mul(hLen) as isize) as
                    *mut libc::c_void, T.as_mut_ptr() as *const libc::c_void,
-               if i == l { r as libc::c_ulong } else { hLen });
+               if i == l { r as size_t } else { hLen });
         i = i.wrapping_add(1)
     }
     rpl_free(tmp as *mut libc::c_void);
@@ -229,7 +176,7 @@ unsafe extern "C" fn gc_pbkdf2_prf(mut prf: gc_prf_func, mut hLen: size_t,
    "stretches" the key to be exactly dkLen bytes long.  GC_OK is
    returned on success, otherwise a Gc_rc error code is returned.  */
 #[no_mangle]
-pub unsafe extern "C" fn gc_pbkdf2_hmac(mut hash: Gc_hash,
+pub unsafe fn gc_pbkdf2_hmac(mut hash: Gc_hash,
                                         mut P: *const libc::c_char,
                                         mut Plen: size_t,
                                         mut S: *const libc::c_char,
@@ -241,22 +188,12 @@ pub unsafe extern "C" fn gc_pbkdf2_hmac(mut hash: Gc_hash,
     match hash as libc::c_uint {
         2 => {
             prf =
-                Some(gc_hmac_sha1 as
-                         unsafe extern "C" fn(_: *const libc::c_void,
-                                              _: size_t,
-                                              _: *const libc::c_void,
-                                              _: size_t, _: *mut libc::c_char)
-                             -> Gc_rc);
+                Some(gc_hmac_sha1);
             hLen = 20 as libc::c_int as size_t
         }
         5 => {
             prf =
-                Some(gc_hmac_sha256 as
-                         unsafe extern "C" fn(_: *const libc::c_void,
-                                              _: size_t,
-                                              _: *const libc::c_void,
-                                              _: size_t, _: *mut libc::c_char)
-                             -> Gc_rc);
+                Some(gc_hmac_sha256);
             hLen = 32 as libc::c_int as size_t
         }
         _ => { return GC_INVALID_HASH }

@@ -381,7 +381,7 @@ unsafe fn _gsasl_digest_md5_hexdigit_to_char(mut hexdigit:
     }
     return -(1 as libc::c_int) as libc::c_char;
 }
-unsafe extern "C" fn _gsasl_digest_md5_hex_to_char(mut u: libc::c_char,
+unsafe fn _gsasl_digest_md5_hex_to_char(mut u: libc::c_char,
                                                    mut l: libc::c_char)
  -> libc::c_char {
     return (_gsasl_digest_md5_hexdigit_to_char(u) as libc::c_uchar as

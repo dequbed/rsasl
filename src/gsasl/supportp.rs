@@ -27,7 +27,7 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-unsafe extern "C" fn _gsasl_support_p(mut mechs: *mut Gsasl_mechanism,
+unsafe fn _gsasl_support_p(mut mechs: *mut Gsasl_mechanism,
                                       mut n_mechs: size_t,
                                       mut name: *const libc::c_char)
  -> libc::c_int {
@@ -55,7 +55,7 @@ unsafe extern "C" fn _gsasl_support_p(mut mechs: *mut Gsasl_mechanism,
  * mechanism, otherwise 0.
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_client_support_p(mut ctx: *mut Gsasl,
+pub unsafe fn gsasl_client_support_p(mut ctx: *mut Gsasl,
                                                 mut name: *const libc::c_char)
  -> libc::c_int {
     return _gsasl_support_p((*ctx).client_mechs, (*ctx).n_client_mechs, name);
@@ -77,7 +77,7 @@ pub unsafe extern "C" fn gsasl_client_support_p(mut ctx: *mut Gsasl,
  * mechanism, otherwise 0.
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_server_support_p(mut ctx: *mut Gsasl,
+pub unsafe fn gsasl_server_support_p(mut ctx: *mut Gsasl,
                                                 mut name: *const libc::c_char)
  -> libc::c_int {
     return _gsasl_support_p((*ctx).server_mechs, (*ctx).n_server_mechs, name);

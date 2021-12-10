@@ -42,7 +42,7 @@ use crate::gsasl::gsasl::{Gsasl, Gsasl_callback_function, Gsasl_session};
  * Since: 0.2.0
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_callback_set(mut ctx: *mut Gsasl,
+pub unsafe fn gsasl_callback_set(mut ctx: *mut Gsasl,
                                             mut cb: Gsasl_callback_function) {
     (*ctx).cb = cb;
 }
@@ -67,7 +67,7 @@ pub unsafe extern "C" fn gsasl_callback_set(mut ctx: *mut Gsasl,
  * Since: 0.2.0
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_callback(mut ctx: *mut Gsasl,
+pub unsafe fn gsasl_callback(mut ctx: *mut Gsasl,
                                         mut sctx: *mut Gsasl_session,
                                         mut prop: Gsasl_property)
  -> libc::c_int {
@@ -95,7 +95,7 @@ pub unsafe extern "C" fn gsasl_callback(mut ctx: *mut Gsasl,
  * Since: 0.2.0
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_callback_hook_set(mut ctx: *mut Gsasl,
+pub unsafe fn gsasl_callback_hook_set(mut ctx: *mut Gsasl,
                                                  mut hook:
                                                      *mut libc::c_void) {
     (*ctx).application_hook = hook;
@@ -115,7 +115,7 @@ pub unsafe extern "C" fn gsasl_callback_hook_set(mut ctx: *mut Gsasl,
  * Since: 0.2.0
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_callback_hook_get(mut ctx: *mut Gsasl)
+pub unsafe fn gsasl_callback_hook_get(mut ctx: *mut Gsasl)
  -> *mut libc::c_void {
     return (*ctx).application_hook;
 }
@@ -134,7 +134,7 @@ pub unsafe extern "C" fn gsasl_callback_hook_get(mut ctx: *mut Gsasl)
  * Since: 0.2.14
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_session_hook_set(mut sctx: *mut Gsasl_session,
+pub unsafe fn gsasl_session_hook_set(mut sctx: *mut Gsasl_session,
                                                 mut hook: *mut libc::c_void) {
     (*sctx).application_hook = hook;
 }
@@ -356,7 +356,7 @@ pub unsafe extern "C" fn gsasl_session_hook_set(mut sctx: *mut Gsasl_session,
  * Since: 0.2.14
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_session_hook_get(mut sctx: *mut Gsasl_session)
+pub unsafe fn gsasl_session_hook_get(mut sctx: *mut Gsasl_session)
  -> *mut libc::c_void {
     return (*sctx).application_hook;
 }

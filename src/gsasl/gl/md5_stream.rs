@@ -116,7 +116,7 @@ pub struct md5_ctx {
    For a more complete set of facilities that use the Linux kernel crypto API,
    look at libkcapi.  */
 #[inline]
-unsafe extern "C" fn afalg_stream(mut _stream: *mut FILE,
+unsafe fn afalg_stream(mut _stream: *mut FILE,
                                   mut _alg: *const libc::c_char,
                                   mut _resblock: *mut libc::c_void,
                                   mut _hashlen: ssize_t) -> libc::c_int {
@@ -178,7 +178,7 @@ unsafe extern "C" fn afalg_stream(mut _stream: *mut FILE,
    resulting message digest number will be written into the 16 bytes
    beginning at RESBLOCK.  */
 #[no_mangle]
-pub unsafe extern "C" fn md5_stream(mut stream: *mut FILE,
+pub unsafe fn md5_stream(mut stream: *mut FILE,
                                     mut resblock: *mut libc::c_void)
  -> libc::c_int {
     match afalg_stream(stream, b"md5\x00" as *const u8 as *const libc::c_char,

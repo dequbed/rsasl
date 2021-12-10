@@ -69,7 +69,7 @@ pub type off_t = __off_t;
 /* Specification.  */
 /* GNU libc, BeOS, Haiku, Linux libc5 */
 /* Clear the stream's ungetc buffer, preserving the value of ftello (fp).  */
-unsafe extern "C" fn clear_ungetc_buffer_preserving_position(mut fp:
+unsafe fn clear_ungetc_buffer_preserving_position(mut fp:
                                                                  *mut FILE) {
     if (*fp)._flags & 0x100 as libc::c_int != 0 {
         /* _IO_free_backup_area is a bit complicated.  Simply call fseek.  */
@@ -96,7 +96,7 @@ unsafe extern "C" fn clear_ungetc_buffer_preserving_position(mut fp:
 /* Flush all pending data on STREAM according to POSIX rules.  Both
    output and seekable input streams are supported.  */
 #[no_mangle]
-pub unsafe extern "C" fn rpl_fflush(mut stream: *mut FILE) -> libc::c_int {
+pub unsafe fn rpl_fflush(mut stream: *mut FILE) -> libc::c_int {
     /* When stream is NULL, POSIX and C99 only require flushing of "output
      streams and update streams in which the most recent operation was not
      input", and all implementations do this.

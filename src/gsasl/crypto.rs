@@ -106,7 +106,7 @@ extern "C" {
  * Return value: Returns %GSASL_OK iff successful.
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_nonce(mut data: *mut libc::c_char,
+pub unsafe fn gsasl_nonce(mut data: *mut libc::c_char,
                                      mut datalen: size_t) -> libc::c_int {
     return gc_nonce(data, datalen) as libc::c_int;
 }
@@ -121,7 +121,7 @@ pub unsafe extern "C" fn gsasl_nonce(mut data: *mut libc::c_char,
  * Return value: Returns %GSASL_OK iff successful.
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_random(mut data: *mut libc::c_char,
+pub unsafe fn gsasl_random(mut data: *mut libc::c_char,
                                       mut datalen: size_t) -> libc::c_int {
     return gc_random(data, datalen) as libc::c_int;
 }
@@ -138,7 +138,7 @@ pub unsafe extern "C" fn gsasl_random(mut data: *mut libc::c_char,
  * Since: 1.10
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_hash_length(mut hash: Gsasl_hash) -> size_t {
+pub unsafe fn gsasl_hash_length(mut hash: Gsasl_hash) -> size_t {
     match hash as libc::c_uint {
         2 => { return GSASL_HASH_SHA1_SIZE as libc::c_int as size_t }
         3 => { return GSASL_HASH_SHA256_SIZE as libc::c_int as size_t }
@@ -164,7 +164,7 @@ pub unsafe extern "C" fn gsasl_hash_length(mut hash: Gsasl_hash) -> size_t {
  * Since: 1.10
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_scram_secrets_from_salted_password(mut hash:
+pub unsafe fn gsasl_scram_secrets_from_salted_password(mut hash:
                                                                       Gsasl_hash,
                                                                   mut salted_password:
                                                                       *const libc::c_char,
@@ -458,7 +458,7 @@ pub unsafe extern "C" fn gsasl_scram_secrets_from_salted_password(mut hash:
  * Since: 1.10
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_scram_secrets_from_password(mut hash:
+pub unsafe fn gsasl_scram_secrets_from_password(mut hash:
                                                                Gsasl_hash,
                                                            mut password:
                                                                *const libc::c_char,

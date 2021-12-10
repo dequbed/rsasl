@@ -174,7 +174,7 @@ pub const GC_MD4: Gc_hash = 0;
    success, GSASL_MALLOC_ERROR on memory errors, GSASL_PARSE_ERRORS if
    string contains any unencoded ',' or incorrectly encoded
    sequence.  */
-unsafe extern "C" fn unescape_authzid(mut str: *const libc::c_char,
+unsafe fn unescape_authzid(mut str: *const libc::c_char,
                                       mut len: size_t,
                                       mut authzid: *mut *mut libc::c_char)
  -> libc::c_int {
@@ -241,7 +241,7 @@ unsafe extern "C" fn unescape_authzid(mut str: *const libc::c_char,
    header in HEADERLEN.  Return GSASL_OK on success or an error
    code.*/
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_parse_gs2_header(mut data:
+pub unsafe fn _gsasl_parse_gs2_header(mut data:
                                                      *const libc::c_char,
                                                  mut len: size_t,
                                                  mut authzid:
@@ -280,7 +280,7 @@ pub unsafe extern "C" fn _gsasl_parse_gs2_header(mut data:
 /* Return newly allocated copy of STR with all occurrences of ','
    replaced with =2C and '=' with '=3D', or return NULL on memory
    allocation errors.  */
-unsafe extern "C" fn escape_authzid(mut str: *const libc::c_char)
+unsafe fn escape_authzid(mut str: *const libc::c_char)
  -> *mut libc::c_char {
     let mut out: *mut libc::c_char =
         malloc(strlen(str).wrapping_mul(3).wrapping_add(1)) as *mut libc::c_char;
@@ -307,7 +307,7 @@ unsafe extern "C" fn escape_authzid(mut str: *const libc::c_char)
 /* Generate a newly allocated GS2 header, escaping authzid
    appropriately, and appending EXTRA. */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_gs2_generate_header(mut nonstd: bool,
+pub unsafe fn _gsasl_gs2_generate_header(mut nonstd: bool,
                                                     mut cbflag: libc::c_char,
                                                     mut cbname:
                                                         *const libc::c_char,
@@ -377,7 +377,7 @@ pub unsafe extern "C" fn _gsasl_gs2_generate_header(mut nonstd: bool,
    encoded string in OUT which must have room for the data and
    terminating zero, i.e., 2*INLEN+1. */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_hex_encode(mut in_0: *const libc::c_char,
+pub unsafe fn _gsasl_hex_encode(mut in_0: *const libc::c_char,
                                            mut inlen: size_t,
                                            mut out: *mut libc::c_char) {
     let mut i: size_t = 0;
@@ -416,7 +416,7 @@ pub unsafe extern "C" fn _gsasl_hex_encode(mut in_0: *const libc::c_char,
     }
     *out.offset(i as isize) = '\u{0}' as i32 as libc::c_char;
 }
-unsafe extern "C" fn hexdigit_to_char(mut hexdigit: libc::c_char)
+unsafe fn hexdigit_to_char(mut hexdigit: libc::c_char)
  -> libc::c_char {
     if hexdigit as libc::c_int >= '0' as i32 &&
            hexdigit as libc::c_int <= '9' as i32 {
@@ -429,7 +429,7 @@ unsafe extern "C" fn hexdigit_to_char(mut hexdigit: libc::c_char)
     }
     return 0 as libc::c_int as libc::c_char;
 }
-unsafe extern "C" fn hex_to_char(mut u: libc::c_char, mut l: libc::c_char)
+unsafe fn hex_to_char(mut u: libc::c_char, mut l: libc::c_char)
  -> libc::c_char {
     return (hexdigit_to_char(u) as libc::c_uchar as libc::c_int *
                 16 as libc::c_int + hexdigit_to_char(l) as libc::c_int) as
@@ -439,7 +439,7 @@ unsafe extern "C" fn hex_to_char(mut u: libc::c_char, mut l: libc::c_char)
    into binary buffer BIN which must have room for data, i.e., strlen
    (hexstr)/2. */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_hex_decode(mut hexstr: *const libc::c_char,
+pub unsafe fn _gsasl_hex_decode(mut hexstr: *const libc::c_char,
                                            mut bin: *mut libc::c_char) {
     while *hexstr != 0 {
         *bin =
@@ -451,7 +451,7 @@ pub unsafe extern "C" fn _gsasl_hex_decode(mut hexstr: *const libc::c_char,
 }
 /* Return whether string contains hex "0-9a-f" symbols only. */
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_hex_p(mut hexstr: *const libc::c_char)
+pub unsafe fn _gsasl_hex_p(mut hexstr: *const libc::c_char)
  -> bool {
     static mut hexalpha: &'static [u8; 17] = b"0123456789abcdef\x00";
     while *hexstr != 0 {
@@ -479,7 +479,7 @@ pub unsafe extern "C" fn _gsasl_hex_p(mut hexstr: *const libc::c_char)
  * Since: 1.10
  **/
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_hash(mut hash: Gsasl_hash,
+pub unsafe fn _gsasl_hash(mut hash: Gsasl_hash,
                                      mut in_0: *const libc::c_char,
                                      mut inlen: size_t,
                                      mut outhash: *mut libc::c_char)
@@ -517,7 +517,7 @@ pub unsafe extern "C" fn _gsasl_hash(mut hash: Gsasl_hash,
  * Since: 1.10
  **/
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_hmac(mut hash: Gsasl_hash,
+pub unsafe fn _gsasl_hmac(mut hash: Gsasl_hash,
                                      mut key: *const libc::c_char,
                                      mut keylen: size_t,
                                      mut in_0: *const libc::c_char,
@@ -586,7 +586,7 @@ pub unsafe extern "C" fn _gsasl_hmac(mut hash: Gsasl_hash,
  * Since: 1.10
  **/
 #[no_mangle]
-pub unsafe extern "C" fn _gsasl_pbkdf2(mut hash: Gsasl_hash,
+pub unsafe fn _gsasl_pbkdf2(mut hash: Gsasl_hash,
                                        mut password: *const libc::c_char,
                                        mut passwordlen: size_t,
                                        mut salt: *const libc::c_char,

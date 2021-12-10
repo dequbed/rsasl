@@ -244,7 +244,7 @@ extern "C" {
  *   check is done and only the version string is returned.
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_check_version(mut req_version:
+pub unsafe fn gsasl_check_version(mut req_version:
                                                  *const libc::c_char)
  -> *const libc::c_char {
     if req_version.is_null() ||

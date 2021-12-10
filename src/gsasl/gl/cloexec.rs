@@ -72,7 +72,7 @@ extern "C" {
    open or pipe2 that accept flags like O_CLOEXEC to create DESC
    non-inheritable in the first place.  */
 #[no_mangle]
-pub unsafe extern "C" fn set_cloexec_flag(mut desc: libc::c_int,
+pub unsafe fn set_cloexec_flag(mut desc: libc::c_int,
                                           mut value: bool) -> libc::c_int {
     let mut flags: libc::c_int =
         rpl_fcntl(desc, 1 as libc::c_int, 0 as libc::c_int);
@@ -98,6 +98,6 @@ pub unsafe extern "C" fn set_cloexec_flag(mut desc: libc::c_int,
    prior to exec or spawn.  Returns -1 and sets errno if FD could not
    be duplicated.  */
 #[no_mangle]
-pub unsafe extern "C" fn dup_cloexec(mut fd: libc::c_int) -> libc::c_int {
+pub unsafe fn dup_cloexec(mut fd: libc::c_int) -> libc::c_int {
     return rpl_fcntl(fd, 1030 as libc::c_int, 0 as libc::c_int);
 }

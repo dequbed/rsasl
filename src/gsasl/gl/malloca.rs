@@ -169,7 +169,7 @@ pub const sa_alignment_long: C2RustUnnamed = 8;
    memory allocated on the stack, that must be freed using freea() before
    the function returns.  Upon failure, it returns NULL.  */
 #[no_mangle]
-pub unsafe extern "C" fn mmalloca(mut n: size_t) -> *mut libc::c_void {
+pub unsafe fn mmalloca(mut n: size_t) -> *mut libc::c_void {
     /* Allocate one more word, used to determine the address to pass to freea(),
      and room for the alignment ≡ sa_alignment_max mod 2*sa_alignment_max.  */
     let mut alignment2_mask: uintptr_t =
@@ -265,7 +265,7 @@ pub unsafe extern "C" fn mmalloca(mut n: size_t) -> *mut libc::c_void {
    This must be a macro, not a function.  */
 /* Free a block of memory allocated through malloca().  */
 #[no_mangle]
-pub unsafe extern "C" fn freea(mut p: *mut libc::c_void) {
+pub unsafe fn freea(mut p: *mut libc::c_void) {
     /* Check argument.  */
     if p as uintptr_t &
            (sa_alignment_max as libc::c_int - 1 as libc::c_int) as

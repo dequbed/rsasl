@@ -67,7 +67,7 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-unsafe extern "C" fn map(mut sctx: *mut Gsasl_session,
+unsafe fn map(mut sctx: *mut Gsasl_session,
                          mut prop: Gsasl_property) -> *mut *mut libc::c_char {
     let mut p: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
     if sctx.is_null() { return 0 as *mut *mut libc::c_char }
@@ -112,7 +112,7 @@ unsafe extern "C" fn map(mut sctx: *mut Gsasl_session,
  * Since: 2.0.0
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_property_free(mut sctx: *mut Gsasl_session,
+pub unsafe fn gsasl_property_free(mut sctx: *mut Gsasl_session,
                                              mut prop: Gsasl_property) {
     let mut p: *mut *mut libc::c_char = map(sctx, prop);
     if !p.is_null() {
@@ -139,7 +139,7 @@ pub unsafe extern "C" fn gsasl_property_free(mut sctx: *mut Gsasl_session,
  * Since: 0.2.0
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_property_set(mut sctx: *mut Gsasl_session,
+pub unsafe fn gsasl_property_set(mut sctx: *mut Gsasl_session,
                                             mut prop: Gsasl_property,
                                             mut data: *const libc::c_char)
  -> libc::c_int {
@@ -173,7 +173,7 @@ pub unsafe extern "C" fn gsasl_property_set(mut sctx: *mut Gsasl_session,
  * Since: 0.2.0
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_property_set_raw(mut sctx: *mut Gsasl_session,
+pub unsafe fn gsasl_property_set_raw(mut sctx: *mut Gsasl_session,
                                                 mut prop: Gsasl_property,
                                                 mut data: *const libc::c_char,
                                                 mut len: size_t)
@@ -212,7 +212,7 @@ pub unsafe extern "C" fn gsasl_property_set_raw(mut sctx: *mut Gsasl_session,
  * Since: 0.2.0
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_property_fast(mut sctx: *mut Gsasl_session,
+pub unsafe fn gsasl_property_fast(mut sctx: *mut Gsasl_session,
                                              mut prop: Gsasl_property)
  -> *const libc::c_char {
     let mut p: *mut *mut libc::c_char = map(sctx, prop);
@@ -443,7 +443,7 @@ pub unsafe extern "C" fn gsasl_property_fast(mut sctx: *mut Gsasl_session,
  * Since: 0.2.0
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_property_get(mut sctx: *mut Gsasl_session,
+pub unsafe fn gsasl_property_get(mut sctx: *mut Gsasl_session,
                                             mut prop: Gsasl_property)
  -> *const libc::c_char {
     let mut p: *const libc::c_char = gsasl_property_fast(sctx, prop);

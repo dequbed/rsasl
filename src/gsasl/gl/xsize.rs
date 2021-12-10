@@ -38,7 +38,7 @@ pub type size_t = libc::c_ulong;
 /* Sum of two sizes, with overflow check.  */
 #[no_mangle]
 #[inline]
-pub unsafe extern "C" fn xsum(mut size1: size_t, mut size2: size_t)
+pub unsafe fn xsum(mut size1: size_t, mut size2: size_t)
  -> size_t {
     let mut sum: size_t = size1.wrapping_add(size2);
     return if sum >= size1 {
@@ -48,14 +48,14 @@ pub unsafe extern "C" fn xsum(mut size1: size_t, mut size2: size_t)
 /* Sum of three sizes, with overflow check.  */
 #[no_mangle]
 #[inline]
-pub unsafe extern "C" fn xsum3(mut size1: size_t, mut size2: size_t,
+pub unsafe fn xsum3(mut size1: size_t, mut size2: size_t,
                                mut size3: size_t) -> size_t {
     return xsum(xsum(size1, size2), size3);
 }
 /* Sum of four sizes, with overflow check.  */
 #[no_mangle]
 #[inline]
-pub unsafe extern "C" fn xsum4(mut size1: size_t, mut size2: size_t,
+pub unsafe fn xsum4(mut size1: size_t, mut size2: size_t,
                                mut size3: size_t, mut size4: size_t)
  -> size_t {
     return xsum(xsum(xsum(size1, size2), size3), size4);
@@ -63,7 +63,7 @@ pub unsafe extern "C" fn xsum4(mut size1: size_t, mut size2: size_t,
 /* Maximum of two sizes, with overflow check.  */
 #[no_mangle]
 #[inline]
-pub unsafe extern "C" fn xmax(mut size1: size_t, mut size2: size_t)
+pub unsafe fn xmax(mut size1: size_t, mut size2: size_t)
  -> size_t {
     /* No explicit check is needed here, because for any n:
      max (SIZE_MAX, n) == SIZE_MAX and max (n, SIZE_MAX) == SIZE_MAX.  */

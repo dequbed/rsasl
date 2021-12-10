@@ -167,7 +167,7 @@ pub struct base64_decode_context {
  * Since: 0.2.2
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_base64_to(mut in_0: *const libc::c_char,
+pub unsafe fn gsasl_base64_to(mut in_0: *const libc::c_char,
                                          mut inlen: size_t,
                                          mut out: *mut *mut libc::c_char,
                                          mut outlen: *mut size_t)
@@ -195,7 +195,7 @@ pub unsafe extern "C" fn gsasl_base64_to(mut in_0: *const libc::c_char,
  * Since: 0.2.2
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_base64_from(mut in_0: *const libc::c_char,
+pub unsafe fn gsasl_base64_from(mut in_0: *const libc::c_char,
                                            mut inlen: size_t,
                                            mut out: *mut *mut libc::c_char,
                                            mut outlen: *mut size_t)
@@ -225,7 +225,7 @@ pub unsafe extern "C" fn gsasl_base64_from(mut in_0: *const libc::c_char,
  * Since: 1.10
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_hex_to(mut in_0: *const libc::c_char,
+pub unsafe fn gsasl_hex_to(mut in_0: *const libc::c_char,
                                       mut inlen: size_t,
                                       mut out: *mut *mut libc::c_char,
                                       mut outlen: *mut size_t)
@@ -496,7 +496,7 @@ pub unsafe extern "C" fn gsasl_hex_to(mut in_0: *const libc::c_char,
  * Since: 1.10
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_hex_from(mut in_0: *const libc::c_char,
+pub unsafe fn gsasl_hex_from(mut in_0: *const libc::c_char,
                                         mut out: *mut *mut libc::c_char,
                                         mut outlen: *mut size_t)
  -> libc::c_int {

@@ -12,7 +12,7 @@ pub struct Gsasl {
 }
 
 pub type Gsasl_callback_function = Option<
-    unsafe extern "C" fn(_: *mut Gsasl, _: *mut Gsasl_session, _: Gsasl_property) -> libc::c_int
+    unsafe fn(_: *mut Gsasl, _: *mut Gsasl_session, _: Gsasl_property) -> libc::c_int
 >;
 
 /* Per-session library handle. */

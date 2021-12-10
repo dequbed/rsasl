@@ -171,7 +171,7 @@ pub trait Callback<D,E> {
         u32>;
 }
 
-pub(crate) extern "C" fn wrap<C: Callback<D,E>, D, E>(
+pub(crate) fn wrap<C: Callback<D,E>, D, E>(
     ctx: *mut Gsasl,
     sctx: *mut Gsasl_session,
     prop: Gsasl_property)

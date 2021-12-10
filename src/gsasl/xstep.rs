@@ -134,7 +134,7 @@ extern "C" {
  *   code.
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_step(mut sctx: *mut Gsasl_session,
+pub unsafe fn gsasl_step(mut sctx: *mut Gsasl_session,
                                     mut input: *const libc::c_char,
                                     mut input_len: size_t,
                                     mut output: *mut *mut libc::c_char,
@@ -375,7 +375,7 @@ pub unsafe extern "C" fn gsasl_step(mut sctx: *mut Gsasl_session,
  *   code.
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_step64(mut sctx: *mut Gsasl_session,
+pub unsafe fn gsasl_step64(mut sctx: *mut Gsasl_session,
                                       mut b64input: *const libc::c_char,
                                       mut b64output: *mut *mut libc::c_char)
  -> libc::c_int {

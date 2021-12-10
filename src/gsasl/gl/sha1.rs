@@ -30,7 +30,7 @@ static mut fillbuf: [libc::c_uchar; 64] =
    initialize it to the start constants of the SHA1 algorithm.  This
    must be called before using hash in the call to sha1_hash.  */
 #[no_mangle]
-pub unsafe extern "C" fn sha1_init_ctx(mut ctx: *mut sha1_ctx) {
+pub unsafe fn sha1_init_ctx(mut ctx: *mut sha1_ctx) {
     (*ctx).A = 0x67452301 as libc::c_int as uint32_t;
     (*ctx).B = 0xefcdab89 as libc::c_uint;
     (*ctx).C = 0x98badcfe as libc::c_uint;
@@ -44,7 +44,7 @@ pub unsafe extern "C" fn sha1_init_ctx(mut ctx: *mut sha1_ctx) {
 /* Copy the 4 byte value from v into the memory location pointed to by *cp,
    If your architecture allows unaligned access this is equivalent to
    * (uint32_t *) cp = v  */
-unsafe extern "C" fn set_uint32(mut cp: *mut libc::c_char, mut v: uint32_t) {
+unsafe fn set_uint32(mut cp: *mut libc::c_char, mut v: uint32_t) {
     memcpy(cp as *mut libc::c_void,
            &mut v as *mut uint32_t as *const libc::c_void,
            ::std::mem::size_of::<uint32_t>() as libc::c_ulong);
@@ -52,7 +52,7 @@ unsafe extern "C" fn set_uint32(mut cp: *mut libc::c_char, mut v: uint32_t) {
 /* Put result from CTX in first 20 bytes following RESBUF.  The result
    must be in little endian byte order.  */
 #[no_mangle]
-pub unsafe extern "C" fn sha1_read_ctx(mut ctx: *const sha1_ctx,
+pub unsafe fn sha1_read_ctx(mut ctx: *const sha1_ctx,
                                        mut resbuf: *mut libc::c_void)
  -> *mut libc::c_void {
     let mut r: *mut libc::c_char = resbuf as *mut libc::c_char;
@@ -176,7 +176,7 @@ pub unsafe extern "C" fn sha1_read_ctx(mut ctx: *const sha1_ctx,
 /* Process the remaining bytes in the internal buffer and the usual
    prolog according to the standard and write the result to RESBUF.  */
 #[no_mangle]
-pub unsafe extern "C" fn sha1_finish_ctx(mut ctx: *mut sha1_ctx,
+pub unsafe fn sha1_finish_ctx(mut ctx: *mut sha1_ctx,
                                          mut resbuf: *mut libc::c_void)
  -> *mut libc::c_void {
     /* Take yet unprocessed bytes into account.  */
@@ -269,7 +269,7 @@ pub unsafe extern "C" fn sha1_finish_ctx(mut ctx: *mut sha1_ctx,
    output yields to the wanted ASCII representation of the message
    digest.  */
 #[no_mangle]
-pub unsafe extern "C" fn sha1_buffer(mut buffer: *const libc::c_char,
+pub unsafe fn sha1_buffer(mut buffer: *const libc::c_char,
                                      mut len: size_t,
                                      mut resblock: *mut libc::c_void)
  -> *mut libc::c_void {
@@ -294,7 +294,7 @@ pub unsafe extern "C" fn sha1_buffer(mut buffer: *const libc::c_char,
    starting at BUFFER.
    It is NOT required that LEN is a multiple of 64.  */
 #[no_mangle]
-pub unsafe extern "C" fn sha1_process_bytes(mut buffer: *const libc::c_void,
+pub unsafe fn sha1_process_bytes(mut buffer: *const libc::c_void,
                                             mut len: size_t,
                                             mut ctx: *mut sha1_ctx) {
     /* When we already have some bits in our internal buffer concatenate
@@ -433,7 +433,7 @@ pub unsafe extern "C" fn sha1_process_bytes(mut buffer: *const libc::c_void,
    It is assumed that LEN % 64 == 0.
    Most of this code comes from GnuPG's cipher/sha1.c.  */
 #[no_mangle]
-pub unsafe extern "C" fn sha1_process_block(mut buffer: *const libc::c_void,
+pub unsafe fn sha1_process_block(mut buffer: *const libc::c_void,
                                             mut len: size_t,
                                             mut ctx: *mut sha1_ctx) {
     let mut words: *const uint32_t = buffer as *const uint32_t;

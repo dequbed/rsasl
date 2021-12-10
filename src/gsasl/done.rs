@@ -270,7 +270,7 @@ extern "C" {
  * used with other libgsasl functions after this call.
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_done(mut ctx: *mut Gsasl) {
+pub unsafe fn gsasl_done(mut ctx: *mut Gsasl) {
     let mut i: size_t = 0;
     if ctx.is_null() { return }
     i = 0 as libc::c_int as size_t;

@@ -124,7 +124,7 @@ pub struct arguments {
      STATIC             Set to 'static' to declare the function static.  */
 /* Specification.  */
 #[no_mangle]
-pub unsafe extern "C" fn printf_fetchargs(mut args: ::std::ffi::VaList,
+pub unsafe fn printf_fetchargs(mut args: ::std::ffi::VaList,
                                           mut a: *mut arguments)
  -> libc::c_int {
     let mut i: size_t = 0; /*signed char*/

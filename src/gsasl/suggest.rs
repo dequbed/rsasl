@@ -31,7 +31,7 @@ extern "C" {
  *   NULL if no supported mechanism is found.
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_client_suggest_mechanism(mut ctx: *mut Gsasl,
+pub unsafe fn gsasl_client_suggest_mechanism(mut ctx: *mut Gsasl,
                                                         mut mechlist:
                                                             *const libc::c_char)
  -> *const libc::c_char {

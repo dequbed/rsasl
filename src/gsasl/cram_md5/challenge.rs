@@ -16,7 +16,7 @@ extern "C" {
    room for CRAM_MD5_CHALLENGE_LEN characters.  Returns 0 on success,
    and -1 on randomness problems.  */
 #[no_mangle]
-pub unsafe extern "C" fn cram_md5_challenge(mut challenge: *mut libc::c_char)
+pub unsafe fn cram_md5_challenge(mut challenge: *mut libc::c_char)
  -> libc::c_int {
     let mut nonce: [libc::c_char; 10] = [0; 10];
     let mut i: size_t = 0;

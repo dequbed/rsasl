@@ -82,7 +82,7 @@ pub type FILE = _IO_FILE;
 /* Specification.  */
 /* glibc >= 2.2, Haiku, Solaris >= 7, UnixWare >= 7.1.4.MP4, Cygwin >= 1.7.10, Android API >= 23, musl libc */
 #[no_mangle]
-pub unsafe extern "C" fn fpurge(mut fp: *mut FILE) -> libc::c_int {
+pub unsafe fn fpurge(mut fp: *mut FILE) -> libc::c_int {
     /* glibc >= 2.2, Haiku, Solaris >= 7, UnixWare >= 7.1.4.MP4, Cygwin >= 1.7.10, Android API >= 23, musl libc */
     __fpurge(fp);
     /* The __fpurge function does not have a return value.  */

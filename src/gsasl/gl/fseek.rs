@@ -83,7 +83,7 @@ pub type off_t = __off_t;
 /* Specification.  */
 /* Get off_t.  */
 #[no_mangle]
-pub unsafe extern "C" fn rpl_fseek(mut fp: *mut FILE,
+pub unsafe fn rpl_fseek(mut fp: *mut FILE,
                                    mut offset: libc::c_long,
                                    mut whence: libc::c_int) -> libc::c_int {
     /* Use the replacement fseeko function with all its workarounds.  */

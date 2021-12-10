@@ -127,7 +127,7 @@ pub const DIGEST_MD5_CIPHER_DES: digest_md5_cipher = 1;
    are either NULL, or points to 16 byte arrays that will hold the
    computed keys on output.  Returns 0 on success. */
 #[no_mangle]
-pub unsafe extern "C" fn digest_md5_hmac(mut output: *mut libc::c_char,
+pub unsafe fn digest_md5_hmac(mut output: *mut libc::c_char,
                                          mut secret: *mut libc::c_char,
                                          mut nonce: *const libc::c_char,
                                          mut nc: libc::c_ulong,

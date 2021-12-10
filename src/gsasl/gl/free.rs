@@ -40,7 +40,7 @@ extern "C" {
 /* Specification.  */
 /* A function definition is only needed if HAVE_FREE_POSIX is not defined.  */
 #[no_mangle]
-pub unsafe extern "C" fn rpl_free(mut p: *mut libc::c_void) {
+pub unsafe fn rpl_free(mut p: *mut libc::c_void) {
     let mut err: libc::c_int = *__errno_location();
     free(p);
     *__errno_location() = err;

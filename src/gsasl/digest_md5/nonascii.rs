@@ -33,7 +33,7 @@ extern "C" {
 /* Get specification. */
 /* C89 compliant way to cast 'char' to 'unsigned char'. */
 #[inline]
-unsafe extern "C" fn to_uchar(mut ch: libc::c_char) -> libc::c_uchar {
+unsafe fn to_uchar(mut ch: libc::c_char) -> libc::c_uchar {
     return ch as libc::c_uchar;
 }
 /* nonascii.h --- Prototypes for UTF-8 vs Latin-1 conversion for DIGEST-MD5
@@ -58,7 +58,7 @@ unsafe extern "C" fn to_uchar(mut ch: libc::c_char) -> libc::c_uchar {
  *
  */
 #[no_mangle]
-pub unsafe extern "C" fn latin1toutf8(mut str: *const libc::c_char)
+pub unsafe fn latin1toutf8(mut str: *const libc::c_char)
  -> *mut libc::c_char {
     let mut p: *mut libc::c_char = malloc((2 as size_t).wrapping_mul(strlen(str)).wrapping_add(1))
             as *mut libc::c_char;
@@ -99,7 +99,7 @@ pub unsafe extern "C" fn latin1toutf8(mut str: *const libc::c_char)
     return p;
 }
 #[no_mangle]
-pub unsafe extern "C" fn utf8tolatin1ifpossible(mut passwd:
+pub unsafe fn utf8tolatin1ifpossible(mut passwd:
                                                     *const libc::c_char)
  -> *mut libc::c_char {
     let mut p: *mut libc::c_char = 0 as *mut libc::c_char;

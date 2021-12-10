@@ -56,7 +56,7 @@ extern "C" {
    be allocated by the caller, and must have room for
    CRAM_MD5_DIGEST_LEN characters.*/
 #[no_mangle]
-pub unsafe extern "C" fn cram_md5_digest(mut challenge: *const libc::c_char,
+pub unsafe fn cram_md5_digest(mut challenge: *const libc::c_char,
                                          mut challengelen: size_t,
                                          mut secret: *const libc::c_char,
                                          mut secretlen: size_t,

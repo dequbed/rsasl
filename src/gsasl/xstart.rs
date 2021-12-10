@@ -29,7 +29,7 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-unsafe extern "C" fn find_mechanism(mut mech: *const libc::c_char,
+unsafe fn find_mechanism(mut mech: *const libc::c_char,
                                     mut n_mechs: size_t,
                                     mut mechs: *mut Gsasl_mechanism)
  -> *mut Gsasl_mechanism {
@@ -45,7 +45,7 @@ unsafe extern "C" fn find_mechanism(mut mech: *const libc::c_char,
     }
     return 0 as *mut Gsasl_mechanism;
 }
-unsafe extern "C" fn setup(mut ctx: *mut Gsasl, mut mech: *const libc::c_char,
+unsafe fn setup(mut ctx: *mut Gsasl, mut mech: *const libc::c_char,
                            mut sctx: *mut Gsasl_session, mut n_mechs: size_t,
                            mut mechs: *mut Gsasl_mechanism,
                            mut clientp: libc::c_int) -> libc::c_int {
@@ -74,7 +74,7 @@ unsafe extern "C" fn setup(mut ctx: *mut Gsasl, mut mech: *const libc::c_char,
     if res != GSASL_OK as libc::c_int { return res }
     return GSASL_OK as libc::c_int;
 }
-unsafe extern "C" fn start(mut ctx: *mut Gsasl, mut mech: *const libc::c_char,
+unsafe fn start(mut ctx: *mut Gsasl, mut mech: *const libc::c_char,
                            mut sctx: *mut *mut Gsasl_session,
                            mut n_mechs: size_t,
                            mut mechs: *mut Gsasl_mechanism,
@@ -104,7 +104,7 @@ unsafe extern "C" fn start(mut ctx: *mut Gsasl, mut mech: *const libc::c_char,
  * Return value: Returns %GSASL_OK if successful, or error code.
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_client_start(mut ctx: *mut Gsasl,
+pub unsafe fn gsasl_client_start(mut ctx: *mut Gsasl,
                                             mut mech: *const libc::c_char,
                                             mut sctx: *mut *mut Gsasl_session)
  -> libc::c_int {
@@ -330,7 +330,7 @@ pub unsafe extern "C" fn gsasl_client_start(mut ctx: *mut Gsasl,
  * Return value: Returns %GSASL_OK if successful, or error code.
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_server_start(mut ctx: *mut Gsasl,
+pub unsafe fn gsasl_server_start(mut ctx: *mut Gsasl,
                                             mut mech: *const libc::c_char,
                                             mut sctx: *mut *mut Gsasl_session)
  -> libc::c_int {

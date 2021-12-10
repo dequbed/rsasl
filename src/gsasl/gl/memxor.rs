@@ -38,7 +38,7 @@ pub type size_t = libc::c_ulong;
 /* Written by Simon Josefsson.  The interface was inspired by memxor
    in Niels Möller's Nettle. */
 #[no_mangle]
-pub unsafe extern "C" fn memxor(mut dest: *mut libc::c_void,
+pub unsafe fn memxor(mut dest: *mut libc::c_void,
                                 mut src: *const libc::c_void, mut n: size_t)
  -> *mut libc::c_void {
     let mut s: *const libc::c_char = src as *const libc::c_char;

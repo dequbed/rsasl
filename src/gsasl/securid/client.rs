@@ -129,9 +129,7 @@ pub unsafe fn _gsasl_securid_client_step(mut sctx: *mut Gsasl_session,
                    {
                     res = gsasl_property_set_raw(
                         sctx, GSASL_SUGGESTED_PIN,
-                        &*input.offset((
-                            strlen as unsafe extern "C" fn(_: *const libc::c_char) -> size_t
-                        )(b"pin\x00" as *const u8 as *const libc::c_char) as isize),
+                        &*input.offset(strlen(b"pin\x00" as *const u8 as *const libc::c_char) as isize),
                        input_len.wrapping_sub(strlen(b"pin\x00" as *const u8 as *const libc::c_char)));
                     if res != GSASL_OK as libc::c_int { return res }
                 }

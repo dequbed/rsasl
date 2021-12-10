@@ -314,6 +314,6 @@ extern "C" {
  * Since: 0.2.19
  **/
 #[no_mangle]
-pub unsafe extern "C" fn gsasl_free(mut ptr: *mut libc::c_void) {
+pub unsafe fn gsasl_free(mut ptr: *mut libc::c_void) {
     rpl_free(ptr);
 }

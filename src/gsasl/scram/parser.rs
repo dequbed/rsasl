@@ -36,7 +36,7 @@ extern "C" {
  */
 
 #[inline]
-unsafe extern "C" fn c_isalpha(mut c: libc::c_int) -> bool {
+unsafe fn c_isalpha(mut c: libc::c_int) -> bool {
     match c {
         97 | 98 | 99 | 100 | 101 | 102 | 103 | 104 | 105 | 106 | 107 | 108 |
         109 | 110 | 111 | 112 | 113 | 114 | 115 | 116 | 117 | 118 | 119 | 120
@@ -74,7 +74,7 @@ unsafe extern "C" fn c_isalpha(mut c: libc::c_int) -> bool {
 /* Get memcpy, strlen. */
 /* Get validator. */
 /* Get c_isalpha. */
-unsafe extern "C" fn unescape(mut str: *const libc::c_char, mut len: size_t)
+unsafe fn unescape(mut str: *const libc::c_char, mut len: size_t)
  -> *mut libc::c_char {
     let mut out: *mut libc::c_char = malloc(len.wrapping_add(1)) as *mut libc::c_char;
     let mut p: *mut libc::c_char = out;
@@ -125,7 +125,7 @@ unsafe extern "C" fn unescape(mut str: *const libc::c_char, mut len: size_t)
     return out;
 }
 #[no_mangle]
-pub unsafe extern "C" fn scram_parse_client_first(
+pub unsafe fn scram_parse_client_first(
     mut str: *const libc::c_char,
     mut len: size_t,
     mut cf: *mut scram_client_first,
@@ -266,7 +266,7 @@ pub unsafe extern "C" fn scram_parse_client_first(
     return 0 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn scram_parse_server_first(
+pub unsafe fn scram_parse_server_first(
     mut str: *const libc::c_char,
     mut len: size_t,
     mut sf: *mut scram_server_first,
@@ -398,7 +398,7 @@ pub unsafe extern "C" fn scram_parse_server_first(
  */
 /* Get token types. */
 #[no_mangle]
-pub unsafe extern "C" fn scram_parse_client_final(
+pub unsafe fn scram_parse_client_final(
     mut str: *const libc::c_char,
     mut len: size_t,
     mut cl: *mut scram_client_final,
@@ -525,7 +525,7 @@ pub unsafe extern "C" fn scram_parse_client_final(
     return 0 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn scram_parse_server_final(
+pub unsafe fn scram_parse_server_final(
     mut str: *const libc::c_char,
     mut len: size_t,
     mut sl: *mut scram_server_final,
