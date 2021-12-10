@@ -48,20 +48,24 @@ pub fn main() {
         }
         in_data.pop(); // Remove the newline char at the end of the string
 
-        let data = CString::new(in_data.as_bytes()).unwrap();
+        let data = in_data.into_boxed_str().into_boxed_bytes();
 
-        let step_result = session.step64(&data);
+        let step_result = session.step(&data);
 
         match step_result {
             Ok(Done(buffer)) => {
-                println!("Done: {:?}", buffer.as_ref());
+                let output = std::str::from_utf8(buffer.as_ref()).unwrap();
+                println!("Done: {:?}", output);
                 break;
             },
             Ok(NeedsMore(buffer)) => {
-                println!("Data to send: {:?}", buffer.as_ref());
-
+                let output = std::str::from_utf8(buffer.as_ref()).unwrap();
+                println!("Data to send: {:?}", output);
             }
-            Err(e) => println!("{}", e),
+            Err(e) => {
+                println!("{}", e);
+                break;
+            },
         }
     }
 }
