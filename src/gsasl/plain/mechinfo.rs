@@ -1,4 +1,3 @@
-use ::libc;
 use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
 use crate::gsasl::plain::client::_gsasl_plain_client_step;
 use crate::gsasl::plain::server::_gsasl_plain_server_step;
@@ -26,7 +25,7 @@ use crate::gsasl::plain::server::_gsasl_plain_server_step;
  */
 /* Get specification. */
 pub static mut gsasl_plain_mechanism: Gsasl_mechanism = Gsasl_mechanism {
-    name: b"PLAIN\x00" as *const u8 as *const libc::c_char,
+    name: "PLAIN",
     client: Gsasl_mechanism_functions {
         init: None,
         done: None,

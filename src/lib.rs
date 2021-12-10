@@ -83,7 +83,7 @@
 //! ```
 
 use std::ptr;
-use std::ffi::{CString, CStr};
+use std::ffi::CStr;
 
 
 // Re-Export DiscardOnDrop so people can write rsasl::DiscardOnDrop<SASL<D,E>> without having to
@@ -333,14 +333,10 @@ impl<D, E> SASL<D,E> {
     pub fn client_start(&mut self, mech: &str) -> error::Result<DiscardOnDrop<Session<E>>> {
         let mut ptr: *mut Gsasl_session = ptr::null_mut();
 
-        // Convert the mechanism &str to a zero-terminated String.
-        let cmech = CString::new(mech)
-            .map_err(|_| SaslError(GSASL_MECHANISM_PARSE_ERROR))?;
-
         let res = unsafe {
             gsasl_client_start(
                 self.ctx, 
-                cmech.as_ptr(),
+                mech,
                 &mut ptr as *mut *mut Gsasl_session)
         };
 
@@ -364,14 +360,10 @@ impl<D, E> SASL<D,E> {
     pub fn server_start(&mut self, mech: &str) -> error::Result<DiscardOnDrop<Session<E>>> {
         let mut ptr: *mut Gsasl_session = ptr::null_mut();
 
-        // Convert the mechanism &str to a zero-terminated String.
-        let cmech = CString::new(mech)
-            .map_err(|_| SaslError(GSASL_MECHANISM_PARSE_ERROR))?;
-
         let res = unsafe {
             gsasl_server_start(
                 self.ctx,
-                cmech.as_ptr(),
+                mech,
                 &mut ptr as *mut *mut Gsasl_session
             )
         };

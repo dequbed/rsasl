@@ -1,4 +1,3 @@
-use ::libc;
 use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
 use crate::gsasl::saml20::client::{_gsasl_saml20_client_finish, _gsasl_saml20_client_start, _gsasl_saml20_client_step};
 use crate::gsasl::saml20::server::{_gsasl_saml20_server_finish, _gsasl_saml20_server_start, _gsasl_saml20_server_step};
@@ -61,7 +60,7 @@ use crate::gsasl::saml20::server::{_gsasl_saml20_server_finish, _gsasl_saml20_se
  */
 
 pub static mut gsasl_saml20_mechanism: Gsasl_mechanism = Gsasl_mechanism {
-    name: b"SAML20\x00" as *const u8 as *const libc::c_char,
+    name: "SAML20",
     client: Gsasl_mechanism_functions {
         init: None,
         done: None,

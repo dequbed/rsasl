@@ -63,7 +63,7 @@ unsafe fn _gsasl_listmech(mut ctx: *mut Gsasl,
         }
         if rc == GSASL_OK as libc::c_int {
             gsasl_finish(sctx);
-            strcat(list, (*mechs.offset(i as isize)).name);
+            strcat(list, (*mechs.offset(i as isize)).name.as_ptr() as *const libc::c_char);
             if i < n_mechs.wrapping_sub(1) {
                 strcat(list, b" \x00" as *const u8 as *const libc::c_char);
             }

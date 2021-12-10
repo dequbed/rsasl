@@ -1,4 +1,3 @@
-use ::libc;
 use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
 use crate::gsasl::scram::client::{_gsasl_scram_client_finish, _gsasl_scram_client_step, _gsasl_scram_sha1_client_start, _gsasl_scram_sha1_plus_client_start, _gsasl_scram_sha256_client_start, _gsasl_scram_sha256_plus_client_start};
 use crate::gsasl::scram::server::{_gsasl_scram_server_finish, _gsasl_scram_server_step, _gsasl_scram_sha1_plus_server_start, _gsasl_scram_sha1_server_start, _gsasl_scram_sha256_plus_server_start, _gsasl_scram_sha256_server_start};
@@ -26,7 +25,7 @@ use crate::gsasl::scram::server::{_gsasl_scram_server_finish, _gsasl_scram_serve
  */
 /* Get specification. */
 pub static mut gsasl_scram_sha1_mechanism: Gsasl_mechanism = Gsasl_mechanism {
-    name: b"SCRAM-SHA-1\x00" as *const u8 as *const libc::c_char,
+    name: "SCRAM-SHA-1",
     client: Gsasl_mechanism_functions {
         init: None,
         done: None,
@@ -48,7 +47,7 @@ pub static mut gsasl_scram_sha1_mechanism: Gsasl_mechanism = Gsasl_mechanism {
 };
 
 pub static mut gsasl_scram_sha1_plus_mechanism: Gsasl_mechanism = Gsasl_mechanism {
-    name: b"SCRAM-SHA-1-PLUS\x00" as *const u8 as *const libc::c_char,
+    name: "SCRAM-SHA-1-PLUS",
     client: Gsasl_mechanism_functions {
         init: None,
         done: None,
@@ -70,7 +69,7 @@ pub static mut gsasl_scram_sha1_plus_mechanism: Gsasl_mechanism = Gsasl_mechanis
 };
 
 pub static mut gsasl_scram_sha256_mechanism: Gsasl_mechanism = Gsasl_mechanism {
-    name: b"SCRAM-SHA-256\x00" as *const u8 as *const libc::c_char,
+    name: "SCRAM-SHA-256",
     client: Gsasl_mechanism_functions {
         init: None,
         done: None,
@@ -92,7 +91,7 @@ pub static mut gsasl_scram_sha256_mechanism: Gsasl_mechanism = Gsasl_mechanism {
 };
 
 pub static mut gsasl_scram_sha256_plus_mechanism: Gsasl_mechanism = Gsasl_mechanism {
-    name: b"SCRAM-SHA-256-PLUS\x00" as *const u8 as *const libc::c_char,
+    name: "SCRAM-SHA-256-PLUS",
     client: Gsasl_mechanism_functions {
         init: None,
         done: None,

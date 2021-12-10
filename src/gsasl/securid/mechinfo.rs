@@ -1,4 +1,3 @@
-use ::libc;
 use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
 use crate::gsasl::securid::client::{_gsasl_securid_client_finish, _gsasl_securid_client_start, _gsasl_securid_client_step};
 use crate::gsasl::securid::server::_gsasl_securid_server_step;
@@ -26,7 +25,7 @@ use crate::gsasl::securid::server::_gsasl_securid_server_step;
  */
 /* Get specification. */
 pub static mut gsasl_securid_mechanism: Gsasl_mechanism = Gsasl_mechanism {
-    name: b"SECURID\x00" as *const u8 as *const libc::c_char,
+    name: "SECURID",
     client: Gsasl_mechanism_functions {
         init: None,
         done: None,

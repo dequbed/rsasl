@@ -1,4 +1,3 @@
-use ::libc;
 use crate::gsasl::cram_md5::client::_gsasl_cram_md5_client_step;
 use crate::gsasl::cram_md5::server::{_gsasl_cram_md5_server_finish, _gsasl_cram_md5_server_start, _gsasl_cram_md5_server_step};
 use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
@@ -60,7 +59,7 @@ use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
  */
 /* Get specification. */
 pub static mut gsasl_cram_md5_mechanism: Gsasl_mechanism = Gsasl_mechanism {
-    name: b"CRAM-MD5\x00" as *const u8 as *const libc::c_char,
+    name: "CRAM-MD5",
     client: Gsasl_mechanism_functions {
         init: None,
         done: None,
