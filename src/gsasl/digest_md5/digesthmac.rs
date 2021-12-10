@@ -1,45 +1,11 @@
 use ::libc;
 use libc::size_t;
+use crate::gsasl::digest_md5::parser::{digest_md5_cipher, DIGEST_MD5_CIPHER_RC4_40, DIGEST_MD5_CIPHER_RC4_56};
+use crate::gsasl::digest_md5::qop::{digest_md5_qop, DIGEST_MD5_QOP_AUTH, DIGEST_MD5_QOP_AUTH_CONF, DIGEST_MD5_QOP_AUTH_INT};
 use crate::gsasl::gl::gc_gnulib::gc_md5;
 
 extern "C" {
-
     fn malloc(_: size_t) -> *mut libc::c_void;
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <stdlib.h>.
-
-   Copyright (C) 1995, 2001-2004, 2006-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <string.h>.
-
-   Copyright (C) 1995-1996, 2001-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-
     fn rpl_free(ptr: *mut libc::c_void);
 
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
@@ -50,17 +16,7 @@ extern "C" {
     fn sprintf(_: *mut libc::c_char, _: *const libc::c_char, _: ...)
      -> libc::c_int;
 }
-pub type digest_md5_qop = libc::c_uint;
-pub const DIGEST_MD5_QOP_AUTH_CONF: digest_md5_qop = 4;
-pub const DIGEST_MD5_QOP_AUTH_INT: digest_md5_qop = 2;
-pub const DIGEST_MD5_QOP_AUTH: digest_md5_qop = 1;
-pub type digest_md5_cipher = libc::c_uint;
-pub const DIGEST_MD5_CIPHER_AES_CBC: digest_md5_cipher = 32;
-pub const DIGEST_MD5_CIPHER_RC4_56: digest_md5_cipher = 16;
-pub const DIGEST_MD5_CIPHER_RC4_40: digest_md5_cipher = 8;
-pub const DIGEST_MD5_CIPHER_RC4: digest_md5_cipher = 4;
-pub const DIGEST_MD5_CIPHER_3DES: digest_md5_cipher = 2;
-pub const DIGEST_MD5_CIPHER_DES: digest_md5_cipher = 1;
+
 /* gc.h --- Header file for implementation agnostic crypto wrapper API.
  * Copyright (C) 2002-2005, 2007-2008, 2011-2021 Free Software Foundation, Inc.
  *
@@ -130,7 +86,7 @@ pub const DIGEST_MD5_CIPHER_DES: digest_md5_cipher = 1;
 pub unsafe fn digest_md5_hmac(mut output: *mut libc::c_char,
                                          mut secret: *mut libc::c_char,
                                          mut nonce: *const libc::c_char,
-                                         mut nc: libc::c_ulong,
+                                         mut nc: size_t,
                                          mut cnonce: *const libc::c_char,
                                          mut qop: digest_md5_qop,
                                          mut authzid: *const libc::c_char,

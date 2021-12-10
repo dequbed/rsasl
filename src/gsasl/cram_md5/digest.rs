@@ -1,14 +1,10 @@
 use ::libc;
 use libc::size_t;
 use crate::gsasl::gc::Gc_rc;
+use crate::gsasl::gl::gc_gnulib::gc_hmac_md5;
 
 extern "C" {
-
     fn strlen(_: *const libc::c_char) -> size_t;
-
-    fn gc_hmac_md5(key: *const libc::c_void, keylen: size_t,
-                   in_0: *const libc::c_void, inlen: size_t,
-                   resbuf: *mut libc::c_char) -> Gc_rc;
 }
 /* gc.h --- Header file for implementation agnostic crypto wrapper API.
  * Copyright (C) 2002-2005, 2007-2008, 2011-2021 Free Software Foundation, Inc.

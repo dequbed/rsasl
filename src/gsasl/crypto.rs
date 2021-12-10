@@ -2,61 +2,13 @@ use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::GSASL_OK;
 use crate::gsasl::gc::Gc_rc;
-use crate::gsasl::mechtools::{Gsasl_hash, GSASL_HASH_SHA1_SIZE, GSASL_HASH_SHA256_SIZE};
-use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, Gsasl_saslprep_flags};
+use crate::gsasl::gl::gc_gnulib::{gc_nonce, gc_random};
+use crate::gsasl::mechtools::{_gsasl_hash, _gsasl_hmac, _gsasl_pbkdf2, Gsasl_hash, GSASL_HASH_SHA1_SIZE, GSASL_HASH_SHA256_SIZE};
+use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep, Gsasl_saslprep_flags};
 
 extern "C" {
-    fn gsasl_saslprep(in_0: *const libc::c_char, flags: Gsasl_saslprep_flags,
-                      out: *mut *mut libc::c_char,
-                      stringpreprc: *mut libc::c_int) -> libc::c_int;
     fn strlen(_: *const libc::c_char) -> size_t;
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <string.h>.
-
-   Copyright (C) 1995-1996, 2001-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <stdlib.h>.
-
-   Copyright (C) 1995, 2001-2004, 2006-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
     fn rpl_free(ptr: *mut libc::c_void);
-    fn _gsasl_hash(hash: Gsasl_hash, in_0: *const libc::c_char, inlen: size_t,
-                   out: *mut libc::c_char) -> libc::c_int;
-    fn _gsasl_hmac(hash: Gsasl_hash, key: *const libc::c_char, keylen: size_t,
-                   in_0: *const libc::c_char, inlen: size_t,
-                   outhash: *mut libc::c_char) -> libc::c_int;
-    fn _gsasl_pbkdf2(hash: Gsasl_hash, password: *const libc::c_char,
-                     passwordlen: size_t, salt: *const libc::c_char,
-                     saltlen: size_t, c: libc::c_uint, dk: *mut libc::c_char,
-                     dklen: size_t) -> libc::c_int;
-    /* Randomness. */
-    fn gc_nonce(data: *mut libc::c_char, datalen: size_t) -> Gc_rc;
-    fn gc_random(data: *mut libc::c_char, datalen: size_t) -> Gc_rc;
 }
 /* gc.h --- Header file for implementation agnostic crypto wrapper API.
  * Copyright (C) 2002-2005, 2007-2008, 2011-2021 Free Software Foundation, Inc.
