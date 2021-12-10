@@ -89,8 +89,7 @@ extern "C" {
 /* Get malloc, free. */
 /* Get memcpy, strlen. */
 /* Get cram_md5_digest. */
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_cram_md5_client_step(mut sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_cram_md5_client_step(mut sctx: *mut Gsasl_session,
                                                      mut _mech_data: *mut libc::c_void,
                                                      mut input: *const libc::c_char,
                                                      mut input_len: size_t,

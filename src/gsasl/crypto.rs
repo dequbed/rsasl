@@ -9,7 +9,7 @@ extern "C" {
     fn gsasl_saslprep(in_0: *const libc::c_char, flags: Gsasl_saslprep_flags,
                       out: *mut *mut libc::c_char,
                       stringpreprc: *mut libc::c_int) -> libc::c_int;
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn strlen(_: *const libc::c_char) -> size_t;
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* A GNU-like <string.h>.
 

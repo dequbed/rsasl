@@ -1,6 +1,5 @@
 use ::libc;
-use libc::size_t;
-use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions, Gsasl_session};
+use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
 use crate::gsasl::openid20::client::{_gsasl_openid20_client_finish, _gsasl_openid20_client_start, _gsasl_openid20_client_step};
 use crate::gsasl::openid20::server::{_gsasl_openid20_server_finish, _gsasl_openid20_server_start, _gsasl_openid20_server_step};
 
@@ -61,110 +60,34 @@ use crate::gsasl::openid20::server::{_gsasl_openid20_server_finish, _gsasl_openi
  *
  */
 /* Get specification. */
-#[no_mangle]
-pub static mut gsasl_openid20_mechanism: Gsasl_mechanism =
-    {
-        {
-            let mut init =
-                Gsasl_mechanism{name:
-                                    b"OPENID20\x00" as *const u8 as
-                                        *const libc::c_char,
-                                client:
-                                    {
-                                        let mut init =
-                                            Gsasl_mechanism_functions{init:
-                                                                          None,
-                                                                      done:
-                                                                          None,
-                                                                      start:
-                                                                          Some(_gsasl_openid20_client_start
-                                                                                   as
-                                                                                   unsafe extern "C" fn(_:
-                                                                                                            *mut Gsasl_session,
-                                                                                                        _:
-                                                                                                            *mut *mut libc::c_void)
-                                                                                       ->
-                                                                                           libc::c_int),
-                                                                      step:
-                                                                          Some(_gsasl_openid20_client_step
-                                                                                   as
-                                                                                   unsafe extern "C" fn(_:
-                                                                                                            *mut Gsasl_session,
-                                                                                                        _:
-                                                                                                            *mut libc::c_void,
-                                                                                                        _:
-                                                                                                            *const libc::c_char,
-                                                                                                        _:
-                                                                                                            size_t,
-                                                                                                        _:
-                                                                                                            *mut *mut libc::c_char,
-                                                                                                        _:
-                                                                                                            *mut size_t)
-                                                                                       ->
-                                                                                           libc::c_int),
-                                                                      finish:
-                                                                          Some(_gsasl_openid20_client_finish
-                                                                                   as
-                                                                                   unsafe extern "C" fn(_:
-                                                                                                            *mut Gsasl_session,
-                                                                                                        _:
-                                                                                                            *mut libc::c_void)
-                                                                                       ->
-                                                                                           ()),
-                                                                      encode:
-                                                                          None,
-                                                                      decode:
-                                                                          None,};
-                                        init
-                                    },
-                                server:
-                                    {
-                                        let mut init =
-                                            Gsasl_mechanism_functions{init:
-                                                                          None,
-                                                                      done:
-                                                                          None,
-                                                                      start:
-                                                                          Some(_gsasl_openid20_server_start
-                                                                                   as
-                                                                                   unsafe extern "C" fn(_:
-                                                                                                            *mut Gsasl_session,
-                                                                                                        _:
-                                                                                                            *mut *mut libc::c_void)
-                                                                                       ->
-                                                                                           libc::c_int),
-                                                                      step:
-                                                                          Some(_gsasl_openid20_server_step
-                                                                                   as
-                                                                                   unsafe extern "C" fn(_:
-                                                                                                            *mut Gsasl_session,
-                                                                                                        _:
-                                                                                                            *mut libc::c_void,
-                                                                                                        _:
-                                                                                                            *const libc::c_char,
-                                                                                                        _:
-                                                                                                            size_t,
-                                                                                                        _:
-                                                                                                            *mut *mut libc::c_char,
-                                                                                                        _:
-                                                                                                            *mut size_t)
-                                                                                       ->
-                                                                                           libc::c_int),
-                                                                      finish:
-                                                                          Some(_gsasl_openid20_server_finish
-                                                                                   as
-                                                                                   unsafe extern "C" fn(_:
-                                                                                                            *mut Gsasl_session,
-                                                                                                        _:
-                                                                                                            *mut libc::c_void)
-                                                                                       ->
-                                                                                           ()),
-                                                                      encode:
-                                                                          None,
-                                                                      decode:
-                                                                          None,};
-                                        init
-                                    },};
-            init
-        }
-    };
+pub static mut gsasl_openid20_mechanism: Gsasl_mechanism = Gsasl_mechanism {
+    name: b"OPENID20\x00" as *const u8 as *const libc::c_char,
+    client: Gsasl_mechanism_functions {
+        init:
+        None,
+        done:
+        None,
+        start:
+        Some(_gsasl_openid20_client_start),
+        step: Some(_gsasl_openid20_client_step),
+        finish: Some(_gsasl_openid20_client_finish),
+        encode:
+        None,
+        decode:
+        None,
+    },
+    server: Gsasl_mechanism_functions {
+        init:
+        None,
+        done:
+        None,
+        start:
+        Some(_gsasl_openid20_server_start),
+        step: Some(_gsasl_openid20_server_step),
+        finish: Some(_gsasl_openid20_server_finish),
+        encode:
+        None,
+        decode:
+        None,
+    },
+};

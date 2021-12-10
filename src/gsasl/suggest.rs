@@ -2,15 +2,12 @@ use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::GSASL_OK;
 use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
+use crate::gsasl::xfinish::gsasl_finish;
+use crate::gsasl_client_start;
 
 extern "C" {
     static mut GSASL_VALID_MECHANISM_CHARACTERS: *const libc::c_char;
     /* Authentication functions: xstart.c, xstep.c, xfinish.c */
-
-    fn gsasl_finish(sctx: *mut Gsasl_session);
-
-    fn gsasl_client_start(ctx: *mut Gsasl, mech: *const libc::c_char,
-                          sctx: *mut *mut Gsasl_session) -> libc::c_int;
 
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char,
                _: size_t) -> libc::c_int;

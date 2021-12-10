@@ -327,8 +327,7 @@ pub struct digest_md5_challenge {
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_client_start(mut _sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_digest_md5_client_start(mut _sctx: *mut Gsasl_session,
                                                         mut mech_data: *mut *mut libc::c_void
     ) -> libc::c_int
 {
@@ -355,8 +354,7 @@ pub unsafe extern "C" fn _gsasl_digest_md5_client_start(mut _sctx: *mut Gsasl_se
     *mech_data = state as *mut libc::c_void;
     return GSASL_OK as libc::c_int;
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_client_step(mut sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_digest_md5_client_step(mut sctx: *mut Gsasl_session,
                                                        mut mech_data: *mut libc::c_void,
                                                        mut input: *const libc::c_char,
                                                        mut input_len: size_t,
@@ -545,8 +543,7 @@ pub unsafe extern "C" fn _gsasl_digest_md5_client_step(mut sctx: *mut Gsasl_sess
     }
     return res;
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_client_finish(mut _sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_digest_md5_client_finish(mut _sctx: *mut Gsasl_session,
                                                          mut mech_data: *mut libc::c_void
 )
 {
@@ -558,8 +555,7 @@ pub unsafe extern "C" fn _gsasl_digest_md5_client_finish(mut _sctx: *mut Gsasl_s
     digest_md5_free_finish(&mut (*state).finish);
     rpl_free(state as *mut libc::c_void);
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_client_encode(mut _sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_digest_md5_client_encode(mut _sctx: *mut Gsasl_session,
                                                          mut mech_data: *mut libc::c_void,
                                                          mut input: *const libc::c_char,
                                                          mut input_len: size_t,
@@ -584,8 +580,7 @@ pub unsafe extern "C" fn _gsasl_digest_md5_client_encode(mut _sctx: *mut Gsasl_s
     } else { (*state).sendseqnum = (*state).sendseqnum.wrapping_add(1) }
     return GSASL_OK as libc::c_int;
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_client_decode(mut _sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_digest_md5_client_decode(mut _sctx: *mut Gsasl_session,
                                                          mut mech_data: *mut libc::c_void,
                                                          mut input: *const libc::c_char,
                                                          mut input_len: size_t,

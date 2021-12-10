@@ -2,9 +2,9 @@ use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_CLIENT_CODE, GSASL_NO_SERVER_CODE, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
 use crate::gsasl::gsasl::{Gsasl, Gsasl_mechanism, Gsasl_session};
+use crate::gsasl::xfinish::gsasl_finish;
 
 extern "C" {
-    fn gsasl_finish(sctx: *mut Gsasl_session);
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
     fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
 }

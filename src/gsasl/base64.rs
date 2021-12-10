@@ -235,7 +235,7 @@ pub unsafe extern "C" fn gsasl_hex_to(mut in_0: *const libc::c_char,
     if !outlen.is_null() { *outlen = len }
     *out = malloc((*outlen).wrapping_add(1)) as *mut libc::c_char;
     if (*out).is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
-    _gsasl_hex_encode(in_0, inlen as u64, *out);
+    _gsasl_hex_encode(in_0, inlen, *out);
     *(*out).offset(len as isize) = '\u{0}' as i32 as libc::c_char;
     return GSASL_OK as libc::c_int;
 }

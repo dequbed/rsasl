@@ -2,69 +2,23 @@ use ::libc;
 use libc::size_t;
 use crate::gsasl::base64::{gsasl_base64_from, gsasl_base64_to};
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_CB_TLS_UNIQUE, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_AUTHID, GSASL_NO_CB_TLS_UNIQUE, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD, GSASL_SCRAM_ITER, GSASL_SCRAM_SALT, GSASL_SCRAM_SALTED_PASSWORD};
-use crate::gsasl::crypto::gsasl_nonce;
+use crate::gsasl::crypto::{gsasl_hash_length, gsasl_nonce, gsasl_scram_secrets_from_password, gsasl_scram_secrets_from_salted_password};
 use crate::gsasl::free::gsasl_free;
 use crate::gsasl::gsasl::Gsasl_session;
+use crate::gsasl::mechtools::{_gsasl_hex_decode, _gsasl_hex_p, _gsasl_hmac};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep};
+use crate::gsasl::scram::parser::{scram_parse_server_final, scram_parse_server_first};
+use crate::gsasl::scram::printer::{scram_print_client_final, scram_print_client_first};
+use crate::gsasl::scram::server::{scram_server_final, scram_server_first};
+use crate::gsasl::scram::tokens::{scram_free_client_final, scram_free_client_first, scram_free_server_final, scram_free_server_first};
+use crate::gsasl::scram::tools::set_saltedpassword;
 
 extern "C" {
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,
                 _: ...) -> libc::c_int;
-    fn gsasl_hash_length(hash: Gsasl_hash) -> size_t;
-    fn gsasl_scram_secrets_from_salted_password(hash: Gsasl_hash,
-                                                salted_password:
-                                                    *const libc::c_char,
-                                                client_key: *mut libc::c_char,
-                                                server_key: *mut libc::c_char,
-                                                stored_key: *mut libc::c_char)
-     -> libc::c_int;
-    fn gsasl_scram_secrets_from_password(hash: Gsasl_hash,
-                                         password: *const libc::c_char,
-                                         iteration_count: libc::c_uint,
-                                         salt: *const libc::c_char,
-                                         saltlen: size_t,
-                                         salted_password: *mut libc::c_char,
-                                         client_key: *mut libc::c_char,
-                                         server_key: *mut libc::c_char,
-                                         stored_key: *mut libc::c_char)
-     -> libc::c_int;
     fn malloc(_: size_t) -> *mut libc::c_void;
     fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <stdlib.h>.
-
-   Copyright (C) 1995, 2001-2004, 2006-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <string.h>.
-
-   Copyright (C) 1995-1996, 2001-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
     fn rpl_free(ptr: *mut libc::c_void);
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t) -> *mut libc::c_void;
     fn memcmp(_: *const libc::c_void, _: *const libc::c_void, _: size_t) -> libc::c_int;
@@ -72,90 +26,8 @@ extern "C" {
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
     fn strchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
     fn strlen(_: *const libc::c_char) -> size_t;
-    fn scram_free_client_first(cf: *mut scram_client_first);
-    fn scram_free_server_first(sf: *mut scram_server_first);
-    fn scram_free_client_final(cl: *mut scram_client_final);
-    fn scram_free_server_final(sl: *mut scram_server_final);
-    fn scram_parse_server_first(str: *const libc::c_char, len: size_t,
-                                cf: *mut scram_server_first) -> libc::c_int;
-    fn scram_parse_server_final(str: *const libc::c_char, len: size_t,
-                                sl: *mut scram_server_final) -> libc::c_int;
-    /* printer.h --- Convert SCRAM token structures into strings.
- * Copyright (C) 2009-2021 Simon Josefsson
- *
- * This file is part of GNU SASL Library.
- *
- * GNU SASL Library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * GNU SASL Library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with GNU SASL Library; if not, write to the Free
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
-    /* Get token types. */
-    fn scram_print_client_first(cf: *mut scram_client_first,
-                                out: *mut *mut libc::c_char) -> libc::c_int;
-    fn scram_print_client_final(cl: *mut scram_client_final,
-                                out: *mut *mut libc::c_char) -> libc::c_int;
-    /* memxor.h -- perform binary exclusive OR operation on memory blocks.
-   Copyright (C) 2005, 2009-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    /* Written by Simon Josefsson.  The interface was inspired by memxor
-   in Niels Möller's Nettle. */
-    /* Compute binary exclusive OR of memory areas DEST and SRC, putting
-   the result in DEST, of length N bytes.  Returns a pointer to
-   DEST. */
     fn memxor(dest: *mut libc::c_void, src: *const libc::c_void, n: size_t)
      -> *mut libc::c_void;
-    /* tools.h --- Shared client/server SCRAM code
- * Copyright (C) 2009-2021 Simon Josefsson
- *
- * This file is part of GNU SASL Library.
- *
- * GNU SASL Library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * GNU SASL Library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with GNU SASL Library; if not, write to the Free
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
-    fn set_saltedpassword(sctx: *mut Gsasl_session, hash: Gsasl_hash,
-                          hashbuf: *const libc::c_char) -> libc::c_int;
-    fn _gsasl_hex_decode(hexstr: *const libc::c_char, bin: *mut libc::c_char);
-    fn _gsasl_hex_p(hexstr: *const libc::c_char) -> bool;
-    fn _gsasl_hmac(hash: Gsasl_hash, key: *const libc::c_char, keylen: size_t,
-                   in_0: *const libc::c_char, inlen: size_t,
-                   outhash: *mut libc::c_char) -> libc::c_int;
 }
 
 /* Crypto functions: crypto.c */
@@ -194,11 +66,7 @@ pub struct scram_client_state {
     pub cl: scram_client_final,
     pub sl: scram_server_final,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct scram_server_final {
-    pub verifier: *mut libc::c_char,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct scram_client_final {
@@ -206,13 +74,7 @@ pub struct scram_client_final {
     pub nonce: *mut libc::c_char,
     pub proof: *mut libc::c_char,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct scram_server_first {
-    pub nonce: *mut libc::c_char,
-    pub salt: *mut libc::c_char,
-    pub iter: size_t,
-}
+
 /* tokens.h --- Types for SCRAM tokens.
  * Copyright (C) 2009-2021 Simon Josefsson
  *
@@ -269,8 +131,7 @@ unsafe extern "C" fn scram_start(mut _sctx: *mut Gsasl_session,
     *mech_data = state as *mut libc::c_void;
     return GSASL_OK as libc::c_int;
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_scram_sha1_client_start(mut sctx:
+pub unsafe fn _gsasl_scram_sha1_client_start(mut sctx:
                                                             *mut Gsasl_session,
                                                         mut mech_data:
                                                             *mut *mut libc::c_void)
@@ -278,8 +139,7 @@ pub unsafe extern "C" fn _gsasl_scram_sha1_client_start(mut sctx:
     return scram_start(sctx, mech_data, 0 as libc::c_int != 0,
                        GSASL_HASH_SHA1);
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_scram_sha1_plus_client_start(mut sctx:
+pub unsafe fn _gsasl_scram_sha1_plus_client_start(mut sctx:
                                                                  *mut Gsasl_session,
                                                              mut mech_data:
                                                                  *mut *mut libc::c_void)
@@ -287,8 +147,7 @@ pub unsafe extern "C" fn _gsasl_scram_sha1_plus_client_start(mut sctx:
     return scram_start(sctx, mech_data, 1 as libc::c_int != 0,
                        GSASL_HASH_SHA1);
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_scram_sha256_client_start(mut sctx:
+pub unsafe fn _gsasl_scram_sha256_client_start(mut sctx:
                                                               *mut Gsasl_session,
                                                           mut mech_data:
                                                               *mut *mut libc::c_void)
@@ -296,8 +155,7 @@ pub unsafe extern "C" fn _gsasl_scram_sha256_client_start(mut sctx:
     return scram_start(sctx, mech_data, 0 as libc::c_int != 0,
                        GSASL_HASH_SHA256);
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_scram_sha256_plus_client_start(mut sctx:
+pub unsafe fn _gsasl_scram_sha256_plus_client_start(mut sctx:
                                                                    *mut Gsasl_session,
                                                                mut mech_data:
                                                                    *mut *mut libc::c_void)
@@ -305,8 +163,7 @@ pub unsafe extern "C" fn _gsasl_scram_sha256_plus_client_start(mut sctx:
     return scram_start(sctx, mech_data, 1 as libc::c_int != 0,
                        GSASL_HASH_SHA256);
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_scram_client_step(mut sctx:
+pub unsafe fn _gsasl_scram_client_step(mut sctx:
                                                       *mut Gsasl_session,
                                                   mut mech_data:
                                                       *mut libc::c_void,
@@ -572,8 +429,7 @@ pub unsafe extern "C" fn _gsasl_scram_client_step(mut sctx:
     }
     return res;
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_scram_client_finish(mut _sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_scram_client_finish(mut _sctx: *mut Gsasl_session,
                                                     mut mech_data: *mut libc::c_void) {
     let mut state: *mut scram_client_state =
         mech_data as *mut scram_client_state;

@@ -2,10 +2,9 @@ use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_OK, Gsasl_property};
 use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
+use crate::gsasl_callback;
 
 extern "C" {
-    fn gsasl_callback(ctx: *mut Gsasl, sctx: *mut Gsasl_session,
-                      prop: Gsasl_property) -> libc::c_int;
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
      -> *mut libc::c_void;

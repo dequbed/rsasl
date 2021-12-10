@@ -56,8 +56,7 @@ extern "C" {
 /* Get specification. */
 /* Get memcpy, strdup, strlen. */
 /* Get malloc, free. */
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_plain_client_step(mut sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_plain_client_step(mut sctx: *mut Gsasl_session,
                                                   mut _mech_data: *mut libc::c_void,
                                                   mut _input: *const libc::c_char,
                                                   mut _input_len: size_t,

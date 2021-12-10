@@ -336,8 +336,7 @@ pub struct digest_md5_challenge {
     pub utf8: libc::c_int,
     pub ciphers: libc::c_int,
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_server_start(mut _sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_digest_md5_server_start(mut _sctx: *mut Gsasl_session,
                                                         mut mech_data: *mut *mut libc::c_void
     ) -> libc::c_int
 {
@@ -366,7 +365,7 @@ pub unsafe extern "C" fn _gsasl_digest_md5_server_start(mut _sctx: *mut Gsasl_se
     *mech_data = state as *mut libc::c_void;
     return GSASL_OK as libc::c_int;
 }
-unsafe extern "C" fn _gsasl_digest_md5_hexdigit_to_char(mut hexdigit:
+unsafe fn _gsasl_digest_md5_hexdigit_to_char(mut hexdigit:
                                                             libc::c_char)
  -> libc::c_char {
     /* The hex representation always contains lowercase alphabetic
@@ -390,7 +389,7 @@ unsafe extern "C" fn _gsasl_digest_md5_hex_to_char(mut u: libc::c_char,
                 _gsasl_digest_md5_hexdigit_to_char(l) as libc::c_int) as
                libc::c_char;
 }
-unsafe extern "C" fn _gsasl_digest_md5_set_hashed_secret(mut secret:
+unsafe fn _gsasl_digest_md5_set_hashed_secret(mut secret:
                                                              *mut libc::c_char,
                                                          mut hex_secret:
                                                              *const libc::c_char)
@@ -414,8 +413,7 @@ unsafe extern "C" fn _gsasl_digest_md5_set_hashed_secret(mut secret:
     }
     return GSASL_OK as libc::c_int;
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_server_step(mut sctx:
+pub unsafe fn _gsasl_digest_md5_server_step(mut sctx:
                                                            *mut Gsasl_session,
                                                        mut mech_data:
                                                            *mut libc::c_void,
@@ -612,8 +610,7 @@ pub unsafe extern "C" fn _gsasl_digest_md5_server_step(mut sctx:
     }
     return res;
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_server_finish(mut _sctx:
+pub unsafe fn _gsasl_digest_md5_server_finish(mut _sctx:
                                                              *mut Gsasl_session,
                                                          mut mech_data:
                                                              *mut libc::c_void) {
@@ -625,8 +622,7 @@ pub unsafe extern "C" fn _gsasl_digest_md5_server_finish(mut _sctx:
     digest_md5_free_finish(&mut (*state).finish);
     rpl_free(state as *mut libc::c_void);
 }
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_server_encode(mut _sctx:
+pub unsafe fn _gsasl_digest_md5_server_encode(mut _sctx:
                                                              *mut Gsasl_session,
                                                          mut mech_data:
                                                              *mut libc::c_void,
@@ -677,8 +673,7 @@ pub unsafe extern "C" fn _gsasl_digest_md5_server_encode(mut _sctx:
  * Boston, MA 02110-1301, USA.
  *
  */
-#[no_mangle]
-pub unsafe extern "C" fn _gsasl_digest_md5_server_decode(mut _sctx:
+pub unsafe fn _gsasl_digest_md5_server_decode(mut _sctx:
                                                              *mut Gsasl_session,
                                                          mut mech_data:
                                                              *mut libc::c_void,
