@@ -1,3 +1,4 @@
+use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_ANONYMOUS_TOKEN, GSASL_MALLOC_ERROR, GSASL_NO_ANONYMOUS_TOKEN,
@@ -54,12 +55,13 @@ extern "C" {
  */
 /* Get specification. */
 /* Get strdup, strlen. */
-pub unsafe fn _gsasl_anonymous_client_step(mut sctx: *mut Gsasl_session,
-                                                      mut _mech_data: *mut libc::c_void,
-                                                      mut _input: Option<&[u8]>,
-                                                      mut output: *mut *mut libc::c_char,
-                                                      mut output_len: *mut size_t)
- -> libc::c_int {
+pub unsafe fn _gsasl_anonymous_client_step(sctx: *mut Gsasl_session,
+                                           _mech_data: Option<NonNull<()>>,
+                                           _input: Option<&[u8]>,
+                                           output: *mut *mut libc::c_char,
+                                           output_len: *mut size_t
+) -> libc::c_int
+{
     let mut p: *const libc::c_char = 0 as *const libc::c_char;
     p = gsasl_property_get(sctx, GSASL_ANONYMOUS_TOKEN);
     if p.is_null() { return GSASL_NO_ANONYMOUS_TOKEN as libc::c_int }

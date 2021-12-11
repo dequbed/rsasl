@@ -35,7 +35,7 @@ pub const GSASL_MIN_MECHANISM_SIZE: C2RustUnnamed = 1;
  * Boston, MA 02110-1301, USA.
  *
  */
-unsafe fn _gsasl_listmech(mut ctx: *mut Gsasl,
+unsafe fn _gsasl_listmech(ctx: &Gsasl,
                                      mut mechs: *mut Gsasl_mechanism,
                                      mut n_mechs: size_t,
                                      mut out: *mut *mut libc::c_char,
@@ -86,9 +86,7 @@ unsafe fn _gsasl_listmech(mut ctx: *mut Gsasl,
  * Return value: Returns %GSASL_OK if successful, or error code.
  **/
 #[no_mangle]
-pub unsafe fn gsasl_client_mechlist(mut ctx: *mut Gsasl,
-                                               mut out:
-                                                   *mut *mut libc::c_char)
+pub unsafe fn gsasl_client_mechlist(ctx: &Gsasl, out: &mut *mut libc::c_char)
  -> libc::c_int {
     return _gsasl_listmech(ctx, (*ctx).client_mechs, (*ctx).n_client_mechs,
                            out, 1 as libc::c_int);
@@ -311,9 +309,7 @@ pub unsafe fn gsasl_client_mechlist(mut ctx: *mut Gsasl,
  * Return value: Returns %GSASL_OK if successful, or error code.
  **/
 #[no_mangle]
-pub unsafe fn gsasl_server_mechlist(mut ctx: *mut Gsasl,
-                                               mut out:
-                                                   *mut *mut libc::c_char)
+pub unsafe fn gsasl_server_mechlist(ctx: &Gsasl, out: *mut *mut libc::c_char)
  -> libc::c_int {
     return _gsasl_listmech(ctx, (*ctx).server_mechs, (*ctx).n_server_mechs,
                            out, 0 as libc::c_int);

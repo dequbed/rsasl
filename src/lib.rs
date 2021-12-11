@@ -84,6 +84,7 @@
 
 use std::ptr;
 use std::ffi::CStr;
+use std::fmt::{Debug, Formatter};
 
 
 // Re-Export DiscardOnDrop so people can write rsasl::DiscardOnDrop<SASL<D,E>> without having to
@@ -113,7 +114,6 @@ pub use session::Step;
 use crate::gsasl::consts::{GSASL_MECHANISM_PARSE_ERROR, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
 use crate::gsasl::done::gsasl_done;
 use crate::gsasl::gsasl::{Gsasl, Gsasl_callback_function, Gsasl_session};
-use crate::gsasl::init::gsasl_init;
 use crate::gsasl::listmech::{gsasl_client_mechlist, gsasl_server_mechlist};
 use crate::gsasl::suggest::gsasl_client_suggest_mechanism;
 use crate::gsasl::supportp::{gsasl_client_support_p, gsasl_server_support_p};
@@ -128,7 +128,6 @@ pub use error::{
     gsasl_errname_to_str,
 };
 
-#[derive(Debug)]
 /// Global SASL Context wrapper implementing housekeeping functionality
 ///
 /// This struct contains the global gsasl context allowing you to start authentication exchanges.
@@ -147,13 +146,20 @@ pub use error::{
 /// [`Session` requivalent](Session::retrieve).
 pub struct SASL<D,E> {
     // The underlying context as returned by gsasl
-    ctx: *mut Gsasl,
+    ctx: &'static mut Gsasl,
 
     // The data is actually stored in the application context, not in this struct. This phantom
     // marker allows us to use generics and ensures that the context is !Send if the stored data is
     // !Send
     appdata: std::marker::PhantomData<D>,
     sessdata: std::marker::PhantomData<E>,
+}
+
+impl<D,E> Debug for SASL<D,E> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SASL")
+            .finish()
+    }
 }
 
 /// Utility type definition to make the outer SASL type spellable without manually importing the
@@ -172,10 +178,10 @@ impl<D, E> SASL<D,E> {
     /// [`DiscardOnDrop::leak`](discard::DiscardOnDrop::leak), allowing you to manually handle
     /// finalizing the context.
     pub fn new() -> error::Result<DiscardOnDrop<Self>> {
-        let mut ctx = Self::from_ptr(ptr::null_mut());
-
-        ctx.init()?;
-
+        let gsasl = Box::leak(Box::new(
+            Gsasl::new().map_err(|e| error::SaslError(e))?
+        ));
+        let mut ctx = Self::from_ptr(gsasl);
         Ok(DiscardOnDrop::new(ctx))
     }
 
@@ -183,24 +189,10 @@ impl<D, E> SASL<D,E> {
     ///
     /// This function should never be called by an external party directly. Use the `new`
     /// constructor that correctly initializes the context.
-    pub(crate) fn from_ptr(ctx: *mut Gsasl) -> Self {
+    pub(crate) fn from_ptr(ctx: &'static mut Gsasl) -> Self {
         let appdata = std::marker::PhantomData;
         let sessdata = std::marker::PhantomData;
         Self { ctx, appdata, sessdata }
-    }
-
-    /// Initialize a SASL context. Has to be run before most other functions are called
-    fn init(&mut self) -> error::Result<()> {
-        // Initialize the context
-        let res = unsafe {
-            gsasl_init(&mut (self.ctx) as *mut *mut Gsasl)
-        };
-
-        if res != (GSASL_OK as libc::c_int) {
-            return Err(error::SaslError(res as u32));
-        }
-
-        Ok(())
     }
 
     /// Returns the list of Client Mechanisms supported by this library.
@@ -215,7 +207,7 @@ impl<D, E> SASL<D,E> {
         let mut out = ptr::null_mut();
 
         // Call into libgsasl. As per usual ffi is unsafe
-        let ret = unsafe { gsasl_client_mechlist(self.ctx, &mut out as *mut *mut libc::c_char) };
+        let ret = unsafe { gsasl_client_mechlist(self.ctx, &mut out) };
 
         // Take ownership of the output buffer so that it will always be freed and we don't leak
         // memory.

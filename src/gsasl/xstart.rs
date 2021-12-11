@@ -1,3 +1,4 @@
+use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_CLIENT_CODE, GSASL_NO_SERVER_CODE, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
@@ -44,36 +45,50 @@ unsafe fn find_mechanism(mut mech: &str,
     }
     return 0 as *mut Gsasl_mechanism;
 }
-unsafe fn setup(mut ctx: *mut Gsasl, mut mech: &str,
-                           mut sctx: *mut Gsasl_session, mut n_mechs: size_t,
-                           mut mechs: *mut Gsasl_mechanism,
-                           mut clientp: libc::c_int) -> libc::c_int {
+
+unsafe fn setup(ctx: &Gsasl,
+                mut mech: &str,
+                mut sctx: &mut Gsasl_session,
+                mut n_mechs: size_t,
+                mut mechs: *mut Gsasl_mechanism,
+                mut clientp: libc::c_int
+) -> libc::c_int
+{
     let mut mechptr: *mut Gsasl_mechanism = 0 as *mut Gsasl_mechanism;
     let mut res: libc::c_int = 0;
     mechptr = find_mechanism(mech, n_mechs, mechs);
     if mechptr.is_null() { return GSASL_UNKNOWN_MECHANISM as libc::c_int }
-    (*sctx).ctx = ctx;
+    (*sctx).ctx = ctx as *const _ as *mut _;
     (*sctx).mech = mechptr;
     (*sctx).clientp = clientp;
     if clientp != 0 {
-        if (*(*sctx).mech).client.start.is_some() {
-            res =
-                (*(*sctx).mech).client.start.expect("non-null function pointer")(sctx,
-                                                                                 &mut (*sctx).mech_data)
+        if let Some(start) = (*(*sctx).mech).client.start {
+            let mut data = None;
+            res = start(sctx, &mut data);
+            sctx.mech_data = data;
         } else if (*(*sctx).mech).client.step.is_none() {
             res = GSASL_NO_CLIENT_CODE as libc::c_int
-        } else { res = GSASL_OK as libc::c_int }
-    } else if (*(*sctx).mech).server.start.is_some() {
-        res =
-            (*(*sctx).mech).server.start.expect("non-null function pointer")(sctx,
-                                                                             &mut (*sctx).mech_data)
+        } else {
+            res = GSASL_OK as libc::c_int
+        }
+    } else if let Some(start) = (*(*sctx).mech).server.start {
+        let mut data = None;
+        res = start(sctx, &mut data);
+        sctx.mech_data = data;
     } else if (*(*sctx).mech).server.step.is_none() {
         res = GSASL_NO_SERVER_CODE as libc::c_int
-    } else { res = GSASL_OK as libc::c_int }
-    if res != GSASL_OK as libc::c_int { return res }
+    } else {
+        res = GSASL_OK as libc::c_int
+    }
+
+    if res != GSASL_OK as libc::c_int {
+        return res
+    }
+
     return GSASL_OK as libc::c_int;
 }
-unsafe fn start(mut ctx: *mut Gsasl, mut mech: &str,
+
+unsafe fn start(ctx: &Gsasl, mut mech: &str,
                            mut sctx: *mut *mut Gsasl_session,
                            mut n_mechs: size_t,
                            mut mechs: *mut Gsasl_mechanism,
@@ -85,6 +100,7 @@ unsafe fn start(mut ctx: *mut Gsasl, mut mech: &str,
                ::std::mem::size_of::<Gsasl_session>() as libc::c_ulong) as
             *mut Gsasl_session;
     if out.is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
+    let out = &mut *out as &mut Gsasl_session;
     res = setup(ctx, mech, out, n_mechs, mechs, clientp);
     if res != GSASL_OK as libc::c_int { gsasl_finish(out); return res }
     *sctx = out;
@@ -102,10 +118,11 @@ unsafe fn start(mut ctx: *mut Gsasl, mut mech: &str,
  *
  * Return value: Returns %GSASL_OK if successful, or error code.
  **/
-pub unsafe fn gsasl_client_start(mut ctx: *mut Gsasl,
-                                            mut mech: &str,
-                                            mut sctx: *mut *mut Gsasl_session)
- -> libc::c_int {
+pub unsafe fn gsasl_client_start(ctx: &Gsasl,
+                                 mut mech: &str,
+                                 mut sctx: *mut *mut Gsasl_session
+) -> libc::c_int
+{
     return start(ctx, mech, sctx, (*ctx).n_client_mechs, (*ctx).client_mechs,
                  1 as libc::c_int);
 }
@@ -327,9 +344,10 @@ pub unsafe fn gsasl_client_start(mut ctx: *mut Gsasl,
  *
  * Return value: Returns %GSASL_OK if successful, or error code.
  **/
-pub unsafe fn gsasl_server_start(mut ctx: *mut Gsasl,
-                                            mut mech: &str,
-                                            mut sctx: *mut *mut Gsasl_session)
+pub unsafe fn gsasl_server_start(ctx: &Gsasl,
+                                 mech: &str,
+                                 sctx: *mut *mut Gsasl_session
+)
  -> libc::c_int {
     return start(ctx, mech, sctx, (*ctx).n_server_mechs, (*ctx).server_mechs,
                  0 as libc::c_int);

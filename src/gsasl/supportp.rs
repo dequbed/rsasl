@@ -55,10 +55,9 @@ unsafe fn _gsasl_support_p(mut mechs: *mut Gsasl_mechanism,
  * Return value: Returns 1 if the libgsasl client supports the named
  * mechanism, otherwise 0.
  **/
-#[no_mangle]
-pub unsafe fn gsasl_client_support_p(mut ctx: *mut Gsasl,
-                                                mut name: *const libc::c_char)
- -> libc::c_int {
+pub unsafe fn gsasl_client_support_p(ctx: &Gsasl, mut name: *const libc::c_char)
+    -> libc::c_int
+{
     return _gsasl_support_p((*ctx).client_mechs, (*ctx).n_client_mechs, name);
 }
 
@@ -77,9 +76,8 @@ pub unsafe fn gsasl_client_support_p(mut ctx: *mut Gsasl,
  * Return value: Returns 1 if the libgsasl server supports the named
  * mechanism, otherwise 0.
  **/
-#[no_mangle]
-pub unsafe fn gsasl_server_support_p(mut ctx: *mut Gsasl,
-                                                mut name: *const libc::c_char)
- -> libc::c_int {
+pub unsafe fn gsasl_server_support_p(ctx: &Gsasl, mut name: *const libc::c_char)
+    -> libc::c_int
+{
     return _gsasl_support_p((*ctx).server_mechs, (*ctx).n_server_mechs, name);
 }

@@ -11,7 +11,7 @@ extern "C" {
 
 #[no_mangle]
 pub unsafe fn gsasl_register(
-        mut ctx: *mut Gsasl,
+        mut ctx: &mut Gsasl,
         mut mech: *const Gsasl_mechanism
     ) -> libc::c_int
 {

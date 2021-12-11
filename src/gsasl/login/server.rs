@@ -1,3 +1,4 @@
+use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::callback::gsasl_callback;
@@ -62,28 +63,31 @@ pub struct _Gsasl_login_server_state {
     pub username: *mut libc::c_char,
     pub password: *mut libc::c_char,
 }
-pub unsafe fn _gsasl_login_server_start(mut _sctx:
-                                                       *mut Gsasl_session,
-                                                   mut mech_data:
-                                                       *mut *mut libc::c_void)
- -> libc::c_int {
+
+pub unsafe fn _gsasl_login_server_start(_sctx: &mut Gsasl_session,
+                                        mech_data: &mut Option<NonNull<()>>,
+)
+    -> libc::c_int {
     let mut state: *mut _Gsasl_login_server_state =
         0 as *mut _Gsasl_login_server_state;
     state = calloc(1, ::std::mem::size_of::<_Gsasl_login_server_state>())
             as *mut _Gsasl_login_server_state;
     if state.is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
-    *mech_data = state as *mut libc::c_void;
+    *mech_data = NonNull::new(state as *mut ());
     return GSASL_OK as libc::c_int;
 }
-pub unsafe fn _gsasl_login_server_step(mut sctx:
-                                                      *mut Gsasl_session,
-                                                  mut mech_data:
-                                                      *mut libc::c_void,
-                                                  mut input: Option<&[u8]>,
-                                                  mut output:
-                                                      *mut *mut libc::c_char,
-                                                  mut output_len: *mut size_t)
- -> libc::c_int {
+
+pub unsafe fn _gsasl_login_server_step(sctx: *mut Gsasl_session,
+                                       mech_data: Option<NonNull<()>>,
+                                       input: Option<&[u8]>,
+                                       output: *mut *mut libc::c_char,
+                                       output_len: *mut size_t,
+) -> libc::c_int
+{
+    let mech_data = mech_data
+        .map(|ptr| ptr.as_ptr())
+        .unwrap_or_else(std::ptr::null_mut);
+
     let input_len = input.map(|i| i.len()).unwrap_or(0);
     let input: *const libc::c_char = input.map(|i| i.as_ptr().cast()).unwrap_or(std::ptr::null());
 
@@ -177,10 +181,13 @@ pub unsafe fn _gsasl_login_server_step(mut sctx:
  * Boston, MA 02110-1301, USA.
  *
  */
-pub unsafe fn _gsasl_login_server_finish(mut _sctx:
-                                                        *mut Gsasl_session,
-                                                    mut mech_data:
-                                                        *mut libc::c_void) {
+pub unsafe fn _gsasl_login_server_finish(mut _sctx: *mut Gsasl_session,
+                                         mech_data: Option<NonNull<()>>)
+{
+    let mech_data = mech_data
+        .map(|ptr| ptr.as_ptr())
+        .unwrap_or_else(std::ptr::null_mut);
+
     let mut state: *mut _Gsasl_login_server_state =
         mech_data as *mut _Gsasl_login_server_state;
     if state.is_null() { return }

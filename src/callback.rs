@@ -177,7 +177,7 @@ pub(crate) fn wrap<C: Callback<D,E>, D, E>(
     prop: Gsasl_property)
     -> libc::c_int
 {
-    let mut sasl = SASL::from_ptr(ctx);
+    let mut sasl = SASL::from_ptr(unsafe { &mut *ctx as &'static mut Gsasl });
     let mut session = Session::from_ptr(sctx);
     C::callback(&mut sasl, &mut session, prop as Property)
         .err()                              // Extract the error return code if it exists

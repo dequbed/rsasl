@@ -1,3 +1,4 @@
+use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD};
@@ -70,9 +71,9 @@ extern "C" {
                        response: *mut libc::c_char);
 }
 
-pub unsafe fn _gsasl_cram_md5_server_start(mut _sctx: *mut Gsasl_session,
-                                                      mut mech_data: *mut *mut libc::c_void
-    ) -> libc::c_int
+pub unsafe fn _gsasl_cram_md5_server_start(_sctx: &mut Gsasl_session,
+                                           mech_data: &mut Option<NonNull<()>>,
+) -> libc::c_int
 {
     let mut challenge: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut rc: libc::c_int = 0;
@@ -81,16 +82,21 @@ pub unsafe fn _gsasl_cram_md5_server_start(mut _sctx: *mut Gsasl_session,
     if challenge.is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
     rc = cram_md5_challenge(challenge);
     if rc != 0 { return GSASL_CRYPTO_ERROR as libc::c_int }
-    *mech_data = challenge as *mut libc::c_void;
+    *mech_data = NonNull::new(challenge as *mut ());
     return GSASL_OK as libc::c_int;
 }
-pub unsafe fn _gsasl_cram_md5_server_step(mut sctx: *mut Gsasl_session,
-                                                     mut mech_data: *mut libc::c_void,
-                                                     mut input: Option<&[u8]>,
-                                                     mut output: *mut *mut libc::c_char,
-                                                     mut output_len: *mut size_t
-    ) -> libc::c_int
+
+pub unsafe fn _gsasl_cram_md5_server_step(sctx: *mut Gsasl_session,
+                                          mech_data: Option<NonNull<()>>,
+                                          input: Option<&[u8]>,
+                                          output: *mut *mut libc::c_char,
+                                          output_len: *mut size_t,
+) -> libc::c_int
 {
+    let mech_data = mech_data
+        .map(|ptr| ptr.as_ptr())
+        .unwrap_or_else(std::ptr::null_mut);
+
     let input_len = input.map(|i| i.len()).unwrap_or(0);
     let input: *const libc::c_char = input.map(|i| i.as_ptr().cast()).unwrap_or(std::ptr::null());
 
@@ -167,8 +173,11 @@ pub unsafe fn _gsasl_cram_md5_server_step(mut sctx: *mut Gsasl_session,
  */
 #[no_mangle]
 pub unsafe fn _gsasl_cram_md5_server_finish(mut _sctx: *mut Gsasl_session,
-                                                       mut mech_data: *mut libc::c_void)
+                                            mech_data: Option<NonNull<()>>)
 {
+    let mech_data = mech_data
+        .map(|ptr| ptr.as_ptr())
+        .unwrap_or_else(std::ptr::null_mut);
     let mut challenge: *mut libc::c_char = mech_data as *mut libc::c_char;
     rpl_free(challenge as *mut libc::c_void);
 }

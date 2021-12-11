@@ -1,3 +1,4 @@
+use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_AUTHID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_NEEDS_MORE, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD};
@@ -57,9 +58,10 @@ extern "C" {
 pub struct _Gsasl_login_client_state {
     pub step: libc::c_int,
 }
-pub unsafe fn _gsasl_login_client_start(mut _sctx: *mut Gsasl_session,
-                                                   mut mech_data: *mut *mut libc::c_void
-    ) -> libc::c_int
+
+pub unsafe fn _gsasl_login_client_start(_sctx: &mut Gsasl_session,
+                                        mech_data: &mut Option<NonNull<()>>,
+) -> libc::c_int
 {
     let mut state: *mut _Gsasl_login_client_state =
         0 as *mut _Gsasl_login_client_state;
@@ -67,16 +69,21 @@ pub unsafe fn _gsasl_login_client_start(mut _sctx: *mut Gsasl_session,
             as *mut _Gsasl_login_client_state;
     if state.is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
     (*state).step = 0 as libc::c_int;
-    *mech_data = state as *mut libc::c_void;
+    *mech_data = NonNull::new(state as *mut ());
     return GSASL_OK as libc::c_int;
 }
-pub unsafe fn _gsasl_login_client_step(mut sctx: *mut Gsasl_session,
-                                                  mut mech_data: *mut libc::c_void,
-                                                  mut _input: Option<&[u8]>,
-                                                  mut output: *mut *mut libc::c_char,
-                                                  mut output_len: *mut size_t
-    ) -> libc::c_int
+
+pub unsafe fn _gsasl_login_client_step(sctx: *mut Gsasl_session,
+                                       mech_data: Option<NonNull<()>>,
+                                       _input: Option<&[u8]>,
+                                       output: *mut *mut libc::c_char,
+                                       output_len: *mut size_t,
+) -> libc::c_int
 {
+    let mech_data = mech_data
+        .map(|ptr| ptr.as_ptr())
+        .unwrap_or_else(std::ptr::null_mut);
+
     let mut state: *mut _Gsasl_login_client_state =
         mech_data as *mut _Gsasl_login_client_state;
     let mut p: *const libc::c_char = 0 as *const libc::c_char;
@@ -127,9 +134,11 @@ pub unsafe fn _gsasl_login_client_step(mut sctx: *mut Gsasl_session,
  *
  */
 pub unsafe fn _gsasl_login_client_finish(mut _sctx: *mut Gsasl_session,
-                                                    mut mech_data: *mut libc::c_void
-    )
+                                         mech_data: Option<NonNull<()>>)
 {
+    let mech_data = mech_data
+        .map(|ptr| ptr.as_ptr())
+        .unwrap_or_else(std::ptr::null_mut);
     let mut state: *mut _Gsasl_login_client_state =
         mech_data as *mut _Gsasl_login_client_state;
     if state.is_null() { return }

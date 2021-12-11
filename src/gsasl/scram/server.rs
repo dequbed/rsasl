@@ -1,3 +1,4 @@
+use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::base64::{gsasl_base64_from, gsasl_base64_to};
@@ -142,38 +143,79 @@ unsafe fn scram_start(
     rpl_free(state as *mut libc::c_void);
     return rc;
 }
-pub unsafe fn _gsasl_scram_sha1_server_start(mut sctx:
-                                                            *mut Gsasl_session,
-                                                        mut mech_data:
-                                                            *mut *mut libc::c_void)
- -> libc::c_int {
-    return scram_start(sctx, mech_data, 0 as libc::c_int != 0,
+
+pub unsafe fn _gsasl_scram_sha1_server_start(mut sctx: &mut Gsasl_session,
+                                             mut mech_data: &mut Option<NonNull<()>>,
+) -> libc::c_int
+{
+    let mut ptr = mech_data
+        .map(|ptr| ptr.as_ptr().cast())
+        .unwrap_or_else(std::ptr::null_mut);
+
+    let ret = scram_start(sctx,
+                          &mut ptr,
+                          0 as libc::c_int != 0,
+                          GSASL_HASH_SHA1);
+
+    *mech_data = NonNull::new(ptr.cast());
+
+    return ret;
+}
+
+pub unsafe fn _gsasl_scram_sha1_plus_server_start(sctx: &mut Gsasl_session,
+                                                  mech_data: &mut Option<NonNull<()>>,
+) -> libc::c_int
+{
+    let mut ptr = mech_data
+        .map(|ptr| ptr.as_ptr().cast())
+        .unwrap_or_else(std::ptr::null_mut);
+
+    let ret = scram_start(sctx,
+                          &mut ptr,
+                          1 as libc::c_int != 0,
                        GSASL_HASH_SHA1);
+
+    *mech_data = NonNull::new(ptr.cast());
+
+    return ret;
 }
-pub unsafe fn _gsasl_scram_sha1_plus_server_start(mut sctx:
-                                                                 *mut Gsasl_session,
-                                                             mut mech_data:
-                                                                 *mut *mut libc::c_void)
- -> libc::c_int {
-    return scram_start(sctx, mech_data, 1 as libc::c_int != 0,
-                       GSASL_HASH_SHA1);
-}
-pub unsafe fn _gsasl_scram_sha256_server_start(mut sctx:
-                                                              *mut Gsasl_session,
-                                                          mut mech_data:
-                                                              *mut *mut libc::c_void)
- -> libc::c_int {
-    return scram_start(sctx, mech_data, 0 as libc::c_int != 0,
+
+pub unsafe fn _gsasl_scram_sha256_server_start(sctx: &mut Gsasl_session,
+                                               mech_data: &mut Option<NonNull<()>>,
+) -> libc::c_int
+{
+    let mut ptr = mech_data
+        .map(|ptr| ptr.as_ptr().cast())
+        .unwrap_or_else(std::ptr::null_mut);
+
+    let ret = scram_start(sctx,
+                          &mut ptr,
+                          0 as libc::c_int != 0,
                        GSASL_HASH_SHA256);
+
+    *mech_data = NonNull::new(ptr.cast());
+
+    return ret;
 }
-pub unsafe fn _gsasl_scram_sha256_plus_server_start(mut sctx:
-                                                                   *mut Gsasl_session,
-                                                               mut mech_data:
-                                                                   *mut *mut libc::c_void)
- -> libc::c_int {
-    return scram_start(sctx, mech_data, 1 as libc::c_int != 0,
+
+pub unsafe fn _gsasl_scram_sha256_plus_server_start(sctx: &mut Gsasl_session,
+                                                    mech_data: &mut Option<NonNull<()>>,
+) -> libc::c_int
+{
+    let mut ptr = mech_data
+        .map(|ptr| ptr.as_ptr().cast())
+        .unwrap_or_else(std::ptr::null_mut);
+
+    let ret = scram_start(sctx,
+                       &mut ptr,
+                       1 as libc::c_int != 0,
                        GSASL_HASH_SHA256);
+
+    *mech_data = NonNull::new(ptr.cast());
+
+    return ret;
 }
+
 unsafe fn extract_serverkey(mut state: *mut scram_server_state,
                                        mut b64: *const libc::c_char,
                                        mut buf: *mut libc::c_char)
@@ -191,16 +233,18 @@ unsafe fn extract_serverkey(mut state: *mut scram_server_state,
     rpl_free(bin as *mut libc::c_void);
     return GSASL_OK as libc::c_int;
 }
-pub unsafe fn _gsasl_scram_server_step(mut sctx:
-                                                      *mut Gsasl_session,
-                                                  mut mech_data:
-                                                      *mut libc::c_void,
-                                                  mut input:
-                                                      Option<&[u8]>,
-                                                  mut output:
-                                                      *mut *mut libc::c_char,
-                                                  mut output_len: *mut size_t)
- -> libc::c_int {
+
+pub unsafe fn _gsasl_scram_server_step(sctx: *mut Gsasl_session,
+                                       mech_data: Option<NonNull<()>>,
+                                       input: Option<&[u8]>,
+                                       output: *mut *mut libc::c_char,
+                                       output_len: *mut size_t,
+) -> libc::c_int
+{
+    let mech_data = mech_data
+        .map(|ptr| ptr.as_ptr())
+        .unwrap_or_else(std::ptr::null_mut);
+
     let input_len = input.map(|i| i.len()).unwrap_or(0);
     let input: *const libc::c_char = input.map(|i| i.as_ptr().cast()).unwrap_or(std::ptr::null());
 
@@ -592,10 +636,13 @@ pub unsafe fn _gsasl_scram_server_step(mut sctx:
  * Boston, MA 02110-1301, USA.
  *
  */
-pub unsafe fn _gsasl_scram_server_finish(mut _sctx:
-                                                        *mut Gsasl_session,
-                                                    mut mech_data:
-                                                        *mut libc::c_void) {
+pub unsafe fn _gsasl_scram_server_finish(mut _sctx: *mut Gsasl_session,
+                                         mech_data: Option<NonNull<()>>)
+{
+    let mech_data = mech_data
+        .map(|ptr| ptr.as_ptr())
+        .unwrap_or_else(std::ptr::null_mut);
+
     let mut state: *mut scram_server_state =
         mech_data as *mut scram_server_state;
     if state.is_null() { return }

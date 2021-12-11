@@ -1,6 +1,5 @@
 use ::libc;
 use libc::size_t;
-use crate::gsasl::gc::Gc_rc;
 use crate::gsasl::gl::gc_gnulib::gc_hmac_md5;
 
 extern "C" {

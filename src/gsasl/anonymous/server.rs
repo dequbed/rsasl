@@ -1,3 +1,4 @@
+use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::callback::gsasl_callback;
@@ -48,11 +49,11 @@ use crate::gsasl::property::gsasl_property_set_raw;
  *
  */
 /* Get specification. */
-pub unsafe fn _gsasl_anonymous_server_step(mut sctx: *mut Gsasl_session,
-                                                      mut _mech_data: *mut libc::c_void,
-                                                      mut input: Option<&[u8]>,
-                                                      mut output: *mut *mut libc::c_char,
-                                                      mut output_len: *mut size_t
+pub unsafe fn _gsasl_anonymous_server_step(sctx: *mut Gsasl_session,
+                                           _mech_data: Option<NonNull<()>>,
+                                           input: Option<&[u8]>,
+                                           output: *mut *mut libc::c_char,
+                                           output_len: *mut size_t,
 ) -> libc::c_int
 {
     let mut rc: libc::c_int = 0;
