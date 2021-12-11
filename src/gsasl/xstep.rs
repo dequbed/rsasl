@@ -63,9 +63,14 @@ pub unsafe fn gsasl_step(mut sctx: *mut Gsasl_session,
                                     mut output_len: *mut size_t)
  -> libc::c_int {
     let mut step: Gsasl_step_function = None;
+
     if (*sctx).clientp != 0 {
         step = (*(*sctx).mech).client.step
-    } else { step = (*(*sctx).mech).server.step }
+    } else {
+        step = (*(*sctx).mech).server.step
+    }
+
+
     return step.expect("non-null function pointer")(sctx, (*sctx).mech_data,
                                                     input, output,
                                                     output_len);

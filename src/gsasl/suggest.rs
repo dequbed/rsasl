@@ -30,11 +30,9 @@ extern "C" {
  *   the libgsasl client which is present in the input string, or
  *   NULL if no supported mechanism is found.
  **/
-#[no_mangle]
-pub unsafe fn gsasl_client_suggest_mechanism(mut ctx: *mut Gsasl,
-                                                        mut mechlist:
-                                                            *const libc::c_char)
- -> *const libc::c_char {
+pub unsafe fn gsasl_client_suggest_mechanism(ctx: &Gsasl, mechlist: *const libc::c_char)
+    -> *const libc::c_char
+{
     let mut mechlist_len: size_t = 0; /* ~ no target */
     let mut target_mech: size_t = 0;
     let mut i: size_t = 0;

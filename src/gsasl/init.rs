@@ -24,7 +24,7 @@ pub static mut GSASL_VALID_MECHANISM_CHARACTERS: *const libc::c_char =
     b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_\x00" as *const u8 as
         *const libc::c_char;
 
-unsafe fn register_builtin_mechs(mut ctx: *mut Gsasl) -> libc::c_int {
+pub unsafe fn register_builtin_mechs(ctx: &mut Gsasl) -> libc::c_int {
     let mut rc: libc::c_int = GSASL_OK as libc::c_int;
     rc = gsasl_register(ctx, &mut gsasl_anonymous_mechanism);
     if rc != GSASL_OK as libc::c_int { return rc }
@@ -66,28 +66,5 @@ unsafe fn register_builtin_mechs(mut ctx: *mut Gsasl) -> libc::c_int {
     /* USE_OPENID20 */
     /* USE_GSSAPI */
     /* USE_GSSAPI */
-    return GSASL_OK as libc::c_int;
-}
-/* *
- * gsasl_init:
- * @ctx: pointer to libgsasl handle.
- *
- * This functions initializes libgsasl.  The handle pointed to by ctx
- * is valid for use with other libgsasl functions iff this function is
- * successful.  It also register all builtin SASL mechanisms, using
- * gsasl_register().
- *
- * Return value: GSASL_OK iff successful, otherwise
- * %GSASL_MALLOC_ERROR.
- **/
-#[no_mangle]
-pub unsafe fn gsasl_init(mut ctx: *mut *mut Gsasl) -> libc::c_int {
-    let mut rc: libc::c_int = 0;
-    *ctx =
-        calloc(1 as libc::c_int as libc::c_ulong,
-               ::std::mem::size_of::<Gsasl>() as libc::c_ulong) as *mut Gsasl;
-    if (*ctx).is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
-    rc = register_builtin_mechs(*ctx);
-    if rc != GSASL_OK as libc::c_int { gsasl_done(*ctx); return rc }
     return GSASL_OK as libc::c_int;
 }

@@ -1,3 +1,4 @@
+use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD};
@@ -56,12 +57,13 @@ extern "C" {
 /* Get specification. */
 /* Get memcpy, strdup, strlen. */
 /* Get malloc, free. */
-pub unsafe fn _gsasl_plain_client_step(mut sctx: *mut Gsasl_session,
-                                                  mut _mech_data: *mut libc::c_void,
-                                                  mut _input: Option<&[u8]>,
-                                                  mut output: *mut *mut libc::c_char,
-                                                  mut output_len: *mut size_t)
- -> libc::c_int {
+pub unsafe fn _gsasl_plain_client_step(sctx: *mut Gsasl_session,
+                                       _mech_data: Option<NonNull<()>>,
+                                       _input: Option<&[u8]>,
+                                       output: *mut *mut libc::c_char,
+                                       output_len: *mut size_t
+) -> libc::c_int
+{
     let mut authzid: *const libc::c_char =
         gsasl_property_get(sctx, GSASL_AUTHZID);
     let mut authid: *const libc::c_char =

@@ -1,3 +1,4 @@
+use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::base64::gsasl_base64_to;
@@ -43,9 +44,9 @@ pub struct _Gsasl_digest_md5_server_state {
     pub finish: digest_md5_finish,
 }
 
-pub unsafe fn _gsasl_digest_md5_server_start(mut _sctx: *mut Gsasl_session,
-                                                        mut mech_data: *mut *mut libc::c_void
-    ) -> libc::c_int
+pub unsafe fn _gsasl_digest_md5_server_start(_sctx: &mut Gsasl_session,
+                                             mech_data: &mut Option<NonNull<()>>,
+) -> libc::c_int
 {
     let mut state: *mut _Gsasl_digest_md5_server_state =
         0 as *mut _Gsasl_digest_md5_server_state;
@@ -69,7 +70,7 @@ pub unsafe fn _gsasl_digest_md5_server_start(mut _sctx: *mut Gsasl_session,
     (*state).challenge.ciphers = 0 as libc::c_int;
     (*state).challenge.nonce = p;
     (*state).challenge.utf8 = 1 as libc::c_int;
-    *mech_data = state as *mut libc::c_void;
+    *mech_data = NonNull::new(state as *mut ());
     return GSASL_OK as libc::c_int;
 }
 unsafe fn _gsasl_digest_md5_hexdigit_to_char(mut hexdigit:
@@ -120,16 +121,18 @@ unsafe fn _gsasl_digest_md5_set_hashed_secret(mut secret:
     }
     return GSASL_OK as libc::c_int;
 }
-pub unsafe fn _gsasl_digest_md5_server_step(mut sctx:
-                                                           *mut Gsasl_session,
-                                                       mut mech_data:
-                                                           *mut libc::c_void,
-                                                       mut input: Option<&[u8]>,
-                                                       mut output:
-                                                           *mut *mut libc::c_char,
-                                                       mut output_len:
-                                                           *mut size_t)
+
+pub unsafe fn _gsasl_digest_md5_server_step(sctx: *mut Gsasl_session,
+                                            mech_data: Option<NonNull<()>>,
+                                            input: Option<&[u8]>,
+                                            output: *mut *mut libc::c_char,
+                                            output_len: *mut size_t,
+)
  -> libc::c_int {
+    let mech_data = mech_data
+        .map(|ptr| ptr.as_ptr())
+        .unwrap_or_else(std::ptr::null_mut);
+
     let input_len = input.map(|i| i.len()).unwrap_or(0);
     let input: *const libc::c_char = input.map(|i| i.as_ptr().cast()).unwrap_or(std::ptr::null());
 
@@ -319,10 +322,13 @@ pub unsafe fn _gsasl_digest_md5_server_step(mut sctx:
     }
     return res;
 }
-pub unsafe fn _gsasl_digest_md5_server_finish(mut _sctx:
-                                                             *mut Gsasl_session,
-                                                         mut mech_data:
-                                                             *mut libc::c_void) {
+
+pub unsafe fn _gsasl_digest_md5_server_finish(mut _sctx: *mut Gsasl_session,
+                                              mech_data: Option<NonNull<()>>)
+{
+    let mech_data = mech_data
+        .map(|ptr| ptr.as_ptr())
+        .unwrap_or_else(std::ptr::null_mut);
     let mut state: *mut _Gsasl_digest_md5_server_state =
         mech_data as *mut _Gsasl_digest_md5_server_state;
     if state.is_null() { return }
@@ -331,19 +337,19 @@ pub unsafe fn _gsasl_digest_md5_server_finish(mut _sctx:
     digest_md5_free_finish(&mut (*state).finish);
     rpl_free(state as *mut libc::c_void);
 }
-pub unsafe fn _gsasl_digest_md5_server_encode(mut _sctx:
-                                                             *mut Gsasl_session,
-                                                         mut mech_data:
-                                                             *mut libc::c_void,
-                                                         mut input:
-                                                             *const libc::c_char,
-                                                         mut input_len:
-                                                             size_t,
-                                                         mut output:
-                                                             *mut *mut libc::c_char,
-                                                         mut output_len:
-                                                             *mut size_t)
- -> libc::c_int {
+
+pub unsafe fn _gsasl_digest_md5_server_encode(mut _sctx: *mut Gsasl_session,
+                                              mut mech_data: Option<NonNull<()>>,
+                                              mut input: *const libc::c_char,
+                                              mut input_len: size_t,
+                                              mut output: *mut *mut libc::c_char,
+                                              mut output_len: *mut size_t,
+) -> libc::c_int
+{
+    let mech_data = mech_data
+        .map(|ptr| ptr.as_ptr())
+        .unwrap_or_else(std::ptr::null_mut);
+
     let mut state: *mut _Gsasl_digest_md5_server_state =
         mech_data as *mut _Gsasl_digest_md5_server_state;
     let mut res: libc::c_int = 0;
@@ -382,19 +388,18 @@ pub unsafe fn _gsasl_digest_md5_server_encode(mut _sctx:
  * Boston, MA 02110-1301, USA.
  *
  */
-pub unsafe fn _gsasl_digest_md5_server_decode(mut _sctx:
-                                                             *mut Gsasl_session,
-                                                         mut mech_data:
-                                                             *mut libc::c_void,
-                                                         mut input:
-                                                             *const libc::c_char,
-                                                         mut input_len:
-                                                             size_t,
-                                                         mut output:
-                                                             *mut *mut libc::c_char,
-                                                         mut output_len:
-                                                             *mut size_t)
- -> libc::c_int {
+pub unsafe fn _gsasl_digest_md5_server_decode(mut _sctx: *mut Gsasl_session,
+                                              mech_data: Option<NonNull<()>>,
+                                              mut input: *const libc::c_char,
+                                              mut input_len: size_t,
+                                              mut output: *mut *mut libc::c_char,
+                                              mut output_len: *mut size_t,
+) -> libc::c_int
+{
+    let mech_data = mech_data
+        .map(|ptr| ptr.as_ptr())
+        .unwrap_or_else(std::ptr::null_mut);
+
     let mut state: *mut _Gsasl_digest_md5_server_state =
         mech_data as *mut _Gsasl_digest_md5_server_state;
     let mut res: libc::c_int = 0;
