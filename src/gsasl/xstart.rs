@@ -1,8 +1,9 @@
+use std::collections::HashMap;
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_CLIENT_CODE, GSASL_NO_SERVER_CODE, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
-use crate::gsasl::gsasl::{Gsasl, Gsasl_mechanism, Gsasl_session};
+use crate::gsasl::gsasl::{CombinedCMech, Gsasl, Gsasl_mechanism, Session};
 use crate::gsasl::xfinish::gsasl_finish;
 
 extern "C" {
@@ -30,33 +31,34 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-unsafe fn find_mechanism(mut mech: &str,
-                                    mut n_mechs: size_t,
-                                    mut mechs: *mut Gsasl_mechanism)
- -> *mut Gsasl_mechanism {
-    let mut i: size_t = 0;
-    i = 0 as libc::c_int as size_t;
-    while i < n_mechs {
-        if mech == (*mechs.offset(i as isize)).name
-        {
-            return &mut *mechs.offset(i as isize) as *mut Gsasl_mechanism
+unsafe fn find_mechanism(mech: &str, mut mechs: &[CombinedCMech])
+     -> *mut Gsasl_mechanism
+{
+    todo!()
+    /*for m in mechs {
+        if mech == m.name {
+            return Some(Gsasl_mechanism {
+                name: m.name,
+                client: m.client.vtable,
+                server: m.server.vtable,
+            })
         }
-        i = i.wrapping_add(1)
     }
-    return 0 as *mut Gsasl_mechanism;
+    None
+
+     */
 }
 
 unsafe fn setup(ctx: &Gsasl,
-                mut mech: &str,
-                mut sctx: &mut Gsasl_session,
-                mut n_mechs: size_t,
-                mut mechs: *mut Gsasl_mechanism,
-                mut clientp: libc::c_int
+                mech: &str,
+                sctx: &mut Session,
+                mechs: &[CombinedCMech],
+                clientp: libc::c_int
 ) -> libc::c_int
 {
-    let mut mechptr: *mut Gsasl_mechanism = 0 as *mut Gsasl_mechanism;
+    (*sctx).map = HashMap::new();
     let mut res: libc::c_int = 0;
-    mechptr = find_mechanism(mech, n_mechs, mechs);
+    let mechptr = find_mechanism(mech, mechs);
     if mechptr.is_null() { return GSASL_UNKNOWN_MECHANISM as libc::c_int }
     (*sctx).ctx = ctx as *const _ as *mut _;
     (*sctx).mech = mechptr;
@@ -88,20 +90,22 @@ unsafe fn setup(ctx: &Gsasl,
     return GSASL_OK as libc::c_int;
 }
 
-unsafe fn start(ctx: &Gsasl, mut mech: &str,
-                           mut sctx: *mut *mut Gsasl_session,
-                           mut n_mechs: size_t,
-                           mut mechs: *mut Gsasl_mechanism,
-                           mut clientp: libc::c_int) -> libc::c_int {
-    let mut out: *mut Gsasl_session = 0 as *mut Gsasl_session;
+unsafe fn start(ctx: &Gsasl,
+                mech: &str,
+                sctx: *mut *mut Session,
+                mechs: &[CombinedCMech],
+                clientp: libc::c_int,
+    ) -> libc::c_int
+{
+    let mut out: *mut Session = 0 as *mut Session;
     let mut res: libc::c_int = 0;
     out =
         calloc(1 as libc::c_int as libc::c_ulong,
-               ::std::mem::size_of::<Gsasl_session>() as libc::c_ulong) as
-            *mut Gsasl_session;
+               ::std::mem::size_of::<Session>() as libc::c_ulong) as
+            *mut Session;
     if out.is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
-    let out = &mut *out as &mut Gsasl_session;
-    res = setup(ctx, mech, out, n_mechs, mechs, clientp);
+    let out = &mut *out as &mut Session;
+    res = setup(ctx, mech, out, mechs, clientp);
     if res != GSASL_OK as libc::c_int { gsasl_finish(out); return res }
     *sctx = out;
     return GSASL_OK as libc::c_int;
@@ -120,11 +124,10 @@ unsafe fn start(ctx: &Gsasl, mut mech: &str,
  **/
 pub unsafe fn gsasl_client_start(ctx: &Gsasl,
                                  mut mech: &str,
-                                 mut sctx: *mut *mut Gsasl_session
+                                 mut sctx: *mut *mut Session
 ) -> libc::c_int
 {
-    return start(ctx, mech, sctx, (*ctx).n_client_mechs, (*ctx).client_mechs,
-                 1 as libc::c_int);
+    return start(ctx, mech, sctx, &ctx.mechs[..], 1 as libc::c_int);
 }
 /* gsasl.h --- Header file for GNU SASL Library.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -346,9 +349,8 @@ pub unsafe fn gsasl_client_start(ctx: &Gsasl,
  **/
 pub unsafe fn gsasl_server_start(ctx: &Gsasl,
                                  mech: &str,
-                                 sctx: *mut *mut Gsasl_session
+                                 sctx: *mut *mut Session
 )
  -> libc::c_int {
-    return start(ctx, mech, sctx, (*ctx).n_server_mechs, (*ctx).server_mechs,
-                 0 as libc::c_int);
+    return start(ctx, mech, sctx, &ctx.mechs[..], 0 as libc::c_int);
 }

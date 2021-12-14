@@ -7,9 +7,8 @@ use crate::buffer::{SaslBuffer, SaslString};
 use crate::error::{Result, SaslError};
 
 use discard::{Discard};
-use crate::gsasl::callback::{gsasl_session_hook_get, gsasl_session_hook_set};
 use crate::gsasl::consts::{GSASL_NEEDS_MORE, Gsasl_property};
-use crate::gsasl::gsasl::Gsasl_session;
+use crate::gsasl::gsasl::Session;
 use crate::gsasl::property::{gsasl_property_fast, gsasl_property_set_raw};
 use crate::gsasl::xfinish::gsasl_finish;
 use crate::gsasl::xstep::{gsasl_step, gsasl_step64};
@@ -22,7 +21,7 @@ use crate::Property;
 /// `discarded`. If manual housekeeping is required the session can be leaked with
 /// [`DiscardOnDrop::leak`](discard::DiscardOnDrop::leak).
 pub struct Session<D> {
-    ptr: *mut Gsasl_session,
+    ptr: *mut Session,
     phantom: std::marker::PhantomData<D>,
 }
 
@@ -121,55 +120,12 @@ impl<D> Session<D> {
         }
     }
 
-    /// Store some data in the Session context
-    ///
-    /// This allows a callback to later access that data using `retrieve` or `retrieve_mut`
-    pub fn store(&mut self, data: Box<D>) {
-        unsafe {
-            gsasl_session_hook_set(self.ptr, Box::into_raw(data) as *mut libc::c_void);
-        }
-    }
-
-    /// Retrieve the data stored with `store`, leaving nothing in its place
-    ///
-    /// This function will return `None` if no data was stored. This function is unsafe because we
-    /// can not guarantee that there is currently nothing else that has a reference to the data
-    /// which will turn into a dangling pointer if the returned Box is dropped
-    pub unsafe fn retrieve(&mut self) -> Option<Box<D>> {
-        // This function is unsa
-        // Get a pointer to the current value
-        let ptr = gsasl_session_hook_get(self.ptr);
-        // Set it to null because we now have sole ownership
-        gsasl_session_hook_set(self.ptr, std::ptr::null_mut());
-
-        if !ptr.is_null() {
-            Some(Box::from_raw(ptr as *mut D))
-        } else {
-            None
-        }
-    }
-
-    /// Retrieve a mutable reference to the data stored with `store`
-    ///
-    /// This is an alternative to `retrieve_raw` that does not take ownership of the stored data,
-    /// thus also not dropping it after it has left the current scope.
-    ///
-    /// The function tries to return `None` if no data was stored.
-    pub fn retrieve_mut(&mut self) -> Option<&mut D> {
-        // This is safe because once you have given ownership of data to the context you can only
-        // get it back using `unsafe` functions.
-        unsafe {
-            let ptr = gsasl_session_hook_get(self.ptr) as *mut D;
-            ptr.as_mut()
-        }
-    }
-
-    pub(crate) fn from_ptr(ptr: *mut Gsasl_session) -> Self {
+    pub(crate) fn from_ptr(ptr: *mut Session) -> Self {
         let phantom = std::marker::PhantomData;
         Self { ptr, phantom }
     }
 
-    pub(crate) fn as_ptr(&self) -> *mut Gsasl_session {
+    pub(crate) fn as_ptr(&self) -> *mut Session {
         self.ptr
     }
 
@@ -183,7 +139,6 @@ impl<D> Discard for Session<D> {
         // Retrieve and drop the stored value. This should always be safe because a session can
         // only be duplicated by running a callback via an exchange or calling `callback`, in which
         // case calling discard will be prevented by the borrow checker.
-        unsafe { self.retrieve(); }
         self.finish();
     }
 }

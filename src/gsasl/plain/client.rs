@@ -1,9 +1,10 @@
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
+use crate::consts::{AUTHID, AUTHZID, PASSWORD};
 use crate::gsasl::consts::{GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD};
-use crate::gsasl::gsasl::Gsasl_session;
-use crate::gsasl::property::gsasl_property_get;
+use crate::gsasl::gsasl::Session;
+use crate::gsasl::property::{gsasl_property_get, property_get};
 
 extern "C" {
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
@@ -57,54 +58,69 @@ extern "C" {
 /* Get specification. */
 /* Get memcpy, strdup, strlen. */
 /* Get malloc, free. */
-pub unsafe fn _gsasl_plain_client_step(sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_plain_client_step(sctx: *mut Session,
                                        _mech_data: Option<NonNull<()>>,
                                        _input: Option<&[u8]>,
                                        output: *mut *mut libc::c_char,
                                        output_len: *mut size_t
 ) -> libc::c_int
 {
-    let mut authzid: *const libc::c_char =
-        gsasl_property_get(sctx, GSASL_AUTHZID);
-    let mut authid: *const libc::c_char =
-        gsasl_property_get(sctx, GSASL_AUTHID);
-    let mut password: *const libc::c_char =
-        gsasl_property_get(sctx, GSASL_PASSWORD);
-    let mut authzidlen: size_t = 0;
-    let mut authidlen: size_t = 0;
-    let mut passwordlen: size_t = 0;
-    let mut out: *mut libc::c_char = 0 as *mut libc::c_char;
-    if !authzid.is_null() { authzidlen = strlen(authzid) }
-    if !authid.is_null() {
-        authidlen = strlen(authid)
-    } else { return GSASL_NO_AUTHID as libc::c_int }
-    if !password.is_null() {
-        passwordlen = strlen(password)
-    } else { return GSASL_NO_PASSWORD as libc::c_int }
+    let authzid = property_get::<AUTHZID>(sctx);
+    let authid = property_get::<AUTHID>(sctx);
+    let password = property_get::<PASSWORD>(sctx);
+
+    let authzidlen: size_t = if let Some(authzid) = authzid {
+        authzid.len()
+    } else {
+        0
+    };
+
+    if authid.is_none() {
+        return GSASL_NO_AUTHID as libc::c_int
+    }
+    let authid = authid.unwrap();
+    let authidlen = authid.len();
+
+    if password.is_none() {
+        return GSASL_NO_PASSWORD as libc::c_int
+    }
+    let password = password.unwrap();
+    let passwordlen = authid.len();
+
     *output_len =
         authzidlen.wrapping_add(1)
             .wrapping_add(authidlen)
             .wrapping_add(1)
             .wrapping_add(passwordlen);
 
-    out = malloc(*output_len) as *mut libc::c_char;
+    let mut out = malloc(*output_len) as *mut libc::c_char;
     *output = out;
-    if out.is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
-    if !authzid.is_null() {
-        memcpy(out as *mut libc::c_void, authzid as *const libc::c_void,
-               authzidlen);
-        out = out.offset(authzidlen as isize)
+
+    if out.is_null() {
+        return GSASL_MALLOC_ERROR as libc::c_int
+    }
+
+    if let Some(authzid) = authzid {
+        memcpy(out as *mut libc::c_void,
+               authzid.as_ptr() as *const libc::c_void,
+               authzid.len());
+        out = out.offset(authzid.len() as isize)
     }
     let fresh0 = out;
     out = out.offset(1);
     *fresh0 = '\u{0}' as i32 as libc::c_char;
-    memcpy(out as *mut libc::c_void, authid as *const libc::c_void,
+
+    memcpy(out as *mut libc::c_void,
+           authid.as_ptr() as *const libc::c_void,
            authidlen);
     out = out.offset(authidlen as isize);
+
     let fresh1 = out;
     out = out.offset(1);
     *fresh1 = '\u{0}' as i32 as libc::c_char;
-    memcpy(out as *mut libc::c_void, password as *const libc::c_void,
+
+    memcpy(out as *mut libc::c_void,
+           password.as_ptr() as *const libc::c_void,
            passwordlen);
     return GSASL_OK as libc::c_int;
 }

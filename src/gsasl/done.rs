@@ -271,6 +271,7 @@ extern "C" {
  **/
 #[no_mangle]
 pub unsafe fn gsasl_done(mut ctx: &mut Gsasl) {
+    /*
     let mut i: size_t = 0;
     i = 0 as libc::c_int as size_t;
     while i < (*ctx).n_client_mechs {
@@ -288,4 +289,5 @@ pub unsafe fn gsasl_done(mut ctx: &mut Gsasl) {
         i = i.wrapping_add(1)
     }
     rpl_free((*ctx).server_mechs as *mut libc::c_void);
+     */
 }

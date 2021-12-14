@@ -164,7 +164,9 @@ pub unsafe fn gc_md5(mut in_0: *const libc::c_void,
     let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
     hasher.update(input);
     let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, hasher.output_size());
-    hasher.finalize_into(output);
+    if let Err(_) = hasher.finalize_into(output) {
+        return GC_RANDOM_ERROR;
+    }
     return GC_OK;
 }
 
@@ -177,7 +179,9 @@ pub unsafe fn gc_sha1(mut in_0: *const libc::c_void,
     let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
     hasher.update(input);
     let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, hasher.output_size());
-    hasher.finalize_into(output);
+    if let Err(_) = hasher.finalize_into(output) {
+        return GC_RANDOM_ERROR;
+    }
     return GC_OK;
 }
 
@@ -190,7 +194,9 @@ pub unsafe fn gc_sha256(mut in_0: *const libc::c_void,
     let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
     hasher.update(input);
     let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, hasher.output_size());
-    hasher.finalize_into(output);
+    if let Err(_) = hasher.finalize_into(output) {
+        return GC_RANDOM_ERROR;
+    }
     return GC_OK;
 }
 

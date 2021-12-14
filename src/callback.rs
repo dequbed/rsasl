@@ -4,7 +4,7 @@
 #![allow(improper_ctypes_definitions)]
 
 use crate::gsasl::consts::{GSASL_OK, Gsasl_property};
-use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
+use crate::gsasl::gsasl::{Gsasl, Session};
 use crate::{SASL, Property};
 use crate::session::Session;
 
@@ -173,7 +173,7 @@ pub trait Callback<D,E> {
 
 pub(crate) fn wrap<C: Callback<D,E>, D, E>(
     ctx: *mut Gsasl,
-    sctx: *mut Gsasl_session,
+    sctx: *mut Session,
     prop: Gsasl_property)
     -> libc::c_int
 {

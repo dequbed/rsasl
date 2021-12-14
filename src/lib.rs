@@ -91,8 +91,7 @@ use std::fmt::{Debug, Formatter};
 // import the discard crate.
 pub use discard::{Discard, DiscardOnDrop};
 
-use gsasl::callback::{gsasl_callback, gsasl_callback_hook_get, gsasl_callback_hook_set,
-                gsasl_callback_set};
+use gsasl::callback::{gsasl_callback, gsasl_callback_set};
 
 pub mod buffer;
 pub mod session;
@@ -113,7 +112,7 @@ pub use session::Step;
 
 use crate::gsasl::consts::{GSASL_MECHANISM_PARSE_ERROR, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
 use crate::gsasl::done::gsasl_done;
-use crate::gsasl::gsasl::{Gsasl, Gsasl_callback_function, Gsasl_session};
+use crate::gsasl::gsasl::{Gsasl, Gsasl_callback_function, Session};
 use crate::gsasl::listmech::{gsasl_client_mechlist, gsasl_server_mechlist};
 use crate::gsasl::suggest::gsasl_client_suggest_mechanism;
 use crate::gsasl::supportp::{gsasl_client_support_p, gsasl_server_support_p};
@@ -181,7 +180,7 @@ impl<D, E> SASL<D,E> {
         let gsasl = Box::leak(Box::new(
             Gsasl::new().map_err(|e| error::SaslError(e))?
         ));
-        let mut ctx = Self::from_ptr(gsasl);
+        let ctx = Self::from_ptr(gsasl);
         Ok(DiscardOnDrop::new(ctx))
     }
 
@@ -323,13 +322,13 @@ impl<D, E> SASL<D,E> {
     /// documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Properties) for what
     /// mechanism uses what properties.
     pub fn client_start(&mut self, mech: &str) -> error::Result<DiscardOnDrop<Session<E>>> {
-        let mut ptr: *mut Gsasl_session = ptr::null_mut();
+        let mut ptr: *mut Session = ptr::null_mut();
 
         let res = unsafe {
             gsasl_client_start(
                 self.ctx, 
                 mech,
-                &mut ptr as *mut *mut Gsasl_session)
+                &mut ptr as *mut *mut Session)
         };
 
         if res != (GSASL_OK as libc::c_int) {
@@ -350,13 +349,13 @@ impl<D, E> SASL<D,E> {
     /// See [the gsasl documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Using-a-callback) for
     /// how gsasl uses properties and callbacks.
     pub fn server_start(&mut self, mech: &str) -> error::Result<DiscardOnDrop<Session<E>>> {
-        let mut ptr: *mut Gsasl_session = ptr::null_mut();
+        let mut ptr: *mut Session = ptr::null_mut();
 
         let res = unsafe {
             gsasl_server_start(
                 self.ctx,
                 mech,
-                &mut ptr as *mut *mut Gsasl_session
+                &mut ptr as *mut *mut Session
             )
         };
 
@@ -368,51 +367,6 @@ impl<D, E> SASL<D,E> {
         }
     }
 
-    /// Store some data in the SASL context
-    ///
-    /// This allows a callback to later access that data using [`retrieve`](Self::retrieve) or
-    /// [`retrieve_mut`](Self::retrieve_mut)
-    pub fn store(&mut self, data: Box<D>) {
-        // This is safe because the worst that can happen is that we leak a previously stored
-        // value.
-        unsafe {
-            gsasl_callback_hook_set(self.ctx, Box::into_raw(data) as *mut libc::c_void)
-        }
-    }
-
-    /// Retrieve the data stored with [`store`](Self::store), leaving nothing in its place
-    ///
-    /// This function will return `None` if no data was stored. This function is unsafe because we
-    /// can not guarantee that there is currently nothing else that has a reference to the data
-    /// which will turn into a dangling pointer if the returned Box is dropped
-    pub unsafe fn retrieve(&mut self) -> Option<Box<D>> {
-        // This function is unsa
-        // Get a pointer to the current value
-        let ptr = gsasl_callback_hook_get(self.ctx);
-        // Set it to null because we now have sole ownership
-        gsasl_callback_hook_set(self.ctx, std::ptr::null_mut());
-
-        if !ptr.is_null() {
-            Some(Box::from_raw(ptr as *mut D))
-        } else {
-            None
-        }
-    }
-
-    /// Retrieve a mutable reference to the data stored with [`store`](Self::store)
-    ///
-    /// This function does not take ownership of the stored data, thus also not dropping it after
-    /// it has left the current scope.
-    ///
-    /// The function tries to return `None` if no data was stored.
-    pub fn retrieve_mut(&mut self) -> Option<&mut D> {
-        // This is safe because once you have given ownership of data to the context you can only
-        // get it back using `unsafe` functions.
-        unsafe {
-            let ptr = gsasl_callback_hook_get(self.ctx) as *mut D;
-            ptr.as_mut()
-        }
-    }
 
     /// Run the configured callback.
     pub fn callback(&mut self, session: &mut Session<E>, prop: Property) -> libc::c_int {
@@ -448,7 +402,6 @@ impl<D,E> Discard for SASL<D,E> {
         // which should be prevented by the borrow checker.
         unsafe {
             // Retrieve and drop the stored value.
-            self.retrieve();
             self.done();
         };
     }
@@ -464,20 +417,16 @@ mod tests {
     fn callback_test() {
         struct CB;
         impl Callback<u32, u64> for CB {
-            fn callback(sasl: &mut SASL<u32, u64>, session: &mut Session<u64>, _prop: Property) 
+            fn callback(sasl: &mut SASL<u32, u64>, session: &mut Session<u64>, _prop: Property)
                 -> Result<(), u32>
             {
-                assert_eq!(sasl.retrieve_mut(), Some(&mut 0x55555555));
-                assert_eq!(session.retrieve_mut(), Some(&mut 0xAAAAAAAAAAAAAAAA));
                 Ok(())
             }
         }
 
         let mut sasl = SASL::new().unwrap();
         sasl.install_callback::<CB>();
-        sasl.store(Box::new(0x55555555));
         let mut session = sasl.client_start("PLAIN").unwrap();
-        session.store(Box::new(0xAAAAAAAAAAAAAAAA));
 
         assert_eq!(GSASL_OK as libc::c_int,
             sasl.callback(&mut session, GSASL_VALIDATE_SIMPLE));
@@ -487,11 +436,9 @@ mod tests {
     fn callback_unset_test() {
         struct CB;
         impl Callback<u32, u64> for CB {
-            fn callback(sasl: &mut SASL<u32, u64>, session: &mut Session<u64>, _prop: Property) 
+            fn callback(sasl: &mut SASL<u32, u64>, session: &mut Session<u64>, _prop: Property)
                 -> Result<(), u32>
             {
-                assert_eq!(sasl.retrieve_mut(), None);
-                assert_eq!(session.retrieve_mut(), None);
                 Ok(())
             }
         }

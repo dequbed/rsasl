@@ -104,6 +104,7 @@ mod tests {
             assert!(0 < outlen && outlen < 28);
 
             let outslice = std::slice::from_raw_parts(out as *mut u8, outlen);
+            println!("Encoded: {}", std::str::from_utf8_unchecked(outslice));
 
             res = gsasl_base64_from(out, outlen,
                                     &mut after, &mut afterlen);

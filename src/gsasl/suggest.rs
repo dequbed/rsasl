@@ -1,7 +1,7 @@
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::GSASL_OK;
-use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
+use crate::gsasl::gsasl::{Gsasl, Session};
 use crate::gsasl::xfinish::gsasl_finish;
 use crate::gsasl_client_start;
 
@@ -33,6 +33,7 @@ extern "C" {
 pub unsafe fn gsasl_client_suggest_mechanism(ctx: &Gsasl, mechlist: *const libc::c_char)
     -> *const libc::c_char
 {
+    /*
     let mut mechlist_len: size_t = 0; /* ~ no target */
     let mut target_mech: size_t = 0;
     let mut i: size_t = 0;
@@ -82,4 +83,6 @@ pub unsafe fn gsasl_client_suggest_mechanism(ctx: &Gsasl, mechlist: *const libc:
                (*(*ctx).client_mechs.offset(target_mech as isize)).name.as_ptr()
                    as *const libc::c_char
            } else { 0 as *const libc::c_char };
+     */
+    todo!()
 }

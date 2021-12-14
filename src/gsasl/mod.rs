@@ -49,20 +49,10 @@ pub mod external {
 
 // mod external
 pub mod gl {
-    pub mod c_ctype;
     pub mod free;
     pub mod gc_gnulib;
     pub mod gc_pbkdf2;
-    //pub mod hmac_md5;
-    //pub mod hmac_sha1;
-    //pub mod hmac_sha256;
-    //pub mod md5;
-    //pub mod md5_stream;
     pub mod memxor;
-    //pub mod sha1;
-    //pub mod sha1_stream;
-    //pub mod sha256;
-    //pub mod sha256_stream;
 }
 
 // mod gl
@@ -119,7 +109,6 @@ pub mod error;
 pub mod free;
 pub mod init;
 pub mod listmech;
-pub mod md5pwd;
 pub mod mechname;
 pub mod mechtools;
 pub mod property;

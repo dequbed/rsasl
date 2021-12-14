@@ -1,13 +1,14 @@
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
+use crate::consts::ANONYMOUS_TOKEN;
 use crate::gsasl::consts::{GSASL_ANONYMOUS_TOKEN, GSASL_MALLOC_ERROR, GSASL_NO_ANONYMOUS_TOKEN,
                            GSASL_OK};
-use crate::gsasl::gsasl::Gsasl_session;
-use crate::gsasl::property::gsasl_property_get;
+use crate::gsasl::gsasl::Session;
+use crate::gsasl::property::{gsasl_property_get, property_get};
 
 extern "C" {
-    fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
+    fn strndup(_: *const libc::c_char, _: size_t) -> *mut libc::c_char;
     fn strlen(_: *const libc::c_char) -> size_t;
 }
 
@@ -55,18 +56,22 @@ extern "C" {
  */
 /* Get specification. */
 /* Get strdup, strlen. */
-pub unsafe fn _gsasl_anonymous_client_step(sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_anonymous_client_step(sctx: *mut Session,
                                            _mech_data: Option<NonNull<()>>,
                                            _input: Option<&[u8]>,
                                            output: *mut *mut libc::c_char,
                                            output_len: *mut size_t
 ) -> libc::c_int
 {
-    let mut p: *const libc::c_char = 0 as *const libc::c_char;
-    p = gsasl_property_get(sctx, GSASL_ANONYMOUS_TOKEN);
-    if p.is_null() { return GSASL_NO_ANONYMOUS_TOKEN as libc::c_int }
-    *output = strdup(p);
-    if (*output).is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
-    *output_len = strlen(p);
-    return GSASL_OK as libc::c_int;
+    if let Some(token) = property_get::<ANONYMOUS_TOKEN>(sctx) {
+        *output = strndup(token.as_ptr() as *const libc::c_char, token.len());
+
+        if (*output).is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
+        *output_len = token.len();
+
+        GSASL_OK as libc::c_int
+    } else {
+
+        GSASL_NO_ANONYMOUS_TOKEN as libc::c_int
+    }
 }
