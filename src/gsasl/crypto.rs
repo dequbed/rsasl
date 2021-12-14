@@ -1,10 +1,9 @@
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::GSASL_OK;
-use crate::gsasl::gc::Gc_rc;
 use crate::gsasl::gl::gc_gnulib::{gc_nonce, gc_random};
 use crate::gsasl::mechtools::{_gsasl_hash, _gsasl_hmac, _gsasl_pbkdf2, Gsasl_hash, GSASL_HASH_SHA1_SIZE, GSASL_HASH_SHA256_SIZE};
-use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep, Gsasl_saslprep_flags};
+use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep};
 
 extern "C" {
     fn strlen(_: *const libc::c_char) -> size_t;

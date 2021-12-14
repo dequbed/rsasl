@@ -1,8 +1,7 @@
+use std::ffi::CString;
 use std::ptr::NonNull;
-use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::*;
-use crate::gsasl::property::gsasl_property_get;
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep};
 use crate::Session;
 
@@ -101,7 +100,6 @@ pub unsafe fn _gsasl_cram_md5_client_step(sctx: &mut Session,
     let input: *const libc::c_char = input.map(|i| i.as_ptr().cast()).unwrap_or(std::ptr::null());
 
     let mut response: [libc::c_char; 32] = [0; 32];
-    let mut p: *const libc::c_char = 0 as *const libc::c_char;
     let mut len: size_t = 0;
     let mut tmp: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut authid: *mut libc::c_char = 0 as *mut libc::c_char;
@@ -111,25 +109,30 @@ pub unsafe fn _gsasl_cram_md5_client_step(sctx: &mut Session,
         *output = 0 as *mut libc::c_char;
         return GSASL_NEEDS_MORE as libc::c_int
     }
-    p = gsasl_property_get(sctx, GSASL_AUTHID);
-    if p.is_null() { return GSASL_NO_AUTHID as libc::c_int }
-    /* XXX Use query strings here?  Specification is unclear. */
-    rc =
-        gsasl_saslprep(p, GSASL_ALLOW_UNASSIGNED, &mut authid,
-                       0 as *mut libc::c_int);
-    if rc != GSASL_OK as libc::c_int { return rc }
-    p = gsasl_property_get(sctx, GSASL_PASSWORD);
-    if p.is_null() {
+    if let Some(prop) = sctx.get_property_or_callback::<AUTHID>() {
+        let cstr = CString::new(prop).unwrap();
+        rc = gsasl_saslprep(cstr.as_ptr(),
+                            GSASL_ALLOW_UNASSIGNED,
+                            &mut authid,
+                           0 as *mut libc::c_int);
+        if rc != GSASL_OK as libc::c_int { return rc }
+    } else {
+        return GSASL_NO_AUTHID as libc::c_int;
+    }
+    if let Some(prop) = sctx.get_property_or_callback::<PASSWORD>() {
+        let cstr = CString::new(prop).unwrap();
+        /* XXX Use query strings here?  Specification is unclear. */
+        rc = gsasl_saslprep(cstr.as_ptr(),
+                            GSASL_ALLOW_UNASSIGNED,
+                            &mut tmp,
+                           0 as *mut libc::c_int);
+        if rc != GSASL_OK as libc::c_int {
+            rpl_free(authid as *mut libc::c_void);
+            return rc
+        }
+    } else {
         rpl_free(authid as *mut libc::c_void);
         return GSASL_NO_PASSWORD as libc::c_int
-    }
-    /* XXX Use query strings here?  Specification is unclear. */
-    rc =
-        gsasl_saslprep(p, GSASL_ALLOW_UNASSIGNED, &mut tmp,
-                       0 as *mut libc::c_int);
-    if rc != GSASL_OK as libc::c_int {
-        rpl_free(authid as *mut libc::c_void);
-        return rc
     }
     cram_md5_digest(input, input_len, tmp, strlen(tmp) as size_t,
                     response.as_mut_ptr());

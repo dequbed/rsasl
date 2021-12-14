@@ -323,8 +323,7 @@ pub unsafe fn _gsasl_digest_md5_server_step(sctx: &mut Session,
     return res;
 }
 
-pub unsafe fn _gsasl_digest_md5_server_finish(_sctx: &mut Session,
-                                              mech_data: Option<NonNull<()>>)
+pub unsafe fn _gsasl_digest_md5_server_finish(mech_data: Option<NonNull<()>>)
 {
     let mech_data = mech_data
         .map(|ptr| ptr.as_ptr())

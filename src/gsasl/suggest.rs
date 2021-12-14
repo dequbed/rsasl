@@ -27,7 +27,7 @@ extern "C" {
  *   the libgsasl client which is present in the input string, or
  *   NULL if no supported mechanism is found.
  **/
-pub unsafe fn gsasl_client_suggest_mechanism(ctx: &SASL, mechlist: *const libc::c_char)
+pub unsafe fn gsasl_client_suggest_mechanism(_ctx: &SASL, _mechlist: *const libc::c_char)
     -> *const libc::c_char
 {
     /*

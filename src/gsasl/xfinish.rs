@@ -273,7 +273,7 @@ extern "C" {
  * used with other libgsasl functions after this call.
  **/
 #[no_mangle]
-pub unsafe fn gsasl_finish(sctx: &mut Session) {
+pub unsafe fn gsasl_finish(_sctx: &mut Session) {
     todo!()
     /*
     if (*sctx).clientp != 0 {

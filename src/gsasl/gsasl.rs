@@ -1,12 +1,8 @@
-use std::any::{Any, TypeId};
-use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
-use std::marker::PhantomData;
 use std::ptr::NonNull;
-use libc::{c_char, size_t};
-use crate::{gsasl_done, GSASL_OK, GSASL_UNKNOWN_MECHANISM, RsaslError, SASL, SaslError, Session};
+use libc::size_t;
+use crate::{GSASL_OK, GSASL_UNKNOWN_MECHANISM, RsaslError, SASL, SaslError, Session};
 use crate::consts::GSASL_NEEDS_MORE;
-use crate::gsasl::init::register_builtin_mechs;
 use crate::session::StepResult;
 use crate::Step::{Done, NeedsMore};
 
@@ -17,7 +13,7 @@ pub struct Gsasl_mechanism {
     pub server: MechanismVTable,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct CombinedCMech {
     pub name: &'static str,
     pub client: CMechBuilder,
@@ -91,7 +87,7 @@ pub trait Mechanism: Debug {
     fn decode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SaslError>;
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct CMechBuilder {
     pub vtable: MechanismVTable,
 }
@@ -115,6 +111,14 @@ impl MechanismBuilder for CMechBuilder {
         }
 
         Err(GSASL_UNKNOWN_MECHANISM)
+    }
+}
+
+impl Drop for CMechBuilder {
+    fn drop(&mut self) {
+        if let Some(done) = self.vtable.done {
+            unsafe { done() };
+        }
     }
 }
 
@@ -157,12 +161,20 @@ impl Mechanism for CMech {
         }
     }
 
-    fn encode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SaslError> {
+    fn encode(&mut self, _input: &[u8]) -> Result<Box<[u8]>, SaslError> {
         todo!()
     }
 
-    fn decode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SaslError> {
+    fn decode(&mut self, _input: &[u8]) -> Result<Box<[u8]>, SaslError> {
         todo!()
+    }
+}
+
+impl Drop for CMech {
+    fn drop(&mut self) {
+        if let Some(finish) = self.vtable.finish {
+            unsafe { finish(self.mech_data) };
+        }
     }
 }
 
@@ -187,7 +199,6 @@ pub type Gsasl_step_function = Option<unsafe fn(
 ) -> libc::c_int>;
 
 pub type Gsasl_finish_function = Option<unsafe fn(
-    _: &mut Session,
     _: Option<NonNull<()>>,
 ) -> ()>;
 

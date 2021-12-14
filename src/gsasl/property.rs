@@ -2,7 +2,7 @@ use std::ffi::CString;
 use libc::size_t;
 use crate::consts::*;
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_OK, Gsasl_property};
-use crate::{SASL, gsasl_callback, Session};
+use crate::Session;
 
 extern "C" {
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
@@ -33,8 +33,8 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-unsafe fn map(sctx: &mut Session,
-              prop: Gsasl_property
+unsafe fn map(_sctx: &mut Session,
+              _prop: Gsasl_property
 ) -> *mut *mut libc::c_char
 {
     todo!();
@@ -302,13 +302,13 @@ unsafe fn gsasl_property_fast(sctx: &mut Session,
     }
 }
 
-pub unsafe fn gsasl_property_get(sctx: &mut Session,
+unsafe fn gsasl_property_get(sctx: &mut Session,
                                  prop: Gsasl_property
 ) -> *const libc::c_char
 {
     let mut ptr = gsasl_property_fast(sctx, prop);
     if ptr.is_null() {
-        sctx.callback();
+        let _ = sctx.callback();
         ptr = gsasl_property_fast(sctx, prop);
     }
     ptr

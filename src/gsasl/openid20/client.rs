@@ -204,8 +204,7 @@ pub unsafe fn _gsasl_openid20_client_step(sctx: &mut Session,
  * Boston, MA 02110-1301, USA.
  *
  */
-pub unsafe fn _gsasl_openid20_client_finish(_sctx: &mut Session,
-                                            mech_data: Option<NonNull<()>>)
+pub unsafe fn _gsasl_openid20_client_finish(mech_data: Option<NonNull<()>>)
 {
     let mech_data = mech_data
         .map(|ptr| ptr.as_ptr())

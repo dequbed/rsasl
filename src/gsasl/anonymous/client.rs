@@ -2,9 +2,8 @@ use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::consts::ANONYMOUS_TOKEN;
-use crate::gsasl::consts::{GSASL_ANONYMOUS_TOKEN, GSASL_MALLOC_ERROR, GSASL_NO_ANONYMOUS_TOKEN,
+use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_ANONYMOUS_TOKEN,
                            GSASL_OK};
-use crate::gsasl::property::{gsasl_property_get};
 use crate::Session;
 
 extern "C" {

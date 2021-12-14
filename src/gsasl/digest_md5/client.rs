@@ -14,9 +14,9 @@ use crate::gsasl::digest_md5::qop::{DIGEST_MD5_QOP_AUTH, DIGEST_MD5_QOP_AUTH_INT
 use crate::gsasl::digest_md5::session::{digest_md5_decode, digest_md5_encode};
 use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::gc_gnulib::gc_md5;
-use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
+use crate::gsasl::property::{gsasl_property_set};
 use crate::{SASL, Session};
-use crate::consts::REALM;
+use crate::consts::{HOSTNAME, QOP, REALM, SERVICE};
 
 extern "C" {
 
@@ -155,39 +155,42 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut Session,
                 gsasl_property_set(sctx, GSASL_QOPS,
                                    digest_md5_qops2qopstr((*state).challenge.qops));
             if res != GSASL_OK as libc::c_int { return res }
-            let mut qop: *const libc::c_char =
-                gsasl_property_get(sctx, GSASL_QOP);
-            if qop.is_null() {
-                (*state).response.qop = DIGEST_MD5_QOP_AUTH
-            } else if strcmp(qop,
-                             b"qop-int\x00" as *const u8 as
-                                 *const libc::c_char) == 0 as libc::c_int {
-                (*state).response.qop = DIGEST_MD5_QOP_AUTH_INT
-            } else if strcmp(qop,
-                             b"qop-auth\x00" as *const u8 as
-                                 *const libc::c_char) == 0 as libc::c_int {
-                (*state).response.qop = DIGEST_MD5_QOP_AUTH
+
+            if let Some(qop) = sctx.get_property_or_callback::<QOP>() {
+                if qop == "qop-int\0" {
+                    (*state).response.qop = DIGEST_MD5_QOP_AUTH_INT
+                } else if qop == "qop-auth\0" {
+                    (*state).response.qop = DIGEST_MD5_QOP_AUTH
+                } else {
+                    /* We don't support confidentiality or unknown
+                       keywords. */
+                    return GSASL_AUTHENTICATION_ERROR as libc::c_int
+                }
             } else {
-                /* We don't support confidentiality or unknown
-	       keywords. */
-                return GSASL_AUTHENTICATION_ERROR as libc::c_int
+                (*state).response.qop = DIGEST_MD5_QOP_AUTH
             }
+
             (*state).response.nonce = strdup((*state).challenge.nonce);
             if (*state).response.nonce.is_null() {
                 return GSASL_MALLOC_ERROR as libc::c_int
             }
-            let mut service: *const libc::c_char =
-                gsasl_property_get(sctx, GSASL_SERVICE);
-            let mut hostname: *const libc::c_char =
-                gsasl_property_get(sctx, GSASL_HOSTNAME);
-            if service.is_null() { return GSASL_NO_SERVICE as libc::c_int }
-            if hostname.is_null() { return GSASL_NO_HOSTNAME as libc::c_int }
+            let service = if let Some(service) = sctx.get_property_or_callback::<SERVICE>() {
+                service
+            } else {
+                return GSASL_NO_SERVICE as libc::c_int
+            };
+            let hostname = if let Some(hostname) = sctx.get_property_or_callback::<HOSTNAME>() {
+                hostname
+            } else {
+                return GSASL_NO_HOSTNAME as libc::c_int
+            };
             if asprintf(&mut (*state).response.digesturi as
                             *mut *mut libc::c_char,
                         b"%s/%s\x00" as *const u8 as *const libc::c_char,
-                        service, hostname) < 0 as libc::c_int {
+                        service.as_ptr(), hostname.as_ptr()) < 0 as libc::c_int {
                 return GSASL_MALLOC_ERROR as libc::c_int
             }
+
             let mut c: *const libc::c_char = 0 as *const libc::c_char;
             let mut tmp: *mut libc::c_char = 0 as *mut libc::c_char;
             let mut tmp2: *mut libc::c_char = 0 as *mut libc::c_char;
@@ -290,8 +293,7 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut Session,
     return res;
 }
 
-pub unsafe fn _gsasl_digest_md5_client_finish(_sctx: &mut Session,
-                                              mech_data: Option<NonNull<()>>)
+pub unsafe fn _gsasl_digest_md5_client_finish(mech_data: Option<NonNull<()>>)
 {
     let mech_data = mech_data
         .map(|ptr| ptr.as_ptr())

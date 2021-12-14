@@ -1,8 +1,6 @@
 use ::libc;
 use libc::size_t;
-use crate::gsasl::consts::*;
 use crate::gsasl::gsasl::{Gsasl_mechanism};
-use crate::gsasl::xfinish::gsasl_finish;
 use crate::SASL;
 
 extern "C" {
@@ -35,11 +33,11 @@ pub const GSASL_MIN_MECHANISM_SIZE: C2RustUnnamed = 1;
  * Boston, MA 02110-1301, USA.
  *
  */
-unsafe fn _gsasl_listmech(ctx: &SASL,
-                          mechs: *mut Gsasl_mechanism,
-                          n_mechs: size_t,
-                          out: *mut *mut libc::c_char,
-                          clientp: libc::c_int,
+unsafe fn _gsasl_listmech(_ctx: &SASL,
+                          _mechs: *mut Gsasl_mechanism,
+                          _n_mechs: size_t,
+                          _out: *mut *mut libc::c_char,
+                          _clientp: libc::c_int,
 ) -> libc::c_int
 {
     todo!();
@@ -75,7 +73,6 @@ unsafe fn _gsasl_listmech(ctx: &SASL,
     }
     *out = list;
      */
-    return GSASL_OK as libc::c_int;
 }
 /* *
  * gsasl_client_mechlist:
@@ -90,11 +87,11 @@ unsafe fn _gsasl_listmech(ctx: &SASL,
  * Return value: Returns %GSASL_OK if successful, or error code.
  **/
 #[no_mangle]
-pub unsafe fn gsasl_client_mechlist(ctx: &SASL, out: &mut *mut libc::c_char)
+pub unsafe fn gsasl_client_mechlist(_ctx: &SASL, _out: &mut *mut libc::c_char)
  -> libc::c_int {
     todo!()
 }
-pub unsafe fn gsasl_server_mechlist(ctx: &SASL, out: *mut *mut libc::c_char)
+pub unsafe fn gsasl_server_mechlist(_ctx: &SASL, _out: *mut *mut libc::c_char)
  -> libc::c_int {
     todo!()
 }

@@ -1,7 +1,6 @@
 use ::libc;
 use libc::size_t;
 use crate::gsasl::digest_md5::qop::{digest_md5_qop, DIGEST_MD5_QOP_AUTH_CONF, DIGEST_MD5_QOP_AUTH_INT};
-use crate::gsasl::gc::Gc_rc;
 use crate::gsasl::gl::gc_gnulib::gc_hmac_md5;
 
 extern "C" {

@@ -1,10 +1,12 @@
+use std::ffi::CString;
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD};
-use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
+use crate::gsasl::property::gsasl_property_set;
 use crate::gsasl::saslprep::{gsasl_saslprep, Gsasl_saslprep_flags};
 use crate::{SASL, Session};
+use crate::consts::PASSWORD;
 
 extern "C" {
     fn malloc(_: size_t) -> *mut libc::c_void;
@@ -124,14 +126,22 @@ pub unsafe fn _gsasl_cram_md5_server_step(sctx: &mut Session,
     res = gsasl_property_set(sctx, GSASL_AUTHID, username);
     rpl_free(username as *mut libc::c_void);
     if res != GSASL_OK as libc::c_int { return res }
-    password = gsasl_property_get(sctx, GSASL_PASSWORD);
-    if password.is_null() { return GSASL_NO_PASSWORD as libc::c_int }
-    /* FIXME: Use SASLprep here?  Treat string as storage string?
-     Specification is unclear. */
-    res =
-        gsasl_saslprep(password, 0 as Gsasl_saslprep_flags, &mut normkey,
-                       0 as *mut libc::c_int);
-    if res != GSASL_OK as libc::c_int { return res }
+
+    if let Some(password) = sctx.get_property_or_callback::<PASSWORD>() {
+        let cstr = CString::new(password).unwrap();
+        /* FIXME: Use SASLprep here?  Treat string as storage string?
+         Specification is unclear. */
+        res = gsasl_saslprep(cstr.as_ptr(),
+                             0 as Gsasl_saslprep_flags,
+                             &mut normkey,
+                           0 as *mut libc::c_int);
+        if res != GSASL_OK as libc::c_int {
+            return res
+        }
+    } else {
+        return GSASL_NO_PASSWORD as libc::c_int
+    }
+
     cram_md5_digest(challenge, strlen(challenge) as usize, normkey, strlen(normkey) as usize,
                     hash.as_mut_ptr());
     rpl_free(normkey as *mut libc::c_void);
@@ -172,8 +182,7 @@ pub unsafe fn _gsasl_cram_md5_server_step(sctx: &mut Session,
  *
  */
 #[no_mangle]
-pub unsafe fn _gsasl_cram_md5_server_finish(_sctx: &mut Session,
-                                            mech_data: Option<NonNull<()>>)
+pub unsafe fn _gsasl_cram_md5_server_finish(mech_data: Option<NonNull<()>>)
 {
     let mech_data = mech_data
         .map(|ptr| ptr.as_ptr())

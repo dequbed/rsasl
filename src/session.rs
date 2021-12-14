@@ -1,19 +1,7 @@
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
-use libc::size_t;
-use std::ptr;
-use std::ffi::CStr;
-use crate::gsasl::consts::GSASL_OK;
 
-use crate::buffer::{SaslBuffer, SaslString};
-use crate::error::SaslError;
-
-use discard::{Discard};
-use crate::gsasl::consts::{GSASL_NEEDS_MORE, Gsasl_property};
-use crate::gsasl::property::gsasl_property_set_raw;
-use crate::gsasl::xfinish::gsasl_finish;
-use crate::gsasl::xstep::{gsasl_step, gsasl_step64};
-use crate::{Callback, Mechanism, RsaslError, SASL};
+use crate::{Callback, Mechanism, RsaslError};
 use crate::consts::{GSASL_NO_CALLBACK, Property};
 
 pub struct AuthSession<'session> {
@@ -80,9 +68,9 @@ impl Session<'_> {
 
     pub fn get_property_or_callback<P: Property>(&mut self) -> Option<P::Item> {
         if let Some(item) = self.get_property::<P>() {
-            None
+            Some(item)
         } else {
-            self.callback();
+            let _ = self.callback();
             self.get_property::<P>()
         }
     }

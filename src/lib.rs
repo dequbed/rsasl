@@ -82,16 +82,13 @@
 //! }
 //! ```
 
-use std::ptr;
 use std::ffi::CStr;
-use std::fmt::{Debug, Formatter};
+use std::fmt::Debug;
 
 
 // Re-Export DiscardOnDrop so people can write rsasl::DiscardOnDrop<SASL<D,E>> without having to
 // import the discard crate.
 pub use discard::{Discard, DiscardOnDrop};
-
-use gsasl::callback::gsasl_callback;
 
 pub mod buffer;
 pub mod session;
@@ -111,11 +108,7 @@ pub use mechanisms::Mechanisms;
 pub use session::Step;
 
 use crate::gsasl::consts::{GSASL_MECHANISM_PARSE_ERROR, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
-use crate::gsasl::done::gsasl_done;
 use crate::gsasl::gsasl::{CMechBuilder, CombinedCMech, Mechanism, MechanismBuilder, MechanismVTable};
-use crate::gsasl::listmech::{gsasl_client_mechlist, gsasl_server_mechlist};
-use crate::gsasl::suggest::gsasl_client_suggest_mechanism;
-use crate::gsasl::supportp::{gsasl_client_support_p, gsasl_server_support_p};
 pub use crate::gsasl::consts::Gsasl_property as Property;
 
 pub use error::{
@@ -180,8 +173,7 @@ impl SASL<'_> {
         };
 
         unsafe {
-            let mut rc: libc::c_int = 0;
-            rc = register_builtin_mechs(&mut this);
+            let rc = register_builtin_mechs(&mut this);
             if rc == GSASL_OK as libc::c_int {
                 Ok(this)
             } else {
@@ -213,19 +205,17 @@ todo!()
     /// Suggests a mechanism to use from a given list of Mechanisms. Returns
     /// Err(GSASL_UNKNOWN_MECHANISM) if there was no supported mechanism found in the given list,
     /// and Err(GSASL_MECHANISM_PARSE_ERROR) if the returned mechanism name is invalid.
-    // The ptr returned by the ffi call is typed as 'const char*', so it should be valid for as
-    // long as libgsasl is loaded.
-    pub fn suggest_client_mechanism(&self, mechs: Mechanisms) -> Result<&str, SaslError> {
+    pub fn suggest_client_mechanism(&self, _mechs: Mechanisms) -> Result<&str, SaslError> {
         todo!()
     }
 
     /// Returns wheter there is client-side support for the specified mechanism
-    pub fn client_supports(&self, mech: &CStr) -> bool {
+    pub fn client_supports(&self, _mech: &CStr) -> bool {
 todo!()
     }
 
     /// Returns wheter there is server-side support for the specified mechanism
-    pub fn server_supports(&self, mech: &CStr) -> bool {
+    pub fn server_supports(&self, _mech: &CStr) -> bool {
 todo!()
     }
 
@@ -273,7 +263,7 @@ todo!()
     }
 
     /// Run the configured callback.
-    pub fn callback(&mut self, session: &mut Session, prop: Property) -> libc::c_int {
+    pub fn callback(&mut self, _session: &mut Session, _prop: Property) -> libc::c_int {
         todo!()
     }
 }

@@ -3,7 +3,6 @@ use ::libc;
 use libc::size_t;
 use crate::consts::{AUTHID, AUTHZID, PASSWORD};
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK};
-use crate::gsasl::property::{gsasl_property_get};
 use crate::Session;
 
 extern "C" {

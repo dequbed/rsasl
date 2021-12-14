@@ -1,13 +1,10 @@
 use ::libc;
 use crate::SASL;
 use crate::gsasl::anonymous::mechinfo::gsasl_anonymous_mechanism;
-use crate::gsasl::consts::{GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR, GSASL_OK};
+use crate::gsasl::consts::GSASL_OK;
 use crate::gsasl::cram_md5::mechinfo::gsasl_cram_md5_mechanism;
 use crate::gsasl::digest_md5::mechinfo::gsasl_digest_md5_mechanism;
-use crate::gsasl::done::gsasl_done;
 use crate::gsasl::external::mechinfo::gsasl_external_mechanism;
-use crate::gsasl::gc::GC_OK;
-use crate::gsasl::gsasl::{};
 use crate::gsasl::login::mechinfo::gsasl_login_mechanism;
 use crate::gsasl::openid20::mechinfo::gsasl_openid20_mechanism;
 use crate::gsasl::plain::mechinfo::gsasl_plain_mechanism;
