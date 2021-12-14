@@ -1,4 +1,4 @@
-use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
+use crate::gsasl::gsasl::{Gsasl_mechanism, MechanismVTable};
 use crate::gsasl::scram::client::{_gsasl_scram_client_finish, _gsasl_scram_client_step, _gsasl_scram_sha1_client_start, _gsasl_scram_sha1_plus_client_start, _gsasl_scram_sha256_client_start, _gsasl_scram_sha256_plus_client_start};
 use crate::gsasl::scram::server::{_gsasl_scram_server_finish, _gsasl_scram_server_step, _gsasl_scram_sha1_plus_server_start, _gsasl_scram_sha1_server_start, _gsasl_scram_sha256_plus_server_start, _gsasl_scram_sha256_server_start};
 
@@ -26,7 +26,7 @@ use crate::gsasl::scram::server::{_gsasl_scram_server_finish, _gsasl_scram_serve
 /* Get specification. */
 pub static mut gsasl_scram_sha1_mechanism: Gsasl_mechanism = Gsasl_mechanism {
     name: "SCRAM-SHA-1",
-    client: Gsasl_mechanism_functions {
+    client: MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha1_client_start),
@@ -35,7 +35,7 @@ pub static mut gsasl_scram_sha1_mechanism: Gsasl_mechanism = Gsasl_mechanism {
         encode: None,
         decode: None,
     },
-    server: Gsasl_mechanism_functions {
+    server: MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha1_server_start),
@@ -48,7 +48,7 @@ pub static mut gsasl_scram_sha1_mechanism: Gsasl_mechanism = Gsasl_mechanism {
 
 pub static mut gsasl_scram_sha1_plus_mechanism: Gsasl_mechanism = Gsasl_mechanism {
     name: "SCRAM-SHA-1-PLUS",
-    client: Gsasl_mechanism_functions {
+    client: MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha1_plus_client_start),
@@ -57,7 +57,7 @@ pub static mut gsasl_scram_sha1_plus_mechanism: Gsasl_mechanism = Gsasl_mechanis
         encode: None,
         decode: None,
     },
-    server: Gsasl_mechanism_functions {
+    server: MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha1_plus_server_start),
@@ -70,7 +70,7 @@ pub static mut gsasl_scram_sha1_plus_mechanism: Gsasl_mechanism = Gsasl_mechanis
 
 pub static mut gsasl_scram_sha256_mechanism: Gsasl_mechanism = Gsasl_mechanism {
     name: "SCRAM-SHA-256",
-    client: Gsasl_mechanism_functions {
+    client: MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha256_client_start),
@@ -79,7 +79,7 @@ pub static mut gsasl_scram_sha256_mechanism: Gsasl_mechanism = Gsasl_mechanism {
         encode: None,
         decode: None,
     },
-    server: Gsasl_mechanism_functions {
+    server: MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha256_server_start),
@@ -92,7 +92,7 @@ pub static mut gsasl_scram_sha256_mechanism: Gsasl_mechanism = Gsasl_mechanism {
 
 pub static mut gsasl_scram_sha256_plus_mechanism: Gsasl_mechanism = Gsasl_mechanism {
     name: "SCRAM-SHA-256-PLUS",
-    client: Gsasl_mechanism_functions {
+    client: MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha256_plus_client_start),
@@ -101,7 +101,7 @@ pub static mut gsasl_scram_sha256_plus_mechanism: Gsasl_mechanism = Gsasl_mechan
         encode: None,
         decode: None,
     },
-    server: Gsasl_mechanism_functions {
+    server: MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha256_plus_server_start),

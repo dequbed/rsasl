@@ -1,6 +1,6 @@
 use crate::gsasl::digest_md5::client::{_gsasl_digest_md5_client_decode, _gsasl_digest_md5_client_encode, _gsasl_digest_md5_client_finish, _gsasl_digest_md5_client_start, _gsasl_digest_md5_client_step};
 use crate::gsasl::digest_md5::server::{_gsasl_digest_md5_server_decode, _gsasl_digest_md5_server_encode, _gsasl_digest_md5_server_finish, _gsasl_digest_md5_server_start, _gsasl_digest_md5_server_step};
-use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
+use crate::gsasl::gsasl::{Gsasl_mechanism, MechanismVTable};
 
 /* mechinfo.c --- Definition of DIGEST-MD5 mechanism.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -26,7 +26,7 @@ use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
 /* Get specification. */
 pub static mut gsasl_digest_md5_mechanism: Gsasl_mechanism = Gsasl_mechanism {
     name: "DIGEST-MD5",
-    client: Gsasl_mechanism_functions {
+    client: MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_digest_md5_client_start),
@@ -35,7 +35,7 @@ pub static mut gsasl_digest_md5_mechanism: Gsasl_mechanism = Gsasl_mechanism {
         encode: Some(_gsasl_digest_md5_client_encode),
         decode: Some(_gsasl_digest_md5_client_decode),
     },
-    server: Gsasl_mechanism_functions {
+    server: MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_digest_md5_server_start),

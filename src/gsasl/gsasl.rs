@@ -82,21 +82,45 @@ pub struct Gsasl_session {
 #[derive(Copy, Clone)]
 pub struct Gsasl_mechanism {
     pub name: &'static str,
-    pub client: Gsasl_mechanism_functions,
-    pub server: Gsasl_mechanism_functions,
+    pub client: MechanismVTable,
+    pub server: MechanismVTable,
 }
 
 #[derive(Copy, Clone)]
-pub struct Gsasl_mechanism_functions {
+pub struct MechanismVTable {
+    /// Globally initialize this mechanism. This will be called exactly once per initialization
+    /// of Gsasl, however this may be more than once per application. Use [`Once`](std::sync::Once)
+    /// and friends if you must only be called once per process space / application
     pub init: Gsasl_init_function,
+
+    /// Undo whatever `init` did. Should be `Drop` in Rust.
+    ///
+    /// This will usually be called once for every time `init` was called, however in case a
+    /// panic occurred it may be called fewer times. If you must ensure that a destructor is run
+    /// with higher guarantees, consider the `ctor` crate.
     pub done: Gsasl_done_function,
+
+    /// Start a new authentication using this mechanism
+    ///
+    /// This function will be called at most once per session. You can rely on the state returned
+    /// being used only with the given session with no other authentication exchange happening in
+    /// between, i.e. the next function called with it will be either `step` or your Drop
+    /// implementation.
     pub start: Gsasl_start_function,
+
+    /// Do a single step of the authentication exchange
+    ///
+    /// This function will be called after `start` with any data the other party provided. You
+    /// can rely on this function not being called again after you returned `Ok(Done)`.
     pub step: Gsasl_step_function,
+
+    /// Should be Drop in Rust
     pub finish: Gsasl_finish_function,
+
+
     pub encode: Gsasl_code_function,
     pub decode: Gsasl_code_function,
 }
-
 
 pub type Gsasl_code_function = Option<unsafe fn(
     _: *mut Gsasl_session,
@@ -104,11 +128,6 @@ pub type Gsasl_code_function = Option<unsafe fn(
     _: *const libc::c_char, _: size_t,
     _: *mut *mut libc::c_char, _: *mut size_t
 ) -> libc::c_int>;
-
-pub type Gsasl_finish_function = Option<unsafe fn(
-    _: *mut Gsasl_session,
-    _: Option<NonNull<()>>,
-) -> ()>;
 
 /*
 pub unsafe fn step(
@@ -119,6 +138,11 @@ pub unsafe fn step(
     mut output: *mut *mut libc::c_char,
     mut output_len: *mut size_t);
  */
+
+pub type Gsasl_start_function = Option<unsafe fn(
+    _: &mut Gsasl_session,
+    _: &mut Option<NonNull<()>>
+) -> libc::c_int>;
 
 pub enum Step {
     Done(Option<Box<[u8]>>),
@@ -133,11 +157,10 @@ pub type Gsasl_step_function = Option<unsafe fn(
     _: *mut *mut libc::c_char, _: *mut size_t
 ) -> libc::c_int>;
 
-pub type Gsasl_start_function = Option<unsafe fn(
+pub type Gsasl_finish_function = Option<unsafe fn(
     _: &mut Gsasl_session,
-    _: &mut Option<NonNull<()>>
-) -> libc::c_int>;
-
-pub type Gsasl_done_function = Option<unsafe fn(_: &mut Gsasl) -> ()>;
+    _: Option<NonNull<()>>,
+) -> ()>;
 
 pub type Gsasl_init_function = Option<unsafe fn(_: &mut Gsasl) -> libc::c_int>;
+pub type Gsasl_done_function = Option<unsafe fn(_: &mut Gsasl) -> ()>;

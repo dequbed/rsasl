@@ -1,6 +1,6 @@
 use crate::gsasl::external::client::_gsasl_external_client_step;
 use crate::gsasl::external::server::_gsasl_external_server_step;
-use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
+use crate::gsasl::gsasl::{Gsasl_mechanism, MechanismVTable};
 
 /* mechinfo.c --- Definition of EXTERNAL mechanism.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -27,7 +27,7 @@ use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
 
 pub static mut gsasl_external_mechanism: Gsasl_mechanism = Gsasl_mechanism {
     name: "EXTERNAL",
-    client: Gsasl_mechanism_functions {
+    client: MechanismVTable {
         init: None,
         done: None,
         start: None,
@@ -36,7 +36,7 @@ pub static mut gsasl_external_mechanism: Gsasl_mechanism = Gsasl_mechanism {
         encode: None,
         decode: None,
     },
-    server: Gsasl_mechanism_functions {
+    server: MechanismVTable {
         init: None,
         done: None,
         start: None,

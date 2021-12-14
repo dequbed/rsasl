@@ -1,6 +1,6 @@
 use crate::gsasl::cram_md5::client::_gsasl_cram_md5_client_step;
 use crate::gsasl::cram_md5::server::{_gsasl_cram_md5_server_finish, _gsasl_cram_md5_server_start, _gsasl_cram_md5_server_step};
-use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
+use crate::gsasl::gsasl::{Gsasl_mechanism, MechanismVTable};
 
 /* gsasl-mech.h --- Header file for mechanism handling in GNU SASL Library.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -60,7 +60,7 @@ use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
 /* Get specification. */
 pub static mut gsasl_cram_md5_mechanism: Gsasl_mechanism = Gsasl_mechanism {
     name: "CRAM-MD5",
-    client: Gsasl_mechanism_functions {
+    client: MechanismVTable {
         init: None,
         done: None,
         start: None,
@@ -69,14 +69,13 @@ pub static mut gsasl_cram_md5_mechanism: Gsasl_mechanism = Gsasl_mechanism {
         encode: None,
         decode: None,
     },
-    server: Gsasl_mechanism_functions {
+    server: MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_cram_md5_server_start),
         step: Some(_gsasl_cram_md5_server_step),
         finish: Some(_gsasl_cram_md5_server_finish),
-        encode:
-        None, decode:
-        None,
+        encode: None,
+        decode: None,
     },
 };

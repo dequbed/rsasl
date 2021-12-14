@@ -273,8 +273,7 @@ extern "C" {
  * used with other libgsasl functions after this call.
  **/
 #[no_mangle]
-pub unsafe fn gsasl_finish(mut sctx: *mut Gsasl_session) {
-    if sctx.is_null() { return }
+pub unsafe fn gsasl_finish(sctx: &mut Gsasl_session) {
     if (*sctx).clientp != 0 {
         if !(*sctx).mech.is_null() && (*(*sctx).mech).client.finish.is_some()
            {
@@ -312,5 +311,5 @@ pub unsafe fn gsasl_finish(mut sctx: *mut Gsasl_session) {
     rpl_free((*sctx).openid20_outcome_data as *mut libc::c_void);
     /* If you add anything here, remember to change change map() in
      property.c and Gsasl_session in internal.h.  */
-    rpl_free(sctx as *mut libc::c_void);
+    rpl_free(sctx as *mut _ as *mut libc::c_void);
 }

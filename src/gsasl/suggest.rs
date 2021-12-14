@@ -69,7 +69,7 @@ pub unsafe fn gsasl_client_suggest_mechanism(ctx: &Gsasl, mechlist: *const libc:
                                                                            isize)).name,
                                           &mut sctx) ==
                            GSASL_OK as libc::c_int {
-                        gsasl_finish(sctx);
+                        gsasl_finish(&mut *sctx);
                         target_mech = j
                     }
                     break ;
