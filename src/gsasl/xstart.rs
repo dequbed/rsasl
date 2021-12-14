@@ -3,7 +3,7 @@ use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_CLIENT_CODE, GSASL_NO_SERVER_CODE, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
-use crate::gsasl::gsasl::{CombinedCMech, Gsasl, Gsasl_mechanism, Session};
+use crate::gsasl::gsasl::{CombinedCMech, Gsasl, Gsasl_mechanism, Gsasl_session};
 use crate::gsasl::xfinish::gsasl_finish;
 
 extern "C" {
@@ -51,7 +51,7 @@ unsafe fn find_mechanism(mech: &str, mut mechs: &[CombinedCMech])
 
 unsafe fn setup(ctx: &Gsasl,
                 mech: &str,
-                sctx: &mut Session,
+                sctx: &mut Gsasl_session,
                 mechs: &[CombinedCMech],
                 clientp: libc::c_int
 ) -> libc::c_int
@@ -92,19 +92,19 @@ unsafe fn setup(ctx: &Gsasl,
 
 unsafe fn start(ctx: &Gsasl,
                 mech: &str,
-                sctx: *mut *mut Session,
+                sctx: *mut *mut Gsasl_session,
                 mechs: &[CombinedCMech],
                 clientp: libc::c_int,
     ) -> libc::c_int
 {
-    let mut out: *mut Session = 0 as *mut Session;
+    let mut out: *mut Gsasl_session = 0 as *mut Gsasl_session;
     let mut res: libc::c_int = 0;
     out =
         calloc(1 as libc::c_int as libc::c_ulong,
-               ::std::mem::size_of::<Session>() as libc::c_ulong) as
-            *mut Session;
+               ::std::mem::size_of::<Gsasl_session>() as libc::c_ulong) as
+            *mut Gsasl_session;
     if out.is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
-    let out = &mut *out as &mut Session;
+    let out = &mut *out as &mut Gsasl_session;
     res = setup(ctx, mech, out, mechs, clientp);
     if res != GSASL_OK as libc::c_int { gsasl_finish(out); return res }
     *sctx = out;
@@ -124,7 +124,7 @@ unsafe fn start(ctx: &Gsasl,
  **/
 pub unsafe fn gsasl_client_start(ctx: &Gsasl,
                                  mut mech: &str,
-                                 mut sctx: *mut *mut Session
+                                 mut sctx: *mut *mut Gsasl_session
 ) -> libc::c_int
 {
     return start(ctx, mech, sctx, &ctx.mechs[..], 1 as libc::c_int);
@@ -349,7 +349,7 @@ pub unsafe fn gsasl_client_start(ctx: &Gsasl,
  **/
 pub unsafe fn gsasl_server_start(ctx: &Gsasl,
                                  mech: &str,
-                                 sctx: *mut *mut Session
+                                 sctx: *mut *mut Gsasl_session
 )
  -> libc::c_int {
     return start(ctx, mech, sctx, &ctx.mechs[..], 0 as libc::c_int);

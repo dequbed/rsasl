@@ -2,7 +2,7 @@ use ::libc;
 use libc::size_t;
 use crate::consts::GSASL_MALLOC_ERROR;
 use crate::gsasl::gsasl::Gsasl_code_function;
-use crate::{GSASL_OK, Session};
+use crate::{GSASL_OK, Gsasl_session};
 
 extern "C" {
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
@@ -32,12 +32,12 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-unsafe fn _gsasl_code(mut sctx: *mut Session,
-                      mut code: Gsasl_code_function,
-                      mut input: *const libc::c_char,
-                      mut input_len: size_t,
-                      mut output: *mut *mut libc::c_char,
-                      mut output_len: *mut size_t) -> libc::c_int {
+unsafe fn _gsasl_code(mut sctx: *mut Gsasl_session,
+                                 mut code: Gsasl_code_function,
+                                 mut input: *const libc::c_char,
+                                 mut input_len: size_t,
+                                 mut output: *mut *mut libc::c_char,
+                                 mut output_len: *mut size_t) -> libc::c_int {
     if code.is_none() {
         *output_len = input_len;
         *output = malloc(*output_len) as *mut libc::c_char;
@@ -68,11 +68,11 @@ unsafe fn _gsasl_code(mut sctx: *mut Session,
  * Return value: Returns %GSASL_OK if encoding was successful,
  *   otherwise an error code.
  **/
-pub unsafe fn gsasl_encode(mut sctx: *mut Session,
-                           mut input: *const libc::c_char,
-                           mut input_len: size_t,
-                           mut output: *mut *mut libc::c_char,
-                           mut output_len: *mut size_t)
+pub unsafe fn gsasl_encode(mut sctx: *mut Gsasl_session,
+                                      mut input: *const libc::c_char,
+                                      mut input_len: size_t,
+                                      mut output: *mut *mut libc::c_char,
+                                      mut output_len: *mut size_t)
  -> libc::c_int {
     let mut code: Gsasl_code_function = None;
     if (*sctx).clientp != 0 {
@@ -305,11 +305,11 @@ pub unsafe fn gsasl_encode(mut sctx: *mut Session,
  * Return value: Returns %GSASL_OK if encoding was successful,
  *   otherwise an error code.
  **/
-pub unsafe fn gsasl_decode(mut sctx: *mut Session,
-                           mut input: *const libc::c_char,
-                           mut input_len: size_t,
-                           mut output: *mut *mut libc::c_char,
-                           mut output_len: *mut size_t)
+pub unsafe fn gsasl_decode(mut sctx: *mut Gsasl_session,
+                                      mut input: *const libc::c_char,
+                                      mut input_len: size_t,
+                                      mut output: *mut *mut libc::c_char,
+                                      mut output_len: *mut size_t)
  -> libc::c_int {
     let mut code: Gsasl_code_function = None;
     if (*sctx).clientp != 0 {

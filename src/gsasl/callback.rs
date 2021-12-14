@@ -1,6 +1,6 @@
 use ::libc;
 use crate::gsasl::consts::{GSASL_NO_CALLBACK, Gsasl_property};
-use crate::gsasl::gsasl::{Gsasl, Gsasl_callback_function, Session};
+use crate::gsasl::gsasl::{Gsasl, Gsasl_callback_function, Gsasl_session};
 
 /* callback.c --- Callback handling.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -68,7 +68,7 @@ pub unsafe fn gsasl_callback_set(mut ctx: *mut Gsasl,
  **/
 #[no_mangle]
 pub unsafe fn gsasl_callback(mut ctx: *mut Gsasl,
-                             sctx: *mut Session,
+                             sctx: *mut Gsasl_session,
                              prop: Gsasl_property)
  -> libc::c_int {
     if ctx.is_null() && sctx.is_null() {

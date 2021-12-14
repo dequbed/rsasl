@@ -62,23 +62,8 @@ pub unsafe fn gsasl_client_support_p(ctx: &Gsasl, mut name: *const libc::c_char)
     // return _gsasl_support_p((*ctx).client_mechs, (*ctx).n_client_mechs, name);
 }
 
-/* Library entry and exit points: version.c, init.c, done.c */
-/* Callback handling: callback.c */
-/* Property handling: property.c */
-/* Mechanism handling: listmech.c, supportp.c, suggest.c */
-/* *
- * gsasl_server_support_p:
- * @ctx: libgsasl handle.
- * @name: name of SASL mechanism.
- *
- * Decide whether there is server-side support for a specified
- * mechanism.
- *
- * Return value: Returns 1 if the libgsasl server supports the named
- * mechanism, otherwise 0.
- **/
 pub unsafe fn gsasl_server_support_p(ctx: &Gsasl, mut name: *const libc::c_char)
     -> libc::c_int
 {
-    return _gsasl_support_p((*ctx).server_mechs, (*ctx).n_server_mechs, name);
+    todo!()
 }

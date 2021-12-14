@@ -14,7 +14,7 @@ use crate::gsasl::digest_md5::session::{digest_md5_decode, digest_md5_encode};
 use crate::gsasl::digest_md5::validate::digest_md5_validate;
 use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::gc_gnulib::gc_md5;
-use crate::gsasl::gsasl::Session;
+use crate::gsasl::gsasl::Gsasl_session;
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
 
 extern "C" {
@@ -44,7 +44,7 @@ pub struct _Gsasl_digest_md5_server_state {
     pub finish: digest_md5_finish,
 }
 
-pub unsafe fn _gsasl_digest_md5_server_start(_sctx: &mut Session,
+pub unsafe fn _gsasl_digest_md5_server_start(_sctx: &mut Gsasl_session,
                                              mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -122,7 +122,7 @@ unsafe fn _gsasl_digest_md5_set_hashed_secret(mut secret:
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn _gsasl_digest_md5_server_step(sctx: *mut Session,
+pub unsafe fn _gsasl_digest_md5_server_step(sctx: *mut Gsasl_session,
                                             mech_data: Option<NonNull<()>>,
                                             input: Option<&[u8]>,
                                             output: *mut *mut libc::c_char,
@@ -323,7 +323,7 @@ pub unsafe fn _gsasl_digest_md5_server_step(sctx: *mut Session,
     return res;
 }
 
-pub unsafe fn _gsasl_digest_md5_server_finish(_sctx: &mut Session,
+pub unsafe fn _gsasl_digest_md5_server_finish(_sctx: &mut Gsasl_session,
                                               mech_data: Option<NonNull<()>>)
 {
     let mech_data = mech_data
@@ -338,7 +338,7 @@ pub unsafe fn _gsasl_digest_md5_server_finish(_sctx: &mut Session,
     rpl_free(state as *mut libc::c_void);
 }
 
-pub unsafe fn _gsasl_digest_md5_server_encode(mut _sctx: *mut Session,
+pub unsafe fn _gsasl_digest_md5_server_encode(mut _sctx: *mut Gsasl_session,
                                               mut mech_data: Option<NonNull<()>>,
                                               mut input: *const libc::c_char,
                                               mut input_len: size_t,
@@ -388,7 +388,7 @@ pub unsafe fn _gsasl_digest_md5_server_encode(mut _sctx: *mut Session,
  * Boston, MA 02110-1301, USA.
  *
  */
-pub unsafe fn _gsasl_digest_md5_server_decode(mut _sctx: *mut Session,
+pub unsafe fn _gsasl_digest_md5_server_decode(mut _sctx: *mut Gsasl_session,
                                               mech_data: Option<NonNull<()>>,
                                               mut input: *const libc::c_char,
                                               mut input_len: size_t,

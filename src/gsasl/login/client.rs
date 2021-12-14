@@ -2,7 +2,7 @@ use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_AUTHID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_NEEDS_MORE, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD};
-use crate::gsasl::gsasl::Session;
+use crate::gsasl::gsasl::Gsasl_session;
 use crate::gsasl::property::gsasl_property_get;
 
 extern "C" {
@@ -59,7 +59,7 @@ pub struct _Gsasl_login_client_state {
     pub step: libc::c_int,
 }
 
-pub unsafe fn _gsasl_login_client_start(_sctx: &mut Session,
+pub unsafe fn _gsasl_login_client_start(_sctx: &mut Gsasl_session,
                                         mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -73,7 +73,7 @@ pub unsafe fn _gsasl_login_client_start(_sctx: &mut Session,
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn _gsasl_login_client_step(sctx: *mut Session,
+pub unsafe fn _gsasl_login_client_step(sctx: *mut Gsasl_session,
                                        mech_data: Option<NonNull<()>>,
                                        _input: Option<&[u8]>,
                                        output: *mut *mut libc::c_char,
@@ -133,7 +133,7 @@ pub unsafe fn _gsasl_login_client_step(sctx: *mut Session,
  * Boston, MA 02110-1301, USA.
  *
  */
-pub unsafe fn _gsasl_login_client_finish(_sctx: &mut Session,
+pub unsafe fn _gsasl_login_client_finish(_sctx: &mut Gsasl_session,
                                          mech_data: Option<NonNull<()>>)
 {
     let mech_data = mech_data

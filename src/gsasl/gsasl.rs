@@ -1,31 +1,43 @@
+use std::any::{Any, TypeId};
+use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::ptr::NonNull;
-use libc::size_t;
-use crate::consts::RsaslError;
+use libc::{c_char, size_t};
+use crate::consts::{GSASL_NEEDS_MORE, Property, RsaslError};
 use crate::gsasl::consts::Gsasl_property;
-use crate::{gsasl_done, GSASL_OK};
+use crate::{gsasl_done, GSASL_OK, GSASL_UNKNOWN_MECHANISM, SaslError};
+use crate::gsasl::gsasl::Step::{Done, NeedsMore};
 use crate::gsasl::init::register_builtin_mechs;
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct Gsasl {
-    pub n_client_mechs: size_t,
-    pub client_mechs: *mut Gsasl_mechanism,
-    pub n_server_mechs: size_t,
-    pub server_mechs: *mut Gsasl_mechanism,
+    /*pub n_client_mechs: size_t,
+    pub client_mechs: *mut Gsasl_mechanism,*/
+    pub mechs: Vec<CombinedCMech>,
     pub cb: Gsasl_callback_function,
-    pub application_hook: *mut libc::c_void,
 }
 
 impl Gsasl {
+    pub fn register(&mut self, name: &'static str, client: MechanismVTable, server: MechanismVTable) {
+        let mut mech = CombinedCMech {
+            name,
+            client: CMechBuilder { vtable: client },
+            server: CMechBuilder { vtable: server }
+        };
+        mech.init(self);
+        self.mechs.push(mech);
+    }
+
+    pub fn client_start<E>(&self, name: &'static str) -> Result<Session<E>, RsaslError> {
+        unimplemented!()
+    }
+
     pub fn new() -> Result<Self, RsaslError> {
         unsafe {
             let mut this = Self {
-                n_client_mechs: 0,
-                client_mechs: std::ptr::null_mut(),
-                n_server_mechs: 0,
-                server_mechs: std::ptr::null_mut(),
+                mechs: Vec::new(),
                 cb: None,
-                application_hook: std::ptr::null_mut(),
             };
 
             let mut rc: libc::c_int = 0;
@@ -45,8 +57,14 @@ pub type Gsasl_callback_function = Option<
     unsafe fn(_: *mut Gsasl, _: *mut Gsasl_session, _: Gsasl_property) -> libc::c_int
 >;
 
+pub struct Session<'session, E> {
+    sasl: &'session Gsasl,
+    mechanism: Box<dyn Mechanism>,
+    session_data: Option<E>
+}
+
+
 /* Per-session library handle. */
-#[derive(Copy, Clone)]
 pub struct Gsasl_session {
     pub ctx: *mut Gsasl,
     pub clientp: libc::c_int,
@@ -77,13 +95,40 @@ pub struct Gsasl_session {
     pub saml20_redirect_url: *mut libc::c_char,
     pub openid20_redirect_url: *mut libc::c_char,
     pub openid20_outcome_data: *mut libc::c_char,
+    pub map: HashMap<TypeId, Box<dyn Any>>
 }
+
+impl Gsasl_session {
+    pub fn get<P: Property>(&self) -> Option<&P::Item> {
+        self.map.get(&TypeId::of::<P::Item>()).and_then(|prop| {
+            prop.downcast_ref::<P::Item>()
+        })
+    }
+
+    pub fn insert<P: Property>(&mut self, item: Box<P::Item>) -> Option<Box<dyn Any>>{
+        self.map.insert(TypeId::of::<P::Item>(), item)
+    }
+}
+
 
 #[derive(Copy, Clone)]
 pub struct Gsasl_mechanism {
     pub name: &'static str,
     pub client: MechanismVTable,
     pub server: MechanismVTable,
+}
+
+#[derive(Copy, Clone)]
+pub struct CombinedCMech {
+    pub name: &'static str,
+    pub client: CMechBuilder,
+    pub server: CMechBuilder,
+}
+impl CombinedCMech {
+    pub fn init(&mut self, sasl: &mut Gsasl) {
+        self.client.init(sasl);
+        self.server.init(sasl);
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -118,9 +163,94 @@ pub struct MechanismVTable {
     pub finish: Gsasl_finish_function,
 
 
+    /// Security layer stuff
     pub encode: Gsasl_code_function,
     pub decode: Gsasl_code_function,
 }
+
+pub trait MechanismBuilder {
+    fn init(&self, sasl: &mut Gsasl);
+    fn start(&self, sasl: &Gsasl, session: &mut Gsasl_session) -> Option<Box<dyn Mechanism>>;
+}
+
+pub trait Mechanism {
+    fn step(&mut self, session: &mut Gsasl_session, input: Option<&[u8]>) -> StepResult;
+    fn encode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SaslError>;
+    fn decode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SaslError>;
+}
+
+#[derive(Copy, Clone)]
+pub struct CMechBuilder {
+    pub vtable: MechanismVTable,
+}
+
+impl MechanismBuilder for CMechBuilder {
+    fn init(&self, sasl: &mut Gsasl) {
+        if let Some(init) = self.vtable.init {
+            unsafe { init(sasl) };
+        }
+    }
+
+    fn start(&self, sasl: &Gsasl, session: &mut Gsasl_session) -> Option<Box<dyn Mechanism>> {
+        if let Some(start) = self.vtable.start {
+            let mut mech_data = None;
+            let res =  unsafe { start(session, &mut mech_data) };
+            if res == GSASL_OK as libc::c_int {
+                return Some(Box::new(CMech { vtable: self.vtable, mech_data }));
+            }
+        }
+
+        None
+    }
+}
+
+pub struct CMech {
+    vtable: MechanismVTable,
+    mech_data: Option<NonNull<()>>,
+}
+
+impl Mechanism for CMech {
+    fn step(&mut self, session: &mut Gsasl_session, input: Option<&[u8]>) -> StepResult {
+        if let Some(step) = self.vtable.step {
+            let mut output: *mut libc::c_char = std::ptr::null_mut();
+            let mut outlen: size_t = 0;
+
+            unsafe {
+                let res = step(session, self.mech_data.clone(), input, &mut output, &mut outlen);
+                if res == GSASL_OK as libc::c_int {
+                    if output.is_null() {
+                        Ok(Done(None))
+                    } else {
+                        let outslice = std::slice::from_raw_parts_mut(output as *mut u8, outlen);
+                        let out = Box::from_raw(outslice);
+                        Ok(Done(Some(out)))
+                    }
+                } else if res == GSASL_NEEDS_MORE as libc::c_int {
+                    if output.is_null() {
+                        Ok(NeedsMore(None))
+                    } else {
+                        let outslice = std::slice::from_raw_parts_mut(output as *mut u8, outlen);
+                        let out = Box::from_raw(outslice);
+                        Ok(NeedsMore(Some(out)))
+                    }
+                } else {
+                    Err(res as libc::c_uint)
+                }
+            }
+        } else {
+            Err(GSASL_UNKNOWN_MECHANISM)
+        }
+    }
+
+    fn encode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SaslError> {
+        todo!()
+    }
+
+    fn decode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SaslError> {
+        todo!()
+    }
+}
+
 
 pub type Gsasl_code_function = Option<unsafe fn(
     _: *mut Gsasl_session,
@@ -128,16 +258,6 @@ pub type Gsasl_code_function = Option<unsafe fn(
     _: *const libc::c_char, _: size_t,
     _: *mut *mut libc::c_char, _: *mut size_t
 ) -> libc::c_int>;
-
-/*
-pub unsafe fn step(
-    mut sctx: *mut Gsasl_session,
-    mut _mech_data: *mut libc::c_void,
-    mut _input: *const libc::c_char,
-    mut _input_len: size_t,
-    mut output: *mut *mut libc::c_char,
-    mut output_len: *mut size_t);
- */
 
 pub type Gsasl_start_function = Option<unsafe fn(
     _: &mut Gsasl_session,
