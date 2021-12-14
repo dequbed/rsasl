@@ -112,21 +112,22 @@ pub use session::Step;
 
 use crate::gsasl::consts::{GSASL_MECHANISM_PARSE_ERROR, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
 use crate::gsasl::done::gsasl_done;
-use crate::gsasl::gsasl::{Gsasl, Gsasl_callback_function, Gsasl_session};
+use crate::gsasl::gsasl::{CMechBuilder, CombinedCMech, Mechanism, MechanismBuilder, MechanismVTable};
 use crate::gsasl::listmech::{gsasl_client_mechlist, gsasl_server_mechlist};
 use crate::gsasl::suggest::gsasl_client_suggest_mechanism;
 use crate::gsasl::supportp::{gsasl_client_support_p, gsasl_server_support_p};
-use crate::gsasl::xstart::{gsasl_client_start, gsasl_server_start};
 pub use crate::gsasl::consts::Gsasl_property as Property;
 
 pub use error::{
     SaslError,
     rsasl_err_to_str,
-    gsasl_err_to_str,
     rsasl_errname_to_str,
-    gsasl_errname_to_str,
 };
+use crate::consts::RsaslError;
+use crate::gsasl::init::register_builtin_mechs;
+use crate::session::AuthSession;
 
+#[derive(Debug)]
 /// Global SASL Context wrapper implementing housekeeping functionality
 ///
 /// This struct contains the global gsasl context allowing you to start authentication exchanges.
@@ -143,29 +144,25 @@ pub use error::{
 ///
 /// The stored value can be extracted again using [`retrieve`](SASL::retrieve) and it's 
 /// [`Session` requivalent](Session::retrieve).
-pub struct SASL<D,E> {
-    // The underlying context as returned by gsasl
-    ctx: &'static mut Gsasl,
-
-    // The data is actually stored in the application context, not in this struct. This phantom
-    // marker allows us to use generics and ensures that the context is !Send if the stored data is
-    // !Send
-    appdata: std::marker::PhantomData<D>,
-    sessdata: std::marker::PhantomData<E>,
+pub struct SASL<'sasl> {
+    mechs: Vec<Box<CombinedCMech>>,
+    callback: Option<&'sasl dyn Callback>,
 }
 
-impl<D,E> Debug for SASL<D,E> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SASL")
-            .finish()
+impl SASL<'_> {
+    pub fn register_cmech(&mut self, name: &'static str,
+                          client: MechanismVTable,
+                          server: MechanismVTable)
+    {
+        let mut mech = CombinedCMech {
+            name,
+            client: CMechBuilder { vtable: client },
+            server: CMechBuilder { vtable: server }
+        };
+        mech.init();
+        self.mechs.push(Box::new(mech));
     }
-}
 
-/// Utility type definition to make the outer SASL type spellable without manually importing the
-/// discard crate.
-pub type RSASL<D,E> = DiscardOnDrop<SASL<D,E>>;
-
-impl<D, E> SASL<D,E> {
     /// Create a fresh GSASL context from scratch.
     ///
     /// The context retrieved from this is wrapped in a [`DiscardOnDrop`](discard::DiscardOnDrop).
@@ -176,22 +173,21 @@ impl<D, E> SASL<D,E> {
     /// If you want to intentionally remove the Context from the wrapping you can call
     /// [`DiscardOnDrop::leak`](discard::DiscardOnDrop::leak), allowing you to manually handle
     /// finalizing the context.
-    pub fn new() -> error::Result<DiscardOnDrop<Self>> {
-        let gsasl = Box::leak(Box::new(
-            Gsasl::new().map_err(|e| error::SaslError(e))?
-        ));
-        let ctx = Self::from_ptr(gsasl);
-        Ok(DiscardOnDrop::new(ctx))
-    }
+    pub fn new() -> Result<Self, RsaslError> {
+        let mut this = Self {
+            mechs: Vec::new(),
+            callback: None,
+        };
 
-    /// Creates a new SASL context.
-    ///
-    /// This function should never be called by an external party directly. Use the `new`
-    /// constructor that correctly initializes the context.
-    pub(crate) fn from_ptr(ctx: &'static mut Gsasl) -> Self {
-        let appdata = std::marker::PhantomData;
-        let sessdata = std::marker::PhantomData;
-        Self { ctx, appdata, sessdata }
+        unsafe {
+            let mut rc: libc::c_int = 0;
+            rc = register_builtin_mechs(&mut this);
+            if rc == GSASL_OK as libc::c_int {
+                Ok(this)
+            } else {
+                Err(rc as libc::c_uint)
+            }
+        }
     }
 
     /// Returns the list of Client Mechanisms supported by this library.
@@ -201,26 +197,7 @@ impl<D, E> SASL<D,E> {
     /// `KERBEROS_V5` mechanism if the system gsasl was linked with a libkrb5, independent of if
     /// the application has a valid ticket.
     pub fn client_mech_list(&self) -> error::Result<Mechanisms> {
-        // rustc's borrow checker can't prove that we will never read this before having
-        // initialized it so this *must* be initialized by us.
-        let mut out = ptr::null_mut();
-
-        // Call into libgsasl. As per usual ffi is unsafe
-        let ret = unsafe { gsasl_client_mechlist(self.ctx, &mut out) };
-
-        // Take ownership of the output buffer so that it will always be freed and we don't leak
-        // memory.
-        let s = SaslString::from_raw(out);
-
-        if ret != (GSASL_OK as libc::c_int) {
-            // In the error case `s` will simply be dropped and freed.
-
-            Err(error::SaslError(ret as u32))
-        } else {
-            // If libgsasl does not return an error we can assume that out has been filled with
-            // valid data.
-            Ok(Mechanisms::from_sasl(s))
-        }
+        todo!()
     }
 
     /// Returns the list of Server Mechanisms supported by this library.
@@ -230,26 +207,7 @@ impl<D, E> SASL<D,E> {
     /// `KERBEROS_V5` mechanism if the system gsasl was linked with a libkrb5, independent of if
     /// the application has a valid keytab.
     pub fn server_mech_list(&self) -> error::Result<Mechanisms> {
-        // rustc's borrow checker can't prove that we will never read this so this *must* be
-        // initialized.
-        let mut out = ptr::null_mut();
-
-        // Call into libgsasl. As per usual ffi is unsafe
-        let ret = unsafe { gsasl_server_mechlist(self.ctx, &mut out as *mut *mut libc::c_char) };
-
-        // Take ownership of the output buffer so that it will always be freed and we don't leak
-        // memory.
-        let s = SaslString::from_raw(out);
-
-        if ret != (GSASL_OK as libc::c_int) {
-            // In the error case `s` will simply be dropped and freed.
-
-            Err(error::SaslError(ret as u32))
-        } else {
-            // If libgsasl does not return an error we can assume that out has been filled with
-            // valid string data.
-            Ok(Mechanisms::from_sasl(s))
-        }
+todo!()
     }
 
     /// Suggests a mechanism to use from a given list of Mechanisms. Returns
@@ -258,57 +216,17 @@ impl<D, E> SASL<D,E> {
     // The ptr returned by the ffi call is typed as 'const char*', so it should be valid for as
     // long as libgsasl is loaded.
     pub fn suggest_client_mechanism(&self, mechs: Mechanisms) -> Result<&str, SaslError> {
-        unsafe {
-            let ptr = gsasl_client_suggest_mechanism(self.ctx, mechs.as_raw_ptr());
-            if ptr.is_null() {
-                Err(SaslError(GSASL_UNKNOWN_MECHANISM))
-            } else {
-                let cstr = CStr::from_ptr(ptr);
-                cstr.to_str()
-                    .map_err(|_: std::str::Utf8Error|
-                        SaslError(GSASL_MECHANISM_PARSE_ERROR))
-            }
-        }
+        todo!()
     }
 
     /// Returns wheter there is client-side support for the specified mechanism
     pub fn client_supports(&self, mech: &CStr) -> bool {
-        // returns 1 if there is client support for the specific mechanism
-        let ret = unsafe { gsasl_client_support_p(self.ctx, mech.to_bytes_with_nul().as_ptr() as *const libc::c_char) };
-        if ret == 1 {
-            return true;
-        } else {
-            return false;
-        }
+todo!()
     }
 
     /// Returns wheter there is server-side support for the specified mechanism
     pub fn server_supports(&self, mech: &CStr) -> bool {
-        // returns 1 if there is server support for the specific mechanism
-        let ret = unsafe { gsasl_server_support_p(self.ctx, mech.as_ptr() as *const libc::c_char) };
-        if ret == 1 {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /// Install a callback.
-    ///
-    /// Callbacks are used to retrieve information, such as username and password, from the
-    /// application. In a server, the callback is additionally used make decisions such as whether
-    /// a user is permitted to log in or not. 
-    ///
-    /// See the [callback documentation](Callback) for details on how to use this function
-    ///
-    /// Do note that the generic types `D` and `E` need to match between `SASL`, `Session` and
-    /// `Callback` to ensure typesafety. [More information](Callback#typesafety)
-    pub fn install_callback<C: Callback<D,E>>(&mut self) {
-        self.install_callback_raw(Some(callback::wrap::<C, D, E>));
-    }
-
-    fn install_callback_raw(&mut self, callback: Gsasl_callback_function) {
-        todo!()
+todo!()
     }
 
     /// Starts a authentication exchange as the client role
@@ -321,22 +239,15 @@ impl<D, E> SASL<D,E> {
     /// See [the gsasl
     /// documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Properties) for what
     /// mechanism uses what properties.
-    pub fn client_start(&mut self, mech: &str) -> error::Result<DiscardOnDrop<Session<E>>> {
-        let mut ptr: *mut Gsasl_session = ptr::null_mut();
-
-        let res = unsafe {
-            gsasl_client_start(
-                self.ctx, 
-                mech,
-                &mut ptr as *mut *mut Gsasl_session)
-        };
-
-        if res != (GSASL_OK as libc::c_int) {
-            Err(error::SaslError(res as u32))
-        } else {
-            let session = Session::from_ptr(ptr);
-            Ok(DiscardOnDrop::new(session))
+    pub fn client_start(&self, mech: &str) -> Result<AuthSession, RsaslError> {
+        for builder in self.mechs.iter() {
+            if builder.name == mech {
+                let mechanism = builder.client.start(&self)?;
+                return Ok(AuthSession::new(self.callback, mechanism));
+            }
         }
+
+        Err(GSASL_UNKNOWN_MECHANISM)
     }
 
     /// Starts a authentication exchange as the server role
@@ -348,125 +259,33 @@ impl<D, E> SASL<D,E> {
     ///
     /// See [the gsasl documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Using-a-callback) for
     /// how gsasl uses properties and callbacks.
-    pub fn server_start(&mut self, mech: &str) -> error::Result<DiscardOnDrop<Session<E>>> {
-        let mut ptr: *mut Gsasl_session = ptr::null_mut();
-
-        let res = unsafe {
-            gsasl_server_start(
-                self.ctx,
-                mech,
-                &mut ptr as *mut *mut Gsasl_session
-            )
-        };
-
-        if res != (GSASL_OK as libc::c_int) {
-            Err(error::SaslError(res as u32))
-        } else {
-            let session = Session::from_ptr(ptr);
-            Ok(DiscardOnDrop::new(session))
+    pub fn server_start<'session, 'sasl: 'session>(&'sasl mut self, mech: &str)
+        -> Result<AuthSession<'session>, RsaslError>
+    {
+        for builder in self.mechs.iter() {
+            if builder.name == mech {
+                let mechanism = builder.server.start(&self)?;
+                return Ok(AuthSession::new(self.callback, mechanism));
+            }
         }
-    }
 
+        Err(GSASL_UNKNOWN_MECHANISM)
+    }
 
     /// Run the configured callback.
-    pub fn callback(&mut self, session: &mut Session<E>, prop: Property) -> libc::c_int {
-        unsafe { gsasl_callback(self.ctx, session.as_ptr(), prop) }
-    }
-
-    /// Finalize the context.
-    ///
-    /// This is not exposed to consumers of the crate because it's use it very unsafe — you have to
-    /// make sure that the caller is the only remaining user of the GSASL context and that the
-    /// context is not used afterwards.
-    pub(crate) unsafe fn done(&mut self) {
-        gsasl_done(self.ctx);
+    pub fn callback(&mut self, session: &mut Session, prop: Property) -> libc::c_int {
+        todo!()
     }
 }
 
-impl SASL<(), ()> {
-    /// Construct an untyped SASL
-    ///
-    /// This is mostly useful for client applications when no callback will be installed and no
-    /// information stored or retrieved in either the global or session context.
-    pub fn new_untyped() -> error::Result<DiscardOnDrop<Self>> {
-        SASL::new()
-    }
-}
-
-
-impl<D,E> Discard for SASL<D,E> {
-    fn discard(mut self) {
-        // This block is save as long as this is the only remaining copy of *this* gsasl context.
-        // This should always hold since the only way to duplicate the context as an user of this
-        // crate is by calling `callback` or having the Callback called in an ongoing exchange,
-        // which should be prevented by the borrow checker.
-        unsafe {
-            // Retrieve and drop the stored value.
-            self.done();
-        };
-    }
-}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::iter::FromIterator;
-    use crate::gsasl::consts::GSASL_VALIDATE_SIMPLE;
 
     #[test]
-    fn callback_test() {
-        struct CB;
-        impl Callback<u32, u64> for CB {
-            fn callback(sasl: &mut SASL<u32, u64>, session: &mut Session<u64>, _prop: Property)
-                -> Result<(), u32>
-            {
-                Ok(())
-            }
-        }
-
-        let mut sasl = SASL::new().unwrap();
-        sasl.install_callback::<CB>();
-        let mut session = sasl.client_start("PLAIN").unwrap();
-
-        assert_eq!(GSASL_OK as libc::c_int,
-            sasl.callback(&mut session, GSASL_VALIDATE_SIMPLE));
-    }
-
-    #[test]
-    fn callback_unset_test() {
-        struct CB;
-        impl Callback<u32, u64> for CB {
-            fn callback(sasl: &mut SASL<u32, u64>, session: &mut Session<u64>, _prop: Property)
-                -> Result<(), u32>
-            {
-                Ok(())
-            }
-        }
-
-        let mut sasl = SASL::new().unwrap();
-        sasl.install_callback::<CB>();
-        let mut session = sasl.client_start("PLAIN").unwrap();
-
-        assert_eq!(GSASL_OK as libc::c_int,
-            sasl.callback(&mut session, GSASL_VALIDATE_SIMPLE));
-    }
-
-    #[test]
-    fn suggest_good() {
-        let mechs = vec!["PLAIN", "INVALID", "SCRAM-SHA-256"];
-        let sasl = SASL::new_untyped().unwrap();
-        let suggest = sasl.suggest_client_mechanism(Mechanisms::from_iter(mechs.iter()));
-
-        assert!(suggest.is_ok());
-        assert_eq!("SCRAM-SHA-256", suggest.unwrap());
-    }
-
-    #[test]
-    fn suggest_fail_on_invalid() {
-        let mechs = vec!["INVALID", "ALSOINV", "MOREINV3"];
-        let sasl = SASL::new_untyped().unwrap();
-        let suggest = sasl.suggest_client_mechanism(Mechanisms::from_iter(mechs.iter()));
-
-        assert_eq!(Err(SaslError(GSASL_UNKNOWN_MECHANISM)), suggest);
+    fn make_rsasl() {
+        let ctx = SASL::new().unwrap();
+        println!("{:?}", ctx);
     }
 }

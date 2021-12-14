@@ -5,7 +5,6 @@ use crate::gsasl::base64::{gsasl_base64_from, gsasl_base64_to};
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_CB_TLS_UNIQUE, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_AUTHID, GSASL_NO_CB_TLS_UNIQUE, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD, GSASL_SCRAM_ITER, GSASL_SCRAM_SALT, GSASL_SCRAM_SALTED_PASSWORD};
 use crate::gsasl::crypto::{gsasl_hash_length, gsasl_nonce, gsasl_scram_secrets_from_password, gsasl_scram_secrets_from_salted_password};
 use crate::gsasl::free::gsasl_free;
-use crate::gsasl::gsasl::Gsasl_session;
 use crate::gsasl::mechtools::{_gsasl_hex_decode, _gsasl_hex_p, _gsasl_hmac, Gsasl_hash, GSASL_HASH_SHA1, GSASL_HASH_SHA256};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep};
@@ -14,6 +13,7 @@ use crate::gsasl::scram::printer::{scram_print_client_final, scram_print_client_
 use crate::gsasl::scram::server::{scram_server_final, scram_server_first};
 use crate::gsasl::scram::tokens::{scram_free_client_final, scram_free_client_first, scram_free_server_final, scram_free_server_first};
 use crate::gsasl::scram::tools::set_saltedpassword;
+use crate::{SASL, Session};
 
 extern "C" {
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,
@@ -103,7 +103,7 @@ pub struct scram_client_first {
     pub username: *mut libc::c_char,
     pub client_nonce: *mut libc::c_char,
 }
-unsafe fn scram_start(mut _sctx: *mut Gsasl_session,
+unsafe fn scram_start(mut _sctx: &SASL,
                                  mut mech_data: *mut *mut libc::c_void,
                                  mut plus: bool, mut hash: Gsasl_hash)
  -> libc::c_int {
@@ -129,7 +129,7 @@ unsafe fn scram_start(mut _sctx: *mut Gsasl_session,
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn _gsasl_scram_sha1_client_start(sctx: &mut Gsasl_session,
+pub unsafe fn _gsasl_scram_sha1_client_start(sctx: &SASL,
                                              mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -147,7 +147,7 @@ pub unsafe fn _gsasl_scram_sha1_client_start(sctx: &mut Gsasl_session,
     return ret;
 }
 
-pub unsafe fn _gsasl_scram_sha1_plus_client_start(sctx: &mut Gsasl_session,
+pub unsafe fn _gsasl_scram_sha1_plus_client_start(sctx: &SASL,
                                                   mech_data: &mut Option<NonNull<()>>
 ) -> libc::c_int
 {
@@ -165,7 +165,7 @@ pub unsafe fn _gsasl_scram_sha1_plus_client_start(sctx: &mut Gsasl_session,
     return ret;
 }
 
-pub unsafe fn _gsasl_scram_sha256_client_start(sctx: &mut Gsasl_session,
+pub unsafe fn _gsasl_scram_sha256_client_start(sctx: &SASL,
                                                mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -183,7 +183,7 @@ pub unsafe fn _gsasl_scram_sha256_client_start(sctx: &mut Gsasl_session,
     return ret;
 }
 
-pub unsafe fn _gsasl_scram_sha256_plus_client_start(mut sctx: &mut Gsasl_session,
+pub unsafe fn _gsasl_scram_sha256_plus_client_start(mut sctx: &SASL,
                                                     mut mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -201,7 +201,7 @@ pub unsafe fn _gsasl_scram_sha256_plus_client_start(mut sctx: &mut Gsasl_session
     return ret;
 }
 
-pub unsafe fn _gsasl_scram_client_step(sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_scram_client_step(sctx: &mut Session,
                                        mech_data: Option<NonNull<()>>,
                                        input: Option<&[u8]>,
                                        output: *mut *mut libc::c_char,
@@ -471,7 +471,7 @@ pub unsafe fn _gsasl_scram_client_step(sctx: *mut Gsasl_session,
     return res;
 }
 
-pub unsafe fn _gsasl_scram_client_finish(_sctx: &mut Gsasl_session,
+pub unsafe fn _gsasl_scram_client_finish(_sctx: &mut Session,
                                          mech_data: Option<NonNull<()>>)
 {
     let mech_data = mech_data

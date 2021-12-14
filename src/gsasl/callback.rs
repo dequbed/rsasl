@@ -1,9 +1,9 @@
 use ::libc;
 use crate::gsasl::consts::{GSASL_NO_CALLBACK, Gsasl_property};
-use crate::gsasl::gsasl::{Gsasl, Gsasl_callback_function, Gsasl_session};
+use crate::{SASL, Session};
 
-pub unsafe fn gsasl_callback(mut ctx: *mut Gsasl,
-                             sctx: *mut Gsasl_session,
+pub unsafe fn gsasl_callback(mut ctx: *mut SASL,
+                             sctx: &mut Session,
                              prop: Gsasl_property)
  -> libc::c_int {
     todo!()

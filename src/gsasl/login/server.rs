@@ -3,8 +3,8 @@ use ::libc;
 use libc::size_t;
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_CALLBACK, GSASL_OK, GSASL_PASSWORD, GSASL_VALIDATE_SIMPLE};
-use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
-use crate::gsasl::property::{gsasl_property_free, gsasl_property_get, gsasl_property_set};
+use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
+use crate::{SASL, Session};
 
 extern "C" {
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
@@ -64,7 +64,7 @@ pub struct _Gsasl_login_server_state {
     pub password: *mut libc::c_char,
 }
 
-pub unsafe fn _gsasl_login_server_start(_sctx: &mut Gsasl_session,
+pub unsafe fn _gsasl_login_server_start(_sctx: &SASL,
                                         mech_data: &mut Option<NonNull<()>>,
 )
     -> libc::c_int {
@@ -77,7 +77,7 @@ pub unsafe fn _gsasl_login_server_start(_sctx: &mut Gsasl_session,
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn _gsasl_login_server_step(sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_login_server_step(sctx: &mut Session,
                                        mech_data: Option<NonNull<()>>,
                                        input: Option<&[u8]>,
                                        output: *mut *mut libc::c_char,
@@ -141,11 +141,9 @@ pub unsafe fn _gsasl_login_server_step(sctx: *mut Gsasl_session,
             res = gsasl_property_set(sctx, GSASL_PASSWORD, (*state).password);
             if res != GSASL_OK as libc::c_int { return res }
             res =
-                gsasl_callback(0 as *mut Gsasl, sctx, GSASL_VALIDATE_SIMPLE);
+                gsasl_callback(0 as *mut SASL, sctx, GSASL_VALIDATE_SIMPLE);
             if res == GSASL_NO_CALLBACK as libc::c_int {
                 let mut key: *const libc::c_char = 0 as *const libc::c_char;
-                gsasl_property_free(sctx, GSASL_AUTHZID);
-                gsasl_property_free(sctx, GSASL_PASSWORD);
                 key = gsasl_property_get(sctx, GSASL_PASSWORD);
                 if !key.is_null() && strlen((*state).password) == strlen(key)
                        && strcmp((*state).password, key) == 0 as libc::c_int {
@@ -181,7 +179,7 @@ pub unsafe fn _gsasl_login_server_step(sctx: *mut Gsasl_session,
  * Boston, MA 02110-1301, USA.
  *
  */
-pub unsafe fn _gsasl_login_server_finish(_sctx: &mut Gsasl_session,
+pub unsafe fn _gsasl_login_server_finish(_sctx: &mut Session,
                                          mech_data: Option<NonNull<()>>)
 {
     let mech_data = mech_data

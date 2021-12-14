@@ -2,9 +2,9 @@ use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::*;
-use crate::gsasl::gsasl::Gsasl_session;
 use crate::gsasl::property::gsasl_property_get;
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep};
+use crate::Session;
 
 extern "C" {
     fn malloc(_: size_t) -> *mut libc::c_void;
@@ -90,7 +90,7 @@ extern "C" {
 /* Get malloc, free. */
 /* Get memcpy, strlen. */
 /* Get cram_md5_digest. */
-pub unsafe fn _gsasl_cram_md5_client_step(sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_cram_md5_client_step(sctx: &mut Session,
                                           _mech_data: Option<NonNull<()>>,
                                           input: Option<&[u8]>,
                                           output: *mut *mut libc::c_char,

@@ -3,8 +3,9 @@ use ::libc;
 use libc::size_t;
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHZID, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_OK, GSASL_VALIDATE_EXTERNAL};
-use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
+use crate::gsasl::gsasl::{};
 use crate::gsasl::property::{gsasl_property_set, gsasl_property_set_raw};
+use crate::{SASL, Session};
 
 extern "C" {
     fn memchr(_: *const libc::c_void, _: libc::c_int, _: size_t)
@@ -55,7 +56,7 @@ extern "C" {
  */
 /* Get specification. */
 /* Get memchr. */
-pub unsafe fn _gsasl_external_server_step(sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_external_server_step(sctx: &mut Session,
                                           _mech_data: Option<NonNull<()>>,
                                           input: Option<&[u8]>,
                                           output: *mut *mut libc::c_char,
@@ -84,5 +85,5 @@ pub unsafe fn _gsasl_external_server_step(sctx: *mut Gsasl_session,
         rc = gsasl_property_set(sctx, GSASL_AUTHZID, 0 as *const libc::c_char)
     }
     if rc != GSASL_OK as libc::c_int { return rc }
-    return gsasl_callback(0 as *mut Gsasl, sctx, GSASL_VALIDATE_EXTERNAL);
+    return gsasl_callback(0 as *mut SASL, sctx, GSASL_VALIDATE_EXTERNAL);
 }

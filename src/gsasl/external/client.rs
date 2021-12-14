@@ -2,8 +2,8 @@ use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_OK};
-use crate::gsasl::gsasl::Gsasl_session;
 use crate::gsasl::property::gsasl_property_get;
+use crate::Session;
 
 extern "C" {
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
@@ -53,7 +53,7 @@ extern "C" {
  */
 /* Get specification. */
 /* Get strdup, strlen. */
-pub unsafe fn _gsasl_external_client_step(sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_external_client_step(sctx: &mut Session,
                                           _mech_data: Option<NonNull<()>>,
                                           _input: Option<&[u8]>,
                                           output: *mut *mut libc::c_char,

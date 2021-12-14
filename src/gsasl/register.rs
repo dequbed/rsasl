@@ -1,7 +1,8 @@
 use ::libc;
 use libc::size_t;
 use crate::consts::{GSASL_MALLOC_ERROR, GSASL_OK};
-use crate::gsasl::gsasl::{Gsasl, Gsasl_mechanism};
+use crate::SASL;
+use crate::gsasl::gsasl::{Gsasl_mechanism};
 
 extern "C" {
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
@@ -11,11 +12,11 @@ extern "C" {
 
 #[no_mangle]
 pub unsafe fn gsasl_register(
-    ctx: &mut Gsasl,
+    ctx: &mut SASL,
     mech: &Gsasl_mechanism,
 ) -> libc::c_int
 {
-    ctx.register(mech.name, mech.client, mech.server);
+    ctx.register_cmech(mech.name, mech.client, mech.server);
     /*
     let mut tmp: *mut Gsasl_mechanism = 0 as *mut Gsasl_mechanism;
     if (*mech).client.init.is_none() ||

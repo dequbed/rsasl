@@ -14,8 +14,9 @@ use crate::gsasl::digest_md5::qop::{DIGEST_MD5_QOP_AUTH, DIGEST_MD5_QOP_AUTH_INT
 use crate::gsasl::digest_md5::session::{digest_md5_decode, digest_md5_encode};
 use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::gc_gnulib::gc_md5;
-use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
-use crate::gsasl::property::{gsasl_property_fast, gsasl_property_get, gsasl_property_set};
+use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
+use crate::{SASL, Session};
+use crate::consts::REALM;
 
 extern "C" {
 
@@ -65,7 +66,7 @@ pub struct _Gsasl_digest_md5_client_state {
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-pub unsafe fn _gsasl_digest_md5_client_start(_sctx: &mut Gsasl_session,
+pub unsafe fn _gsasl_digest_md5_client_start(_sctx: &SASL,
                                              mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -93,7 +94,7 @@ pub unsafe fn _gsasl_digest_md5_client_start(_sctx: &mut Gsasl_session,
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn _gsasl_digest_md5_client_step(sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut Session,
                                             mech_data: Option<NonNull<()>>,
                                             input: Option<&[u8]>,
                                             output: *mut *mut libc::c_char,
@@ -203,10 +204,9 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: *mut Gsasl_session,
                     return GSASL_MALLOC_ERROR as libc::c_int
                 }
             }
-            gsasl_callback(0 as *mut Gsasl, sctx, GSASL_REALM);
-            c = gsasl_property_fast(sctx, GSASL_REALM);
-            if !c.is_null() {
-                (*state).response.realm = strdup(c);
+            gsasl_callback(0 as *mut SASL, sctx, GSASL_REALM);
+            if let Some(prop) = sctx.get_property::<REALM>() {
+                (*state).response.realm = strdup(prop.as_ptr());
                 if (*state).response.realm.is_null() {
                     return GSASL_MALLOC_ERROR as libc::c_int
                 }
@@ -290,7 +290,7 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: *mut Gsasl_session,
     return res;
 }
 
-pub unsafe fn _gsasl_digest_md5_client_finish(_sctx: &mut Gsasl_session,
+pub unsafe fn _gsasl_digest_md5_client_finish(_sctx: &mut Session,
                                               mech_data: Option<NonNull<()>>)
 {
     let mech_data = mech_data
@@ -305,7 +305,7 @@ pub unsafe fn _gsasl_digest_md5_client_finish(_sctx: &mut Gsasl_session,
     digest_md5_free_finish(&mut (*state).finish);
     rpl_free(state as *mut libc::c_void);
 }
-pub unsafe fn _gsasl_digest_md5_client_encode(mut _sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_digest_md5_client_encode(mut _sctx: &mut Session,
                                                          mut mech_data: Option<NonNull<()>>,
                                                          mut input: *const libc::c_char,
                                                          mut input_len: size_t,
@@ -334,7 +334,7 @@ pub unsafe fn _gsasl_digest_md5_client_encode(mut _sctx: *mut Gsasl_session,
     } else { (*state).sendseqnum = (*state).sendseqnum.wrapping_add(1) }
     return GSASL_OK as libc::c_int;
 }
-pub unsafe fn _gsasl_digest_md5_client_decode(mut _sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_digest_md5_client_decode(mut _sctx: &mut Session,
                                                          mech_data: Option<NonNull<()>>,
                                                          mut input: *const libc::c_char,
                                                          mut input_len: size_t,

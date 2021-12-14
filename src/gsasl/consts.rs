@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::ffi::{CStr, CString};
-use crate::Gsasl;
+use crate::SASL;
 
 pub type RsaslError = libc::c_uint;
 pub const GSASL_GSSAPI_RELEASE_OID_SET_ERROR: libc::c_uint = 64;
@@ -119,7 +119,7 @@ pub const GSASL_AUTHID: Gsasl_property = 1;
 // TODO: 1. Make this a pure marker trait defining the output type.
 // TODO: 2. Check if we can inventory around this for efficient storage.
 pub trait Property {
-    type Item: Any;
+    type Item: Any + Clone;
     fn code() -> Gsasl_property;
 }
 

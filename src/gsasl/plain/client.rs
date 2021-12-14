@@ -2,9 +2,9 @@ use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::consts::{AUTHID, AUTHZID, PASSWORD};
-use crate::gsasl::consts::{GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD};
-use crate::gsasl::gsasl::Gsasl_session;
-use crate::gsasl::property::{gsasl_property_get, property_get};
+use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK};
+use crate::gsasl::property::{gsasl_property_get};
+use crate::Session;
 
 extern "C" {
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
@@ -58,18 +58,18 @@ extern "C" {
 /* Get specification. */
 /* Get memcpy, strdup, strlen. */
 /* Get malloc, free. */
-pub unsafe fn _gsasl_plain_client_step(sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_plain_client_step(sctx: &mut Session,
                                        _mech_data: Option<NonNull<()>>,
                                        _input: Option<&[u8]>,
                                        output: *mut *mut libc::c_char,
                                        output_len: *mut size_t
 ) -> libc::c_int
 {
-    let authzid = property_get::<AUTHZID>(sctx);
-    let authid = property_get::<AUTHID>(sctx);
-    let password = property_get::<PASSWORD>(sctx);
+    let authzid = sctx.get_property_or_callback::<AUTHZID>();
+    let authid = sctx.get_property_or_callback::<AUTHID>();
+    let password = sctx.get_property_or_callback::<PASSWORD>();
 
-    let authzidlen: size_t = if let Some(authzid) = authzid {
+    let authzidlen: size_t = if let Some(ref authzid) = authzid {
         authzid.len()
     } else {
         0
@@ -100,7 +100,7 @@ pub unsafe fn _gsasl_plain_client_step(sctx: *mut Gsasl_session,
         return GSASL_MALLOC_ERROR as libc::c_int
     }
 
-    if let Some(authzid) = authzid {
+    if let Some(ref authzid) = authzid {
         memcpy(out as *mut libc::c_void,
                authzid.as_ptr() as *const libc::c_void,
                authzid.len());

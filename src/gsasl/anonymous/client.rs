@@ -4,8 +4,8 @@ use libc::size_t;
 use crate::consts::ANONYMOUS_TOKEN;
 use crate::gsasl::consts::{GSASL_ANONYMOUS_TOKEN, GSASL_MALLOC_ERROR, GSASL_NO_ANONYMOUS_TOKEN,
                            GSASL_OK};
-use crate::gsasl::gsasl::Gsasl_session;
-use crate::gsasl::property::{gsasl_property_get, property_get};
+use crate::gsasl::property::{gsasl_property_get};
+use crate::Session;
 
 extern "C" {
     fn strndup(_: *const libc::c_char, _: size_t) -> *mut libc::c_char;
@@ -56,14 +56,14 @@ extern "C" {
  */
 /* Get specification. */
 /* Get strdup, strlen. */
-pub unsafe fn _gsasl_anonymous_client_step(sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_anonymous_client_step(sctx: &mut Session,
                                            _mech_data: Option<NonNull<()>>,
                                            _input: Option<&[u8]>,
                                            output: *mut *mut libc::c_char,
                                            output_len: *mut size_t
 ) -> libc::c_int
 {
-    if let Some(token) = property_get::<ANONYMOUS_TOKEN>(sctx) {
+    if let Some(token) = sctx.get_property_or_callback::<ANONYMOUS_TOKEN>() {
         *output = strndup(token.as_ptr() as *const libc::c_char, token.len());
 
         if (*output).is_null() { return GSASL_MALLOC_ERROR as libc::c_int }

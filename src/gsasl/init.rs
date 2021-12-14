@@ -1,4 +1,5 @@
 use ::libc;
+use crate::SASL;
 use crate::gsasl::anonymous::mechinfo::gsasl_anonymous_mechanism;
 use crate::gsasl::consts::{GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR, GSASL_OK};
 use crate::gsasl::cram_md5::mechinfo::gsasl_cram_md5_mechanism;
@@ -6,7 +7,7 @@ use crate::gsasl::digest_md5::mechinfo::gsasl_digest_md5_mechanism;
 use crate::gsasl::done::gsasl_done;
 use crate::gsasl::external::mechinfo::gsasl_external_mechanism;
 use crate::gsasl::gc::GC_OK;
-use crate::gsasl::gsasl::{Gsasl};
+use crate::gsasl::gsasl::{};
 use crate::gsasl::login::mechinfo::gsasl_login_mechanism;
 use crate::gsasl::openid20::mechinfo::gsasl_openid20_mechanism;
 use crate::gsasl::plain::mechinfo::gsasl_plain_mechanism;
@@ -24,7 +25,7 @@ pub static mut GSASL_VALID_MECHANISM_CHARACTERS: *const libc::c_char =
     b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_\x00" as *const u8 as
         *const libc::c_char;
 
-pub unsafe fn register_builtin_mechs(ctx: &mut Gsasl) -> libc::c_int {
+pub unsafe fn register_builtin_mechs(ctx: &mut SASL) -> libc::c_int {
     let mut rc: libc::c_int = GSASL_OK as libc::c_int;
     rc = gsasl_register(ctx, &mut gsasl_anonymous_mechanism);
     if rc != GSASL_OK as libc::c_int { return rc }
