@@ -62,6 +62,7 @@ pub unsafe fn gsasl_step(mut sctx: *mut Gsasl_session,
                                     mut output: *mut *mut libc::c_char,
                                     mut output_len: *mut size_t)
  -> libc::c_int {
+    /*
     let mut step: Gsasl_step_function = None;
 
     if (*sctx).clientp != 0 {
@@ -74,6 +75,8 @@ pub unsafe fn gsasl_step(mut sctx: *mut Gsasl_session,
     return step.expect("non-null function pointer")(sctx, (*sctx).mech_data,
                                                     input, output,
                                                     output_len);
+     */
+    todo!()
 }
 /* gsasl.h --- Header file for GNU SASL Library.
  * Copyright (C) 2002-2021 Simon Josefsson

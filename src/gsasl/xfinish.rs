@@ -274,6 +274,8 @@ extern "C" {
  **/
 #[no_mangle]
 pub unsafe fn gsasl_finish(sctx: &mut Gsasl_session) {
+    todo!()
+    /*
     if (*sctx).clientp != 0 {
         if !(*sctx).mech.is_null() && (*(*sctx).mech).client.finish.is_some()
            {
@@ -312,4 +314,5 @@ pub unsafe fn gsasl_finish(sctx: &mut Gsasl_session) {
     /* If you add anything here, remember to change change map() in
      property.c and Gsasl_session in internal.h.  */
     rpl_free(sctx as *mut _ as *mut libc::c_void);
+     */
 }

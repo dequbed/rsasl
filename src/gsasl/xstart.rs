@@ -56,6 +56,7 @@ unsafe fn setup(ctx: &Gsasl,
                 clientp: libc::c_int
 ) -> libc::c_int
 {
+    /*
     (*sctx).map = HashMap::new();
     let mut res: libc::c_int = 0;
     let mechptr = find_mechanism(mech, mechs);
@@ -88,6 +89,8 @@ unsafe fn setup(ctx: &Gsasl,
     }
 
     return GSASL_OK as libc::c_int;
+     */
+    todo!()
 }
 
 unsafe fn start(ctx: &Gsasl,
@@ -97,6 +100,7 @@ unsafe fn start(ctx: &Gsasl,
                 clientp: libc::c_int,
     ) -> libc::c_int
 {
+    /*
     let mut out: *mut Gsasl_session = 0 as *mut Gsasl_session;
     let mut res: libc::c_int = 0;
     out =
@@ -109,6 +113,8 @@ unsafe fn start(ctx: &Gsasl,
     if res != GSASL_OK as libc::c_int { gsasl_finish(out); return res }
     *sctx = out;
     return GSASL_OK as libc::c_int;
+     */
+    todo!()
 }
 /* *
  * gsasl_client_start:

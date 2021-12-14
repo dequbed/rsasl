@@ -29,7 +29,7 @@ impl Gsasl {
         self.mechs.push(mech);
     }
 
-    pub fn client_start<E>(&self, name: &'static str) -> Result<Session<E>, RsaslError> {
+    pub fn client_start<E>(&self, name: &'static str) -> Result<Gsasl_session, RsaslError> {
         unimplemented!()
     }
 
@@ -57,20 +57,19 @@ pub type Gsasl_callback_function = Option<
     unsafe fn(_: *mut Gsasl, _: *mut Gsasl_session, _: Gsasl_property) -> libc::c_int
 >;
 
+/*
 pub struct Session<'session, E> {
-    sasl: &'session Gsasl,
-    mechanism: Box<dyn Mechanism>,
-    session_data: Option<E>
 }
+ */
 
 
 /* Per-session library handle. */
 pub struct Gsasl_session {
-    pub ctx: *mut Gsasl,
-    pub clientp: libc::c_int,
-    pub mech: *mut Gsasl_mechanism,
-    pub mech_data: Option<NonNull<()>>,
-    pub application_hook: *mut libc::c_void,
+    sasl: &'static Gsasl,
+    mechanism: Box<dyn Mechanism>,
+    session_data: Option<()>,
+    map: HashMap<TypeId, Box<dyn Any>>,
+
     pub anonymous_token: *mut libc::c_char,
     pub authid: *mut libc::c_char,
     pub authzid: *mut libc::c_char,
@@ -95,7 +94,6 @@ pub struct Gsasl_session {
     pub saml20_redirect_url: *mut libc::c_char,
     pub openid20_redirect_url: *mut libc::c_char,
     pub openid20_outcome_data: *mut libc::c_char,
-    pub map: HashMap<TypeId, Box<dyn Any>>
 }
 
 impl Gsasl_session {

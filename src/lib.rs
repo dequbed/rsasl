@@ -91,7 +91,7 @@ use std::fmt::{Debug, Formatter};
 // import the discard crate.
 pub use discard::{Discard, DiscardOnDrop};
 
-use gsasl::callback::{gsasl_callback, gsasl_callback_set};
+use gsasl::callback::gsasl_callback;
 
 pub mod buffer;
 pub mod session;
@@ -308,7 +308,7 @@ impl<D, E> SASL<D,E> {
     }
 
     fn install_callback_raw(&mut self, callback: Gsasl_callback_function) {
-        unsafe { gsasl_callback_set(self.ctx, callback); }
+        todo!()
     }
 
     /// Starts a authentication exchange as the client role
