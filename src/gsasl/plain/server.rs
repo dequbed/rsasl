@@ -1,7 +1,7 @@
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
-use crate::consts::{AUTHID, AUTHZID, PASSWORD};
+use crate::consts::PASSWORD;
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_CALLBACK, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD, GSASL_VALIDATE_SIMPLE};
 use crate::gsasl::property::{gsasl_property_set};

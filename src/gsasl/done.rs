@@ -1,5 +1,4 @@
 use ::libc;
-use libc::size_t;
 use crate::SASL;
 
 extern "C" {
@@ -270,7 +269,7 @@ extern "C" {
  * used with other libgsasl functions after this call.
  **/
 #[no_mangle]
-pub unsafe fn gsasl_done(mut ctx: &mut SASL) {
+pub unsafe fn gsasl_done(_ctx: &mut SASL) {
     /*
     let mut i: size_t = 0;
     i = 0 as libc::c_int as size_t;

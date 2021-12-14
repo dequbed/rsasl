@@ -1,5 +1,5 @@
 use std::mem::ManuallyDrop;
-use base64::{CharacterSet, Config, DecodeError};
+use base64::{CharacterSet, Config};
 use crate::gsasl::consts::*;
 use libc::size_t;
 

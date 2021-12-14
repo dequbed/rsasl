@@ -6,7 +6,7 @@ use md5::Md5;
 use sha1::Sha1;
 use sha2::Sha256;
 
-use crate::gsasl::gc::{GC_INVALID_CIPHER, GC_INVALID_HASH, GC_MALLOC_ERROR, GC_OK, GC_RANDOM_ERROR,
+use crate::gsasl::gc::{GC_INVALID_HASH, GC_OK, GC_RANDOM_ERROR,
                  Gc_rc};
 
 extern "C" {

@@ -160,10 +160,10 @@ mod tests {
 
     #[test]
     fn errname_to_str_invalid() {
-        assert_eq!(gsasl_errname_to_str(-1), UNKNOWN_ERROR);
+        assert_eq!(rsasl_errname_to_str(u32::MAX), None);
         assert_eq!(
-            gsasl_errname_to_str(GSASL_NO_OPENID20_REDIRECT_URL as libc::c_int + 1)
-            , UNKNOWN_ERROR
+            rsasl_errname_to_str(GSASL_NO_OPENID20_REDIRECT_URL as libc::c_uint + 1)
+            , None
         );
     }
 

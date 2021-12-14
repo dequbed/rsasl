@@ -2,7 +2,7 @@ use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::callback::gsasl_callback;
-use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_CALLBACK, GSASL_OK, GSASL_PASSWORD, GSASL_VALIDATE_SIMPLE};
+use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_CALLBACK, GSASL_OK, GSASL_PASSWORD, GSASL_VALIDATE_SIMPLE};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
 use crate::{SASL, Session};
 
@@ -179,8 +179,7 @@ pub unsafe fn _gsasl_login_server_step(sctx: &mut Session,
  * Boston, MA 02110-1301, USA.
  *
  */
-pub unsafe fn _gsasl_login_server_finish(_sctx: &mut Session,
-                                         mech_data: Option<NonNull<()>>)
+pub unsafe fn _gsasl_login_server_finish(mech_data: Option<NonNull<()>>)
 {
     let mech_data = mech_data
         .map(|ptr| ptr.as_ptr())

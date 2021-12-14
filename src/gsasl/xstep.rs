@@ -57,10 +57,10 @@ extern "C" {
  *   code.
  **/
 #[no_mangle]
-pub unsafe fn gsasl_step(sctx: &mut Session,
-                         input: Option<&[u8]>,
-                         output: *mut *mut libc::c_char,
-                         output_len: *mut size_t)
+pub unsafe fn gsasl_step(_sctx: &mut Session,
+                         _input: Option<&[u8]>,
+                         _output: *mut *mut libc::c_char,
+                         _output_len: *mut size_t)
  -> libc::c_int {
     /*
     let mut step: Gsasl_step_function = None;

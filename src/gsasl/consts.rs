@@ -1,6 +1,5 @@
 use std::any::Any;
-use std::ffi::{CStr, CString};
-use crate::SASL;
+use std::ffi::CString;
 
 pub type RsaslError = libc::c_uint;
 pub const GSASL_GSSAPI_RELEASE_OID_SET_ERROR: libc::c_uint = 64;

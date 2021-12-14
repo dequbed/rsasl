@@ -1,6 +1,6 @@
 use ::libc;
 use libc::size_t;
-use crate::consts::{GSASL_MALLOC_ERROR, GSASL_OK};
+use crate::consts::GSASL_OK;
 use crate::SASL;
 use crate::gsasl::gsasl::{Gsasl_mechanism};
 

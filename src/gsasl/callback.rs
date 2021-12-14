@@ -1,10 +1,10 @@
 use ::libc;
-use crate::gsasl::consts::{GSASL_NO_CALLBACK, Gsasl_property};
+use crate::gsasl::consts::Gsasl_property;
 use crate::{SASL, Session};
 
-pub unsafe fn gsasl_callback(mut ctx: *mut SASL,
-                             sctx: &mut Session,
-                             prop: Gsasl_property)
+pub unsafe fn gsasl_callback(_ctx: *mut SASL,
+                             _sctx: &mut Session,
+                             _prop: Gsasl_property)
  -> libc::c_int {
     todo!()
     /*
