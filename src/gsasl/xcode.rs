@@ -38,6 +38,7 @@ unsafe fn _gsasl_code(mut sctx: *mut Gsasl_session,
                                  mut input_len: size_t,
                                  mut output: *mut *mut libc::c_char,
                                  mut output_len: *mut size_t) -> libc::c_int {
+    /*
     if code.is_none() {
         *output_len = input_len;
         *output = malloc(*output_len) as *mut libc::c_char;
@@ -49,6 +50,8 @@ unsafe fn _gsasl_code(mut sctx: *mut Gsasl_session,
     return code.expect("non-null function pointer")(sctx, (*sctx).mech_data,
                                                     input, input_len, output,
                                                     output_len);
+     */
+    todo!()
 }
 /* *
  * gsasl_encode:
@@ -74,11 +77,14 @@ pub unsafe fn gsasl_encode(mut sctx: *mut Gsasl_session,
                                       mut output: *mut *mut libc::c_char,
                                       mut output_len: *mut size_t)
  -> libc::c_int {
+    /*
     let mut code: Gsasl_code_function = None;
     if (*sctx).clientp != 0 {
         code = (*(*sctx).mech).client.encode
     } else { code = (*(*sctx).mech).server.encode }
     return _gsasl_code(sctx, code, input, input_len, output, output_len);
+     */
+    todo!()
 }
 /* gsasl.h --- Header file for GNU SASL Library.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -311,9 +317,12 @@ pub unsafe fn gsasl_decode(mut sctx: *mut Gsasl_session,
                                       mut output: *mut *mut libc::c_char,
                                       mut output_len: *mut size_t)
  -> libc::c_int {
+    /*
     let mut code: Gsasl_code_function = None;
     if (*sctx).clientp != 0 {
         code = (*(*sctx).mech).client.decode
     } else { code = (*(*sctx).mech).server.decode }
     return _gsasl_code(sctx, code, input, input_len, output, output_len);
+     */
+    todo!()
 }
