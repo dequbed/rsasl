@@ -1,7 +1,7 @@
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::GSASL_OK;
-use crate::gsasl::gsasl::{Gsasl, Session};
+use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
 use crate::gsasl::xfinish::gsasl_finish;
 use crate::gsasl_client_start;
 

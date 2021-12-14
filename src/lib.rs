@@ -112,7 +112,7 @@ pub use session::Step;
 
 use crate::gsasl::consts::{GSASL_MECHANISM_PARSE_ERROR, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
 use crate::gsasl::done::gsasl_done;
-use crate::gsasl::gsasl::{Gsasl, Gsasl_callback_function, Session};
+use crate::gsasl::gsasl::{Gsasl, Gsasl_callback_function, Gsasl_session};
 use crate::gsasl::listmech::{gsasl_client_mechlist, gsasl_server_mechlist};
 use crate::gsasl::suggest::gsasl_client_suggest_mechanism;
 use crate::gsasl::supportp::{gsasl_client_support_p, gsasl_server_support_p};
@@ -322,13 +322,13 @@ impl<D, E> SASL<D,E> {
     /// documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Properties) for what
     /// mechanism uses what properties.
     pub fn client_start(&mut self, mech: &str) -> error::Result<DiscardOnDrop<Session<E>>> {
-        let mut ptr: *mut Session = ptr::null_mut();
+        let mut ptr: *mut Gsasl_session = ptr::null_mut();
 
         let res = unsafe {
             gsasl_client_start(
                 self.ctx, 
                 mech,
-                &mut ptr as *mut *mut Session)
+                &mut ptr as *mut *mut Gsasl_session)
         };
 
         if res != (GSASL_OK as libc::c_int) {
@@ -349,13 +349,13 @@ impl<D, E> SASL<D,E> {
     /// See [the gsasl documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Using-a-callback) for
     /// how gsasl uses properties and callbacks.
     pub fn server_start(&mut self, mech: &str) -> error::Result<DiscardOnDrop<Session<E>>> {
-        let mut ptr: *mut Session = ptr::null_mut();
+        let mut ptr: *mut Gsasl_session = ptr::null_mut();
 
         let res = unsafe {
             gsasl_server_start(
                 self.ctx,
                 mech,
-                &mut ptr as *mut *mut Session
+                &mut ptr as *mut *mut Gsasl_session
             )
         };
 

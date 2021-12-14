@@ -3,7 +3,7 @@ use ::libc;
 use libc::size_t;
 use crate::consts::{AUTHID, AUTHZID, PASSWORD};
 use crate::gsasl::consts::{GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD};
-use crate::gsasl::gsasl::Session;
+use crate::gsasl::gsasl::Gsasl_session;
 use crate::gsasl::property::{gsasl_property_get, property_get};
 
 extern "C" {
@@ -58,7 +58,7 @@ extern "C" {
 /* Get specification. */
 /* Get memcpy, strdup, strlen. */
 /* Get malloc, free. */
-pub unsafe fn _gsasl_plain_client_step(sctx: *mut Session,
+pub unsafe fn _gsasl_plain_client_step(sctx: *mut Gsasl_session,
                                        _mech_data: Option<NonNull<()>>,
                                        _input: Option<&[u8]>,
                                        output: *mut *mut libc::c_char,

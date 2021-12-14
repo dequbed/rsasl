@@ -3,7 +3,7 @@ use ::libc;
 use libc::size_t;
 use crate::consts::Property;
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_OK, Gsasl_property};
-use crate::gsasl::gsasl::{Gsasl, Session};
+use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
 use crate::gsasl_callback;
 
 extern "C" {
@@ -35,8 +35,8 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-unsafe fn map(mut sctx: *mut Session,
-              mut prop: Gsasl_property) -> *mut *mut libc::c_char {
+unsafe fn map(mut sctx: *mut Gsasl_session,
+                         mut prop: Gsasl_property) -> *mut *mut libc::c_char {
     let mut p: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
     if sctx.is_null() { return 0 as *mut *mut libc::c_char }
     match prop as libc::c_uint {
@@ -81,8 +81,8 @@ unsafe fn map(mut sctx: *mut Session,
  * Since: 2.0.0
  **/
 #[no_mangle]
-pub unsafe fn gsasl_property_free(mut sctx: *mut Session,
-                                  mut prop: Gsasl_property) {
+pub unsafe fn gsasl_property_free(mut sctx: *mut Gsasl_session,
+                                             mut prop: Gsasl_property) {
     let mut p: *mut *mut libc::c_char = map(sctx, prop);
     if !p.is_null() {
         rpl_free(*p as *mut libc::c_void);
@@ -108,9 +108,9 @@ pub unsafe fn gsasl_property_free(mut sctx: *mut Session,
  *
  * Since: 0.2.0
  **/
-pub unsafe fn gsasl_property_set(mut sctx: *mut Session,
-                                 mut prop: Gsasl_property,
-                                 mut data: *const libc::c_char)
+pub unsafe fn gsasl_property_set(mut sctx: *mut Gsasl_session,
+                                            mut prop: Gsasl_property,
+                                            mut data: *const libc::c_char)
  -> libc::c_int {
     return gsasl_property_set_raw(sctx, prop, data,
                                   if !data.is_null() {
@@ -143,10 +143,10 @@ pub unsafe fn gsasl_property_set(mut sctx: *mut Session,
  * Since: 0.2.0
  **/
 #[no_mangle]
-pub unsafe fn gsasl_property_set_raw(mut sctx: *mut Session,
-                                     mut prop: Gsasl_property,
-                                     mut data: *const libc::c_char,
-                                     mut len: size_t)
+pub unsafe fn gsasl_property_set_raw(mut sctx: *mut Gsasl_session,
+                                                mut prop: Gsasl_property,
+                                                mut data: *const libc::c_char,
+                                                mut len: size_t)
  -> libc::c_int {
     let mut p: *mut *mut libc::c_char = map(sctx, prop);
     if !p.is_null() {
@@ -182,8 +182,8 @@ pub unsafe fn gsasl_property_set_raw(mut sctx: *mut Session,
  * Since: 0.2.0
  **/
 #[no_mangle]
-pub unsafe fn gsasl_property_fast(mut sctx: *mut Session,
-                                  mut prop: Gsasl_property)
+pub unsafe fn gsasl_property_fast(mut sctx: *mut Gsasl_session,
+                                             mut prop: Gsasl_property)
  -> *const libc::c_char {
     let mut p: *mut *mut libc::c_char = map(sctx, prop);
     if !p.is_null() {
@@ -193,7 +193,7 @@ pub unsafe fn gsasl_property_fast(mut sctx: *mut Session,
     }
 }
 
-pub unsafe fn gsasl_property_get(mut sctx: *mut Session,
+pub unsafe fn gsasl_property_get(mut sctx: *mut Gsasl_session,
                                  prop: Gsasl_property
 ) -> *const libc::c_char
 {
@@ -205,7 +205,7 @@ pub unsafe fn gsasl_property_get(mut sctx: *mut Session,
     return p;
 }
 
-pub unsafe fn property_get<'a, P: Property>(session: *mut Session) -> Option<&'a P::Item> {
+pub unsafe fn property_get<'a, P: Property>(session: *mut Gsasl_session) -> Option<&'a P::Item> {
     let sessref = &mut *session;
     if let Some(item) = sessref.get::<P>() {
         return Some(item)
@@ -215,7 +215,7 @@ pub unsafe fn property_get<'a, P: Property>(session: *mut Session) -> Option<&'a
     sessref.get::<P>()
 }
 
-pub unsafe fn property_set<P: Property>(session: *mut Session, data: Box<P::Item>)
+pub unsafe fn property_set<P: Property>(session: *mut Gsasl_session, data: Box<P::Item>)
 {
     let sessref = &mut *session;
     sessref.insert::<P>(data);
@@ -231,7 +231,7 @@ mod tests {
     #[test]
     fn set_get_property() {
         let gsasl = Gsasl::new().unwrap();
-        let mut session: *mut Session = std::ptr::null_mut();
+        let mut session: *mut Gsasl_session = std::ptr::null_mut();
         unsafe {
             gsasl_server_start(&gsasl, "PLAIN", &mut session);
 

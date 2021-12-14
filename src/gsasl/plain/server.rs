@@ -4,7 +4,7 @@ use libc::size_t;
 use crate::consts::{AUTHID, AUTHZID, PASSWORD};
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_CALLBACK, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD, GSASL_VALIDATE_SIMPLE};
-use crate::gsasl::gsasl::{Gsasl, Session};
+use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
 use crate::gsasl::property::{gsasl_property_free, gsasl_property_set, property_get, property_set};
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep, Gsasl_saslprep_flags};
 
@@ -63,7 +63,7 @@ extern "C" {
 /* Get specification. */
 /* Get memcpy, memchr, strlen. */
 /* Get malloc, free. */
-pub unsafe fn _gsasl_plain_server_step(sctx: *mut Session,
+pub unsafe fn _gsasl_plain_server_step(sctx: *mut Gsasl_session,
                                        _mech_data: Option<NonNull<()>>,
                                        input: Option<&[u8]>,
                                        output: *mut *mut libc::c_char,

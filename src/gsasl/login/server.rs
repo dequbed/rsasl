@@ -3,7 +3,7 @@ use ::libc;
 use libc::size_t;
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_CALLBACK, GSASL_OK, GSASL_PASSWORD, GSASL_VALIDATE_SIMPLE};
-use crate::gsasl::gsasl::{Gsasl, Session};
+use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
 use crate::gsasl::property::{gsasl_property_free, gsasl_property_get, gsasl_property_set};
 
 extern "C" {
@@ -64,7 +64,7 @@ pub struct _Gsasl_login_server_state {
     pub password: *mut libc::c_char,
 }
 
-pub unsafe fn _gsasl_login_server_start(_sctx: &mut Session,
+pub unsafe fn _gsasl_login_server_start(_sctx: &mut Gsasl_session,
                                         mech_data: &mut Option<NonNull<()>>,
 )
     -> libc::c_int {
@@ -77,7 +77,7 @@ pub unsafe fn _gsasl_login_server_start(_sctx: &mut Session,
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn _gsasl_login_server_step(sctx: *mut Session,
+pub unsafe fn _gsasl_login_server_step(sctx: *mut Gsasl_session,
                                        mech_data: Option<NonNull<()>>,
                                        input: Option<&[u8]>,
                                        output: *mut *mut libc::c_char,
@@ -181,7 +181,7 @@ pub unsafe fn _gsasl_login_server_step(sctx: *mut Session,
  * Boston, MA 02110-1301, USA.
  *
  */
-pub unsafe fn _gsasl_login_server_finish(_sctx: &mut Session,
+pub unsafe fn _gsasl_login_server_finish(_sctx: &mut Gsasl_session,
                                          mech_data: Option<NonNull<()>>)
 {
     let mech_data = mech_data

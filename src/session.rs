@@ -8,7 +8,7 @@ use crate::error::{Result, SaslError};
 
 use discard::{Discard};
 use crate::gsasl::consts::{GSASL_NEEDS_MORE, Gsasl_property};
-use crate::gsasl::gsasl::Session;
+use crate::gsasl::gsasl::Gsasl_session;
 use crate::gsasl::property::{gsasl_property_fast, gsasl_property_set_raw};
 use crate::gsasl::xfinish::gsasl_finish;
 use crate::gsasl::xstep::{gsasl_step, gsasl_step64};
@@ -21,7 +21,7 @@ use crate::Property;
 /// `discarded`. If manual housekeeping is required the session can be leaked with
 /// [`DiscardOnDrop::leak`](discard::DiscardOnDrop::leak).
 pub struct Session<D> {
-    ptr: *mut Session,
+    ptr: *mut Gsasl_session,
     phantom: std::marker::PhantomData<D>,
 }
 
@@ -120,12 +120,12 @@ impl<D> Session<D> {
         }
     }
 
-    pub(crate) fn from_ptr(ptr: *mut Session) -> Self {
+    pub(crate) fn from_ptr(ptr: *mut Gsasl_session) -> Self {
         let phantom = std::marker::PhantomData;
         Self { ptr, phantom }
     }
 
-    pub(crate) fn as_ptr(&self) -> *mut Session {
+    pub(crate) fn as_ptr(&self) -> *mut Gsasl_session {
         self.ptr
     }
 

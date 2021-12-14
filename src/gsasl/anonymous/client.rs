@@ -4,7 +4,7 @@ use libc::size_t;
 use crate::consts::ANONYMOUS_TOKEN;
 use crate::gsasl::consts::{GSASL_ANONYMOUS_TOKEN, GSASL_MALLOC_ERROR, GSASL_NO_ANONYMOUS_TOKEN,
                            GSASL_OK};
-use crate::gsasl::gsasl::Session;
+use crate::gsasl::gsasl::Gsasl_session;
 use crate::gsasl::property::{gsasl_property_get, property_get};
 
 extern "C" {
@@ -56,7 +56,7 @@ extern "C" {
  */
 /* Get specification. */
 /* Get strdup, strlen. */
-pub unsafe fn _gsasl_anonymous_client_step(sctx: *mut Session,
+pub unsafe fn _gsasl_anonymous_client_step(sctx: *mut Gsasl_session,
                                            _mech_data: Option<NonNull<()>>,
                                            _input: Option<&[u8]>,
                                            output: *mut *mut libc::c_char,
