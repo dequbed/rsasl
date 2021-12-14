@@ -1,10 +1,8 @@
-use std::any::{Any, TypeId};
-use ::libc;
+use std::ffi::CString;
 use libc::size_t;
-use crate::consts::Property;
+use crate::consts::*;
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_OK, Gsasl_property};
-use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
-use crate::gsasl_callback;
+use crate::{SASL, gsasl_callback, Session};
 
 extern "C" {
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
@@ -35,38 +33,11 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-unsafe fn map(mut sctx: *mut Gsasl_session,
-                         mut prop: Gsasl_property) -> *mut *mut libc::c_char {
-    let mut p: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
-    if sctx.is_null() { return 0 as *mut *mut libc::c_char }
-    match prop as libc::c_uint {
-        4 => { p = &mut (*sctx).anonymous_token }
-        5 => { p = &mut (*sctx).service }
-        6 => { p = &mut (*sctx).hostname }
-        1 => { p = &mut (*sctx).authid }
-        2 => { p = &mut (*sctx).authzid }
-        3 => { p = &mut (*sctx).password }
-        8 => { p = &mut (*sctx).passcode }
-        10 => { p = &mut (*sctx).pin }
-        9 => { p = &mut (*sctx).suggestedpin }
-        7 => { p = &mut (*sctx).gssapi_display_name }
-        11 => { p = &mut (*sctx).realm }
-        12 => { p = &mut (*sctx).digest_md5_hashed_password }
-        13 => { p = &mut (*sctx).qops }
-        14 => { p = &mut (*sctx).qop }
-        15 => { p = &mut (*sctx).scram_iter }
-        16 => { p = &mut (*sctx).scram_salt }
-        17 => { p = &mut (*sctx).scram_salted_password }
-        23 => { p = &mut (*sctx).scram_serverkey }
-        24 => { p = &mut (*sctx).scram_storedkey }
-        18 => { p = &mut (*sctx).cb_tls_unique }
-        19 => { p = &mut (*sctx).saml20_idp_identifier }
-        20 => { p = &mut (*sctx).saml20_redirect_url }
-        21 => { p = &mut (*sctx).openid20_redirect_url }
-        22 => { p = &mut (*sctx).openid20_outcome_data }
-        _ => { }
-    }
-    return p;
+unsafe fn map(sctx: &mut Session,
+              prop: Gsasl_property
+) -> *mut *mut libc::c_char
+{
+    todo!();
 }
 
 /* *
@@ -80,15 +51,6 @@ unsafe fn map(mut sctx: *mut Gsasl_session,
  *
  * Since: 2.0.0
  **/
-#[no_mangle]
-pub unsafe fn gsasl_property_free(mut sctx: *mut Gsasl_session,
-                                             mut prop: Gsasl_property) {
-    let mut p: *mut *mut libc::c_char = map(sctx, prop);
-    if !p.is_null() {
-        rpl_free(*p as *mut libc::c_void);
-        *p = 0 as *mut libc::c_char
-    };
-}
 
 /* *
  * gsasl_property_set:
@@ -108,7 +70,7 @@ pub unsafe fn gsasl_property_free(mut sctx: *mut Gsasl_session,
  *
  * Since: 0.2.0
  **/
-pub unsafe fn gsasl_property_set(mut sctx: *mut Gsasl_session,
+pub unsafe fn gsasl_property_set(mut sctx: &mut Session,
                                             mut prop: Gsasl_property,
                                             mut data: *const libc::c_char)
  -> libc::c_int {
@@ -143,7 +105,7 @@ pub unsafe fn gsasl_property_set(mut sctx: *mut Gsasl_session,
  * Since: 0.2.0
  **/
 #[no_mangle]
-pub unsafe fn gsasl_property_set_raw(mut sctx: *mut Gsasl_session,
+pub unsafe fn gsasl_property_set_raw(mut sctx: &mut Session,
                                                 mut prop: Gsasl_property,
                                                 mut data: *const libc::c_char,
                                                 mut len: size_t)
@@ -181,70 +143,203 @@ pub unsafe fn gsasl_property_set_raw(mut sctx: *mut Gsasl_session,
  *
  * Since: 0.2.0
  **/
-#[no_mangle]
-pub unsafe fn gsasl_property_fast(mut sctx: *mut Gsasl_session,
-                                             mut prop: Gsasl_property)
+unsafe fn gsasl_property_fast(sctx: &mut Session,
+                                  prop: Gsasl_property)
  -> *const libc::c_char {
-    let mut p: *mut *mut libc::c_char = map(sctx, prop);
-    if !p.is_null() {
-        return *p
+
+    if GSASL_OPENID20_OUTCOME_DATA == prop {
+        if let Some(prop) = sctx.get_property::<OPENID20_OUTCOME_DATA>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_OPENID20_REDIRECT_URL == prop {
+        if let Some(prop) = sctx.get_property::<OPENID20_REDIRECT_URL>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_SAML20_REDIRECT_URL == prop {
+        if let Some(prop) = sctx.get_property::<SAML20_REDIRECT_URL>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_SAML20_IDP_IDENTIFIER == prop {
+        if let Some(prop) = sctx.get_property::<SAML20_IDP_IDENTIFIER>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_CB_TLS_UNIQUE == prop {
+        if let Some(prop) = sctx.get_property::<CB_TLS_UNIQUE>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_SCRAM_STOREDKEY == prop {
+        if let Some(prop) = sctx.get_property::<SCRAM_STOREDKEY>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_SCRAM_SERVERKEY == prop {
+        if let Some(prop) = sctx.get_property::<SCRAM_SERVERKEY>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_SCRAM_SALTED_PASSWORD == prop {
+        if let Some(prop) = sctx.get_property::<SCRAM_SALTED_PASSWORD>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_SCRAM_SALT == prop {
+        if let Some(prop) = sctx.get_property::<SCRAM_SALT>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_SCRAM_ITER == prop {
+        if let Some(prop) = sctx.get_property::<SCRAM_ITER>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_QOP == prop {
+        if let Some(it) = sctx.get_property::<QOP>() {
+            let ptr = it.as_ptr();
+            println!("ret {:?} @ {:?}", it, ptr);
+            ptr
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_QOPS == prop {
+        if let Some(prop) = sctx.get_property::<QOPS>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_DIGEST_MD5_HASHED_PASSWORD == prop {
+        if let Some(prop) = sctx.get_property::<DIGEST_MD5_HASHED_PASSWORD>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_REALM == prop {
+        if let Some(prop) = sctx.get_property::<REALM>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_PIN == prop {
+        if let Some(prop) = sctx.get_property::<PIN>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_SUGGESTED_PIN == prop {
+        if let Some(prop) = sctx.get_property::<SUGGESTED_PIN>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_PASSCODE == prop {
+        if let Some(prop) = sctx.get_property::<PASSCODE>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_GSSAPI_DISPLAY_NAME == prop {
+        if let Some(prop) = sctx.get_property::<GSSAPI_DISPLAY_NAME>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_HOSTNAME == prop {
+        if let Some(prop) = sctx.get_property::<HOSTNAME>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_SERVICE == prop {
+        if let Some(prop) = sctx.get_property::<SERVICE>() {
+            prop.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_ANONYMOUS_TOKEN == prop {
+        if let Some(prop) = sctx.get_property::<ANONYMOUS_TOKEN>() {
+            let cstr = CString::new(prop).unwrap();
+            cstr.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_PASSWORD == prop {
+        if let Some(prop) = sctx.get_property::<PASSWORD>() {
+            let cstr = CString::new(prop).unwrap();
+            cstr.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_AUTHZID == prop {
+        if let Some(prop) = sctx.get_property::<AUTHZID>() {
+            let cstr = CString::new(prop).unwrap();
+            cstr.as_ptr()
+        } else {
+            std::ptr::null()
+        }
+    } else if GSASL_AUTHID == prop {
+        if let Some(prop) = sctx.get_property::<AUTHID>() {
+            let cstr = CString::new(prop).unwrap();
+            cstr.as_ptr()
+        } else {
+            std::ptr::null()
+        }
     } else {
         std::ptr::null()
     }
 }
 
-pub unsafe fn gsasl_property_get(mut sctx: *mut Gsasl_session,
+pub unsafe fn gsasl_property_get(sctx: &mut Session,
                                  prop: Gsasl_property
 ) -> *const libc::c_char
 {
-    let mut p: *const libc::c_char = gsasl_property_fast(sctx, prop);
-    if p.is_null() {
-        gsasl_callback(0 as *mut Gsasl, sctx, prop);
-        p = gsasl_property_fast(sctx, prop)
+    let mut ptr = gsasl_property_fast(sctx, prop);
+    if ptr.is_null() {
+        sctx.callback();
+        ptr = gsasl_property_fast(sctx, prop);
     }
-    return p;
-}
-
-pub unsafe fn property_get<'a, P: Property>(session: *mut Gsasl_session) -> Option<&'a P::Item> {
-    let sessref = &mut *session;
-    if let Some(item) = sessref.get::<P>() {
-        return Some(item)
-    }
-
-    gsasl_callback(0 as *mut Gsasl, session, P::code());
-    sessref.get::<P>()
-}
-
-pub unsafe fn property_set<P: Property>(session: *mut Gsasl_session, data: Box<P::Item>)
-{
-    let sessref = &mut *session;
-    sessref.insert::<P>(data);
+    ptr
 }
 
 #[cfg(test)]
 mod tests {
-    use std::ffi::{CStr, CString};
-    use crate::consts::{AUTHID, GSASL_AUTHID};
-    use crate::gsasl_server_start;
+    use std::ffi::CStr;
     use super::*;
 
     #[test]
-    fn set_get_property() {
-        let gsasl = Gsasl::new().unwrap();
-        let mut session: *mut Gsasl_session = std::ptr::null_mut();
+    fn property_get_set() {
+        let mut session = Session::new(None);
+
         unsafe {
-            gsasl_server_start(&gsasl, "PLAIN", &mut session);
-
-            assert!(property_get::<AUTHID>(session).is_none());
-
-            let data = "Hello there I'm a string".to_string();
-            println!("Setting data Authid = {:?}", data);
-            property_set::<AUTHID>(session, Box::new(data.clone()));
-
-            let out = property_get::<AUTHID>(session);
-            assert!(out.is_some());
-            assert_eq!(Some(&data), out);
-            println!("Getting data Authid =? {:?}", out.unwrap());
+            let ptr = gsasl_property_fast(&mut session, GSASL_QOP);
+            assert!(ptr.is_null());
+        }
+        session.set_property::<QOP>(Box::new(CString::new("testservice").unwrap()));
+        let cstr = session.get_property::<QOP>();
+        println!("cstr {:?}", cstr);
+        assert!(cstr.is_some());
+        unsafe {
+            let ptr = gsasl_property_fast(&mut session, GSASL_QOP);
+            println!("after {:?}", ptr);
+            assert!(!ptr.is_null());
+            let slc = std::slice::from_raw_parts(ptr as *const u8, 11);
+            println!("Manual {}", std::str::from_utf8_unchecked(slc));
+            let cstr = CStr::from_ptr(ptr);
+            println!("fast {:?} {:?}", cstr, cstr.as_ptr());
+            assert_eq!(cstr.to_str().unwrap(), "testservice");
         }
     }
 }

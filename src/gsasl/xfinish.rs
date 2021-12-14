@@ -1,5 +1,5 @@
 use ::libc;
-use crate::gsasl::gsasl::Gsasl_session;
+use crate::Session;
 
 extern "C" {
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
@@ -273,7 +273,7 @@ extern "C" {
  * used with other libgsasl functions after this call.
  **/
 #[no_mangle]
-pub unsafe fn gsasl_finish(sctx: &mut Gsasl_session) {
+pub unsafe fn gsasl_finish(sctx: &mut Session) {
     todo!()
     /*
     if (*sctx).clientp != 0 {

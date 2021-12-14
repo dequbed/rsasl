@@ -1,9 +1,6 @@
 use ::libc;
 use libc::size_t;
-use crate::gsasl::consts::GSASL_OK;
-use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
-use crate::gsasl::xfinish::gsasl_finish;
-use crate::gsasl_client_start;
+use crate::SASL;
 
 extern "C" {
     static mut GSASL_VALID_MECHANISM_CHARACTERS: *const libc::c_char;
@@ -30,7 +27,7 @@ extern "C" {
  *   the libgsasl client which is present in the input string, or
  *   NULL if no supported mechanism is found.
  **/
-pub unsafe fn gsasl_client_suggest_mechanism(ctx: &Gsasl, mechlist: *const libc::c_char)
+pub unsafe fn gsasl_client_suggest_mechanism(ctx: &SASL, mechlist: *const libc::c_char)
     -> *const libc::c_char
 {
     /*

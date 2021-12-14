@@ -1,28 +1,52 @@
+use std::any::{Any, TypeId};
+use std::collections::HashMap;
 use libc::size_t;
 use std::ptr;
 use std::ffi::CStr;
 use crate::gsasl::consts::GSASL_OK;
 
 use crate::buffer::{SaslBuffer, SaslString};
-use crate::error::{Result, SaslError};
+use crate::error::SaslError;
 
 use discard::{Discard};
 use crate::gsasl::consts::{GSASL_NEEDS_MORE, Gsasl_property};
-use crate::gsasl::gsasl::Gsasl_session;
-use crate::gsasl::property::{gsasl_property_fast, gsasl_property_set_raw};
+use crate::gsasl::property::gsasl_property_set_raw;
 use crate::gsasl::xfinish::gsasl_finish;
 use crate::gsasl::xstep::{gsasl_step, gsasl_step64};
-use crate::Property;
+use crate::{Callback, Mechanism, RsaslError, SASL};
+use crate::consts::{GSASL_NO_CALLBACK, Property};
+
+pub struct AuthSession<'session> {
+    mechanism: Box<dyn Mechanism>,
+    session_data: Session<'session>,
+}
+
+impl<'session> AuthSession<'session> {
+    pub(crate) fn new<'sasl: 'session>(sasl: Option<&'sasl dyn Callback>,
+                                       mechanism: Box<dyn Mechanism>
+    ) -> Self
+    {
+        Self {
+            mechanism,
+            session_data: Session::new(sasl),
+        }
+    }
+}
+
+impl AuthSession<'_> {
+    /// Perform one step of SASL authentication. This reads data from `input` then processes it,
+    /// potentially calling a configured callback for required properties or enact decisions, and
+    /// finally returns data to be send to the other party.
+    pub fn step(&mut self, input: Option<&[u8]>) -> StepResult {
+        self.mechanism.step(&mut self.session_data, input)
+    }
+}
+
 
 #[derive(Debug)]
-/// The context of an authentication exchange
-///
-/// This struct will call the necesarry initializers on construction and finalizers when
-/// `discarded`. If manual housekeeping is required the session can be leaked with
-/// [`DiscardOnDrop::leak`](discard::DiscardOnDrop::leak).
-pub struct Session<D> {
-    ptr: *mut Gsasl_session,
-    phantom: std::marker::PhantomData<D>,
+pub struct Session<'session> {
+    callback: Option<&'session dyn Callback>,
+    map: HashMap<TypeId, Box<dyn Any>>,
 }
 
 #[derive(Debug)]
@@ -30,115 +54,74 @@ pub struct Session<D> {
 ///
 /// Since SASL is multi-step each step can either complete the exchange or require more steps to be
 /// performed. In both cases however it may provide data that has to be forwarded to the other end.
-pub enum Step<T> {
-    Done(T),
-    NeedsMore(T),
+pub enum Step {
+    Done(Option<Box<[u8]>>),
+    NeedsMore(Option<Box<[u8]>>),
+}
+pub type StepResult = Result<Step, RsaslError>;
+
+impl<'session> Session<'session> {
+    pub(crate) fn new(callback: Option<&'session dyn Callback>) -> Self {
+        Self {
+            callback,
+            map: HashMap::new(),
+        }
+    }
 }
 
-pub type StepResult<T> = Result<Step<T>>;
-
-impl<D> Session<D> {
-    /// Perform one step of SASL authentication. This reads data from `input` then processes it,
-    /// potentially calling a configured callback for required properties or enact decisions, and
-    /// finally returns data to be send to the other party.
-    ///
-    /// Note: This function may leak memory on internal failure.
-    pub fn step(&mut self, input: &[u8]) -> StepResult<SaslBuffer> {
-        // rustc can't prove this will never be read so we need to initialize it to a (bogus)
-        // value.
-        let mut output: *mut libc::c_char = ptr::null_mut();
-        let mut output_len: size_t = 0;
-
-        let res = unsafe {
-            gsasl_step(self.ptr,
-                Some(input),
-                &mut output as *mut *mut libc::c_char,
-                &mut output_len as *mut size_t
-            )
-        };
-
-        // Should the gsasl_step function fail (i.e. return something that's not GSASL_OK or
-        // GSASL_NEEDS_MORE) the value and contents of `output` are unspecified. Thus we can't wrap
-        // it in a SaslBuffer since that would potentially double free. XXX: This may leak memory
-
-        if res == (GSASL_OK as libc::c_int) {
-            Ok(Step::Done(SaslBuffer::from_parts(output, output_len as usize)))
-        } else if res == (GSASL_NEEDS_MORE as libc::c_int) {
-            Ok(Step::NeedsMore(SaslBuffer::from_parts(output, output_len as usize)))
+impl Session<'_> {
+    pub fn callback(&mut self) -> Result<(), RsaslError> {
+        if let Some(cb) = self.callback {
+            cb.callback(self)
         } else {
-            Err(SaslError(res as u32))
+            Err(GSASL_NO_CALLBACK)
         }
     }
 
-    /// A simple wrapper around the gsasl step function that base64-decodes the input and
-    /// base64-encodes the output. Mainly useful for text-based protocols.
-    ///
-    /// Note: This function may leak memory on failure since the internal step function does as well.
-    pub fn step64(&mut self, input: &CStr) -> StepResult<SaslString> {
-        let mut output: *mut libc::c_char = ptr::null_mut();
-
-        let res = unsafe {
-            gsasl_step64(self.ptr, input.as_ptr(), &mut output as *mut *mut libc::c_char)
-        };
-
-        if res == (GSASL_OK as libc::c_int) {
-            Ok(Step::Done(SaslString::from_raw(output)))
-        } else if res == (GSASL_NEEDS_MORE as libc::c_int) {
-            Ok(Step::NeedsMore(SaslString::from_raw(output)))
+    pub fn get_property_or_callback<P: Property>(&mut self) -> Option<P::Item> {
+        if let Some(item) = self.get_property::<P>() {
+            None
         } else {
-            Err(SaslError(res as u32))
+            self.callback();
+            self.get_property::<P>()
         }
     }
 
-    /// Set a property in the session context
-    ///
-    /// A `property` in this context is a piece of information used by authentication mechanisms,
-    /// for example the Authcid, Authzid and Password for PLAIN.
-    /// This is the Rust equivalent to the `gsasl_property_set` funciton.
-    pub fn set_property(&mut self, prop: Property, data: &[u8]) {
-        let data_ptr = data.as_ptr() as *const libc::c_char;
-        let len = data.len() as size_t;
-        unsafe {
-            gsasl_property_set_raw(self.ptr, prop, data_ptr, len);
-        }
+    pub fn get_property<P: Property>(&self) -> Option<P::Item> {
+        self.map.get(&TypeId::of::<P::Item>()).and_then(|prop| {
+            prop.downcast_ref::<P::Item>()
+                .map(|prop| (*prop).clone())
+        })
     }
 
-    /// Try to read a property from the session context
-    ///
-    /// This maps to `gsasl_property_fast` meaning it will *not* call the callback to retrieve
-    /// properties it does not know about.
-    ///
-    /// Returns `None` if the property is now known or was not set
-    pub fn get_property(&self, prop: Property) -> Option<&CStr> {
-        unsafe { 
-            let ptr = gsasl_property_fast(self.ptr, prop as Gsasl_property);
-            if !ptr.is_null() {
-                Some(CStr::from_ptr(ptr))
-            } else {
-                None
+    pub fn set_property<P: Property>(&mut self, item: Box<P::Item>) -> Option<Box<dyn Any>> {
+        self.map.insert(TypeId::of::<P::Item>(), item)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::consts::AUTHID;
+    use super::*;
+
+    #[test]
+    fn callback_test() {
+        #[derive(Debug)]
+        struct CB {
+            data: usize,
+        }
+        impl Callback for CB {
+            fn callback(&self, session: &mut Session) -> Result<(), RsaslError> {
+                let _ = session.set_property::<AUTHID>(Box::new(format!("is {}", self.data)));
+
+                Ok(())
             }
         }
-    }
 
-    pub(crate) fn from_ptr(ptr: *mut Gsasl_session) -> Self {
-        let phantom = std::marker::PhantomData;
-        Self { ptr, phantom }
-    }
+        let cbox = CB { data: 0 };
+        let mut session = Session::new(Some(&cbox));
 
-    pub(crate) fn as_ptr(&self) -> *mut Gsasl_session {
-        self.ptr
-    }
-
-    pub(crate) fn finish(&mut self) {
-        unsafe { gsasl_finish(&mut *self.ptr) };
-    }
-}
-
-impl<D> Discard for Session<D> {
-    fn discard(mut self) {
-        // Retrieve and drop the stored value. This should always be safe because a session can
-        // only be duplicated by running a callback via an exchange or calling `callback`, in which
-        // case calling discard will be prevented by the borrow checker.
-        self.finish();
+        assert!(session.get_property::<AUTHID>().is_none());
+        assert_eq!(session.get_property_or_callback::<AUTHID>(), Some("is 0".to_string()))
     }
 }

@@ -4,9 +4,9 @@ use libc::size_t;
 use crate::consts::{AUTHID, AUTHZID, PASSWORD};
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_CALLBACK, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD, GSASL_VALIDATE_SIMPLE};
-use crate::gsasl::gsasl::{Gsasl, Gsasl_session};
-use crate::gsasl::property::{gsasl_property_free, gsasl_property_set, property_get, property_set};
+use crate::gsasl::property::{gsasl_property_set};
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep, Gsasl_saslprep_flags};
+use crate::{SASL, Session};
 
 extern "C" {
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t) -> *mut libc::c_void;
@@ -63,7 +63,7 @@ extern "C" {
 /* Get specification. */
 /* Get memcpy, memchr, strlen. */
 /* Get malloc, free. */
-pub unsafe fn _gsasl_plain_server_step(sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_plain_server_step(sctx: &mut Session,
                                        _mech_data: Option<NonNull<()>>,
                                        input: Option<&[u8]>,
                                        output: *mut *mut libc::c_char,
@@ -141,13 +141,12 @@ pub unsafe fn _gsasl_plain_server_step(sctx: *mut Gsasl_session,
     if res != GSASL_OK as libc::c_int { return res }
     /* Authorization.  Let application verify credentials internally,
      but fall back to deal with it locally... */
-    res = gsasl_callback(0 as *mut Gsasl, sctx, GSASL_VALIDATE_SIMPLE);
+    res = gsasl_callback(0 as *mut SASL, sctx, GSASL_VALIDATE_SIMPLE);
     if res == GSASL_NO_CALLBACK as libc::c_int {
         let mut key: *const libc::c_char = 0 as *const libc::c_char;
         let mut normkey: *mut libc::c_char = 0 as *mut libc::c_char;
-        gsasl_property_free(sctx, GSASL_PASSWORD);
         /* The following will invoke a GSASL_PASSWORD callback. */
-        if let Some(key_rust) = property_get::<PASSWORD>(sctx) {
+        if let Some(key_rust) = sctx.get_property_or_callback::<PASSWORD>() {
             key = key_rust.as_ptr() as *const libc::c_char;
         }
         if key.is_null() {

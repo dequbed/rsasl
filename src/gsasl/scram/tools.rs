@@ -1,14 +1,14 @@
 use ::libc;
 use crate::gsasl::consts::GSASL_SCRAM_SALTED_PASSWORD;
 use crate::gsasl::crypto::gsasl_hash_length;
-use crate::gsasl::gsasl::Gsasl_session;
 use crate::gsasl::mechtools::{_gsasl_hex_encode, Gsasl_hash};
 use crate::gsasl::property::gsasl_property_set;
+use crate::Session;
 
 /* Hex encode HASHBUF which is HASH digest output and set salted
    password property to the hex encoded value. */
 #[no_mangle]
-pub unsafe fn set_saltedpassword(mut sctx: *mut Gsasl_session,
+pub unsafe fn set_saltedpassword(mut sctx: &mut Session,
                                             mut hash: Gsasl_hash,
                                             mut hashbuf: *const libc::c_char)
  -> libc::c_int {

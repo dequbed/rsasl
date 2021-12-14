@@ -80,7 +80,7 @@ pub unsafe fn gsasl_base64_from(mut in_0: *const libc::c_char,
 
 #[cfg(test)]
 mod tests {
-    use crate::{gsasl_err_to_str, rsasl_err_to_str};
+    use crate::rsasl_err_to_str;
     use super::*;
 
     #[test]

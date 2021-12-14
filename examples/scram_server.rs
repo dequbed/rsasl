@@ -21,7 +21,7 @@ impl Callback<(), ()> for OurCallback {
         match prop {
             GSASL_PASSWORD => {
                 // Access the authentication id, i.e. the username to check the password for
-                let _authcid = session.get_property(GSASL_AUTHID)
+                let _authcid = session.get_property_or_callback(GSASL_AUTHID)
                     .ok_or(GSASL_NO_AUTHID)?;
 
                 session.set_property(GSASL_PASSWORD, "secret".as_bytes());
