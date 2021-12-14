@@ -1,7 +1,7 @@
 use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::*;
-use crate::gsasl::gsasl::{Gsasl, Gsasl_mechanism, Gsasl_session};
+use crate::gsasl::gsasl::{Gsasl, Gsasl_mechanism, Session};
 use crate::{gsasl_client_start, gsasl_server_start};
 use crate::gsasl::xfinish::gsasl_finish;
 
@@ -42,7 +42,7 @@ unsafe fn _gsasl_listmech(ctx: &Gsasl,
                           clientp: libc::c_int,
 ) -> libc::c_int
 {
-    let mut sctx: *mut Gsasl_session = 0 as *mut Gsasl_session;
+    let mut sctx: *mut Session = 0 as *mut Session;
     let mut list: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut i: size_t = 0;
     let mut rc: libc::c_int = 0;
@@ -89,8 +89,7 @@ unsafe fn _gsasl_listmech(ctx: &Gsasl,
 #[no_mangle]
 pub unsafe fn gsasl_client_mechlist(ctx: &Gsasl, out: &mut *mut libc::c_char)
  -> libc::c_int {
-    return _gsasl_listmech(ctx, (*ctx).client_mechs, (*ctx).n_client_mechs,
-                           out, 1 as libc::c_int);
+    todo!()
 }
 /* gsasl.h --- Header file for GNU SASL Library.
  * Copyright (C) 2002-2021 Simon Josefsson

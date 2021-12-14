@@ -1,3 +1,6 @@
+use std::any::Any;
+use std::ffi::{CStr, CString};
+use crate::Gsasl;
 
 pub type RsaslError = libc::c_uint;
 pub const GSASL_GSSAPI_RELEASE_OID_SET_ERROR: libc::c_uint = 64;
@@ -43,6 +46,41 @@ pub const GSASL_UNKNOWN_MECHANISM: libc::c_uint = 2;
 pub const GSASL_NEEDS_MORE: libc::c_uint = 1;
 pub const GSASL_OK: libc::c_uint = 0;
 
+pub enum CallbackAction {
+    VALIDATE_OPENID20,
+    VALIDATE_SAML20,
+    VALIDATE_SECURID,
+    VALIDATE_GSSAPI,
+    VALIDATE_ANONYMOUS,
+    VALIDATE_EXTERNAL,
+    VALIDATE_SIMPLE,
+    OPENID20_AUTHENTICATE_IN_BROWSER,
+    SAML20_AUTHENTICATE_IN_BROWSER,
+    OPENID20_OUTCOME_DATA(OPENID20_OUTCOME_DATA),
+    OPENID20_REDIRECT_URL(OPENID20_REDIRECT_URL),
+    SAML20_REDIRECT_URL(SAML20_REDIRECT_URL),
+    SAML20_IDP_IDENTIFIER(SAML20_IDP_IDENTIFIER),
+    CB_TLS_UNIQUE(CB_TLS_UNIQUE),
+    SCRAM_STOREDKEY(SCRAM_STOREDKEY),
+    SCRAM_SERVERKEY(SCRAM_SERVERKEY),
+    SCRAM_SALTED_PASSWORD(SCRAM_SALTED_PASSWORD),
+    SCRAM_SALT(SCRAM_SALT),
+    SCRAM_ITER(SCRAM_ITER),
+    QOP(QOP),
+    QOPS(QOPS),
+    DIGEST_MD5_HASHED_PASSWORD(DIGEST_MD5_HASHED_PASSWORD),
+    REALM(REALM),
+    PIN(PIN),
+    SUGGESTED_PIN(SUGGESTED_PIN),
+    PASSCODE(PASSCODE),
+    GSSAPI_DISPLAY_NAME(GSSAPI_DISPLAY_NAME),
+    HOSTNAME(HOSTNAME),
+    SERVICE(SERVICE),
+    ANONYMOUS_TOKEN(ANONYMOUS_TOKEN),
+    PASSWORD(PASSWORD),
+    AUTHZID(AUTHZID),
+    AUTHID(AUTHID),
+}
 pub type Gsasl_property = libc::c_uint;
 pub const GSASL_VALIDATE_OPENID20: Gsasl_property = 506;
 pub const GSASL_VALIDATE_SAML20: Gsasl_property = 505;
@@ -77,3 +115,131 @@ pub const GSASL_ANONYMOUS_TOKEN: Gsasl_property = 4;
 pub const GSASL_PASSWORD: Gsasl_property = 3;
 pub const GSASL_AUTHZID: Gsasl_property = 2;
 pub const GSASL_AUTHID: Gsasl_property = 1;
+
+// TODO: 1. Make this a pure marker trait defining the output type.
+// TODO: 2. Check if we can inventory around this for efficient storage.
+pub trait Property {
+    type Item: Any;
+    fn code() -> Gsasl_property;
+}
+
+pub struct OPENID20_OUTCOME_DATA;
+impl Property for OPENID20_OUTCOME_DATA {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_OPENID20_OUTCOME_DATA }
+}
+pub struct OPENID20_REDIRECT_URL;
+impl Property for OPENID20_REDIRECT_URL {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_OPENID20_REDIRECT_URL }
+}
+pub struct SAML20_REDIRECT_URL;
+impl Property for SAML20_REDIRECT_URL {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_SAML20_REDIRECT_URL }
+}
+pub struct SAML20_IDP_IDENTIFIER;
+impl Property for SAML20_IDP_IDENTIFIER {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_SAML20_IDP_IDENTIFIER }
+}
+pub struct CB_TLS_UNIQUE;
+impl Property for CB_TLS_UNIQUE {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_CB_TLS_UNIQUE }
+}
+pub struct SCRAM_STOREDKEY;
+impl Property for SCRAM_STOREDKEY {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_SCRAM_STOREDKEY }
+}
+pub struct SCRAM_SERVERKEY;
+impl Property for SCRAM_SERVERKEY {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_SCRAM_SERVERKEY }
+}
+pub struct SCRAM_SALTED_PASSWORD;
+impl Property for SCRAM_SALTED_PASSWORD {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_SCRAM_SALTED_PASSWORD }
+}
+pub struct SCRAM_SALT;
+impl Property for SCRAM_SALT {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_SCRAM_SALT }
+}
+pub struct SCRAM_ITER;
+impl Property for SCRAM_ITER {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_SCRAM_ITER }
+}
+pub struct QOP;
+impl Property for QOP {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_QOP }
+}
+pub struct QOPS;
+impl Property for QOPS {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_QOPS }
+}
+pub struct DIGEST_MD5_HASHED_PASSWORD;
+impl Property for DIGEST_MD5_HASHED_PASSWORD {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_DIGEST_MD5_HASHED_PASSWORD }
+}
+pub struct REALM;
+impl Property for REALM {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_REALM }
+}
+pub struct PIN;
+impl Property for PIN {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_PIN }
+}
+pub struct SUGGESTED_PIN;
+impl Property for SUGGESTED_PIN {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_SUGGESTED_PIN }
+}
+pub struct PASSCODE;
+impl Property for PASSCODE {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_PASSCODE }
+}
+pub struct GSSAPI_DISPLAY_NAME;
+impl Property for GSSAPI_DISPLAY_NAME {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_GSSAPI_DISPLAY_NAME }
+}
+pub struct HOSTNAME;
+impl Property for HOSTNAME {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_HOSTNAME }
+}
+pub struct SERVICE;
+impl Property for SERVICE {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_SERVICE }
+}
+pub struct ANONYMOUS_TOKEN;
+impl Property for ANONYMOUS_TOKEN {
+    type Item = String;
+    fn code() -> Gsasl_property { GSASL_ANONYMOUS_TOKEN }
+}
+pub struct PASSWORD;
+impl Property for PASSWORD {
+    type Item = String;
+    fn code() -> Gsasl_property { GSASL_PASSWORD }
+}
+pub struct AUTHZID;
+impl Property for AUTHZID {
+    type Item = String;
+    fn code() -> Gsasl_property { GSASL_AUTHZID }
+}
+pub struct AUTHID;
+impl Property for AUTHID {
+    type Item = String;
+    fn code() -> Gsasl_property { GSASL_AUTHID }
+}

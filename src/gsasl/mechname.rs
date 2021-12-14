@@ -1,4 +1,4 @@
-use crate::Gsasl_session;
+use crate::Session;
 
 /* *
  * gsasl_mechanism_name:
@@ -12,9 +12,6 @@ use crate::Gsasl_session;
  *
  * Since: 0.2.28
  **/
-pub unsafe fn gsasl_mechanism_name(sctx: &Gsasl_session) -> &'static str {
-    if (*sctx).mech.is_null() {
-        return ""
-    }
+pub unsafe fn gsasl_mechanism_name(sctx: &Session) -> &'static str {
     return (*(*sctx).mech).name;
 }

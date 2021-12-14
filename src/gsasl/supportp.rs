@@ -58,7 +58,8 @@ unsafe fn _gsasl_support_p(mut mechs: *mut Gsasl_mechanism,
 pub unsafe fn gsasl_client_support_p(ctx: &Gsasl, mut name: *const libc::c_char)
     -> libc::c_int
 {
-    return _gsasl_support_p((*ctx).client_mechs, (*ctx).n_client_mechs, name);
+    todo!()
+    // return _gsasl_support_p((*ctx).client_mechs, (*ctx).n_client_mechs, name);
 }
 
 /* Library entry and exit points: version.c, init.c, done.c */

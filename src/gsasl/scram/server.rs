@@ -5,7 +5,7 @@ use crate::gsasl::base64::{gsasl_base64_from, gsasl_base64_to};
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_CB_TLS_UNIQUE, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_CB_TLS_UNIQUE, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD, GSASL_SCRAM_ITER, GSASL_SCRAM_SALT, GSASL_SCRAM_SERVERKEY, GSASL_SCRAM_STOREDKEY};
 use crate::gsasl::crypto::{gsasl_hash_length, gsasl_nonce, gsasl_scram_secrets_from_password};
 use crate::gsasl::free::gsasl_free;
-use crate::gsasl::gsasl::Gsasl_session;
+use crate::gsasl::gsasl::Session;
 use crate::gsasl::mechtools::{_gsasl_hash, _gsasl_hmac, Gsasl_hash, GSASL_HASH_SHA1, GSASL_HASH_SHA256};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep};
@@ -107,7 +107,7 @@ pub struct scram_server_first {
  */
 /* Get size_t. */
 unsafe fn scram_start(
-    mut _sctx: *mut Gsasl_session,
+    mut _sctx: *mut Session,
     mut mech_data: *mut *mut libc::c_void,
     mut plus: bool, mut hash: Gsasl_hash,
 )
@@ -144,7 +144,7 @@ unsafe fn scram_start(
     return rc;
 }
 
-pub unsafe fn _gsasl_scram_sha1_server_start(mut sctx: &mut Gsasl_session,
+pub unsafe fn _gsasl_scram_sha1_server_start(mut sctx: &mut Session,
                                              mut mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -162,7 +162,7 @@ pub unsafe fn _gsasl_scram_sha1_server_start(mut sctx: &mut Gsasl_session,
     return ret;
 }
 
-pub unsafe fn _gsasl_scram_sha1_plus_server_start(sctx: &mut Gsasl_session,
+pub unsafe fn _gsasl_scram_sha1_plus_server_start(sctx: &mut Session,
                                                   mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -180,7 +180,7 @@ pub unsafe fn _gsasl_scram_sha1_plus_server_start(sctx: &mut Gsasl_session,
     return ret;
 }
 
-pub unsafe fn _gsasl_scram_sha256_server_start(sctx: &mut Gsasl_session,
+pub unsafe fn _gsasl_scram_sha256_server_start(sctx: &mut Session,
                                                mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -198,7 +198,7 @@ pub unsafe fn _gsasl_scram_sha256_server_start(sctx: &mut Gsasl_session,
     return ret;
 }
 
-pub unsafe fn _gsasl_scram_sha256_plus_server_start(sctx: &mut Gsasl_session,
+pub unsafe fn _gsasl_scram_sha256_plus_server_start(sctx: &mut Session,
                                                     mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -234,7 +234,7 @@ unsafe fn extract_serverkey(mut state: *mut scram_server_state,
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn _gsasl_scram_server_step(sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_scram_server_step(sctx: *mut Session,
                                        mech_data: Option<NonNull<()>>,
                                        input: Option<&[u8]>,
                                        output: *mut *mut libc::c_char,
@@ -636,7 +636,7 @@ pub unsafe fn _gsasl_scram_server_step(sctx: *mut Gsasl_session,
  * Boston, MA 02110-1301, USA.
  *
  */
-pub unsafe fn _gsasl_scram_server_finish(_sctx: &mut Gsasl_session,
+pub unsafe fn _gsasl_scram_server_finish(_sctx: &mut Session,
                                          mech_data: Option<NonNull<()>>)
 {
     let mech_data = mech_data

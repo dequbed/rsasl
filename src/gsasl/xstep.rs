@@ -2,7 +2,7 @@ use ::libc;
 use libc::size_t;
 use crate::gsasl::base64::{gsasl_base64_from, gsasl_base64_to};
 use crate::gsasl::consts::{GSASL_BASE64_ERROR, GSASL_NEEDS_MORE, GSASL_OK};
-use crate::gsasl::gsasl::{Gsasl_session, Gsasl_step_function};
+use crate::gsasl::gsasl::{Session, Gsasl_step_function};
 
 extern "C" {
     fn rpl_free(ptr: *mut libc::c_void);
@@ -57,10 +57,10 @@ extern "C" {
  *   code.
  **/
 #[no_mangle]
-pub unsafe fn gsasl_step(mut sctx: *mut Gsasl_session,
-                                    mut input: Option<&[u8]>,
-                                    mut output: *mut *mut libc::c_char,
-                                    mut output_len: *mut size_t)
+pub unsafe fn gsasl_step(mut sctx: *mut Session,
+                         mut input: Option<&[u8]>,
+                         mut output: *mut *mut libc::c_char,
+                         mut output_len: *mut size_t)
  -> libc::c_int {
     let mut step: Gsasl_step_function = None;
 
@@ -302,9 +302,9 @@ pub unsafe fn gsasl_step(mut sctx: *mut Gsasl_session,
  *   code.
  **/
 #[no_mangle]
-pub unsafe fn gsasl_step64(mut sctx: *mut Gsasl_session,
-                                      mut b64input: *const libc::c_char,
-                                      mut b64output: *mut *mut libc::c_char)
+pub unsafe fn gsasl_step64(mut sctx: *mut Session,
+                           mut b64input: *const libc::c_char,
+                           mut b64output: *mut *mut libc::c_char)
  -> libc::c_int {
     let mut input_len: size_t = 0;
     let mut input: *mut libc::c_char = std::ptr::null_mut();

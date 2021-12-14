@@ -11,10 +11,12 @@ extern "C" {
 
 #[no_mangle]
 pub unsafe fn gsasl_register(
-        mut ctx: &mut Gsasl,
-        mut mech: *const Gsasl_mechanism
-    ) -> libc::c_int
+    ctx: &mut Gsasl,
+    mech: &Gsasl_mechanism,
+) -> libc::c_int
 {
+    ctx.register(mech.name, mech.client, mech.server);
+    /*
     let mut tmp: *mut Gsasl_mechanism = 0 as *mut Gsasl_mechanism;
     if (*mech).client.init.is_none() ||
            (*mech).client.init.expect("non-null function pointer")(ctx) ==
@@ -46,5 +48,6 @@ pub unsafe fn gsasl_register(
         (*ctx).server_mechs = tmp;
         (*ctx).n_server_mechs = (*ctx).n_server_mechs.wrapping_add(1)
     }
+     */
     return GSASL_OK as libc::c_int;
 }
