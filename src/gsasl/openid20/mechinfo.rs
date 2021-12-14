@@ -1,4 +1,4 @@
-use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
+use crate::gsasl::gsasl::{Gsasl_mechanism, MechanismVTable};
 use crate::gsasl::openid20::client::{_gsasl_openid20_client_finish, _gsasl_openid20_client_start, _gsasl_openid20_client_step};
 use crate::gsasl::openid20::server::{_gsasl_openid20_server_finish, _gsasl_openid20_server_start, _gsasl_openid20_server_step};
 
@@ -61,32 +61,22 @@ use crate::gsasl::openid20::server::{_gsasl_openid20_server_finish, _gsasl_openi
 /* Get specification. */
 pub static mut gsasl_openid20_mechanism: Gsasl_mechanism = Gsasl_mechanism {
     name: "OPENID20",
-    client: Gsasl_mechanism_functions {
-        init:
-        None,
-        done:
-        None,
-        start:
-        Some(_gsasl_openid20_client_start),
+    client: MechanismVTable {
+        init: None,
+        done: None,
+        start: Some(_gsasl_openid20_client_start),
         step: Some(_gsasl_openid20_client_step),
         finish: Some(_gsasl_openid20_client_finish),
-        encode:
-        None,
-        decode:
-        None,
+        encode: None,
+        decode: None,
     },
-    server: Gsasl_mechanism_functions {
-        init:
-        None,
-        done:
-        None,
-        start:
-        Some(_gsasl_openid20_server_start),
+    server: MechanismVTable {
+        init: None,
+        done: None,
+        start: Some(_gsasl_openid20_server_start),
         step: Some(_gsasl_openid20_server_step),
         finish: Some(_gsasl_openid20_server_finish),
-        encode:
-        None,
-        decode:
-        None,
+        encode: None,
+        decode: None,
     },
 };

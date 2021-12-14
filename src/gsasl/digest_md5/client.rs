@@ -290,7 +290,7 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: *mut Gsasl_session,
     return res;
 }
 
-pub unsafe fn _gsasl_digest_md5_client_finish(mut _sctx: *mut Gsasl_session,
+pub unsafe fn _gsasl_digest_md5_client_finish(_sctx: &mut Gsasl_session,
                                               mech_data: Option<NonNull<()>>)
 {
     let mech_data = mech_data

@@ -1,4 +1,4 @@
-use crate::gsasl::gsasl::{Gsasl_mechanism, Gsasl_mechanism_functions};
+use crate::gsasl::gsasl::{Gsasl_mechanism, MechanismVTable};
 use crate::gsasl::saml20::client::{_gsasl_saml20_client_finish, _gsasl_saml20_client_start, _gsasl_saml20_client_step};
 use crate::gsasl::saml20::server::{_gsasl_saml20_server_finish, _gsasl_saml20_server_start, _gsasl_saml20_server_step};
 
@@ -61,7 +61,7 @@ use crate::gsasl::saml20::server::{_gsasl_saml20_server_finish, _gsasl_saml20_se
 
 pub static mut gsasl_saml20_mechanism: Gsasl_mechanism = Gsasl_mechanism {
     name: "SAML20",
-    client: Gsasl_mechanism_functions {
+    client: MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_saml20_client_start),
@@ -72,7 +72,7 @@ pub static mut gsasl_saml20_mechanism: Gsasl_mechanism = Gsasl_mechanism {
         decode:
         None,
     },
-    server: Gsasl_mechanism_functions {
+    server: MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_saml20_server_start),

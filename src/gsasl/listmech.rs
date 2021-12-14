@@ -36,11 +36,12 @@ pub const GSASL_MIN_MECHANISM_SIZE: C2RustUnnamed = 1;
  *
  */
 unsafe fn _gsasl_listmech(ctx: &Gsasl,
-                                     mut mechs: *mut Gsasl_mechanism,
-                                     mut n_mechs: size_t,
-                                     mut out: *mut *mut libc::c_char,
-                                     mut clientp: libc::c_int)
- -> libc::c_int {
+                          mechs: *mut Gsasl_mechanism,
+                          n_mechs: size_t,
+                          out: *mut *mut libc::c_char,
+                          clientp: libc::c_int,
+) -> libc::c_int
+{
     let mut sctx: *mut Gsasl_session = 0 as *mut Gsasl_session;
     let mut list: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut i: size_t = 0;
@@ -62,7 +63,7 @@ unsafe fn _gsasl_listmech(ctx: &Gsasl,
                                    &mut sctx)
         }
         if rc == GSASL_OK as libc::c_int {
-            gsasl_finish(sctx);
+            gsasl_finish(&mut *sctx);
             strcat(list, (*mechs.offset(i as isize)).name.as_ptr() as *const libc::c_char);
             if i < n_mechs.wrapping_sub(1) {
                 strcat(list, b" \x00" as *const u8 as *const libc::c_char);

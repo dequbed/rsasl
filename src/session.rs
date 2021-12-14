@@ -174,7 +174,7 @@ impl<D> Session<D> {
     }
 
     pub(crate) fn finish(&mut self) {
-        unsafe { gsasl_finish(self.ptr) };
+        unsafe { gsasl_finish(&mut *self.ptr) };
     }
 }
 
