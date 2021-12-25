@@ -23,9 +23,6 @@ cram-md5 = ["hmac", "md-5"]
 [dependencies]
 libc = "0.2"
 
-# Discard is used to make the `SASL` and `Session` structs more ergonomic to use in callbacks
-discard = "1.0.4"
-
 base64 = { version = "0.13", optional = true }
 
 hmac = { version = "0.12", optional = true }
