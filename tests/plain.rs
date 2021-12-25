@@ -1,5 +1,5 @@
 use std::io;
-use rsasl::consts::{AUTHID, PASSWORD};
+use rsasl::consts::{AUTHID, GSASL_AUTHENTICATION_ERROR, PASSWORD};
 use rsasl::{SASL, Step};
 use rsasl::Step::{Done, NeedsMore};
 
@@ -56,4 +56,15 @@ fn plain_server() {
         Done(None) => {}
         NeedsMore(_) => panic!("PLAIN exchange took more than one step"),
     }
+
+    let mut session = sasl.server_start("PLAIN").unwrap();
+    let username = "testuser".to_string();
+    let password = "secret".to_string();
+    session.set_property::<AUTHID>(Box::new(username));
+    session.set_property::<PASSWORD>(Box::new(password));
+
+    assert_eq!(
+        session.step(Some(b"\0testuser\0badpass")),
+        Err(GSASL_AUTHENTICATION_ERROR.into()),
+    );
 }
