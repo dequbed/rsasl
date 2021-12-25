@@ -2,7 +2,7 @@ use std::ffi::CString;
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
-use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD};
+use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_PASSWORD, GSASL_OK};
 use crate::gsasl::property::gsasl_property_set;
 use crate::gsasl::saslprep::{gsasl_saslprep, Gsasl_saslprep_flags};
 use crate::{SASL, Session};
@@ -104,7 +104,6 @@ pub unsafe fn _gsasl_cram_md5_server_step(sctx: &mut Session,
 
     let mut challenge: *mut libc::c_char = mech_data as *mut libc::c_char;
     let mut hash: [libc::c_char; 32] = [0; 32];
-    let mut password: *const libc::c_char = 0 as *const libc::c_char;
     let mut username: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut res: libc::c_int = GSASL_OK as libc::c_int;
     let mut normkey: *mut libc::c_char = 0 as *mut libc::c_char;

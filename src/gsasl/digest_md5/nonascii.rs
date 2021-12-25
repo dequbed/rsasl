@@ -99,8 +99,7 @@ pub unsafe fn latin1toutf8(mut str: *const libc::c_char)
     return p;
 }
 #[no_mangle]
-pub unsafe fn utf8tolatin1ifpossible(mut passwd:
-                                                    *const libc::c_char)
+pub unsafe fn utf8tolatin1ifpossible(passwd: *const libc::c_char)
  -> *mut libc::c_char {
     let mut p: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut i: size_t = 0;

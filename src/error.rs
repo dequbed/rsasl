@@ -23,12 +23,20 @@ impl SaslError {
 
 impl fmt::Debug for SaslError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({}): {}", self.0, gsasl_err_to_str_internal(self.0 as i32))
+        write!(f, "({}): {}",
+               rsasl_errname_to_str(self.0).unwrap_or("UNKNOWN_ERROR"),
+               gsasl_err_to_str_internal(self.0 as i32))
     }
 }
 impl fmt::Display for SaslError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", gsasl_err_to_str_internal(self.0 as i32))
+    }
+}
+
+impl From<u32> for SaslError {
+    fn from(rc: u32) -> Self {
+        Self::new(rc)
     }
 }
 

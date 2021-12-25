@@ -1,8 +1,8 @@
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 
-use crate::{Callback, Mechanism, RsaslError};
-use crate::consts::{GSASL_NO_CALLBACK, Property};
+use crate::{Callback, Mechanism, RsaslError, SaslError};
+use crate::consts::{GSASL_NO_CALLBACK, Gsasl_property, Property};
 
 pub struct AuthSession<'session> {
     mechanism: Box<dyn Mechanism>,
@@ -28,13 +28,21 @@ impl AuthSession<'_> {
     pub fn step(&mut self, input: Option<&[u8]>) -> StepResult {
         self.mechanism.step(&mut self.session_data, input)
     }
+
+    pub fn set_property<P: Property>(&mut self, item: Box<P::Item>) -> Option<Box<dyn Any>> {
+        self.session_data.set_property::<P>(item)
+    }
+
+    pub fn get_property<P: Property>(&mut self) -> Option<P::Item> {
+        self.session_data.get_property::<P>()
+    }
 }
 
 
 #[derive(Debug)]
 pub struct Session<'session> {
     callback: Option<&'session dyn Callback>,
-    map: HashMap<TypeId, Box<dyn Any>>,
+    map: HashMap<Gsasl_property, Box<dyn Any>>,
 }
 
 #[derive(Debug)]
@@ -46,7 +54,7 @@ pub enum Step {
     Done(Option<Box<[u8]>>),
     NeedsMore(Option<Box<[u8]>>),
 }
-pub type StepResult = Result<Step, RsaslError>;
+pub type StepResult = Result<Step, SaslError>;
 
 impl<'session> Session<'session> {
     pub(crate) fn new(callback: Option<&'session dyn Callback>) -> Self {
@@ -58,11 +66,11 @@ impl<'session> Session<'session> {
 }
 
 impl Session<'_> {
-    pub fn callback(&mut self) -> Result<(), RsaslError> {
+    pub fn callback(&mut self, code: Gsasl_property) -> Result<(), SaslError> {
         if let Some(cb) = self.callback {
-            cb.callback(self)
+            cb.callback(self, code)
         } else {
-            Err(GSASL_NO_CALLBACK)
+            Err(GSASL_NO_CALLBACK.into())
         }
     }
 
@@ -70,26 +78,31 @@ impl Session<'_> {
         if let Some(item) = self.get_property::<P>() {
             Some(item)
         } else {
-            let _ = self.callback();
+            let _ = self.callback(P::code()).ok()?;
             self.get_property::<P>()
         }
     }
 
     pub fn get_property<P: Property>(&self) -> Option<P::Item> {
-        self.map.get(&TypeId::of::<P::Item>()).and_then(|prop| {
+        self.map.get(&P::code()).and_then(|prop| {
             prop.downcast_ref::<P::Item>()
                 .map(|prop| (*prop).clone())
         })
     }
 
     pub fn set_property<P: Property>(&mut self, item: Box<P::Item>) -> Option<Box<dyn Any>> {
-        self.map.insert(TypeId::of::<P::Item>(), item)
+        self.map.insert(P::code(), item)
+    }
+
+    pub(crate) unsafe fn set_property_raw(&mut self, prop: Gsasl_property, data: Box<String>) {
+        let _ = self.map.insert(prop, data);
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::consts::AUTHID;
+    use crate::consts::{AUTHID, GSASL_AUTHID, GSASL_PASSWORD, PASSWORD};
+    use crate::SASL;
     use super::*;
 
     #[test]
@@ -99,7 +112,7 @@ mod tests {
             data: usize,
         }
         impl Callback for CB {
-            fn callback(&self, session: &mut Session) -> Result<(), RsaslError> {
+            fn callback(&self, session: &mut Session, _code: Gsasl_property) -> Result<(), RsaslError> {
                 let _ = session.set_property::<AUTHID>(Box::new(format!("is {}", self.data)));
 
                 Ok(())
@@ -111,5 +124,39 @@ mod tests {
 
         assert!(session.get_property::<AUTHID>().is_none());
         assert_eq!(session.get_property_or_callback::<AUTHID>(), Some("is 0".to_string()))
+    }
+
+    #[test]
+    fn property_set_get() {
+        let mut sasl = SASL::new().unwrap();
+        let mut sess = sasl.client_start("PLAIN")
+            .unwrap();
+
+        assert!(sess.get_property::<AUTHID>().is_none());
+        assert!(sess.session_data.map.is_empty());
+
+        assert!(sess.set_property::<AUTHID>(Box::new("test".to_string())).is_none());
+        assert!(sess.set_property::<PASSWORD>(Box::new("secret".to_string())).is_none());
+
+        assert_eq!(sess.get_property::<AUTHID>(), Some("test".to_string()));
+        assert_eq!(sess.get_property::<PASSWORD>(), Some("secret".to_string()));
+    }
+
+    #[test]
+    fn property_set_raw() {
+        let mut sasl = SASL::new().unwrap();
+        let mut sess = sasl.client_start("PLAIN").unwrap();
+
+
+        assert!(sess.get_property::<AUTHID>().is_none());
+        assert!(sess.session_data.map.is_empty());
+
+        unsafe {
+            sess.session_data.set_property_raw(GSASL_AUTHID, Box::new("test".to_string()));
+            sess.session_data.set_property_raw(GSASL_PASSWORD, Box::new("secret".to_string()));
+        }
+
+        assert_eq!(sess.get_property::<AUTHID>(), Some("test".to_string()));
+        assert_eq!(sess.get_property::<PASSWORD>(), Some("secret".to_string()));
     }
 }

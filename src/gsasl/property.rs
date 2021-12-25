@@ -40,36 +40,6 @@ unsafe fn map(_sctx: &mut Session,
     todo!();
 }
 
-/* *
- * gsasl_property_free:
- * @sctx: session handle.
- * @prop: enumerated value of %Gsasl_property type to clear
- *
- * Deallocate associated data with property @prop in session handle.
- * After this call, gsasl_property_fast(@sctx, @prop) will always
- * return NULL.
- *
- * Since: 2.0.0
- **/
-
-/* *
- * gsasl_property_set:
- * @sctx: session handle.
- * @prop: enumerated value of Gsasl_property type, indicating the
- *        type of data in @data.
- * @data: zero terminated character string to store.
- *
- * Make a copy of @data and store it in the session handle for the
- * indicated property @prop.
- *
- * You can immediately deallocate @data after calling this function,
- * without affecting the data stored in the session handle.
- *
- * Return value: %GSASL_OK iff successful, otherwise
- * %GSASL_MALLOC_ERROR.
- *
- * Since: 0.2.0
- **/
 pub unsafe fn gsasl_property_set(mut sctx: &mut Session,
                                             mut prop: Gsasl_property,
                                             mut data: *const libc::c_char)
@@ -82,46 +52,20 @@ pub unsafe fn gsasl_property_set(mut sctx: &mut Session,
                                   });
 }
 
-/* *
- * gsasl_property_set_raw:
- * @sctx: session handle.
- * @prop: enumerated value of Gsasl_property type, indicating the
- *        type of data in @data.
- * @data: character string to store.
- * @len: length of character string to store.
- *
- * Make a copy of @len sized @data and store a zero terminated version
- * of it in the session handle for the indicated property @prop.
- *
- * You can immediately deallocate @data after calling this function,
- * without affecting the data stored in the session handle.
- *
- * Except for the length indicator, this function is identical to
- * gsasl_property_set.
- *
- * Return value: %GSASL_OK iff successful, otherwise
- * %GSASL_MALLOC_ERROR.
- *
- * Since: 0.2.0
- **/
-#[no_mangle]
 pub unsafe fn gsasl_property_set_raw(mut sctx: &mut Session,
                                                 mut prop: Gsasl_property,
                                                 mut data: *const libc::c_char,
                                                 mut len: size_t)
  -> libc::c_int {
-    let mut p: *mut *mut libc::c_char = map(sctx, prop);
-    if !p.is_null() {
-        rpl_free(*p as *mut libc::c_void);
-        if !data.is_null() {
-            *p =
-                malloc(len.wrapping_add(1) as libc::c_ulong) as
-                    *mut libc::c_char;
-            if (*p).is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
-            memcpy(*p as *mut libc::c_void, data as *const libc::c_void, len as libc::c_ulong);
-            *(*p).offset(len as isize) = '\u{0}' as i32 as libc::c_char
-        } else { *p = 0 as *mut libc::c_char }
-    }
+    let bytes = std::slice::from_raw_parts(data as *const u8, len);
+    let mut vec = Vec::with_capacity(len);
+    vec.extend_from_slice(bytes);
+    let cstring = CString::new(vec)
+        .expect("gsasl_property_set_raw called with NULL-containing string")
+        .into_string()
+        .expect("gsasl_propery_set_raw called with non-UTF8 string");
+    sctx.set_property_raw(prop, Box::new(cstring));
+
     return GSASL_OK as libc::c_int;
 }
 /* *
@@ -292,8 +236,8 @@ unsafe fn gsasl_property_fast(sctx: &mut Session,
         }
     } else if GSASL_AUTHID == prop {
         if let Some(prop) = sctx.get_property::<AUTHID>() {
-            let cstr = CString::new(prop).unwrap();
-            cstr.as_ptr()
+            let cstr = Box::leak(Box::new(CString::new(prop).unwrap()));
+            (*cstr).as_ptr()
         } else {
             std::ptr::null()
         }
@@ -302,13 +246,13 @@ unsafe fn gsasl_property_fast(sctx: &mut Session,
     }
 }
 
-unsafe fn gsasl_property_get(sctx: &mut Session,
+pub unsafe fn gsasl_property_get(sctx: &mut Session,
                                  prop: Gsasl_property
 ) -> *const libc::c_char
 {
     let mut ptr = gsasl_property_fast(sctx, prop);
     if ptr.is_null() {
-        let _ = sctx.callback();
+        let _ = sctx.callback(prop);
         ptr = gsasl_property_fast(sctx, prop);
     }
     ptr
