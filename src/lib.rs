@@ -107,7 +107,7 @@ pub use buffer::SaslString;
 pub use session::Step;
 
 use crate::gsasl::consts::{GSASL_MECHANISM_PARSE_ERROR, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
-use crate::gsasl::gsasl::{CMechBuilder, CombinedCMech, Mechanism, MechanismBuilder, MechanismVTable};
+use crate::gsasl::gsasl::{CMechBuilder, CombinedCMech, Mech, Mechanism, MechanismBuilder, MechanismVTable};
 pub use crate::gsasl::consts::Gsasl_property as Property;
 
 pub use error::{
@@ -137,7 +137,7 @@ use crate::session::AuthSession;
 /// The stored value can be extracted again using [`retrieve`](SASL::retrieve) and it's 
 /// [`Session` requivalent](Session::retrieve).
 pub struct SASL<'sasl> {
-    mechs: Vec<Box<CombinedCMech>>,
+    mechs: Vec<Box<dyn Mech>>,
     callback: Option<&'sasl dyn Callback>,
 }
 
@@ -230,8 +230,8 @@ todo!()
     /// mechanism uses what properties.
     pub fn client_start(&self, mech: &str) -> Result<AuthSession, SaslError> {
         for builder in self.mechs.iter() {
-            if builder.name == mech {
-                let mechanism = builder.client.start(&self)?;
+            if builder.name() == mech {
+                let mechanism = builder.client().start(&self)?;
                 return Ok(AuthSession::new(self.callback, mechanism));
             }
         }
@@ -248,12 +248,12 @@ todo!()
     ///
     /// See [the gsasl documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Using-a-callback) for
     /// how gsasl uses properties and callbacks.
-    pub fn server_start<'session, 'sasl: 'session>(&'sasl mut self, mech: &str)
-        -> Result<AuthSession<'session>, RsaslError>
+    pub fn server_start(&self, mech: &str)
+        -> Result<AuthSession, RsaslError>
     {
         for builder in self.mechs.iter() {
-            if builder.name == mech {
-                let mechanism = builder.server.start(&self)?;
+            if builder.name() == mech {
+                let mechanism = builder.server().start(&self)?;
                 return Ok(AuthSession::new(self.callback, mechanism));
             }
         }
