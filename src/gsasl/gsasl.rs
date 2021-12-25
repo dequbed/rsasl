@@ -4,7 +4,7 @@ use std::ptr::NonNull;
 use libc::size_t;
 use crate::{GSASL_OK, GSASL_UNKNOWN_MECHANISM, RsaslError, SASL, SaslError, Session};
 use crate::consts::GSASL_NEEDS_MORE;
-use crate::gsasl::plain::client::Plain;
+use crate::mechanisms::plain::client::Plain;
 use crate::session::StepResult;
 use crate::Step::{Done, NeedsMore};
 

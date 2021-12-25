@@ -1,4 +1,4 @@
-use crate::gsasl::plain::client::Plain;
+use crate::mechanisms::plain::client::Plain;
 use crate::Mech;
 
 pub trait Registry {

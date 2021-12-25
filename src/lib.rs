@@ -99,6 +99,8 @@ mod callback;
 mod gsasl;
 mod registry;
 
+mod mechanisms;
+
 pub use gsasl::consts;
 
 pub use callback::Callback;
