@@ -1,5 +1,5 @@
 use ::libc;
-use crate::SASL;
+use crate::{CMechBuilder, SASL};
 use crate::gsasl::anonymous::mechinfo::gsasl_anonymous_mechanism;
 use crate::gsasl::consts::GSASL_OK;
 use crate::gsasl::cram_md5::mechinfo::gsasl_cram_md5_mechanism;
@@ -7,6 +7,7 @@ use crate::gsasl::digest_md5::mechinfo::gsasl_digest_md5_mechanism;
 use crate::gsasl::external::mechinfo::gsasl_external_mechanism;
 use crate::gsasl::login::mechinfo::gsasl_login_mechanism;
 use crate::gsasl::openid20::mechinfo::gsasl_openid20_mechanism;
+use crate::gsasl::plain::client::Plain;
 use crate::gsasl::plain::mechinfo::gsasl_plain_mechanism;
 use crate::gsasl::register::gsasl_register;
 use crate::gsasl::saml20::mechinfo::gsasl_saml20_mechanism;
@@ -33,8 +34,9 @@ pub unsafe fn register_builtin_mechs(ctx: &mut SASL) -> libc::c_int {
     rc = gsasl_register(ctx, &mut gsasl_login_mechanism);
     if rc != GSASL_OK as libc::c_int { return rc }
     /* USE_LOGIN */
-    rc = gsasl_register(ctx, &mut gsasl_plain_mechanism);
-    if rc != GSASL_OK as libc::c_int { return rc }
+    ctx.register("PLAIN", Plain, CMechBuilder { vtable: gsasl_plain_mechanism.server });
+    /*rc = gsasl_register(ctx, &mut gsasl_plain_mechanism);
+    if rc != GSASL_OK as libc::c_int { return rc }*/
     /* USE_PLAIN */
     rc = gsasl_register(ctx, &mut gsasl_securid_mechanism);
     if rc != GSASL_OK as libc::c_int { return rc }

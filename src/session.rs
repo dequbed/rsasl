@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::collections::HashMap;
+use std::io::Write;
 
 use crate::{Callback, Mechanism, SaslError};
 use crate::consts::{GSASL_NO_CALLBACK, Gsasl_property, Property};
@@ -25,8 +26,8 @@ impl AuthSession<'_> {
     /// Perform one step of SASL authentication. This reads data from `input` then processes it,
     /// potentially calling a configured callback for required properties or enact decisions, and
     /// finally returns data to be send to the other party.
-    pub fn step(&mut self, input: Option<&[u8]>) -> StepResult {
-        self.mechanism.step(&mut self.session_data, input)
+    pub fn step(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult {
+        self.mechanism.step(&mut self.session_data, input, writer)
     }
 
     pub fn set_property<P: Property>(&mut self, item: Box<P::Item>) -> Option<Box<dyn Any>> {
@@ -51,8 +52,8 @@ pub struct Session<'session> {
 /// Since SASL is multi-step each step can either complete the exchange or require more steps to be
 /// performed. In both cases however it may provide data that has to be forwarded to the other end.
 pub enum Step {
-    Done(Option<Box<[u8]>>),
-    NeedsMore(Option<Box<[u8]>>),
+    Done(Option<usize>),
+    NeedsMore(Option<usize>),
 }
 pub type StepResult = Result<Step, SaslError>;
 

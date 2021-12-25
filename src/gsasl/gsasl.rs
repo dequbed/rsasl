@@ -1,18 +1,20 @@
 use std::fmt::{Debug, Formatter};
+use std::io::Write;
 use std::ptr::NonNull;
 use libc::size_t;
 use crate::{GSASL_OK, GSASL_UNKNOWN_MECHANISM, RsaslError, SASL, SaslError, Session};
 use crate::consts::GSASL_NEEDS_MORE;
+use crate::gsasl::plain::client::Plain;
 use crate::session::StepResult;
 use crate::Step::{Done, NeedsMore};
 
 #[derive(Clone, Debug)]
-pub struct CombinedCMech {
+pub struct MechContainer<C, S> {
     pub name: &'static str,
-    pub client: CMechBuilder,
-    pub server: CMechBuilder,
+    pub client: C,
+    pub server: S,
 }
-impl CombinedCMech {
+impl<C: MechanismBuilder, S: MechanismBuilder> MechContainer<C, S> {
     pub fn init(&mut self) {
         self.client.init();
         self.server.init();
@@ -25,7 +27,7 @@ pub trait Mech: Debug {
     fn server(&self) -> &dyn MechanismBuilder;
 }
 
-impl Mech for CombinedCMech {
+impl<C: MechanismBuilder, S: MechanismBuilder> Mech for MechContainer<C, S> {
     fn name(&self) -> &'static str {
         self.name
     }
@@ -39,13 +41,34 @@ impl Mech for CombinedCMech {
     }
 }
 
-pub trait MechanismBuilder {
+pub trait OutputError {}
+impl OutputError for std::io::Error {}
+pub trait OutputWriter {
+    type Error: OutputError;
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error>;
+}
+impl<W: Write> OutputWriter for W {
+    type Error = std::io::Error;
+
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        Write::write(self, buf)
+    }
+}
+
+pub trait MechanismBuilder: Debug {
     fn init(&self) {}
     fn start(&self, sasl: &SASL) -> Result<Box<dyn Mechanism>, RsaslError>;
 }
 
 pub trait Mechanism: Debug {
-    fn step(&mut self, session: &mut Session, input: Option<&[u8]>) -> StepResult;
+    // State is four things: currently writing output, has written all output(Done, NeedsMore),
+    // Error
+    // Surrounding protocol knows the wrapping of SASL => input is always complete!
+    fn step(&mut self,
+            session: &mut Session,
+            input: Option<&[u8]>,
+            writer: &mut dyn Write
+    ) -> StepResult;
 }
 
 pub trait SecurityLayer {
@@ -152,7 +175,9 @@ pub struct CMech {
 }
 
 impl Mechanism for CMech {
-    fn step(&mut self, session: &mut Session, input: Option<&[u8]>) -> StepResult {
+    fn step(&mut self, session: &mut Session, input: Option<&[u8]>, writer: &mut dyn Write)
+        -> StepResult
+    {
         if let Some(step) = self.vtable.step {
             let mut output: *mut libc::c_char = std::ptr::null_mut();
             let mut outlen: size_t = 0;
@@ -164,16 +189,16 @@ impl Mechanism for CMech {
                         Ok(Done(None))
                     } else {
                         let outslice = std::slice::from_raw_parts_mut(output as *mut u8, outlen);
-                        let out = Box::from_raw(outslice);
-                        Ok(Done(Some(out)))
+                        writer.write_all(outslice)?;
+                        Ok(Done(Some(outlen)))
                     }
                 } else if res == GSASL_NEEDS_MORE as libc::c_int {
                     if output.is_null() {
                         Ok(NeedsMore(None))
                     } else {
                         let outslice = std::slice::from_raw_parts_mut(output as *mut u8, outlen);
-                        let out = Box::from_raw(outslice);
-                        Ok(NeedsMore(Some(out)))
+                        writer.write_all(outslice)?;
+                        Ok(NeedsMore(Some(outlen)))
                     }
                 } else {
                     Err((res as u32).into())

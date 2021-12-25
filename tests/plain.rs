@@ -1,4 +1,5 @@
 use std::io;
+use std::io::Cursor;
 use rsasl::consts::{AUTHID, GSASL_AUTHENTICATION_ERROR, PASSWORD};
 use rsasl::{SASL, Step};
 use rsasl::Step::{Done, NeedsMore};
@@ -16,14 +17,16 @@ fn plain_client() {
     session.set_property::<AUTHID>(Box::new(username));
     session.set_property::<PASSWORD>(Box::new(password));
 
+    let mut out = Cursor::new(Vec::new());
 
     // Do an authentication step. In a PLAIN exchange there is only one step, with no data.
-    let step_result = session.step(None).unwrap();
+    let step_result = session.step(None, &mut out).unwrap();
 
     match step_result {
-        Done(Some(buffer)) => {
+        Done(Some(len)) => {
+            assert_eq!(len, 1 + 8 + 1 + 6);
+            let buffer = &out.into_inner()[0..len];
             // (1) "\0" + (8) "testuser" + (1) "\0" + (6) "secret"
-            assert_eq!(buffer.len(), 1 + 8 + 1 + 6);
             let (name, pass) = buffer.split_at(9);
             assert_eq!(name[0], 0);
             assert_eq!(name, b"\0testuser");
@@ -49,9 +52,11 @@ fn plain_server() {
     session.set_property::<AUTHID>(Box::new(username));
     session.set_property::<PASSWORD>(Box::new(password));
 
-    match session.step(Some(b"\0testuser\0secret")).unwrap() {
-        Done(Some(buffer)) => {
-            panic!("PLAIN mechanism wants to return data: {:?}", buffer);
+    let mut out = Cursor::new(Vec::new());
+
+    match session.step(Some(b"\0testuser\0secret"), &mut out).unwrap() {
+        Done(Some(_)) => {
+            panic!("PLAIN mechanism wants to return data: {:?}", &out.into_inner()[..]);
         }
         Done(None) => {}
         NeedsMore(_) => panic!("PLAIN exchange took more than one step"),
@@ -63,8 +68,7 @@ fn plain_server() {
     session.set_property::<AUTHID>(Box::new(username));
     session.set_property::<PASSWORD>(Box::new(password));
 
-    assert_eq!(
-        session.step(Some(b"\0testuser\0badpass")),
-        Err(GSASL_AUTHENTICATION_ERROR.into()),
-    );
+    assert!(session.step(Some(b"\0testuser\0badpass"), &mut out)
+                   .unwrap_err()
+                   .matches(GSASL_AUTHENTICATION_ERROR));
 }
