@@ -1,3 +1,4 @@
+use std::ffi::CString;
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
@@ -137,30 +138,37 @@ pub unsafe fn _gsasl_plain_server_step(sctx: &mut Session,
                        0 as *mut libc::c_int);
     rpl_free(passwdz as *mut libc::c_void);
     if res != GSASL_OK as libc::c_int { return res }
+    let old = sctx.get_property::<PASSWORD>();
     res = gsasl_property_set(sctx, GSASL_PASSWORD, passprep);
     if res != GSASL_OK as libc::c_int { return res }
     /* Authorization.  Let application verify credentials internally,
      but fall back to deal with it locally... */
     res = gsasl_callback(0 as *mut SASL, sctx, GSASL_VALIDATE_SIMPLE);
     if res == GSASL_NO_CALLBACK as libc::c_int {
-        let mut key: *const libc::c_char = 0 as *const libc::c_char;
+        if let Some(key) = old {
+            sctx.set_property::<PASSWORD>(Box::new(key));
+        }
         let mut normkey: *mut libc::c_char = 0 as *mut libc::c_char;
         /* The following will invoke a GSASL_PASSWORD callback. */
-        if let Some(key_rust) = sctx.get_property_or_callback::<PASSWORD>() {
-            key = key_rust.as_ptr() as *const libc::c_char;
-        }
-        if key.is_null() {
+        let key = if let Some(key_rust) = sctx.get_property_or_callback::<PASSWORD>() {
+            CString::new(key_rust)
+                .expect("gsasl property password was an invalid C string")
+        } else {
             rpl_free(passprep as *mut libc::c_void);
             return GSASL_NO_PASSWORD as libc::c_int
-        }
+        };
+
         /* Unassigned code points are not permitted. */
         res =
-            gsasl_saslprep(key, 0 as Gsasl_saslprep_flags, &mut normkey,
+            gsasl_saslprep(key.as_ptr(), 0 as Gsasl_saslprep_flags, &mut normkey,
                            0 as *mut libc::c_int);
         if res != GSASL_OK as libc::c_int {
             rpl_free(passprep as *mut libc::c_void);
             return res
         }
+        let pass = std::str::from_utf8_unchecked(std::slice::from_raw_parts(
+            passprep as *const u8,
+            strlen(passprep)));
         if strcmp(normkey, passprep) == 0 as libc::c_int {
             res = GSASL_OK as libc::c_int
         } else { res = GSASL_AUTHENTICATION_ERROR as libc::c_int }

@@ -45,7 +45,7 @@ pub struct Session<'session> {
     map: HashMap<Gsasl_property, Box<dyn Any>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 /// The outcome of a single step in the authentication exchange
 ///
 /// Since SASL is multi-step each step can either complete the exchange or require more steps to be
