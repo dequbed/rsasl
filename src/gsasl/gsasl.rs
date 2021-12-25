@@ -6,13 +6,6 @@ use crate::consts::GSASL_NEEDS_MORE;
 use crate::session::StepResult;
 use crate::Step::{Done, NeedsMore};
 
-#[derive(Copy, Clone)]
-pub struct Gsasl_mechanism {
-    pub name: &'static str,
-    pub client: MechanismVTable,
-    pub server: MechanismVTable,
-}
-
 #[derive(Clone, Debug)]
 pub struct CombinedCMech {
     pub name: &'static str,
@@ -24,6 +17,47 @@ impl CombinedCMech {
         self.client.init();
         self.server.init();
     }
+}
+
+pub trait Mech: Debug {
+    fn name(&self) -> &'static str;
+    fn client(&self) -> &dyn MechanismBuilder;
+    fn server(&self) -> &dyn MechanismBuilder;
+}
+
+impl Mech for CombinedCMech {
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn client(&self) -> &dyn MechanismBuilder {
+        &self.client
+    }
+
+    fn server(&self) -> &dyn MechanismBuilder {
+        &self.server
+    }
+}
+
+pub trait MechanismBuilder {
+    fn init(&self) {}
+    fn start(&self, sasl: &SASL) -> Result<Box<dyn Mechanism>, RsaslError>;
+}
+
+pub trait Mechanism: Debug {
+    fn step(&mut self, session: &mut Session, input: Option<&[u8]>) -> StepResult;
+}
+
+pub trait SecurityLayer {
+    fn encode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SaslError>;
+    fn decode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SaslError>;
+}
+
+#[derive(Copy, Clone)]
+pub struct Gsasl_mechanism {
+    pub name: &'static str,
+    pub client: MechanismVTable,
+    pub server: MechanismVTable,
 }
 
 #[derive(Copy, Clone)]
@@ -74,17 +108,6 @@ impl Debug for MechanismVTable {
             .field("has decode", &self.decode.is_some())
             .finish()
     }
-}
-
-pub trait MechanismBuilder {
-    fn init(&self);
-    fn start(&self, sasl: &SASL) -> Result<Box<dyn Mechanism>, RsaslError>;
-}
-
-pub trait Mechanism: Debug {
-    fn step(&mut self, session: &mut Session, input: Option<&[u8]>) -> StepResult;
-    fn encode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SaslError>;
-    fn decode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SaslError>;
 }
 
 #[derive(Clone, Debug)]
@@ -159,14 +182,6 @@ impl Mechanism for CMech {
         } else {
             Err(GSASL_UNKNOWN_MECHANISM.into())
         }
-    }
-
-    fn encode(&mut self, _input: &[u8]) -> Result<Box<[u8]>, SaslError> {
-        todo!()
-    }
-
-    fn decode(&mut self, _input: &[u8]) -> Result<Box<[u8]>, SaslError> {
-        todo!()
     }
 }
 

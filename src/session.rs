@@ -1,7 +1,7 @@
-use std::any::{Any, TypeId};
+use std::any::Any;
 use std::collections::HashMap;
 
-use crate::{Callback, Mechanism, RsaslError, SaslError};
+use crate::{Callback, Mechanism, SaslError};
 use crate::consts::{GSASL_NO_CALLBACK, Gsasl_property, Property};
 
 pub struct AuthSession<'session> {
@@ -112,7 +112,7 @@ mod tests {
             data: usize,
         }
         impl Callback for CB {
-            fn callback(&self, session: &mut Session, _code: Gsasl_property) -> Result<(), RsaslError> {
+            fn callback(&self, session: &mut Session, _code: Gsasl_property) -> Result<(), SaslError> {
                 let _ = session.set_property::<AUTHID>(Box::new(format!("is {}", self.data)));
 
                 Ok(())
@@ -128,7 +128,7 @@ mod tests {
 
     #[test]
     fn property_set_get() {
-        let mut sasl = SASL::new().unwrap();
+        let sasl = SASL::new().unwrap();
         let mut sess = sasl.client_start("PLAIN")
             .unwrap();
 
@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn property_set_raw() {
-        let mut sasl = SASL::new().unwrap();
+        let sasl = SASL::new().unwrap();
         let mut sess = sasl.client_start("PLAIN").unwrap();
 
 
