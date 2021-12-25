@@ -1,42 +1,69 @@
 use std::fmt;
 use std::ffi::CStr;
+use std::io::Error;
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 
 pub type Result<T> = std::result::Result<T, SaslError>;
 
 static UNKNOWN_ERROR: &'static str = "The given error code is unknown to gsasl";
 
-#[derive(PartialEq, PartialOrd, Eq, Ord)]
 /// The gsasl error type
 ///
 /// gsasl has its own error type providing access to human-readable descriptions
-pub struct SaslError(pub u32);
+pub enum SaslError {
+    Sasl(u32),
+    Io(std::io::Error)
+}
 
 impl SaslError {
     pub fn new(rc: u32) -> Self {
-        Self(rc as u32)
+        Self::Sasl(rc)
     }
     pub fn matches(&self, rc: u32) -> bool {
-        self.0 == rc
+        if let SaslError::Sasl(n) = self {
+            *n == rc
+        } else {
+            false
+        }
     }
 }
 
 impl fmt::Debug for SaslError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({}): {}",
-               rsasl_errname_to_str(self.0).unwrap_or("UNKNOWN_ERROR"),
-               gsasl_err_to_str_internal(self.0 as i32))
+        match self {
+            SaslError::Sasl(n) => {
+                write!(f, "({}): {}",
+                       rsasl_errname_to_str(*n).unwrap_or("UNKNOWN_ERROR"),
+                       gsasl_err_to_str_internal(*n as i32))
+            },
+            SaslError::Io(e) => {
+                write!(f, "(IO): {}", e)
+            }
+        }
     }
 }
 impl fmt::Display for SaslError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", gsasl_err_to_str_internal(self.0 as i32))
+        match self {
+            SaslError::Sasl(n) => {
+                write!(f, "{}", gsasl_err_to_str_internal(*n as i32))
+            },
+            SaslError::Io(e) => {
+                write!(f, "(IO): {}", e)
+            }
+        }
     }
 }
 
 impl From<u32> for SaslError {
     fn from(rc: u32) -> Self {
-        Self::new(rc)
+        Self::Sasl(rc)
+    }
+}
+
+impl From<std::io::Error> for SaslError {
+    fn from(e: Error) -> Self {
+        Self::Io(e)
     }
 }
 

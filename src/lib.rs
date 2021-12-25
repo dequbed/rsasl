@@ -97,6 +97,7 @@ pub mod error;
 mod callback;
 
 mod gsasl;
+mod registry;
 
 pub use gsasl::consts;
 
@@ -107,7 +108,7 @@ pub use buffer::SaslString;
 pub use session::Step;
 
 use crate::gsasl::consts::{GSASL_MECHANISM_PARSE_ERROR, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
-use crate::gsasl::gsasl::{CMechBuilder, CombinedCMech, Mech, Mechanism, MechanismBuilder, MechanismVTable};
+use crate::gsasl::gsasl::{CMechBuilder, MechContainer, Mech, Mechanism, MechanismBuilder, MechanismVTable};
 pub use crate::gsasl::consts::Gsasl_property as Property;
 
 pub use error::{
@@ -146,13 +147,24 @@ impl SASL<'_> {
                           client: MechanismVTable,
                           server: MechanismVTable)
     {
-        let mut mech = CombinedCMech {
+        let mut mech = MechContainer {
             name,
             client: CMechBuilder { vtable: client },
             server: CMechBuilder { vtable: server }
         };
         mech.init();
         self.mechs.push(Box::new(mech));
+    }
+
+    pub fn register<C: 'static + MechanismBuilder, S: 'static + MechanismBuilder>(
+        &mut self,
+        name: &'static str,
+        client: C,
+        server: S)
+    {
+        let mut mech = Box::new(MechContainer { name, client, server });
+        mech.init();
+        self.mechs.push(mech);
     }
 
     /// Create a fresh GSASL context from scratch.
