@@ -95,7 +95,6 @@ pub mod buffer;
 pub mod session;
 pub mod error;
 mod callback;
-mod mechanisms;
 
 mod gsasl;
 
@@ -104,7 +103,6 @@ pub use gsasl::consts;
 pub use callback::Callback;
 pub use session::Session;
 pub use buffer::SaslString;
-pub use mechanisms::Mechanisms;
 
 pub use session::Step;
 
@@ -189,7 +187,7 @@ impl SASL<'_> {
     /// required data for the listed mechanisms. For example this will return the `GSSAPI` and
     /// `KERBEROS_V5` mechanism if the system gsasl was linked with a libkrb5, independent of if
     /// the application has a valid ticket.
-    pub fn client_mech_list(&self) -> error::Result<Mechanisms> {
+    pub fn client_mech_list(&self) -> error::Result<&[&str]> {
         todo!()
     }
 
@@ -199,14 +197,14 @@ impl SASL<'_> {
     /// required data for the listed mechanisms. For example this will return the `GSSAPI` and
     /// `KERBEROS_V5` mechanism if the system gsasl was linked with a libkrb5, independent of if
     /// the application has a valid keytab.
-    pub fn server_mech_list(&self) -> error::Result<Mechanisms> {
+    pub fn server_mech_list(&self) -> error::Result<&[&str]> {
 todo!()
     }
 
     /// Suggests a mechanism to use from a given list of Mechanisms. Returns
     /// Err(GSASL_UNKNOWN_MECHANISM) if there was no supported mechanism found in the given list,
     /// and Err(GSASL_MECHANISM_PARSE_ERROR) if the returned mechanism name is invalid.
-    pub fn suggest_client_mechanism(&self, _mechs: Mechanisms) -> Result<&str, SaslError> {
+    pub fn suggest_client_mechanism(&self, _mechs: &[&str]) -> Result<&str, SaslError> {
         todo!()
     }
 
