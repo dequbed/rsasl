@@ -84,7 +84,7 @@ pub unsafe fn _gsasl_plain_client_step(sctx: &mut Session,
         return GSASL_NO_PASSWORD as libc::c_int
     }
     let password = password.unwrap();
-    let passwordlen = authid.len();
+    let passwordlen = password.len();
 
     *output_len =
         authzidlen.wrapping_add(1)

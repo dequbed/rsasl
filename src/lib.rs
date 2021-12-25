@@ -85,6 +85,7 @@
 use std::ffi::CStr;
 use std::fmt::Debug;
 
+pub use libc;
 
 // Re-Export DiscardOnDrop so people can write rsasl::DiscardOnDrop<SASL<D,E>> without having to
 // import the discard crate.
@@ -229,7 +230,7 @@ todo!()
     /// See [the gsasl
     /// documentation](https://www.gnu.org/software/gsasl/manual/gsasl.html#Properties) for what
     /// mechanism uses what properties.
-    pub fn client_start(&self, mech: &str) -> Result<AuthSession, RsaslError> {
+    pub fn client_start(&self, mech: &str) -> Result<AuthSession, SaslError> {
         for builder in self.mechs.iter() {
             if builder.name == mech {
                 let mechanism = builder.client.start(&self)?;
@@ -237,7 +238,7 @@ todo!()
             }
         }
 
-        Err(GSASL_UNKNOWN_MECHANISM)
+        Err(SaslError::new(GSASL_UNKNOWN_MECHANISM))
     }
 
     /// Starts a authentication exchange as the server role

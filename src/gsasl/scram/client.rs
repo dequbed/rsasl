@@ -1,3 +1,4 @@
+use std::os::raw::c_char;
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;

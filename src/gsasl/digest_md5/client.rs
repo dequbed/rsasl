@@ -1,9 +1,10 @@
+use std::ffi::CString;
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
 use crate::gsasl::base64::gsasl_base64_to;
 use crate::gsasl::callback::gsasl_callback;
-use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_CRYPTO_ERROR, GSASL_HOSTNAME, GSASL_INTEGRITY_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_AUTHID, GSASL_NO_HOSTNAME, GSASL_NO_PASSWORD, GSASL_NO_SERVICE, GSASL_OK, GSASL_PASSWORD, GSASL_QOP, GSASL_QOPS, GSASL_REALM, GSASL_SERVICE};
+use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_CRYPTO_ERROR, GSASL_INTEGRITY_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_AUTHID, GSASL_NO_HOSTNAME, GSASL_NO_PASSWORD, GSASL_NO_SERVICE, GSASL_OK, GSASL_QOPS, GSASL_REALM};
 use crate::gsasl::crypto::gsasl_nonce;
 use crate::gsasl::digest_md5::digesthmac::digest_md5_hmac;
 use crate::gsasl::digest_md5::free::{digest_md5_free_challenge, digest_md5_free_finish, digest_md5_free_response};
@@ -16,7 +17,7 @@ use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::gc_gnulib::gc_md5;
 use crate::gsasl::property::{gsasl_property_set};
 use crate::{SASL, Session};
-use crate::consts::{HOSTNAME, QOP, REALM, SERVICE};
+use crate::consts::{AUTHID, AUTHZID, HOSTNAME, PASSWORD, QOP, REALM, SERVICE};
 
 extern "C" {
 
@@ -157,9 +158,9 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut Session,
             if res != GSASL_OK as libc::c_int { return res }
 
             if let Some(qop) = sctx.get_property_or_callback::<QOP>() {
-                if qop == "qop-int\0" {
+                if qop.as_bytes() == b"qop-int\0" {
                     (*state).response.qop = DIGEST_MD5_QOP_AUTH_INT
-                } else if qop == "qop-auth\0" {
+                } else if qop.as_bytes() == b"qop-auth\0" {
                     (*state).response.qop = DIGEST_MD5_QOP_AUTH
                 } else {
                     /* We don't support confidentiality or unknown
@@ -191,22 +192,27 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut Session,
                 return GSASL_MALLOC_ERROR as libc::c_int
             }
 
-            let mut c: *const libc::c_char = 0 as *const libc::c_char;
             let mut tmp: *mut libc::c_char = 0 as *mut libc::c_char;
             let mut tmp2: *mut libc::c_char = 0 as *mut libc::c_char;
-            c = gsasl_property_get(sctx, GSASL_AUTHID);
-            if c.is_null() { return GSASL_NO_AUTHID as libc::c_int }
-            (*state).response.username = strdup(c);
-            if (*state).response.username.is_null() {
-                return GSASL_MALLOC_ERROR as libc::c_int
+
+            if let Some(authid) = sctx.get_property_or_callback::<AUTHID>() {
+                let cauthid = CString::new(authid).expect("Username contains NULL");
+                (*state).response.username = strdup(cauthid.as_ptr());
+                if (*state).response.username.is_null() {
+                    return GSASL_MALLOC_ERROR as libc::c_int;
+                }
+            } else {
+                return GSASL_NO_AUTHID as libc::c_int;
             }
-            c = gsasl_property_get(sctx, GSASL_AUTHZID);
-            if !c.is_null() {
-                (*state).response.authzid = strdup(c);
+
+            if let Some(authzid) = sctx.get_property_or_callback::<AUTHZID>() {
+                let cauthid = CString::new(authzid).expect("Username contains NULL");
+                (*state).response.authzid = strdup(cauthid.as_ptr());
                 if (*state).response.authzid.is_null() {
-                    return GSASL_MALLOC_ERROR as libc::c_int
+                    return GSASL_MALLOC_ERROR as libc::c_int;
                 }
             }
+
             gsasl_callback(0 as *mut SASL, sctx, GSASL_REALM);
             if let Some(prop) = sctx.get_property::<REALM>() {
                 (*state).response.realm = strdup(prop.as_ptr());
@@ -214,9 +220,14 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut Session,
                     return GSASL_MALLOC_ERROR as libc::c_int
                 }
             }
-            c = gsasl_property_get(sctx, GSASL_PASSWORD);
-            if c.is_null() { return GSASL_NO_PASSWORD as libc::c_int }
-            tmp2 = utf8tolatin1ifpossible(c);
+
+            if let Some(passwd) = sctx.get_property_or_callback::<PASSWORD>() {
+                let cpasswd = CString::new(passwd).expect("Username contains NULL");
+                tmp2 = utf8tolatin1ifpossible(cpasswd.as_ptr());
+            } else {
+                return GSASL_NO_PASSWORD as libc::c_int;
+            }
+
             rc =
                 asprintf(&mut tmp as *mut *mut libc::c_char,
                          b"%s:%s:%s\x00" as *const u8 as *const libc::c_char,

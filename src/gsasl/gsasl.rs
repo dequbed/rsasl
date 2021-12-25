@@ -108,9 +108,9 @@ impl MechanismBuilder for CMechBuilder {
             } else {
                 return Err(res as libc::c_uint);
             }
+        } else {
+            return Ok(Box::new(CMech { vtable: self.vtable, mech_data: None }));
         }
-
-        Err(GSASL_UNKNOWN_MECHANISM)
     }
 }
 
@@ -153,11 +153,11 @@ impl Mechanism for CMech {
                         Ok(NeedsMore(Some(out)))
                     }
                 } else {
-                    Err(res as libc::c_uint)
+                    Err((res as u32).into())
                 }
             }
         } else {
-            Err(GSASL_UNKNOWN_MECHANISM)
+            Err(GSASL_UNKNOWN_MECHANISM.into())
         }
     }
 
