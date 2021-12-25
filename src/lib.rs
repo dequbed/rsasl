@@ -87,10 +87,6 @@ use std::fmt::Debug;
 
 pub use libc;
 
-// Re-Export DiscardOnDrop so people can write rsasl::DiscardOnDrop<SASL<D,E>> without having to
-// import the discard crate.
-pub use discard::{Discard, DiscardOnDrop};
-
 pub mod buffer;
 pub mod session;
 pub mod error;
