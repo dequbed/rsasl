@@ -1,7 +1,7 @@
 use ::libc;
 use libc::size_t;
 use crate::gsasl::gsasl::Gsasl_code_function;
-use crate::Session;
+use crate::SessionData;
 
 extern "C" {
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
@@ -31,7 +31,7 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-unsafe fn _gsasl_code(_sctx: &mut Session,
+unsafe fn _gsasl_code(_sctx: &mut SessionData,
                       _code: Gsasl_code_function,
                       _input: *const libc::c_char,
                       _input_len: size_t,
@@ -70,7 +70,7 @@ unsafe fn _gsasl_code(_sctx: &mut Session,
  * Return value: Returns %GSASL_OK if encoding was successful,
  *   otherwise an error code.
  **/
-pub unsafe fn gsasl_encode(_sctx: &mut Session,
+pub unsafe fn gsasl_encode(_sctx: &mut SessionData,
                            _input: *const libc::c_char,
                            _input_len: size_t,
                            _output: *mut *mut libc::c_char,
@@ -310,7 +310,7 @@ pub unsafe fn gsasl_encode(_sctx: &mut Session,
  * Return value: Returns %GSASL_OK if encoding was successful,
  *   otherwise an error code.
  **/
-pub unsafe fn gsasl_decode(_sctx: &mut Session,
+pub unsafe fn gsasl_decode(_sctx: &mut SessionData,
                            _input: *const libc::c_char,
                            _input_len: size_t,
                            _output: *mut *mut libc::c_char,

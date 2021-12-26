@@ -1,12 +1,12 @@
 use std::io;
 use rsasl::consts::{AUTHID, GSASL_AUTHID, GSASL_PASSWORD, PASSWORD};
-use rsasl::{SASL, Step::{Done, NeedsMore}};
+use rsasl::{Shared, Step::{Done, NeedsMore}};
 
 
 pub fn main() {
     // Create an untyped SASL because we won't store/retrieve information in the context since
     // we don't use callbacks.
-    let mut sasl = SASL::new().unwrap();
+    let mut sasl = Shared::new().unwrap();
 
     // Usually you would first agree on a mechanism with the server, for demostration purposes
     // we directly start a PLAIN "exchange"

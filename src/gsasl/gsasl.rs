@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::ptr::NonNull;
 use libc::size_t;
-use crate::{GSASL_OK, GSASL_UNKNOWN_MECHANISM, RsaslError, SASL, SaslError, Session};
+use crate::{GSASL_OK, GSASL_UNKNOWN_MECHANISM, RsaslError, Shared, SaslError, SASLError, SessionData};
 use crate::consts::GSASL_NEEDS_MORE;
 use crate::mechanisms::plain::client::Plain;
 use crate::session::StepResult;
@@ -57,7 +57,7 @@ impl<W: Write> OutputWriter for W {
 
 pub trait MechanismBuilder: Debug {
     fn init(&self) {}
-    fn start(&self, sasl: &SASL) -> Result<Box<dyn Mechanism>, RsaslError>;
+    fn start(&self, sasl: &Shared) -> Result<Box<dyn Mechanism>, SASLError>;
 }
 
 pub trait Mechanism: Debug {
@@ -65,7 +65,7 @@ pub trait Mechanism: Debug {
     // Error
     // Surrounding protocol knows the wrapping of SASL => input is always complete!
     fn step(&mut self,
-            session: &mut Session,
+            session: &mut SessionData,
             input: Option<&[u8]>,
             writer: &mut dyn Write
     ) -> StepResult;
@@ -145,14 +145,14 @@ impl MechanismBuilder for CMechBuilder {
         }
     }
 
-    fn start(&self, sasl: &SASL) -> Result<Box<dyn Mechanism>, RsaslError> {
+    fn start(&self, sasl: &Shared) -> Result<Box<dyn Mechanism>, SASLError> {
         if let Some(start) = self.vtable.start {
             let mut mech_data = None;
             let res =  unsafe { start(sasl, &mut mech_data) };
             if res == GSASL_OK as libc::c_int {
                 return Ok(Box::new(CMech { vtable: self.vtable, mech_data }));
             } else {
-                return Err(res as libc::c_uint);
+                return Err((res as u32).into());
             }
         } else {
             return Ok(Box::new(CMech { vtable: self.vtable, mech_data: None }));
@@ -175,7 +175,7 @@ pub struct CMech {
 }
 
 impl Mechanism for CMech {
-    fn step(&mut self, session: &mut Session, input: Option<&[u8]>, writer: &mut dyn Write)
+    fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write)
         -> StepResult
     {
         if let Some(step) = self.vtable.step {
@@ -219,20 +219,20 @@ impl Drop for CMech {
 }
 
 pub type Gsasl_code_function = Option<unsafe fn(
-    _: &mut Session,
+    _: &mut SessionData,
     _: Option<NonNull<()>>,
     _: *const libc::c_char, _: size_t,
     _: *mut *mut libc::c_char, _: *mut size_t
 ) -> libc::c_int>;
 
 pub type Gsasl_start_function = Option<unsafe fn(
-    _: &SASL,
+    _: &Shared,
     _: &mut Option<NonNull<()>>
 ) -> libc::c_int>;
 
 
 pub type Gsasl_step_function = Option<unsafe fn(
-    _: &mut Session,
+    _: &mut SessionData,
     _: Option<NonNull<()>>,
     _: Option<&[u8]>,
     _: *mut *mut libc::c_char, _: *mut size_t

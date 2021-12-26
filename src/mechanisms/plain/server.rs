@@ -7,7 +7,7 @@ use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_CALLBACK, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD, GSASL_VALIDATE_SIMPLE};
 use crate::gsasl::property::{gsasl_property_set};
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep, Gsasl_saslprep_flags};
-use crate::{SASL, Session};
+use crate::{Shared, SessionData};
 
 extern "C" {
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t) -> *mut libc::c_void;
@@ -64,7 +64,7 @@ extern "C" {
 /* Get specification. */
 /* Get memcpy, memchr, strlen. */
 /* Get malloc, free. */
-pub unsafe fn _gsasl_plain_server_step(sctx: &mut Session,
+pub unsafe fn _gsasl_plain_server_step(sctx: &mut SessionData,
                                        _mech_data: Option<NonNull<()>>,
                                        input: Option<&[u8]>,
                                        output: *mut *mut libc::c_char,
@@ -143,7 +143,7 @@ pub unsafe fn _gsasl_plain_server_step(sctx: &mut Session,
     if res != GSASL_OK as libc::c_int { return res }
     /* Authorization.  Let application verify credentials internally,
      but fall back to deal with it locally... */
-    res = gsasl_callback(0 as *mut SASL, sctx, GSASL_VALIDATE_SIMPLE);
+    res = gsasl_callback(0 as *mut Shared, sctx, GSASL_VALIDATE_SIMPLE);
     if res == GSASL_NO_CALLBACK as libc::c_int {
         if let Some(key) = old {
             sctx.set_property::<PASSWORD>(Box::new(key));

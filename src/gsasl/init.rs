@@ -1,5 +1,5 @@
 use ::libc;
-use crate::{CMechBuilder, SASL};
+use crate::{CMechBuilder, Shared};
 use crate::mechanisms::anonymous::mechinfo::gsasl_anonymous_mechanism;
 use crate::gsasl::consts::GSASL_OK;
 use crate::mechanisms::cram_md5::mechinfo::gsasl_cram_md5_mechanism;
@@ -25,7 +25,7 @@ pub static mut GSASL_VALID_MECHANISM_CHARACTERS: *const libc::c_char =
     b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_\x00" as *const u8 as
         *const libc::c_char;
 
-pub unsafe fn register_builtin_mechs(ctx: &mut SASL) -> libc::c_int {
+pub unsafe fn register_builtin_mechs(ctx: &mut Shared) -> libc::c_int {
     let mut rc: libc::c_int = GSASL_OK as libc::c_int;
     rc = gsasl_register(ctx, &mut gsasl_anonymous_mechanism);
     if rc != GSASL_OK as libc::c_int { return rc }

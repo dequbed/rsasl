@@ -3,7 +3,7 @@ use std::ptr::NonNull;
 use libc::size_t;
 use crate::gsasl::consts::*;
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep};
-use crate::Session;
+use crate::SessionData;
 
 extern "C" {
     fn malloc(_: size_t) -> *mut libc::c_void;
@@ -89,7 +89,7 @@ extern "C" {
 /* Get malloc, free. */
 /* Get memcpy, strlen. */
 /* Get cram_md5_digest. */
-pub unsafe fn _gsasl_cram_md5_client_step(sctx: &mut Session,
+pub unsafe fn _gsasl_cram_md5_client_step(sctx: &mut SessionData,
                                           _mech_data: Option<NonNull<()>>,
                                           input: Option<&[u8]>,
                                           output: *mut *mut libc::c_char,

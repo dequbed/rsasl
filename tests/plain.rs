@@ -1,13 +1,14 @@
 use std::io;
 use std::io::Cursor;
 use rsasl::consts::{AUTHID, GSASL_AUTHENTICATION_ERROR, PASSWORD};
-use rsasl::{SASL, Step};
+use rsasl::{SASL, Shared, Step};
 use rsasl::Step::{Done, NeedsMore};
 
 #[test]
 fn plain_client() {
-    let mut sasl = SASL::new().unwrap();
-    let mut session = sasl.client_start("PLAIN").unwrap();
+    let sasl = Shared::new().unwrap();
+    let prov = SASL::new(sasl);
+    let mut session = prov.client_start("PLAIN").unwrap();
 
     let username = "testuser".to_string();
     assert_eq!(username.len(), 8);
@@ -41,8 +42,9 @@ fn plain_client() {
 
 #[test]
 fn plain_server() {
-    let mut sasl = SASL::new().unwrap();
-    let mut session = sasl.server_start("PLAIN").unwrap();
+    let sasl = Shared::new().unwrap();
+    let prov = SASL::new(sasl);
+    let mut session = prov.server_start("PLAIN").unwrap();
 
     let username = "testuser".to_string();
     assert_eq!(username.len(), 8);
@@ -62,7 +64,7 @@ fn plain_server() {
         NeedsMore(_) => panic!("PLAIN exchange took more than one step"),
     }
 
-    let mut session = sasl.server_start("PLAIN").unwrap();
+    let mut session = prov.server_start("PLAIN").unwrap();
     let username = "testuser".to_string();
     let password = "secret".to_string();
     session.set_property::<AUTHID>(Box::new(username));

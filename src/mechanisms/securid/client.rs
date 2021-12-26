@@ -3,7 +3,7 @@ use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_NO_AUTHID, GSASL_NO_PASSCODE, GSASL_NO_PIN, GSASL_OK, GSASL_PASSCODE, GSASL_PIN, GSASL_SUGGESTED_PIN};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set_raw};
-use crate::{SASL, Session};
+use crate::{Shared, SessionData};
 
 extern "C" {
     fn malloc(_: size_t) -> *mut libc::c_void;
@@ -32,7 +32,7 @@ extern "C" {
     fn strlen(_: *const libc::c_char) -> size_t;
 }
 
-pub unsafe fn _gsasl_securid_client_start(mut _sctx: &SASL,
+pub unsafe fn _gsasl_securid_client_start(mut _sctx: &Shared,
                                           mut mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -45,7 +45,7 @@ pub unsafe fn _gsasl_securid_client_start(mut _sctx: &SASL,
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn _gsasl_securid_client_step(sctx: &mut Session,
+pub unsafe fn _gsasl_securid_client_step(sctx: &mut SessionData,
                                          mech_data: Option<NonNull<()>>,
                                          input: Option<&[u8]>,
                                          output: *mut *mut libc::c_char,

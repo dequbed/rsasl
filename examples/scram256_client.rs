@@ -2,7 +2,7 @@ use std::io;
 use std::ffi::CString;
 use rsasl::consts::{GSASL_AUTHID, GSASL_PASSWORD};
 
-use rsasl::{SASL, Step::{Done, NeedsMore}};
+use rsasl::{Shared, Step::{Done, NeedsMore}};
 
 
 // A SCRAM-SHA-1 authentication exchange.
@@ -12,7 +12,7 @@ use rsasl::{SASL, Step::{Done, NeedsMore}};
 pub fn main() {
     // Create an untyped SASL because we won't store/retrieve information in the context since
     // we don't use callbacks.
-    let mut sasl = SASL::new_untyped().unwrap();
+    let mut sasl = Shared::new_untyped().unwrap();
 
     // Usually you would first agree on a mechanism with the server, for demostration purposes
     // we directly start a SCRAM-SHA-1 "exchange"

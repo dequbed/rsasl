@@ -4,7 +4,7 @@ use libc::size_t;
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_NEEDS_MORE, GSASL_NO_SAML20_IDP_IDENTIFIER, GSASL_OK, GSASL_SAML20_AUTHENTICATE_IN_BROWSER, GSASL_SAML20_IDP_IDENTIFIER, GSASL_SAML20_REDIRECT_URL};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set_raw};
-use crate::{SASL, Session};
+use crate::{Shared, SessionData};
 
 extern "C" {
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
@@ -52,7 +52,7 @@ pub struct saml20_client_state {
     pub step: libc::c_int,
 }
 
-pub unsafe fn _gsasl_saml20_client_start(_sctx: &SASL,
+pub unsafe fn _gsasl_saml20_client_start(_sctx: &Shared,
                                          mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -64,7 +64,7 @@ pub unsafe fn _gsasl_saml20_client_start(_sctx: &SASL,
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn _gsasl_saml20_client_step(sctx: &mut Session,
+pub unsafe fn _gsasl_saml20_client_step(sctx: &mut SessionData,
                                         mech_data: Option<NonNull<()>>,
                                         input: Option<&[u8]>,
                                         output: *mut *mut libc::c_char,
@@ -107,7 +107,7 @@ pub unsafe fn _gsasl_saml20_client_step(sctx: &mut Session,
                                        input_len);
             if res != GSASL_OK as libc::c_int { return res }
             res =
-                gsasl_callback(0 as *mut SASL, sctx,
+                gsasl_callback(0 as *mut Shared, sctx,
                                GSASL_SAML20_AUTHENTICATE_IN_BROWSER);
             if res != GSASL_OK as libc::c_int { return res }
             *output_len = 1 as libc::c_int as size_t;

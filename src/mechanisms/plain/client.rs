@@ -4,7 +4,7 @@ use ::libc;
 use libc::size_t;
 use crate::consts::{AUTHID, AUTHZID, PASSWORD};
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK};
-use crate::{Mechanism, MechanismBuilder, RsaslError, SASL, SaslError, Session};
+use crate::{Mechanism, MechanismBuilder, RsaslError, Shared, SaslError, SASLError, SessionData};
 use crate::session::StepResult;
 use crate::Step::Done;
 
@@ -60,7 +60,7 @@ extern "C" {
 /* Get specification. */
 /* Get memcpy, strdup, strlen. */
 /* Get malloc, free. */
-pub unsafe fn _gsasl_plain_client_step(sctx: &mut Session,
+pub unsafe fn _gsasl_plain_client_step(sctx: &mut SessionData,
                                        _mech_data: Option<NonNull<()>>,
                                        _input: Option<&[u8]>,
                                        output: *mut *mut libc::c_char,
@@ -131,13 +131,13 @@ pub unsafe fn _gsasl_plain_client_step(sctx: &mut Session,
 pub struct Plain;
 
 impl MechanismBuilder for Plain {
-    fn start(&self, _sasl: &SASL) -> Result<Box<dyn Mechanism>, RsaslError> {
+    fn start(&self, _sasl: &Shared) -> Result<Box<dyn Mechanism>, SASLError> {
         Ok(Box::new(Plain))
     }
 }
 
 impl Mechanism for Plain {
-    fn step(&mut self, session: &mut Session, input: Option<&[u8]>, writer: &mut dyn Write)
+    fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write)
         -> StepResult
     {
         let authzid = session.get_property_or_callback::<AUTHZID>();
@@ -209,12 +209,12 @@ mod test {
     use std::io::Cursor;
     use super::*;
     use crate::consts::{AUTHID, PASSWORD};
-    use crate::Session;
+    use crate::SessionData;
     use crate::Step::{Done, NeedsMore};
 
     #[test]
     fn simple() {
-        let mut session = Session::new(None);
+        let mut session = SessionData::new(None);
 
         let username = "testuser".to_string();
         assert_eq!(username.len(), 8);
@@ -249,7 +249,7 @@ mod test {
 
     #[test]
     fn split_writer() {
-        let mut session = Session::new(None);
+        let mut session = SessionData::new(None);
 
         let username = "testuser".to_string();
         assert_eq!(username.len(), 8);
