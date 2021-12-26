@@ -4,7 +4,7 @@ use ::libc;
 use libc::size_t;
 use crate::consts::{AUTHID, AUTHZID, PASSWORD};
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK};
-use crate::{Mechanism, MechanismBuilder, RsaslError, Shared, SaslError, SASLError, SessionData};
+use crate::{Mechanism, MechanismBuilder, RsaslError, Shared, SASLError, SessionData};
 use crate::session::StepResult;
 use crate::Step::Done;
 
@@ -143,9 +143,9 @@ impl Mechanism for Plain {
         let authzid = session.get_property_or_callback::<AUTHZID>();
 
         let authid = session.get_property_or_callback::<AUTHID>()
-            .ok_or(SaslError::new(GSASL_NO_AUTHID))?;
+            .ok_or(GSASL_NO_AUTHID)?;
         let password = session.get_property_or_callback::<PASSWORD>()
-            .ok_or(SaslError::new(GSASL_NO_PASSWORD))?;
+            .ok_or(GSASL_NO_PASSWORD)?;
 
         let authzidbuf = if let Some(authz) = &authzid {
             authz.as_bytes()

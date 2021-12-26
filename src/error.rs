@@ -2,9 +2,10 @@ use std::fmt;
 use std::ffi::CStr;
 use std::fmt::{Debug, Display, Formatter, Write};
 use std::io::Error;
+use base64::DecodeError;
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 
-pub type Result<T> = std::result::Result<T, SaslError>;
+pub type Result<T> = std::result::Result<T, SASLError>;
 
 static UNKNOWN_ERROR: &'static str = "The given error code is unknown to gsasl";
 
@@ -16,6 +17,10 @@ pub enum SASLError {
         source: std::io::Error,
     },
     UnknownMechanism,
+    Base64DecodeError {
+        source: base64::DecodeError,
+    },
+    Gsasl(u32),
 }
 
 impl Debug for SASLError {
@@ -27,6 +32,13 @@ impl Debug for SASLError {
             SASLError::UnknownMechanism => {
                 f.write_str("No mechanism with the given name is implemented")
             }
+            SASLError::Base64DecodeError { source } => {
+                Debug::fmt(source, f)
+            },
+            SASLError::Gsasl(n) =>
+                write!(f, "{}[{}]",
+                       rsasl_errname_to_str(*n).unwrap_or("UNKNOWN_ERROR"),
+                       n)
         }
     }
 }
@@ -40,6 +52,13 @@ impl Display for SASLError {
             SASLError::UnknownMechanism => {
                 f.write_str("Unkown Mechanism")
             }
+            SASLError::Base64DecodeError { source } => {
+                Display::fmt(source, f)
+            },
+            SASLError::Gsasl(n) =>
+                write!(f, "({}): {}",
+                       rsasl_errname_to_str(*n).unwrap_or("UNKNOWN_ERROR"),
+                       gsasl_err_to_str_internal(*n as i32))
         }
     }
 }
@@ -48,7 +67,19 @@ impl std::error::Error for SASLError {}
 
 impl From<u32> for SASLError {
     fn from(e: u32) -> Self {
-        unimplemented!()
+        SASLError::Gsasl(e)
+    }
+}
+
+impl From<base64::DecodeError> for SASLError {
+    fn from(source: DecodeError) -> Self {
+        SASLError::Base64DecodeError { source }
+    }
+}
+
+impl From<std::io::Error> for SASLError {
+    fn from(source: std::io::Error) -> Self {
+        SASLError::Io { source }
     }
 }
 
@@ -82,65 +113,6 @@ impl Display for MechanismNameError {
     }
 }
 
-/// The gsasl error type
-///
-/// gsasl has its own error type providing access to human-readable descriptions
-pub enum SaslError {
-    Sasl(u32),
-    Io(std::io::Error)
-}
-
-impl SaslError {
-    pub fn new(rc: u32) -> Self {
-        Self::Sasl(rc)
-    }
-    pub fn matches(&self, rc: u32) -> bool {
-        if let SaslError::Sasl(n) = self {
-            *n == rc
-        } else {
-            false
-        }
-    }
-}
-
-impl fmt::Debug for SaslError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SaslError::Sasl(n) => {
-                write!(f, "({}): {}",
-                       rsasl_errname_to_str(*n).unwrap_or("UNKNOWN_ERROR"),
-                       gsasl_err_to_str_internal(*n as i32))
-            },
-            SaslError::Io(e) => {
-                write!(f, "(IO): {}", e)
-            }
-        }
-    }
-}
-impl fmt::Display for SaslError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SaslError::Sasl(n) => {
-                write!(f, "{}", gsasl_err_to_str_internal(*n as i32))
-            },
-            SaslError::Io(e) => {
-                write!(f, "(IO): {}", e)
-            }
-        }
-    }
-}
-
-impl From<u32> for SaslError {
-    fn from(rc: u32) -> Self {
-        Self::Sasl(rc)
-    }
-}
-
-impl From<std::io::Error> for SaslError {
-    fn from(e: Error) -> Self {
-        Self::Io(e)
-    }
-}
 
 /// Convert an error code to a human readable description of that error
 pub fn rsasl_err_to_str(err: libc::c_int) -> Option<&'static str> {
