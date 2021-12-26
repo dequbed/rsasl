@@ -1,6 +1,6 @@
 use ::libc;
 use crate::gsasl::consts::Gsasl_property;
-use crate::{GSASL_OK, Shared, SaslError, SessionData};
+use crate::{GSASL_OK, Shared, SessionData, SASLError};
 use crate::consts::GSASL_IO_ERROR;
 
 pub unsafe fn gsasl_callback(_ctx: *mut Shared,
@@ -9,8 +9,8 @@ pub unsafe fn gsasl_callback(_ctx: *mut Shared,
  -> libc::c_int {
     (if let Err(e) = sctx.callback(prop) {
         match e {
-            SaslError::Sasl(n) => n,
-            SaslError::Io(_) => GSASL_IO_ERROR,
+            SASLError::Gsasl(n) => n,
+            _ => GSASL_IO_ERROR,
         }
     } else {
         GSASL_OK

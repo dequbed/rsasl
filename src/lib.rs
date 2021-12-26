@@ -28,7 +28,6 @@ use crate::gsasl::gsasl::{CMechBuilder, MechContainer, Mech, Mechanism, Mechanis
 pub use crate::gsasl::consts::Gsasl_property as Property;
 
 pub use error::{
-    SaslError,
     rsasl_err_to_str,
     rsasl_errname_to_str,
 };

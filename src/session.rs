@@ -1,9 +1,12 @@
 use std::any::Any;
 use std::collections::HashMap;
-use std::io::Write;
+use std::io::{Cursor, Write};
 use std::sync::Arc;
+use base64::CharacterSet;
+use base64::read::DecoderReader;
+use base64::write::EncoderWriter;
 
-use crate::{Callback, Mechanism, SaslError};
+use crate::{Callback, Mechanism, SASLError};
 use crate::consts::{GSASL_NO_CALLBACK, Gsasl_property, Property};
 
 pub struct Session {
@@ -24,9 +27,21 @@ impl Session {
 
     /// Perform one step of SASL authentication. This reads data from `input` then processes it,
     /// potentially calling a configured callback for required properties or enact decisions, and
-    /// finally returns data to be send to the other party.
-    pub fn step(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult {
-        self.mechanism.step(&mut self.session_data, input, writer)
+    /// writes any output data into the passed writer, returning the bytes written
+    pub fn step(&mut self, input: Option<impl AsRef<[u8]>>, writer: &mut impl Write) -> StepResult {
+        if let Some(input) = input {
+            self.mechanism.step(&mut self.session_data, Some(input.as_ref()), writer)
+        } else {
+            self.mechanism.step(&mut self.session_data, None, writer)
+        }
+    }
+
+    pub fn step64(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult {
+        let input = input
+            .map(|inp| base64::decode_config(inp, base64::STANDARD))
+            .transpose()?;
+        let mut writer64 = EncoderWriter::new(writer, base64::STANDARD);
+        self.step(input, &mut writer64)
     }
 
     pub fn set_property<P: Property>(&mut self, item: Box<P::Item>) -> Option<Box<dyn Any>> {
@@ -54,7 +69,7 @@ pub enum Step {
     Done(Option<usize>),
     NeedsMore(Option<usize>),
 }
-pub type StepResult = Result<Step, SaslError>;
+pub type StepResult = Result<Step, SASLError>;
 
 impl SessionData {
     pub(crate) fn new(callback: Option<Arc<Box<dyn Callback>>>) -> Self {
@@ -66,7 +81,7 @@ impl SessionData {
 }
 
 impl SessionData {
-    pub fn callback(&mut self, code: Gsasl_property) -> Result<(), SaslError> {
+    pub fn callback(&mut self, code: Gsasl_property) -> Result<(), SASLError> {
         if let Some(cb) = self.callback.clone() {
             cb.callback(self, code)
         } else {
@@ -112,7 +127,7 @@ mod tests {
             data: usize,
         }
         impl Callback for CB {
-            fn callback(&self, session: &mut SessionData, _code: Gsasl_property) -> Result<(), SaslError> {
+            fn callback(&self, session: &mut SessionData, _code: Gsasl_property) -> Result<(), SASLError> {
                 let _ = session.set_property::<AUTHID>(Box::new(format!("is {}", self.data)));
 
                 Ok(())
