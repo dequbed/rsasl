@@ -1,7 +1,7 @@
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
-use crate::{SASL, Session};
+use crate::{Shared, SessionData};
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_ANONYMOUS_TOKEN, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_OK, GSASL_VALIDATE_ANONYMOUS};
 use crate::gsasl::property::gsasl_property_set_raw;
@@ -49,7 +49,7 @@ use crate::gsasl::property::gsasl_property_set_raw;
  *
  */
 /* Get specification. */
-pub unsafe fn _gsasl_anonymous_server_step(sctx: &mut Session,
+pub unsafe fn _gsasl_anonymous_server_step(sctx: &mut SessionData,
                                            _mech_data: Option<NonNull<()>>,
                                            input: Option<&[u8]>,
                                            output: *mut *mut libc::c_char,
@@ -71,5 +71,5 @@ pub unsafe fn _gsasl_anonymous_server_step(sctx: &mut Session,
     /* FIXME: Validate that input is UTF-8. */
     rc = gsasl_property_set_raw(sctx, GSASL_ANONYMOUS_TOKEN, input.as_ptr().cast(), input.len());
     if rc != GSASL_OK as libc::c_int { return rc; }
-    return gsasl_callback(0 as *mut SASL, sctx, GSASL_VALIDATE_ANONYMOUS);
+    return gsasl_callback(0 as *mut Shared, sctx, GSASL_VALIDATE_ANONYMOUS);
 }

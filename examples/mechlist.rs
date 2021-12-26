@@ -1,8 +1,8 @@
-use rsasl::SASL;
+use rsasl::Shared;
 use std::ffi::CString;
 
 pub fn main() {
-    let sasl = SASL::new_untyped().unwrap();
+    let sasl = Shared::new_untyped().unwrap();
     let client_mechlist = sasl.client_mech_list().unwrap();
     let server_mechlist = sasl.server_mech_list().unwrap();
 

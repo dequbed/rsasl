@@ -1,11 +1,11 @@
 use ::libc;
 use libc::size_t;
 use crate::consts::GSASL_OK;
-use crate::SASL;
+use crate::Shared;
 use crate::gsasl::gsasl::{Gsasl_mechanism};
 
 pub unsafe fn gsasl_register(
-    ctx: &mut SASL,
+    ctx: &mut Shared,
     mech: &Gsasl_mechanism,
 ) -> libc::c_int
 {

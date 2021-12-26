@@ -1,6 +1,6 @@
 use ::libc;
 use libc::size_t;
-use crate::SASL;
+use crate::Shared;
 use crate::gsasl::gsasl::{Gsasl_mechanism};
 
 extern "C" {
@@ -56,14 +56,14 @@ unsafe fn _gsasl_support_p(mut mechs: *mut Gsasl_mechanism,
  * Return value: Returns 1 if the libgsasl client supports the named
  * mechanism, otherwise 0.
  **/
-pub unsafe fn gsasl_client_support_p(_ctx: &SASL, _name: *const libc::c_char)
+pub unsafe fn gsasl_client_support_p(_ctx: &Shared, _name: *const libc::c_char)
     -> libc::c_int
 {
     todo!()
     // return _gsasl_support_p((*ctx).client_mechs, (*ctx).n_client_mechs, name);
 }
 
-pub unsafe fn gsasl_server_support_p(_ctx: &SASL, _name: *const libc::c_char)
+pub unsafe fn gsasl_server_support_p(_ctx: &Shared, _name: *const libc::c_char)
     -> libc::c_int
 {
     todo!()

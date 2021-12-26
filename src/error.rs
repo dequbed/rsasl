@@ -1,11 +1,54 @@
 use std::fmt;
 use std::ffi::CStr;
+use std::fmt::{Debug, Display, Formatter, Write};
 use std::io::Error;
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 
 pub type Result<T> = std::result::Result<T, SaslError>;
 
 static UNKNOWN_ERROR: &'static str = "The given error code is unknown to gsasl";
+
+pub enum SASLError {
+    Io {
+        source: std::io::Error,
+    },
+    UnknownMechanism,
+}
+
+impl Debug for SASLError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            SASLError::Io { source } => {
+                Debug::fmt(source, f)
+            },
+            SASLError::UnknownMechanism => {
+                f.write_str("No mechanism with the given name is implemented")
+            }
+        }
+    }
+}
+
+impl Display for SASLError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            SASLError::Io { source } => {
+                Display::fmt(source, f)
+            },
+            SASLError::UnknownMechanism => {
+                f.write_str("Unkown Mechanism")
+            }
+        }
+    }
+}
+
+impl std::error::Error for SASLError {
+}
+
+impl From<u32> for SASLError {
+    fn from(e: u32) -> Self {
+        unimplemented!()
+    }
+}
 
 /// The gsasl error type
 ///

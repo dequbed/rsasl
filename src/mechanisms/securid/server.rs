@@ -4,7 +4,7 @@ use libc::size_t;
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_OK, GSASL_PASSCODE, GSASL_PIN, GSASL_SUGGESTED_PIN, GSASL_VALIDATE_SECURID};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
-use crate::{SASL, Session};
+use crate::{Shared, SessionData};
 
 extern "C" {
     fn malloc(_: size_t) -> *mut libc::c_void;
@@ -37,7 +37,7 @@ extern "C" {
  * Boston, MA 02110-1301, USA.
  *
  */
-pub unsafe fn _gsasl_securid_server_step(sctx: &mut Session,
+pub unsafe fn _gsasl_securid_server_step(sctx: &mut SessionData,
                                          _mech_data: Option<NonNull<()>>,
                                          input: Option<&[u8]>,
                                          output: *mut *mut libc::c_char,
@@ -104,7 +104,7 @@ pub unsafe fn _gsasl_securid_server_step(sctx: &mut Session,
         res = gsasl_property_set(sctx, GSASL_PIN, 0 as *const libc::c_char)
     }
     if res != GSASL_OK as libc::c_int { return res }
-    res = gsasl_callback(0 as *mut SASL, sctx, GSASL_VALIDATE_SECURID);
+    res = gsasl_callback(0 as *mut Shared, sctx, GSASL_VALIDATE_SECURID);
     match res {
         48 => {
             *output =

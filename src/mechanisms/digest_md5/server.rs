@@ -15,7 +15,7 @@ use crate::mechanisms::digest_md5::validate::digest_md5_validate;
 use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::gc_gnulib::gc_md5;
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
-use crate::{SASL, Session};
+use crate::{Shared, SessionData};
 
 extern "C" {
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,
@@ -44,7 +44,7 @@ pub struct _Gsasl_digest_md5_server_state {
     pub finish: digest_md5_finish,
 }
 
-pub unsafe fn _gsasl_digest_md5_server_start(_sctx: &SASL,
+pub unsafe fn _gsasl_digest_md5_server_start(_sctx: &Shared,
                                              mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -122,7 +122,7 @@ unsafe fn _gsasl_digest_md5_set_hashed_secret(mut secret:
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn _gsasl_digest_md5_server_step(sctx: &mut Session,
+pub unsafe fn _gsasl_digest_md5_server_step(sctx: &mut SessionData,
                                             mech_data: Option<NonNull<()>>,
                                             input: Option<&[u8]>,
                                             output: *mut *mut libc::c_char,
@@ -337,7 +337,7 @@ pub unsafe fn _gsasl_digest_md5_server_finish(mech_data: Option<NonNull<()>>)
     rpl_free(state as *mut libc::c_void);
 }
 
-pub unsafe fn _gsasl_digest_md5_server_encode(mut _sctx: &mut Session,
+pub unsafe fn _gsasl_digest_md5_server_encode(mut _sctx: &mut SessionData,
                                               mut mech_data: Option<NonNull<()>>,
                                               mut input: *const libc::c_char,
                                               mut input_len: size_t,
@@ -387,7 +387,7 @@ pub unsafe fn _gsasl_digest_md5_server_encode(mut _sctx: &mut Session,
  * Boston, MA 02110-1301, USA.
  *
  */
-pub unsafe fn _gsasl_digest_md5_server_decode(mut _sctx: &mut Session,
+pub unsafe fn _gsasl_digest_md5_server_decode(mut _sctx: &mut SessionData,
                                               mech_data: Option<NonNull<()>>,
                                               mut input: *const libc::c_char,
                                               mut input_len: size_t,

@@ -1,12 +1,12 @@
-use rsasl::{rsasl_err_to_str, rsasl_errname_to_str, SASL, Step};
+use rsasl::{rsasl_err_to_str, rsasl_errname_to_str, Shared, Step};
 use std::ffi::CString;
 use rsasl::consts::{AUTHID, PASSWORD};
 use rsasl::session::StepResult;
 
 #[test]
 pub fn test_scram_sha() {
-    let mut client_sasl = SASL::new().unwrap();
-    let mut server_sasl = SASL::new().unwrap();
+    let mut client_sasl = Shared::new().unwrap();
+    let mut server_sasl = Shared::new().unwrap();
     let mut client_session = client_sasl.client_start("SCRAM-SHA-256").unwrap();
     let mut server_session = server_sasl.server_start("SCRAM-SHA-256").unwrap();
 

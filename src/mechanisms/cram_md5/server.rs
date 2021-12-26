@@ -5,7 +5,7 @@ use libc::size_t;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_PASSWORD, GSASL_OK};
 use crate::gsasl::property::gsasl_property_set;
 use crate::gsasl::saslprep::{gsasl_saslprep, Gsasl_saslprep_flags};
-use crate::{SASL, Session};
+use crate::{Shared, SessionData};
 use crate::consts::PASSWORD;
 
 extern "C" {
@@ -73,7 +73,7 @@ extern "C" {
                        response: *mut libc::c_char);
 }
 
-pub unsafe fn _gsasl_cram_md5_server_start(_ctx: &SASL,
+pub unsafe fn _gsasl_cram_md5_server_start(_ctx: &Shared,
                                            mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -88,7 +88,7 @@ pub unsafe fn _gsasl_cram_md5_server_start(_ctx: &SASL,
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn _gsasl_cram_md5_server_step(sctx: &mut Session,
+pub unsafe fn _gsasl_cram_md5_server_step(sctx: &mut SessionData,
                                           mech_data: Option<NonNull<()>>,
                                           input: Option<&[u8]>,
                                           output: *mut *mut libc::c_char,

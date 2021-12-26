@@ -16,7 +16,7 @@ use crate::mechanisms::digest_md5::session::{digest_md5_decode, digest_md5_encod
 use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::gc_gnulib::gc_md5;
 use crate::gsasl::property::{gsasl_property_set};
-use crate::{SASL, Session};
+use crate::{Shared, SessionData};
 use crate::consts::{AUTHID, AUTHZID, HOSTNAME, PASSWORD, QOP, REALM, SERVICE};
 
 extern "C" {
@@ -67,7 +67,7 @@ pub struct _Gsasl_digest_md5_client_state {
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-pub unsafe fn _gsasl_digest_md5_client_start(_sctx: &SASL,
+pub unsafe fn _gsasl_digest_md5_client_start(_sctx: &Shared,
                                              mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -95,7 +95,7 @@ pub unsafe fn _gsasl_digest_md5_client_start(_sctx: &SASL,
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut Session,
+pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut SessionData,
                                             mech_data: Option<NonNull<()>>,
                                             input: Option<&[u8]>,
                                             output: *mut *mut libc::c_char,
@@ -213,7 +213,7 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut Session,
                 }
             }
 
-            gsasl_callback(0 as *mut SASL, sctx, GSASL_REALM);
+            gsasl_callback(0 as *mut Shared, sctx, GSASL_REALM);
             if let Some(prop) = sctx.get_property::<REALM>() {
                 (*state).response.realm = strdup(prop.as_ptr());
                 if (*state).response.realm.is_null() {
@@ -318,12 +318,12 @@ pub unsafe fn _gsasl_digest_md5_client_finish(mech_data: Option<NonNull<()>>)
     digest_md5_free_finish(&mut (*state).finish);
     rpl_free(state as *mut libc::c_void);
 }
-pub unsafe fn _gsasl_digest_md5_client_encode(mut _sctx: &mut Session,
-                                                         mut mech_data: Option<NonNull<()>>,
-                                                         mut input: *const libc::c_char,
-                                                         mut input_len: size_t,
-                                                         mut output: *mut *mut libc::c_char,
-                                                         mut output_len: *mut size_t
+pub unsafe fn _gsasl_digest_md5_client_encode(mut _sctx: &mut SessionData,
+                                              mut mech_data: Option<NonNull<()>>,
+                                              mut input: *const libc::c_char,
+                                              mut input_len: size_t,
+                                              mut output: *mut *mut libc::c_char,
+                                              mut output_len: *mut size_t
     ) -> libc::c_int
 {
     let mech_data = mech_data
@@ -347,12 +347,12 @@ pub unsafe fn _gsasl_digest_md5_client_encode(mut _sctx: &mut Session,
     } else { (*state).sendseqnum = (*state).sendseqnum.wrapping_add(1) }
     return GSASL_OK as libc::c_int;
 }
-pub unsafe fn _gsasl_digest_md5_client_decode(mut _sctx: &mut Session,
-                                                         mech_data: Option<NonNull<()>>,
-                                                         mut input: *const libc::c_char,
-                                                         mut input_len: size_t,
-                                                         mut output: *mut *mut libc::c_char,
-                                                         mut output_len: *mut size_t
+pub unsafe fn _gsasl_digest_md5_client_decode(mut _sctx: &mut SessionData,
+                                              mech_data: Option<NonNull<()>>,
+                                              mut input: *const libc::c_char,
+                                              mut input_len: size_t,
+                                              mut output: *mut *mut libc::c_char,
+                                              mut output_len: *mut size_t
     ) -> libc::c_int
 {
     let mech_data = mech_data

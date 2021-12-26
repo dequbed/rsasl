@@ -1,28 +1,29 @@
 use std::any::Any;
 use std::collections::HashMap;
 use std::io::Write;
+use std::sync::Arc;
 
 use crate::{Callback, Mechanism, SaslError};
 use crate::consts::{GSASL_NO_CALLBACK, Gsasl_property, Property};
 
-pub struct AuthSession<'session> {
+pub struct Session {
     mechanism: Box<dyn Mechanism>,
-    session_data: Session<'session>,
+    session_data: SessionData,
 }
 
-impl<'session> AuthSession<'session> {
-    pub(crate) fn new<'sasl: 'session>(sasl: Option<&'sasl dyn Callback>,
-                                       mechanism: Box<dyn Mechanism>
+impl Session {
+    pub(crate) fn new(callback: Option<Arc<Box<dyn Callback>>>,
+                      mechanism: Box<dyn Mechanism>
     ) -> Self
     {
         Self {
             mechanism,
-            session_data: Session::new(sasl),
+            session_data: SessionData::new(callback),
         }
     }
 }
 
-impl AuthSession<'_> {
+impl Session {
     /// Perform one step of SASL authentication. This reads data from `input` then processes it,
     /// potentially calling a configured callback for required properties or enact decisions, and
     /// finally returns data to be send to the other party.
@@ -41,8 +42,8 @@ impl AuthSession<'_> {
 
 
 #[derive(Debug)]
-pub struct Session<'session> {
-    callback: Option<&'session dyn Callback>,
+pub struct SessionData {
+    callback: Option<Arc<Box<dyn Callback>>>,
     map: HashMap<Gsasl_property, Box<dyn Any>>,
 }
 
@@ -57,8 +58,8 @@ pub enum Step {
 }
 pub type StepResult = Result<Step, SaslError>;
 
-impl<'session> Session<'session> {
-    pub(crate) fn new(callback: Option<&'session dyn Callback>) -> Self {
+impl SessionData {
+    pub(crate) fn new(callback: Option<Arc<Box<dyn Callback>>>) -> Self {
         Self {
             callback,
             map: HashMap::new(),
@@ -66,9 +67,9 @@ impl<'session> Session<'session> {
     }
 }
 
-impl Session<'_> {
+impl SessionData {
     pub fn callback(&mut self, code: Gsasl_property) -> Result<(), SaslError> {
-        if let Some(cb) = self.callback {
+        if let Some(cb) = self.callback.clone() {
             cb.callback(self, code)
         } else {
             Err(GSASL_NO_CALLBACK.into())
@@ -103,7 +104,7 @@ impl Session<'_> {
 #[cfg(test)]
 mod tests {
     use crate::consts::{AUTHID, GSASL_AUTHID, GSASL_PASSWORD, PASSWORD};
-    use crate::SASL;
+    use crate::Shared;
     use super::*;
 
     #[test]
@@ -113,7 +114,7 @@ mod tests {
             data: usize,
         }
         impl Callback for CB {
-            fn callback(&self, session: &mut Session, _code: Gsasl_property) -> Result<(), SaslError> {
+            fn callback(&self, session: &mut SessionData, _code: Gsasl_property) -> Result<(), SaslError> {
                 let _ = session.set_property::<AUTHID>(Box::new(format!("is {}", self.data)));
 
                 Ok(())
@@ -121,7 +122,7 @@ mod tests {
         }
 
         let cbox = CB { data: 0 };
-        let mut session = Session::new(Some(&cbox));
+        let mut session = SessionData::new(Some(&cbox));
 
         assert!(session.get_property::<AUTHID>().is_none());
         assert_eq!(session.get_property_or_callback::<AUTHID>(), Some("is 0".to_string()))
@@ -129,7 +130,7 @@ mod tests {
 
     #[test]
     fn property_set_get() {
-        let sasl = SASL::new().unwrap();
+        let sasl = Shared::new().unwrap();
         let mut sess = sasl.client_start("PLAIN")
             .unwrap();
 
@@ -145,7 +146,7 @@ mod tests {
 
     #[test]
     fn property_set_raw() {
-        let sasl = SASL::new().unwrap();
+        let sasl = Shared::new().unwrap();
         let mut sess = sasl.client_start("PLAIN").unwrap();
 
 

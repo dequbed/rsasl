@@ -1,7 +1,7 @@
 use ::libc;
 use libc::size_t;
 use crate::gsasl::gsasl::{Gsasl_mechanism};
-use crate::SASL;
+use crate::Shared;
 
 extern "C" {
     fn strcat(_: *mut libc::c_char, _: *const libc::c_char)
@@ -33,7 +33,7 @@ pub const GSASL_MIN_MECHANISM_SIZE: C2RustUnnamed = 1;
  * Boston, MA 02110-1301, USA.
  *
  */
-unsafe fn _gsasl_listmech(_ctx: &SASL,
+unsafe fn _gsasl_listmech(_ctx: &Shared,
                           _mechs: *mut Gsasl_mechanism,
                           _n_mechs: size_t,
                           _out: *mut *mut libc::c_char,
@@ -87,11 +87,11 @@ unsafe fn _gsasl_listmech(_ctx: &SASL,
  * Return value: Returns %GSASL_OK if successful, or error code.
  **/
 #[no_mangle]
-pub unsafe fn gsasl_client_mechlist(_ctx: &SASL, _out: &mut *mut libc::c_char)
+pub unsafe fn gsasl_client_mechlist(_ctx: &Shared, _out: &mut *mut libc::c_char)
  -> libc::c_int {
     todo!()
 }
-pub unsafe fn gsasl_server_mechlist(_ctx: &SASL, _out: *mut *mut libc::c_char)
+pub unsafe fn gsasl_server_mechlist(_ctx: &Shared, _out: *mut *mut libc::c_char)
  -> libc::c_int {
     todo!()
 }

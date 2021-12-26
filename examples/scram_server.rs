@@ -2,8 +2,8 @@ use std::ffi::CString;
 use std::io;
 use rsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_NO_AUTHID, GSASL_NO_CALLBACK, GSASL_PASSWORD};
 use rsasl::{
-    SASL,
-    Session,
+    Shared,
+    SessionData,
     Callback,
     Property,
     Step::{Done, NeedsMore},
@@ -15,7 +15,7 @@ use rsasl::{
 struct OurCallback;
 
 impl Callback<(), ()> for OurCallback {
-    fn callback(_sasl: &mut SASL<(), ()>, session: &mut Session<()>, prop: Property) 
+    fn callback(_sasl: &mut Shared<(), ()>, session: &mut SessionData<()>, prop: Property)
         -> Result<(), u32>
     {
         match prop {
@@ -34,7 +34,7 @@ impl Callback<(), ()> for OurCallback {
 }
 
 pub fn main() {
-    let mut sasl = SASL::new_untyped().unwrap();
+    let mut sasl = Shared::new_untyped().unwrap();
 
     sasl.install_callback::<OurCallback>();
 

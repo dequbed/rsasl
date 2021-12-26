@@ -4,7 +4,7 @@ use libc::size_t;
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_SAML20_REDIRECT_URL, GSASL_OK, GSASL_SAML20_IDP_IDENTIFIER, GSASL_SAML20_REDIRECT_URL, GSASL_VALIDATE_SAML20};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set, gsasl_property_set_raw};
-use crate::{SASL, Session};
+use crate::{Shared, SessionData};
 
 extern "C" {
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
@@ -71,7 +71,7 @@ pub struct saml20_server_state {
     pub step: libc::c_int,
 }
 
-pub unsafe fn _gsasl_saml20_server_start(_sctx: &SASL,
+pub unsafe fn _gsasl_saml20_server_start(_sctx: &Shared,
                                          mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -84,7 +84,7 @@ pub unsafe fn _gsasl_saml20_server_start(_sctx: &SASL,
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn _gsasl_saml20_server_step(mut sctx: &mut Session,
+pub unsafe fn _gsasl_saml20_server_step(mut sctx: &mut SessionData,
                                         mut mech_data: Option<NonNull<()>>,
                                         mut input: Option<&[u8]>,
                                         mut output: *mut *mut libc::c_char,
@@ -149,7 +149,7 @@ pub unsafe fn _gsasl_saml20_server_step(mut sctx: &mut Session,
                 return GSASL_MECHANISM_PARSE_ERROR as libc::c_int
             }
             res =
-                gsasl_callback(0 as *mut SASL, sctx, GSASL_VALIDATE_SAML20);
+                gsasl_callback(0 as *mut Shared, sctx, GSASL_VALIDATE_SAML20);
             if res != GSASL_OK as libc::c_int { return res }
             *output = 0 as *mut libc::c_char;
             *output_len = 0 as libc::c_int as size_t;
