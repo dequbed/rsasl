@@ -13,6 +13,7 @@ mod callback;
 
 mod gsasl;
 mod mechanisms;
+mod mechname;
 
 pub use gsasl::consts;
 
@@ -51,20 +52,15 @@ use crate::session::Session;
 // Bonus minus points: sasl.wrap(data) and sasl.unwrap(data) for security layers. Prefer to not
 // and instead do TLS.
 
-#[derive(Debug, Clone)]
-// Provider
-// - List of mechanisms
-// - Global data
-// - Callback
-// - Cheap to clone
+#[derive(Debug)]
 pub struct SASL {
     shared: Arc<Shared>,
 }
 
 impl SASL {
-    pub fn new(sasl: Shared) -> Self {
+    pub fn new(shared: Shared) -> Self {
         Self {
-            shared: Arc::new(sasl),
+            shared: Arc::new(shared),
         }
     }
 
@@ -186,7 +182,12 @@ impl SASL {
 }
 
 #[derive(Debug)]
+// Provider
+// - List of mechanisms
+// - Global data
+// - Callback
 pub struct Shared {
+    // registry: Box<dyn Registry>,
     mechs: Vec<Box<dyn Mech>>,
     callback: Option<Arc<Box<dyn Callback>>>,
 }

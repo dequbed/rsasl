@@ -8,6 +8,9 @@ pub type Result<T> = std::result::Result<T, SaslError>;
 
 static UNKNOWN_ERROR: &'static str = "The given error code is unknown to gsasl";
 
+struct ErrorContext {
+    mechanism: [u8; 20],
+}
 pub enum SASLError {
     Io {
         source: std::io::Error,
@@ -41,12 +44,41 @@ impl Display for SASLError {
     }
 }
 
-impl std::error::Error for SASLError {
-}
+impl std::error::Error for SASLError {}
 
 impl From<u32> for SASLError {
     fn from(e: u32) -> Self {
         unimplemented!()
+    }
+}
+
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+pub enum MechanismNameError {
+    /// Mechanism name longer than 20 characters
+    TooLong,
+
+    /// Mechanism name shorter than 1 character
+    TooShort,
+
+    /// Mechanism name contained a character outside of [A-Z0-9-_]
+    InvalidChars(u8),
+}
+
+impl Display for MechanismNameError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            MechanismNameError::TooLong =>
+                f.write_str("a mechanism name longer than 20 characters was provided"),
+            MechanismNameError::TooShort =>
+                f.write_str("mechanism name can't be an empty string"),
+            MechanismNameError::InvalidChars(byte)
+                if !byte.is_ascii() || byte.is_ascii_whitespace() || byte.is_ascii_control() =>
+                    write!(f, "mechanism name contains invalid character {:#x}",
+                           byte),
+            MechanismNameError::InvalidChars(byte) =>
+                write!(f, "mechanism name contains invalid character '{char}'",
+                       char = char::from_u32(*byte as u32).unwrap()),
+        }
     }
 }
 

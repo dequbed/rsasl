@@ -21,9 +21,7 @@ impl Session {
             session_data: SessionData::new(callback),
         }
     }
-}
 
-impl Session {
     /// Perform one step of SASL authentication. This reads data from `input` then processes it,
     /// potentially calling a configured callback for required properties or enact decisions, and
     /// finally returns data to be send to the other party.
@@ -104,7 +102,7 @@ impl SessionData {
 #[cfg(test)]
 mod tests {
     use crate::consts::{AUTHID, GSASL_AUTHID, GSASL_PASSWORD, PASSWORD};
-    use crate::Shared;
+    use crate::{SASL, Shared};
     use super::*;
 
     #[test]
@@ -122,7 +120,7 @@ mod tests {
         }
 
         let cbox = CB { data: 0 };
-        let mut session = SessionData::new(Some(&cbox));
+        let mut session = SessionData::new(Some(Arc::new(Box::new(cbox))));
 
         assert!(session.get_property::<AUTHID>().is_none());
         assert_eq!(session.get_property_or_callback::<AUTHID>(), Some("is 0".to_string()))
@@ -130,7 +128,7 @@ mod tests {
 
     #[test]
     fn property_set_get() {
-        let sasl = Shared::new().unwrap();
+        let sasl = SASL::new(Shared::new().unwrap());
         let mut sess = sasl.client_start("PLAIN")
             .unwrap();
 
@@ -146,7 +144,7 @@ mod tests {
 
     #[test]
     fn property_set_raw() {
-        let sasl = Shared::new().unwrap();
+        let sasl = SASL::new(Shared::new().unwrap());
         let mut sess = sasl.client_start("PLAIN").unwrap();
 
 
