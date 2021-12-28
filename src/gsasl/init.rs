@@ -1,5 +1,4 @@
 use ::libc;
-use crate::Shared;
 use crate::mechanisms::anonymous::mechinfo::gsasl_anonymous_mechanism;
 use crate::gsasl::consts::GSASL_OK;
 use crate::mechanisms::cram_md5::mechinfo::gsasl_cram_md5_mechanism;
@@ -7,17 +6,13 @@ use crate::mechanisms::digest_md5::mechinfo::gsasl_digest_md5_mechanism;
 use crate::mechanisms::external::mechinfo::gsasl_external_mechanism;
 use crate::mechanisms::login::mechinfo::gsasl_login_mechanism;
 use crate::mechanisms::openid20::mechinfo::gsasl_openid20_mechanism;
-use crate::mechanisms::plain::client::Plain;
-use crate::mechanisms::plain::mechinfo::gsasl_plain_mechanism;
 use crate::gsasl::register::gsasl_register;
-use crate::mechanism::MechanismInstance;
 use crate::mechanisms::saml20::mechinfo::gsasl_saml20_mechanism;
 use crate::mechanisms::scram::mechinfo::{gsasl_scram_sha1_mechanism,
                                         gsasl_scram_sha1_plus_mechanism,
                                 gsasl_scram_sha256_mechanism, gsasl_scram_sha256_plus_mechanism};
 use crate::mechanisms::securid::mechinfo::gsasl_securid_mechanism;
-use crate::mechname::Mechname;
-use crate::registry::{MechanismDescription, Registry};
+use crate::registry::Registry;
 
 extern "C" {
     fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;

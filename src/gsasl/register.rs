@@ -1,5 +1,4 @@
 use ::libc;
-use libc::size_t;
 use crate::consts::GSASL_OK;
 use crate::gsasl::gsasl::{Gsasl_mechanism};
 use crate::registry::Registry;

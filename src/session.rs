@@ -1,9 +1,7 @@
 use std::any::Any;
 use std::collections::HashMap;
-use std::io::{Cursor, Write};
+use std::io::Write;
 use std::sync::Arc;
-use base64::CharacterSet;
-use base64::read::DecoderReader;
 use base64::write::EncoderWriter;
 
 use crate::{Callback, SASLError};

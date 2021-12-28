@@ -4,10 +4,6 @@ use std::ops::Deref;
 use crate::error::MechanismNameError;
 use crate::error::MechanismNameError::{InvalidChars, TooLong, TooShort};
 
-mod wellknown {
-    const PLAIN: &'static [u8] = b"PLAIN";
-}
-
 #[repr(transparent)]
 #[derive(Ord, PartialOrd, Eq, PartialEq)]
 /// A validated Mechanism name (akin to [`str`])
@@ -114,10 +110,10 @@ pub fn try_parse_mechanism_lenient(input: &[u8]) -> Result<&Mechname, MechanismN
 pub fn is_invalid(byte: &u8) -> bool {
     let byte = *byte;
     let isLet = byte.is_ascii_uppercase();
-    let isNum = byte.is_ascii_digit();
-    let isSym = byte == b'-' || byte == b'_';
+    let is_num = byte.is_ascii_digit();
+    let is_sym = byte == b'-' || byte == b'_';
 
-    !(isLet || isNum || isSym)
+    !(isLet || is_num || is_sym)
 }
 
 #[cfg(test)]
