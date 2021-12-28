@@ -4,7 +4,8 @@ use ::libc;
 use libc::size_t;
 use crate::consts::{AUTHID, AUTHZID, PASSWORD};
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK};
-use crate::{Mechanism, RsaslError, Shared, SASLError, SessionData, MechanismBuilder};
+use crate::{RsaslError, Shared, SASLError, SessionData, mechname, SASL};
+use crate::mechanism::{Authentication, MechanismBuilder, MechanismInstance};
 use crate::session::StepResult;
 use crate::Step::Done;
 
@@ -127,16 +128,21 @@ pub unsafe fn _gsasl_plain_client_step(sctx: &mut SessionData,
     return GSASL_OK as libc::c_int;
 }
 
+
 #[derive(Copy, Clone, Debug)]
 pub struct Plain;
 
 impl MechanismBuilder for Plain {
-    fn start(&self, _sasl: &Shared) -> Result<Box<dyn Mechanism>, SASLError> {
-        Ok(Box::new(Plain))
+    fn start(&self, _sasl: &SASL) -> Result<MechanismInstance, SASLError> {
+        let i = MechanismInstance {
+            name: mechname::Mechanism::new("PLAIN"),
+            inner: Box::new(Plain),
+        };
+        Ok(i)
     }
 }
 
-impl Mechanism for Plain {
+impl Authentication for Plain {
     fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write)
         -> StepResult
     {
