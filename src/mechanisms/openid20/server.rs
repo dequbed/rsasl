@@ -52,7 +52,7 @@ pub struct openid20_server_state {
     pub allow_error_step: libc::c_int,
 }
 
-pub unsafe fn _gsasl_openid20_server_start(_sctx: &Shared,
+pub(crate) unsafe fn _gsasl_openid20_server_start(_sctx: &Shared,
                                            mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int {
     let mut state: *mut openid20_server_state =

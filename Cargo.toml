@@ -14,11 +14,15 @@ documentation = "https://docs.rs/rsasl"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["base64", "scram-sha-1", "scram-sha-2", "digest-md5", "cram-md5", "digest"]
-scram-sha-1 = ["hmac", "sha-1"]
-scram-sha-2 = ["hmac", "sha2"]
+default = ["provider", "provider_base64", "scram-sha-1", "scram-sha-2", "digest-md5", "cram-md5", "digest"]
+
+scram-sha-1 = ["hmac", "sha-1", "base64"]
+scram-sha-2 = ["hmac", "sha2", "base64"]
 digest-md5 = ["hmac", "md-5"]
 cram-md5 = ["hmac", "md-5"]
+
+provider = []
+provider_base64 = ["provider", "base64"]
 
 [dependencies]
 libc = "0.2"

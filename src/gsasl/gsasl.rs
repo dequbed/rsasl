@@ -9,8 +9,8 @@ use crate::session::StepResult;
 use crate::Step::{Done, NeedsMore};
 
 #[derive(Clone, Debug)]
-pub struct MechContainer<C, S> {
-    pub name: &'static str,
+pub(crate) struct MechContainer<C, S> {
+    pub name: &'static crate::mechname::Mechanism,
     pub client: C,
     pub server: S,
 }
@@ -21,14 +21,14 @@ impl<C: MechanismBuilder, S: MechanismBuilder> MechContainer<C, S> {
     }
 }
 
-pub trait Mech: Debug {
-    fn name(&self) -> &'static str;
+pub(crate) trait Mech: Debug {
+    fn name(&self) -> &'static crate::mechname::Mechanism;
     fn client(&self) -> &dyn MechanismBuilder;
     fn server(&self) -> &dyn MechanismBuilder;
 }
 
 impl<C: MechanismBuilder, S: MechanismBuilder> Mech for MechContainer<C, S> {
-    fn name(&self) -> &'static str {
+    fn name(&self) -> &'static crate::mechname::Mechanism {
         self.name
     }
 
@@ -55,12 +55,12 @@ impl<W: Write> OutputWriter for W {
     }
 }
 
-pub trait MechanismBuilder: Debug {
+pub(crate) trait MechanismBuilder: Debug {
     fn init(&self) {}
     fn start(&self, sasl: &Shared) -> Result<Box<dyn Mechanism>, SASLError>;
 }
 
-pub trait Mechanism: Debug {
+pub(crate) trait Mechanism: Debug {
     // State is four things: currently writing output, has written all output(Done, NeedsMore),
     // Error
     // Surrounding protocol knows the wrapping of SASL => input is always complete!
@@ -71,7 +71,7 @@ pub trait Mechanism: Debug {
     ) -> StepResult;
 }
 
-pub trait SecurityLayer {
+pub(crate) trait SecurityLayer {
     fn encode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SASLError>;
     fn decode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SASLError>;
 }
@@ -79,12 +79,12 @@ pub trait SecurityLayer {
 #[derive(Copy, Clone)]
 pub struct Gsasl_mechanism {
     pub name: &'static str,
-    pub client: MechanismVTable,
-    pub server: MechanismVTable,
+    pub(crate) client: MechanismVTable,
+    pub(crate) server: MechanismVTable,
 }
 
 #[derive(Copy, Clone)]
-pub struct MechanismVTable {
+pub(crate) struct MechanismVTable {
     /// Globally initialize this mechanism. This will be called exactly once per initialization
     /// of Gsasl, however this may be more than once per application. Use [`Once`](std::sync::Once)
     /// and friends if you must only be called once per process space / application
@@ -135,7 +135,7 @@ impl Debug for MechanismVTable {
 
 #[derive(Clone, Debug)]
 pub struct CMechBuilder {
-    pub vtable: MechanismVTable,
+    pub(crate) vtable: MechanismVTable,
 }
 
 impl MechanismBuilder for CMechBuilder {
@@ -218,29 +218,29 @@ impl Drop for CMech {
     }
 }
 
-pub type Gsasl_code_function = Option<unsafe fn(
+pub(crate) type Gsasl_code_function = Option<unsafe fn(
     _: &mut SessionData,
     _: Option<NonNull<()>>,
     _: *const libc::c_char, _: size_t,
     _: *mut *mut libc::c_char, _: *mut size_t
 ) -> libc::c_int>;
 
-pub type Gsasl_start_function = Option<unsafe fn(
+pub(crate) type Gsasl_start_function = Option<unsafe fn(
     _: &Shared,
     _: &mut Option<NonNull<()>>
 ) -> libc::c_int>;
 
 
-pub type Gsasl_step_function = Option<unsafe fn(
+pub(crate) type Gsasl_step_function = Option<unsafe fn(
     _: &mut SessionData,
     _: Option<NonNull<()>>,
     _: Option<&[u8]>,
     _: *mut *mut libc::c_char, _: *mut size_t
 ) -> libc::c_int>;
 
-pub type Gsasl_finish_function = Option<unsafe fn(
+pub(crate) type Gsasl_finish_function = Option<unsafe fn(
     _: Option<NonNull<()>>,
 ) -> ()>;
 
-pub type Gsasl_init_function = Option<unsafe fn() -> libc::c_int>;
-pub type Gsasl_done_function = Option<unsafe fn() -> ()>;
+pub(crate) type Gsasl_init_function = Option<unsafe fn() -> libc::c_int>;
+pub(crate) type Gsasl_done_function = Option<unsafe fn() -> ()>;

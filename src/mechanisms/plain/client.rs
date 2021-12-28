@@ -4,7 +4,7 @@ use ::libc;
 use libc::size_t;
 use crate::consts::{AUTHID, AUTHZID, PASSWORD};
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK};
-use crate::{Mechanism, MechanismBuilder, RsaslError, Shared, SASLError, SessionData};
+use crate::{Mechanism, RsaslError, Shared, SASLError, SessionData, MechanismBuilder};
 use crate::session::StepResult;
 use crate::Step::Done;
 

@@ -73,7 +73,7 @@ extern "C" {
                        response: *mut libc::c_char);
 }
 
-pub unsafe fn _gsasl_cram_md5_server_start(_ctx: &Shared,
+pub(crate) unsafe fn _gsasl_cram_md5_server_start(_ctx: &Shared,
                                            mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {

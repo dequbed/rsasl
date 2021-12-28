@@ -15,6 +15,8 @@ use crate::mechanisms::scram::mechinfo::{gsasl_scram_sha1_mechanism,
                                         gsasl_scram_sha1_plus_mechanism,
                                 gsasl_scram_sha256_mechanism, gsasl_scram_sha256_plus_mechanism};
 use crate::mechanisms::securid::mechinfo::gsasl_securid_mechanism;
+use crate::mechname::Mechanism;
+use crate::registry::DynamicRegistry;
 
 extern "C" {
     fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
@@ -25,7 +27,7 @@ pub static mut GSASL_VALID_MECHANISM_CHARACTERS: *const libc::c_char =
     b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_\x00" as *const u8 as
         *const libc::c_char;
 
-pub unsafe fn register_builtin_mechs(ctx: &mut Shared) -> libc::c_int {
+pub(crate) unsafe fn register_builtin_mechs(ctx: &mut DynamicRegistry) -> libc::c_int {
     let mut rc: libc::c_int = GSASL_OK as libc::c_int;
     rc = gsasl_register(ctx, &mut gsasl_anonymous_mechanism);
     if rc != GSASL_OK as libc::c_int { return rc }
@@ -36,7 +38,9 @@ pub unsafe fn register_builtin_mechs(ctx: &mut Shared) -> libc::c_int {
     rc = gsasl_register(ctx, &mut gsasl_login_mechanism);
     if rc != GSASL_OK as libc::c_int { return rc }
     /* USE_LOGIN */
-    ctx.register("PLAIN", Plain, CMechBuilder { vtable: gsasl_plain_mechanism.server });
+    ctx.register(Mechanism::new("PLAIN"), Plain, CMechBuilder {
+        vtable: gsasl_plain_mechanism.server
+    });
     /*rc = gsasl_register(ctx, &mut gsasl_plain_mechanism);
     if rc != GSASL_OK as libc::c_int { return rc }*/
     /* USE_PLAIN */
