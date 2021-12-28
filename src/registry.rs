@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter};
 use crate::{CMechBuilder, GSASL_OK, MechanismVTable, MechContainer, mechname, register_builtin_mechs, SASLError};
 use crate::Mech;
 use crate::mechanism::MechanismBuilder;
@@ -25,13 +25,25 @@ pub struct MechanismDescription {
     pub builder: &'static dyn MechanismBuilder,
 }
 
+impl Debug for MechanismDescription {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MechanismDescription")
+            .field("name", &self.name)
+            .field("plaintext", &self.plaintext)
+            .field("channel bindings", &self.channel_bindings)
+            .field("mutual authentication", &self.mutual_authentication)
+            .finish()
+    }
+}
+
 #[cfg(any(feature = "registry_static"))]
 mod static_registry {
+    use std::fmt::{Display, Formatter};
     use crate::registry::MechanismDescription;
     inventory::collect!(MechanismDescription);
 
     #[repr(transparent)]
-    #[derive(Clone)]
+    #[derive(Clone, Debug)]
     pub(super) struct StaticRegistry {
         inner: Box<[&'static MechanismDescription]>,
     }
@@ -62,23 +74,45 @@ mod static_registry {
             Self::with_all()
         }
     }
-}
-#[cfg(not(any(feature = "registry_static")))]
-mod static_registry {
-    #[repr(transparent)]
-    #[derive(Clone)]
-    pub(super) struct StaticRegistry;
 
-    impl Default for StaticRegistry {
-        fn default() -> Self { Self }
+    impl Display for StaticRegistry {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            if f.alternate() {
+                f.write_str("Enabled Mechanisms: \n")?;
+                for m in self.inner.iter() {
+                    writeln!(f, "\t - {}", m.name)?;
+                }
+                Ok(())
+            } else {
+                f.write_str("Enabled Mechanisms: [")?;
+                for m in self.inner.iter() {
+                    f.write_str(m.name)?;
+                }
+                f.write_str("]")
+            }
+        }
     }
 }
 
 pub(crate) struct Registry {
+    #[cfg(any(feature = "registry_static"))]
     enabled_static: static_registry::StaticRegistry,
+    #[cfg(any(feature = "registry_dynamic"))]
     mechs: Vec<Box<dyn Mech>>
 }
 
+impl Registry {
+    pub fn new() -> Self {
+        Self {
+            #[cfg(any(feature = "registry_static"))]
+            enabled_static: StaticRegistry::default(),
+            #[cfg(any(feature = "registry_dynamic"))]
+            mechs: Vec::new(),
+        }
+    }
+}
+
+#[cfg(any(feature = "registry_dynamic"))]
 impl Registry {
     pub fn register_cmech(&mut self, name: &'static mechname::Mechanism,
                           client: MechanismVTable,
@@ -104,12 +138,8 @@ impl Registry {
         self.mechs.push(mech);
     }
 
-    pub fn new() -> Result<Self, SASLError> {
-        let mut this = Self {
-            #[cfg(any(feature = "registry_static"))]
-            enabled_static: StaticRegistry::default(),
-            mechs: Vec::new(),
-        };
+    pub fn init() -> Result<Self, SASLError> {
+        let mut this = Self::new();
 
         unsafe {
             let rc = register_builtin_mechs(&mut this);
@@ -119,5 +149,12 @@ impl Registry {
                 Err((rc as libc::c_uint).into())
             }
         }
+    }
+}
+
+#[cfg(not(any(feature = "registry_dynamic")))]
+impl Registry {
+    pub fn init() -> Result<Self, SASLError> {
+        Ok(Self::new())
     }
 }
