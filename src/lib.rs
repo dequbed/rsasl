@@ -137,7 +137,7 @@ impl SASL {
     pub(crate) fn new(shared: Shared) -> Self {
         Self {
             shared,
-            registry: Registry::new().unwrap(),
+            registry: Registry::init().unwrap(),
             global_data: Arc::new(HashMap::new()),
             callback: None,
         }
@@ -246,7 +246,7 @@ impl SASL {
         for builder in self.shared.mechs.iter() {
             if builder.name() == mech {
                 let mechanism = builder.client().start(self)?;
-                return Ok(Session::new(self.shared.callback.clone(),
+                return Ok(Session::new(self.callback.clone(),
                                        mechanism,
                                        self.global_data.clone()));
             }
@@ -267,7 +267,7 @@ impl SASL {
         for builder in self.shared.mechs.iter() {
             if builder.name() == mech {
                 let mechanism = builder.server().start(self)?;
-                return Ok(Session::new(self.shared.callback.clone(),
+                return Ok(Session::new(self.callback.clone(),
                                        mechanism,
                                        self.global_data.clone()));
             }
@@ -286,7 +286,6 @@ impl SASL {
 // - Callback
 struct Shared {
     mechs: Vec<Box<dyn Mech>>,
-    callback: Option<Arc<Box<dyn Callback>>>,
 }
 
 // SASL Impl:
