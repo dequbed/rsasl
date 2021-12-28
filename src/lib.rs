@@ -52,10 +52,21 @@
 //! default being to add all IANA-registered mechanisms.
 //! See the module documentation for [`mechanisms`] for details.
 //!
+//! TODO:
+//!     - Static vs Dynamic Registry
+//!
 //! ## Custom Mechanisms
 //!
-//! See [`Registry`]
+//! TODO:
+//!     - Explain Upstream or separate crate
+//!     - Explain registry_static / registry_dynamic features => what *must* mech crates export?
+//!     - Steps to mechanism:
+//!         1. Write impl MechanismBuilder & impl Mechanism
+//!         2. Add to Registry
+//!         3. Done?
 
+use std::any::Any;
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Arc;
 
@@ -90,6 +101,7 @@ pub use error::{
 use crate::consts::RsaslError;
 use crate::error::SASLError;
 use crate::gsasl::init::register_builtin_mechs;
+use crate::registry::{DynamicRegistry, Registry};
 pub use crate::session::Session;
 
 
@@ -114,12 +126,20 @@ pub use crate::session::Session;
 /// use of SASL and for users wanting to provide SASL authentication to such implementations.
 pub struct SASL {
     shared: Shared,
+    // filter: Option<FnMut(Mechname) -> bool>,
+    // sorter: Option<FnMut(Iterator<Item=Mechname>) -> Option<Mechname>>,
+    registry: Box<dyn Registry>,
+    global_data: HashMap<Property, Box<dyn Any>>,
+    callback: Option<Arc<Box<dyn Callback>>>,
 }
 
 impl SASL {
     pub(crate) fn new(shared: Shared) -> Self {
         Self {
             shared,
+            registry: Box::new(DynamicRegistry::new().unwrap()),
+            global_data: HashMap::new(),
+            callback: None,
         }
     }
 }
@@ -262,7 +282,6 @@ impl SASL {
 // - Global data
 // - Callback
 struct Shared {
-    // registry: Box<dyn Registry>,
     mechs: Vec<Box<dyn Mech>>,
     callback: Option<Arc<Box<dyn Callback>>>,
 }
