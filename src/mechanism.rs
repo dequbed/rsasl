@@ -4,7 +4,7 @@ use crate::{mechname, SASL, SASLError, SessionData};
 use crate::SASLError::NoSecurityLayer;
 use crate::session::StepResult;
 
-pub trait MechanismBuilder {
+pub trait MechanismBuilder: Sync + Send {
     fn init(&self) {}
     fn start(&self, sasl: &SASL) -> Result<MechanismInstance, SASLError>;
 }

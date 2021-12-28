@@ -24,12 +24,11 @@
 //! [dependencies]
 //! rsasl = { version = "2", default-features = false, features = ["provider"]}
 //! ```
-//! or
+//! or, if they need base64 support:
 //! ```Cargo.toml
 //! [dependencies]
 //! rsasl = { version = "2", default-features = false, features = ["provider_base64"]}
 //! ```
-//! if they need base64 support.
 //!
 //! This makes use of [feature unification](https://doc.rust-lang.org/cargo/reference/features.html#feature-unification)
 //! to make rsasl a (nearly) zero-dependency crate and putting all decisions about compiled-in
@@ -54,6 +53,7 @@
 //!
 //! TODO:
 //!     - Static vs Dynamic Registry
+//!     - Explicit dependency because feature unification
 //!
 //! ## Custom Mechanisms
 //!
@@ -61,6 +61,7 @@
 //!     - Explain Upstream or separate crate
 //!     - Explain registry_static / registry_dynamic features => what *must* mech crates export?
 //!     - Steps to mechanism:
+//!         0. Depend on rsasl with `custom_mechanism` feature
 //!         1. Write impl MechanismBuilder & impl Mechanism
 //!         2. Add to Registry
 //!         3. Done?
@@ -102,7 +103,7 @@ pub use error::{
 use crate::consts::RsaslError;
 use crate::error::SASLError;
 use crate::gsasl::init::register_builtin_mechs;
-use crate::registry::DynamicRegistry;
+use crate::registry::Registry;
 pub use crate::session::Session;
 
 
@@ -126,9 +127,8 @@ pub use crate::session::Session;
 /// use of SASL and for users wanting to provide SASL authentication to such implementations.
 pub struct SASL {
     shared: Shared,
-    // filter: Option<FnMut(Mechname) -> bool>,
     // sorter: Option<FnMut(Iterator<Item=Mechname>) -> Option<Mechname>>,
-    registry: DynamicRegistry,
+    registry: Registry,
     global_data: Arc<HashMap<Property, Box<dyn Any>>>,
     callback: Option<Arc<Box<dyn Callback>>>,
 }
@@ -137,7 +137,7 @@ impl SASL {
     pub(crate) fn new(shared: Shared) -> Self {
         Self {
             shared,
-            registry: DynamicRegistry::new().unwrap(),
+            registry: Registry::new().unwrap(),
             global_data: Arc::new(HashMap::new()),
             callback: None,
         }
@@ -287,9 +287,6 @@ impl SASL {
 struct Shared {
     mechs: Vec<Box<dyn Mech>>,
     callback: Option<Arc<Box<dyn Callback>>>,
-}
-
-impl Shared {
 }
 
 // SASL Impl:
