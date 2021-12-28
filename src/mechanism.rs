@@ -10,7 +10,7 @@ pub trait MechanismBuilder: Sync + Send {
 }
 
 pub struct MechanismInstance {
-    pub name: &'static mechname::Mechanism,
+    pub name: &'static mechname::Mechname,
     pub(crate) inner: Box<dyn Authentication>,
 }
 

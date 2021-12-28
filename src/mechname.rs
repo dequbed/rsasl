@@ -18,16 +18,16 @@ mod wellknown {
 ///
 /// The main way to construct a `&Mechanism` is by calling [`Mechanism::try_parse`]. This type
 /// implements `Deref<Target=str>` so it can be used anywhere where `&str` is expected.
-pub struct Mechanism {
+pub struct Mechname {
     inner: str,
 }
 
-impl Mechanism {
-    pub(crate) fn new<S: AsRef<str> + ?Sized>(s: &S) -> &Mechanism {
-        unsafe { &*(s.as_ref() as *const str as *const Mechanism) }
+impl Mechname {
+    pub(crate) fn new<S: AsRef<str> + ?Sized>(s: &S) -> &Mechname {
+        unsafe { &*(s.as_ref() as *const str as *const Mechname) }
     }
 
-    pub fn try_parse(input: &[u8]) -> Result<&Mechanism, MechanismNameError> {
+    pub fn try_parse(input: &[u8]) -> Result<&Mechname, MechanismNameError> {
         let input = input.as_ref();
         if input.len() < 1 {
             Err(TooShort)
@@ -42,7 +42,7 @@ impl Mechanism {
                     // getting here is guaranteed valid ASCII and thus also guaranteed valid UTF-8
                     std::str::from_utf8_unchecked(input)
                 };
-                Ok(Mechanism::new(s))
+                Ok(Mechname::new(s))
             }
         }
     }
@@ -60,38 +60,38 @@ impl Mechanism {
     }
 }
 
-impl Display for Mechanism {
+impl Display for Mechname {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
     }
 }
 
-impl Debug for Mechanism {
+impl Debug for Mechname {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "MECHANISM({})", self.as_str())
     }
 }
 
-impl PartialEq<str> for Mechanism {
+impl PartialEq<str> for Mechname {
     fn eq(&self, other: &str) -> bool {
         self.as_str() == other
     }
 }
-impl PartialEq<Mechanism> for str {
-    fn eq(&self, other: &Mechanism) -> bool {
+impl PartialEq<Mechname> for str {
+    fn eq(&self, other: &Mechname) -> bool {
         self == other.as_str()
     }
 }
 
-impl<'a> TryFrom<&'a [u8]> for &'a Mechanism {
+impl<'a> TryFrom<&'a [u8]> for &'a Mechname {
     type Error = MechanismNameError;
 
     fn try_from(value: &'a [u8]) -> Result<Self, Self::Error> {
-        Mechanism::try_parse(value)
+        Mechname::try_parse(value)
     }
 }
 
-impl Deref for Mechanism {
+impl Deref for Mechname {
     type Target = str;
 
     fn deref(&self) -> &Self::Target {
@@ -99,12 +99,12 @@ impl Deref for Mechanism {
     }
 }
 
-pub fn try_parse_mechanism_lenient(input: &[u8]) -> Result<&Mechanism, MechanismNameError> {
+pub fn try_parse_mechanism_lenient(input: &[u8]) -> Result<&Mechname, MechanismNameError> {
     if input.len() < 1 {
         Err(TooShort)
     } else {
         if let Some(subslice) = input.split(is_invalid).next() {
-            Mechanism::try_parse(subslice)
+            Mechname::try_parse(subslice)
         } else {
             Err(InvalidChars(input[0]))
         }
@@ -148,19 +148,19 @@ mod tests {
 
         for m in valids {
             println!("Checking {}", m);
-            let res = Mechanism::try_parse(m.as_bytes())
+            let res = Mechname::try_parse(m.as_bytes())
                 .map(|m| m.as_bytes());
             assert_eq!(res, Ok(m.as_bytes()));
         }
         for m in toolong {
-            let e = Mechanism::try_parse(m.as_bytes())
+            let e = Mechname::try_parse(m.as_bytes())
                 .map(|m| m.as_bytes())
                 .unwrap_err();
             println!("Checking {}: {}", m, e);
             assert_eq!(e, TooLong);
         }
         for (m, bad) in invalidchars {
-            let e = Mechanism::try_parse(m.as_bytes())
+            let e = Mechname::try_parse(m.as_bytes())
                 .map(|m| m.as_bytes())
                 .unwrap_err();
             println!("Checking {}: {}", m, e);
