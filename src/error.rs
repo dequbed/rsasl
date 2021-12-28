@@ -23,6 +23,7 @@ pub enum SASLError {
         source: base64::DecodeError,
     },
     MechanismNameError(MechanismNameError),
+    NoSecurityLayer,
     Gsasl(u32),
 }
 
@@ -39,16 +40,13 @@ impl Debug for SASLError {
                     write!(f, "No mechanism {:?} is implemented", mechanism)
                 }
             }
-            SASLError::Base64DecodeError { source } => {
-                Debug::fmt(source, f)
-            },
-            SASLError::MechanismNameError(e) => {
-                Debug::fmt(e, f)
-            },
+            SASLError::Base64DecodeError { source } => Debug::fmt(source, f),
+            SASLError::MechanismNameError(e) => Debug::fmt(e, f),
             SASLError::Gsasl(n) =>
                 write!(f, "{}[{}]",
                        rsasl_errname_to_str(*n).unwrap_or("UNKNOWN_ERROR"),
-                       n)
+                       n),
+            SASLError::NoSecurityLayer => f.write_str("No Security Layer installed"),
         }
     }
 }
@@ -71,7 +69,9 @@ impl Display for SASLError {
             SASLError::Gsasl(n) =>
                 write!(f, "({}): {}",
                        rsasl_errname_to_str(*n).unwrap_or("UNKNOWN_ERROR"),
-                       gsasl_err_to_str_internal(*n as i32))
+                       gsasl_err_to_str_internal(*n as i32)),
+            SASLError::NoSecurityLayer => f.write_str("Tried wrapping data but no security layer \
+                is installed"),
         }
     }
 }

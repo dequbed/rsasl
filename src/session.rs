@@ -6,22 +6,25 @@ use base64::CharacterSet;
 use base64::read::DecoderReader;
 use base64::write::EncoderWriter;
 
-use crate::{Callback, Mechanism, SASLError};
+use crate::{Callback, SASLError};
 use crate::consts::{GSASL_NO_CALLBACK, Gsasl_property, Property};
+use crate::mechanism::{Authentication, MechanismInstance};
 
 pub struct Session {
-    mechanism: Box<dyn Mechanism>,
+    mechanism: MechanismInstance,
     session_data: SessionData,
 }
 
 impl Session {
-    pub(crate) fn new(callback: Option<Arc<Box<dyn Callback>>>,
-                      mechanism: Box<dyn Mechanism>
+    pub(crate) fn new(
+        callback: Option<Arc<Box<dyn Callback>>>,
+        mechanism: MechanismInstance,
+        global_properties: Arc<HashMap<Gsasl_property, Box<dyn Any>>>,
     ) -> Self
     {
         Self {
             mechanism,
-            session_data: SessionData::new(callback),
+            session_data: SessionData::new(callback, global_properties),
         }
     }
 
@@ -82,7 +85,8 @@ impl Session {
 #[derive(Debug)]
 pub struct SessionData {
     callback: Option<Arc<Box<dyn Callback>>>,
-    map: HashMap<Gsasl_property, Box<dyn Any>>,
+    property_cache: HashMap<Gsasl_property, Box<dyn Any>>,
+    global_properties: Arc<HashMap<Gsasl_property, Box<dyn Any>>>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -97,10 +101,14 @@ pub enum Step {
 pub type StepResult = Result<Step, SASLError>;
 
 impl SessionData {
-    pub(crate) fn new(callback: Option<Arc<Box<dyn Callback>>>) -> Self {
+    pub(crate) fn new(
+        callback: Option<Arc<Box<dyn Callback>>>,
+        global_properties: Arc<HashMap<Gsasl_property, Box<dyn Any>>>,
+    ) -> Self {
         Self {
             callback,
-            map: HashMap::new(),
+            property_cache: HashMap::new(),
+            global_properties,
         }
     }
 }
@@ -124,18 +132,20 @@ impl SessionData {
     }
 
     pub fn get_property<P: Property>(&self) -> Option<P::Item> {
-        self.map.get(&P::code()).and_then(|prop| {
-            prop.downcast_ref::<P::Item>()
-                .map(|prop| (*prop).clone())
+        self.property_cache.get(&P::code())
+            .or_else(|| self.global_properties.get(&P::code()))
+            .and_then(|prop| {
+                prop.downcast_ref::<P::Item>()
+                    .map(|prop| (*prop).clone())
         })
     }
 
     pub fn set_property<P: Property>(&mut self, item: Box<P::Item>) -> Option<Box<dyn Any>> {
-        self.map.insert(P::code(), item)
+        self.property_cache.insert(P::code(), item)
     }
 
     pub(crate) unsafe fn set_property_raw(&mut self, prop: Gsasl_property, data: Box<String>) {
-        let _ = self.map.insert(prop, data);
+        let _ = self.property_cache.insert(prop, data);
     }
 }
 
@@ -173,7 +183,7 @@ mod tests {
             .unwrap();
 
         assert!(sess.get_property::<AUTHID>().is_none());
-        assert!(sess.session_data.map.is_empty());
+        assert!(sess.session_data.property_cache.is_empty());
 
         assert!(sess.set_property::<AUTHID>(Box::new("test".to_string())).is_none());
         assert!(sess.set_property::<PASSWORD>(Box::new("secret".to_string())).is_none());
@@ -189,7 +199,7 @@ mod tests {
 
 
         assert!(sess.get_property::<AUTHID>().is_none());
-        assert!(sess.session_data.map.is_empty());
+        assert!(sess.session_data.property_cache.is_empty());
 
         unsafe {
             sess.session_data.set_property_raw(GSASL_AUTHID, Box::new("test".to_string()));

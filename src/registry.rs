@@ -1,12 +1,21 @@
 use std::fmt::Debug;
-use crate::{CMechBuilder, GSASL_OK, MechanismBuilder, MechanismVTable, MechContainer, mechname, register_builtin_mechs, SASLError};
+use crate::{CMechBuilder, GSASL_OK, MechanismVTable, MechContainer, mechname, register_builtin_mechs, SASLError};
 use crate::Mech;
+use crate::mechanism::MechanismBuilder;
 
-pub(crate) trait Registry: Debug {
+pub struct StaticMechDescription {
+    pub name: &'static super::mechname::Mechanism,
+    pub builder: &'static dyn MechanismBuilder,
+}
+
+#[linkme::distributed_slice]
+pub static MECHANISMS: [StaticMechDescription] = [..];
+
+#[cfg(any(feature = "registry_static"))]
+mod static_registry {
 }
 
 #[repr(transparent)]
-#[derive(Debug)]
 pub(crate) struct DynamicRegistry {
     mechs: Vec<Box<dyn Mech>>
 }
@@ -18,8 +27,8 @@ impl DynamicRegistry {
     {
         let mut mech = MechContainer {
             name,
-            client: CMechBuilder { vtable: client },
-            server: CMechBuilder { vtable: server }
+            client: CMechBuilder { name, vtable: client },
+            server: CMechBuilder { name, vtable: server }
         };
         mech.init();
         self.mechs.push(Box::new(mech));
@@ -50,7 +59,4 @@ impl DynamicRegistry {
             }
         }
     }
-}
-
-impl Registry for DynamicRegistry {
 }

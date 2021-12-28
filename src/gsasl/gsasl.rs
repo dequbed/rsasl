@@ -2,11 +2,27 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::ptr::NonNull;
 use libc::size_t;
-use crate::{GSASL_OK, GSASL_UNKNOWN_MECHANISM, RsaslError, Shared, SASLError, SessionData};
+use crate::{GSASL_OK, GSASL_UNKNOWN_MECHANISM, RsaslError, Shared, SASLError, SessionData, SASL, mechname};
 use crate::consts::GSASL_NEEDS_MORE;
+use crate::mechanism::{Authentication, MechanismBuilder, MechanismInstance};
 use crate::mechanisms::plain::client::Plain;
 use crate::session::StepResult;
 use crate::Step::{Done, NeedsMore};
+
+struct M {
+    /// The name of this mechanism
+    pub name: &'static crate::mechname::Mechanism,
+
+    /// This mechanism transfers (parts of) a client secret such as a password in plain text.
+    ///
+    /// Only use this kind of mechanism over a trusted connection such as one encrypted with TLS.
+    pub plaintext: bool,
+
+    /// This mechanism allows anonymous login.
+    pub anonymous: bool,
+
+
+}
 
 #[derive(Clone, Debug)]
 pub(crate) struct MechContainer<C, S> {
@@ -21,7 +37,7 @@ impl<C: MechanismBuilder, S: MechanismBuilder> MechContainer<C, S> {
     }
 }
 
-pub(crate) trait Mech: Debug {
+pub(crate) trait Mech {
     fn name(&self) -> &'static crate::mechname::Mechanism;
     fn client(&self) -> &dyn MechanismBuilder;
     fn server(&self) -> &dyn MechanismBuilder;
@@ -39,36 +55,6 @@ impl<C: MechanismBuilder, S: MechanismBuilder> Mech for MechContainer<C, S> {
     fn server(&self) -> &dyn MechanismBuilder {
         &self.server
     }
-}
-
-pub trait OutputError {}
-impl OutputError for std::io::Error {}
-pub trait OutputWriter {
-    type Error: OutputError;
-    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error>;
-}
-impl<W: Write> OutputWriter for W {
-    type Error = std::io::Error;
-
-    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        Write::write(self, buf)
-    }
-}
-
-pub(crate) trait MechanismBuilder: Debug {
-    fn init(&self) {}
-    fn start(&self, sasl: &Shared) -> Result<Box<dyn Mechanism>, SASLError>;
-}
-
-pub(crate) trait Mechanism: Debug {
-    // State is four things: currently writing output, has written all output(Done, NeedsMore),
-    // Error
-    // Surrounding protocol knows the wrapping of SASL => input is always complete!
-    fn step(&mut self,
-            session: &mut SessionData,
-            input: Option<&[u8]>,
-            writer: &mut dyn Write
-    ) -> StepResult;
 }
 
 pub(crate) trait SecurityLayer {
@@ -135,6 +121,7 @@ impl Debug for MechanismVTable {
 
 #[derive(Clone, Debug)]
 pub struct CMechBuilder {
+    pub(crate) name: &'static mechname::Mechanism,
     pub(crate) vtable: MechanismVTable,
 }
 
@@ -145,17 +132,25 @@ impl MechanismBuilder for CMechBuilder {
         }
     }
 
-    fn start(&self, sasl: &Shared) -> Result<Box<dyn Mechanism>, SASLError> {
+    fn start(&self, sasl: &SASL) -> Result<MechanismInstance, SASLError> {
         if let Some(start) = self.vtable.start {
             let mut mech_data = None;
-            let res =  unsafe { start(sasl, &mut mech_data) };
+            let res =  unsafe { start(&sasl.shared, &mut mech_data) };
             if res == GSASL_OK as libc::c_int {
-                return Ok(Box::new(CMech { vtable: self.vtable, mech_data }));
+                let i = MechanismInstance {
+                    name: mechname::Mechanism::new("PLAIN"),
+                    inner: Box::new(CMech { vtable: self.vtable, mech_data: None }),
+                };
+                return Ok(i);
             } else {
                 return Err((res as u32).into());
             }
         } else {
-            return Ok(Box::new(CMech { vtable: self.vtable, mech_data: None }));
+            let i = MechanismInstance {
+                name: mechname::Mechanism::new("PLAIN"),
+                inner: Box::new(CMech { vtable: self.vtable, mech_data: None }),
+            };
+            return Ok(i);
         }
     }
 }
@@ -174,7 +169,7 @@ pub struct CMech {
     mech_data: Option<NonNull<()>>,
 }
 
-impl Mechanism for CMech {
+impl Authentication for CMech {
     fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write)
         -> StepResult
     {

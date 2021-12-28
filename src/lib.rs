@@ -79,6 +79,7 @@ mod callback;
 
 mod gsasl;
 pub mod mechanisms;
+pub mod mechanism;
 pub mod mechname;
 mod registry;
 
@@ -91,7 +92,7 @@ pub use buffer::SaslString;
 pub use session::Step;
 
 use crate::gsasl::consts::{GSASL_MECHANISM_PARSE_ERROR, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
-use crate::gsasl::gsasl::{CMechBuilder, MechContainer, Mech, Mechanism, MechanismBuilder, MechanismVTable};
+use crate::gsasl::gsasl::{CMechBuilder, MechContainer, Mech, MechanismVTable};
 pub use crate::gsasl::consts::Gsasl_property as Property;
 
 pub use error::{
@@ -101,7 +102,7 @@ pub use error::{
 use crate::consts::RsaslError;
 use crate::error::SASLError;
 use crate::gsasl::init::register_builtin_mechs;
-use crate::registry::{DynamicRegistry, Registry};
+use crate::registry::DynamicRegistry;
 pub use crate::session::Session;
 
 
@@ -119,7 +120,6 @@ pub use crate::session::Session;
 // Bonus minus points: sasl.wrap(data) and sasl.unwrap(data) for security layers. Prefer to not
 // and instead do TLS.
 
-#[derive(Debug)]
 /// SASL Provider context
 ///
 /// This is the central type required to use SASL both for protocol implementations requiring the
@@ -128,8 +128,8 @@ pub struct SASL {
     shared: Shared,
     // filter: Option<FnMut(Mechname) -> bool>,
     // sorter: Option<FnMut(Iterator<Item=Mechname>) -> Option<Mechname>>,
-    registry: Box<dyn Registry>,
-    global_data: HashMap<Property, Box<dyn Any>>,
+    registry: DynamicRegistry,
+    global_data: Arc<HashMap<Property, Box<dyn Any>>>,
     callback: Option<Arc<Box<dyn Callback>>>,
 }
 
@@ -137,8 +137,8 @@ impl SASL {
     pub(crate) fn new(shared: Shared) -> Self {
         Self {
             shared,
-            registry: Box::new(DynamicRegistry::new().unwrap()),
-            global_data: HashMap::new(),
+            registry: DynamicRegistry::new().unwrap(),
+            global_data: Arc::new(HashMap::new()),
             callback: None,
         }
     }
@@ -158,7 +158,7 @@ impl SASL {
     /// server application would use [`SASL::server_mech_list()`].
     pub fn client_mech_list(&self) -> impl Iterator<Item=&mechname::Mechanism> {
         self.shared.mechs.iter().filter_map(move |builder| {
-            if builder.client().start(&self.shared).is_ok() {
+            if builder.client().start(&self).is_ok() {
                 Some(builder.name())
             } else {
                 None
@@ -172,7 +172,7 @@ impl SASL {
     /// application would use [`SASL::client_mech_list()`].
     pub fn server_mech_list(&self) -> impl Iterator<Item=&mechname::Mechanism> {
         self.shared.mechs.iter().filter_map(move |builder| {
-            if builder.server().start(&self.shared).is_ok() {
+            if builder.server().start(&self).is_ok() {
                 Some(builder.name())
             } else {
                 None
@@ -192,7 +192,7 @@ impl SASL {
             let mut name: &mechname::Mechanism = mechname::Mechanism::new("");
             if let Some(idx) = self.shared.mechs.iter().position(|supported| {
                 name = supported.name();
-                supported.name() == mech && supported.client().start(&self.shared).is_ok()
+                supported.name() == mech && supported.client().start(self).is_ok()
             }) {
                 if min.is_none() || min.unwrap().0 > idx {
                     min = Some((idx, name));
@@ -215,7 +215,7 @@ impl SASL {
             let mut name: &mechname::Mechanism = mechname::Mechanism::new("");
             if let Some(idx) = self.shared.mechs.iter().position(|supported| {
                 name = supported.name();
-                supported.name() == mech && supported.server().start(&self.shared).is_ok()
+                supported.name() == mech && supported.server().start(self).is_ok()
             }) {
                 if min.is_none() || min.unwrap().0 > idx {
                     min = Some((idx, name));
@@ -245,8 +245,10 @@ impl SASL {
     pub fn client_start(&self, mech: &mechname::Mechanism) -> Result<Session, SASLError> {
         for builder in self.shared.mechs.iter() {
             if builder.name() == mech {
-                let mechanism = builder.client().start(&self.shared)?;
-                return Ok(Session::new(self.shared.callback.clone(), mechanism));
+                let mechanism = builder.client().start(self)?;
+                return Ok(Session::new(self.shared.callback.clone(),
+                                       mechanism,
+                                       self.global_data.clone()));
             }
         }
 
@@ -264,8 +266,10 @@ impl SASL {
     pub fn server_start(&self, mech: &mechname::Mechanism) -> Result<Session, SASLError> {
         for builder in self.shared.mechs.iter() {
             if builder.name() == mech {
-                let mechanism = builder.server().start(&self.shared)?;
-                return Ok(Session::new(self.shared.callback.clone(), mechanism));
+                let mechanism = builder.server().start(self)?;
+                return Ok(Session::new(self.shared.callback.clone(),
+                                       mechanism,
+                                       self.global_data.clone()));
             }
         }
 
@@ -276,7 +280,6 @@ impl SASL {
 
 }
 
-#[derive(Debug)]
 // Provider
 // - List of mechanisms
 // - Global data

@@ -10,6 +10,7 @@ use crate::mechanisms::openid20::mechinfo::gsasl_openid20_mechanism;
 use crate::mechanisms::plain::client::Plain;
 use crate::mechanisms::plain::mechinfo::gsasl_plain_mechanism;
 use crate::gsasl::register::gsasl_register;
+use crate::mechanism::MechanismInstance;
 use crate::mechanisms::saml20::mechinfo::gsasl_saml20_mechanism;
 use crate::mechanisms::scram::mechinfo::{gsasl_scram_sha1_mechanism,
                                         gsasl_scram_sha1_plus_mechanism,
@@ -39,6 +40,7 @@ pub(crate) unsafe fn register_builtin_mechs(ctx: &mut DynamicRegistry) -> libc::
     if rc != GSASL_OK as libc::c_int { return rc }
     /* USE_LOGIN */
     ctx.register(Mechanism::new("PLAIN"), Plain, CMechBuilder {
+        name: Mechanism::new("PLAIN"),
         vtable: gsasl_plain_mechanism.server
     });
     /*rc = gsasl_register(ctx, &mut gsasl_plain_mechanism);

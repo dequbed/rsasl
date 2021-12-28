@@ -14,7 +14,8 @@ documentation = "https://docs.rs/rsasl"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["provider", "provider_base64", "scram-sha-1", "scram-sha-2", "digest-md5", "cram-md5", "digest"]
+default = ["provider", "provider_base64", "registry_static", "scram-sha-1", "scram-sha-2", "digest-md5", "cram-md5",
+    "digest"]
 
 scram-sha-1 = ["hmac", "sha-1", "base64"]
 scram-sha-2 = ["hmac", "sha2", "base64"]
@@ -23,6 +24,8 @@ cram-md5 = ["hmac", "md-5"]
 
 provider = []
 provider_base64 = ["provider", "base64"]
+
+registry_static = ["linkme"]
 
 [dependencies]
 libc = "0.2"
@@ -35,5 +38,4 @@ sha-1 = { version = "0.10", optional = true }
 sha2 = { version = "0.10", optional = true }
 md-5 = { version = "0.10", optional = true }
 
-[package.metadata.docs.rs]
-no-default-features = true # Don'd build or depend on bindgen when on docs.rs
+linkme = { version = "0.2", optional = true }
