@@ -1,7 +1,7 @@
 use std::ffi::CString;
 use libc::size_t;
 use crate::consts::*;
-use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_OK, Gsasl_property};
+use crate::gsasl::consts::{GSASL_OK, Gsasl_property};
 use crate::SessionData;
 
 extern "C" {

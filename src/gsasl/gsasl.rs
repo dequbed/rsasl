@@ -2,10 +2,9 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::ptr::NonNull;
 use libc::size_t;
-use crate::{GSASL_OK, GSASL_UNKNOWN_MECHANISM, RsaslError, Shared, SASLError, SessionData, SASL, mechname};
+use crate::{GSASL_OK, GSASL_UNKNOWN_MECHANISM, Shared, SASLError, SessionData, SASL, mechname};
 use crate::consts::GSASL_NEEDS_MORE;
 use crate::mechanism::{Authentication, MechanismBuilder, MechanismInstance};
-use crate::mechanisms::plain::client::Plain;
 use crate::session::StepResult;
 use crate::Step::{Done, NeedsMore};
 

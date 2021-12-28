@@ -9,7 +9,6 @@ use rsasl::Step::{Done, NeedsMore};
 #[test]
 fn plain_client() {
     let sasl = SASL::new();
-    println!("{:#?}", sasl);
     let mut session = sasl.client_start(Mechname::try_parse(b"PLAIN").unwrap())
         .unwrap();
 

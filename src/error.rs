@@ -1,7 +1,6 @@
 use std::fmt;
 use std::ffi::CStr;
-use std::fmt::{Debug, Display, Formatter, Write};
-use std::io::Error;
+use std::fmt::{Debug, Display, Formatter};
 use base64::DecodeError;
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 
@@ -9,9 +8,6 @@ pub type Result<T> = std::result::Result<T, SASLError>;
 
 static UNKNOWN_ERROR: &'static str = "The given error code is unknown to gsasl";
 
-struct ErrorContext {
-    mechanism: [u8; 20],
-}
 pub enum SASLError {
     Io {
         source: std::io::Error,
@@ -35,9 +31,9 @@ impl Debug for SASLError {
             },
             SASLError::UnknownMechanism { mechanism } => {
                 if let Ok(s) = std::str::from_utf8(mechanism) {
-                    write!(f, "No mechanism \"{}\" is implemented", s)
+                    write!(f, "Unknown Mechanism \"{}\"", s)
                 } else {
-                    write!(f, "No mechanism {:?} is implemented", mechanism)
+                    write!(f, "Unknown Mechanism {:?}", mechanism)
                 }
             }
             SASLError::Base64DecodeError { source } => Debug::fmt(source, f),
@@ -58,7 +54,11 @@ impl Display for SASLError {
                 Display::fmt(source, f)
             },
             SASLError::UnknownMechanism { mechanism } => {
-                f.write_str("Unknown Mechanism")
+                if let Ok(name) = std::str::from_utf8(mechanism) {
+                    write!(f, "mechanism {} is not implemented", name)
+                } else {
+                    write!(f, "mechanism {:?} is not implemented", mechanism)
+                }
             }
             SASLError::Base64DecodeError { source } => {
                 Display::fmt(source, f)
