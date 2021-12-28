@@ -17,7 +17,7 @@ use crate::mechanisms::scram::mechinfo::{gsasl_scram_sha1_mechanism,
                                 gsasl_scram_sha256_mechanism, gsasl_scram_sha256_plus_mechanism};
 use crate::mechanisms::securid::mechinfo::gsasl_securid_mechanism;
 use crate::mechname::Mechanism;
-use crate::registry::DynamicRegistry;
+use crate::registry::Registry;
 
 extern "C" {
     fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
@@ -28,7 +28,7 @@ pub static mut GSASL_VALID_MECHANISM_CHARACTERS: *const libc::c_char =
     b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_\x00" as *const u8 as
         *const libc::c_char;
 
-pub(crate) unsafe fn register_builtin_mechs(ctx: &mut DynamicRegistry) -> libc::c_int {
+pub(crate) unsafe fn register_builtin_mechs(ctx: &mut Registry) -> libc::c_int {
     let mut rc: libc::c_int = GSASL_OK as libc::c_int;
     rc = gsasl_register(ctx, &mut gsasl_anonymous_mechanism);
     if rc != GSASL_OK as libc::c_int { return rc }

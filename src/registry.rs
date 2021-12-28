@@ -2,25 +2,84 @@ use std::fmt::Debug;
 use crate::{CMechBuilder, GSASL_OK, MechanismVTable, MechContainer, mechname, register_builtin_mechs, SASLError};
 use crate::Mech;
 use crate::mechanism::MechanismBuilder;
+use crate::registry::static_registry::StaticRegistry;
 
-pub struct StaticMechDescription {
+#[derive(Copy, Clone)]
+/// A struct describing a particular Mechanism
+///
+/// Every mechanism to be used with RSASL must define an instance of this struct for itself.
+pub struct MechanismDescription {
     pub name: &'static super::mechname::Mechanism,
+
+    /// This mechanism transfers (parts of) a client secret such as passwords in plain, so
+    /// should only be used over trusted connections such as TLS-secured ones.
+    pub plaintext: bool,
+
+    /// This mechanism offers the potential of channel bindings.
+    pub channel_bindings: bool,
+
+    /// This mechanism offers the potential of mutual authentication, i.e. an attacker can not
+    /// fake a successful authentication without knowing some secret data.
+    pub mutual_authentication: bool,
+
     pub builder: &'static dyn MechanismBuilder,
 }
 
-#[linkme::distributed_slice]
-pub static MECHANISMS: [StaticMechDescription] = [..];
-
 #[cfg(any(feature = "registry_static"))]
 mod static_registry {
+    use crate::registry::MechanismDescription;
+    inventory::collect!(MechanismDescription);
+
+    #[repr(transparent)]
+    #[derive(Clone)]
+    pub(super) struct StaticRegistry {
+        inner: Box<[&'static MechanismDescription]>,
+    }
+
+    impl StaticRegistry {
+        pub fn new(inner: Box<[&'static MechanismDescription]>) -> Self {
+            Self { inner }
+        }
+
+        pub fn with_filter<F: FnMut(&MechanismDescription) -> bool>(mut filter: F) -> Self {
+            let inner = inventory::iter::<MechanismDescription>
+                .into_iter()
+                .filter(|m| filter(m))
+                .collect();
+            Self::new(inner)
+        }
+
+        pub fn with_all() -> Self {
+            let inner = inventory::iter::<MechanismDescription>
+                .into_iter()
+                .collect();
+            Self::new(inner)
+        }
+    }
+
+    impl Default for StaticRegistry {
+        fn default() -> Self {
+            Self::with_all()
+        }
+    }
+}
+#[cfg(not(any(feature = "registry_static")))]
+mod static_registry {
+    #[repr(transparent)]
+    #[derive(Clone)]
+    pub(super) struct StaticRegistry;
+
+    impl Default for StaticRegistry {
+        fn default() -> Self { Self }
+    }
 }
 
-#[repr(transparent)]
-pub(crate) struct DynamicRegistry {
+pub(crate) struct Registry {
+    enabled_static: static_registry::StaticRegistry,
     mechs: Vec<Box<dyn Mech>>
 }
 
-impl DynamicRegistry {
+impl Registry {
     pub fn register_cmech(&mut self, name: &'static mechname::Mechanism,
                           client: MechanismVTable,
                           server: MechanismVTable)
@@ -47,6 +106,8 @@ impl DynamicRegistry {
 
     pub fn new() -> Result<Self, SASLError> {
         let mut this = Self {
+            #[cfg(any(feature = "registry_static"))]
+            enabled_static: StaticRegistry::default(),
             mechs: Vec::new(),
         };
 

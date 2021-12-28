@@ -25,7 +25,8 @@ cram-md5 = ["hmac", "md-5"]
 provider = []
 provider_base64 = ["provider", "base64"]
 
-registry_static = ["linkme"]
+registry_static = ["inventory"]
+registry_dynamic = []
 
 [dependencies]
 libc = "0.2"
@@ -38,4 +39,4 @@ sha-1 = { version = "0.10", optional = true }
 sha2 = { version = "0.10", optional = true }
 md-5 = { version = "0.10", optional = true }
 
-linkme = { version = "0.2", optional = true }
+inventory = { version = "0.2", optional = true }

@@ -2,10 +2,10 @@ use ::libc;
 use libc::size_t;
 use crate::consts::GSASL_OK;
 use crate::gsasl::gsasl::{Gsasl_mechanism};
-use crate::registry::DynamicRegistry;
+use crate::registry::Registry;
 
 pub(crate) unsafe fn gsasl_register(
-    ctx: &mut DynamicRegistry,
+    ctx: &mut Registry,
     mech: &Gsasl_mechanism,
 ) -> libc::c_int
 {
