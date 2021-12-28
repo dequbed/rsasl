@@ -1,7 +1,7 @@
 use crate::gsasl::gsasl::{Gsasl_mechanism, MechanismVTable};
 use crate::mechanisms::plain::client::{_gsasl_plain_client_step, Plain};
 use crate::mechanisms::plain::server::_gsasl_plain_server_step;
-use crate::{CMechBuilder, Mechname};
+use crate::{Mechname};
 use crate::registry::MechanismDescription;
 use crate::registry::Initializer;
 
@@ -50,10 +50,6 @@ pub static gsasl_plain_mechanism: Gsasl_mechanism = Gsasl_mechanism {
 };
 
 static CLIENT: Plain = Plain;
-static SERVER: CMechBuilder = CMechBuilder {
-    name: "PLAIN",
-    vtable: gsasl_plain_mechanism.server
-};
 
 pub static PLAIN: Initializer = Initializer(|| MechanismDescription::new(
     Mechname::new("PLAIN"),
@@ -61,7 +57,7 @@ pub static PLAIN: Initializer = Initializer(|| MechanismDescription::new(
     false,
     false,
     Some(&CLIENT),
-    Some(&SERVER)
+    Some(&gsasl_plain_mechanism.server)
 ));
 
 #[cfg(any(feature = "registry_static"))]

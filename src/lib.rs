@@ -93,7 +93,7 @@ pub use buffer::SaslString;
 pub use session::Step;
 
 use crate::gsasl::consts::{GSASL_MECHANISM_PARSE_ERROR, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
-use crate::gsasl::gsasl::{CMechBuilder, MechContainer, Mech, MechanismVTable};
+use crate::gsasl::gsasl::{MechContainer, Mech, MechanismVTable};
 pub use crate::gsasl::consts::Gsasl_property as Property;
 
 pub use error::{

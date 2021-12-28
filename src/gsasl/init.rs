@@ -1,5 +1,5 @@
 use ::libc;
-use crate::{CMechBuilder, Shared};
+use crate::Shared;
 use crate::mechanisms::anonymous::mechinfo::gsasl_anonymous_mechanism;
 use crate::gsasl::consts::GSASL_OK;
 use crate::mechanisms::cram_md5::mechinfo::gsasl_cram_md5_mechanism;

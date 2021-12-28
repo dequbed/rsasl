@@ -119,27 +119,21 @@ impl Debug for MechanismVTable {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct CMechBuilder {
-    pub(crate) name: &'static str,
-    pub(crate) vtable: MechanismVTable,
-}
-
-impl MechanismBuilder for CMechBuilder {
+impl MechanismBuilder for MechanismVTable {
     fn init(&self) {
-        if let Some(init) = self.vtable.init {
+        if let Some(init) = self.init {
             unsafe { init() };
         }
     }
 
     fn start(&self, sasl: &SASL) -> Result<MechanismInstance, SASLError> {
-        if let Some(start) = self.vtable.start {
+        if let Some(start) = self.start {
             let mut mech_data = None;
             let res =  unsafe { start(&sasl.shared, &mut mech_data) };
             if res == GSASL_OK as libc::c_int {
                 let i = MechanismInstance {
                     name: mechname::Mechname::new("PLAIN"),
-                    inner: Box::new(CMech { vtable: self.vtable, mech_data: None }),
+                    inner: Box::new(CMech { vtable: *self, mech_data: None }),
                 };
                 return Ok(i);
             } else {
@@ -148,17 +142,9 @@ impl MechanismBuilder for CMechBuilder {
         } else {
             let i = MechanismInstance {
                 name: mechname::Mechname::new("PLAIN"),
-                inner: Box::new(CMech { vtable: self.vtable, mech_data: None }),
+                inner: Box::new(CMech { vtable: *self, mech_data: None }),
             };
             return Ok(i);
-        }
-    }
-}
-
-impl Drop for CMechBuilder {
-    fn drop(&mut self) {
-        if let Some(done) = self.vtable.done {
-            unsafe { done() };
         }
     }
 }

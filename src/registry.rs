@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::ptr::NonNull;
-use crate::{CMechBuilder, GSASL_OK, MechanismVTable, MechContainer, mechname, register_builtin_mechs, SASL, SASLError};
+use crate::{GSASL_OK, MechanismVTable, MechContainer, mechname, register_builtin_mechs, SASL, SASLError};
 use crate::Mech;
 use crate::mechanism::{MechanismBuilder, MechanismInstance};
 use crate::mechname::Mechname;
@@ -163,22 +163,16 @@ impl Registry {
     }
 
     pub fn register_cmech(&mut self, name: &'static mechname::Mechname,
-                          client: MechanismVTable,
-                          server: MechanismVTable)
+                          client: &'static MechanismVTable,
+                          server: &'static MechanismVTable)
     {
         self.register(MechanismDescription::new(
             name,
             true,
             false,
             false,
-            Some(Box::leak(Box::new(CMechBuilder {
-                name,
-                vtable: client,
-            }))),
-            Some(Box::leak(Box::new(CMechBuilder {
-                name,
-                vtable: server,
-            }))),
+            Some(client),
+            Some(server),
         ));
     }
 
@@ -187,13 +181,11 @@ impl Registry {
         self.registered.push(desc);
     }
 
-    pub fn init() -> Result<Self, SASLError> {
-        let mut this = Self::new(Vec::new());
-
+    pub fn init_c(&mut self) -> Result<(), SASLError> {
         unsafe {
-            let rc = register_builtin_mechs(&mut this);
+            let rc = register_builtin_mechs(self);
             if rc == GSASL_OK as libc::c_int {
-                Ok(this)
+                Ok(())
             } else {
                 Err((rc as libc::c_uint).into())
             }
@@ -204,7 +196,9 @@ impl Registry {
 impl Default for Registry {
     fn default() -> Self {
         #[cfg(feature = "registry_static")] {
-            Self::with_all()
+            let mut this = Self::with_all();
+            this.init_c();
+            this
         }
         #[cfg(not(feature = "registry_static"))] {
             Self::new(Vec::new())
