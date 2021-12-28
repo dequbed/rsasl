@@ -130,7 +130,7 @@ unsafe fn scram_start(mut _sctx: &Shared,
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn _gsasl_scram_sha1_client_start(sctx: &Shared,
+pub(crate) unsafe fn _gsasl_scram_sha1_client_start(sctx: &Shared,
                                              mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -148,7 +148,7 @@ pub unsafe fn _gsasl_scram_sha1_client_start(sctx: &Shared,
     return ret;
 }
 
-pub unsafe fn _gsasl_scram_sha1_plus_client_start(sctx: &Shared,
+pub(crate) unsafe fn _gsasl_scram_sha1_plus_client_start(sctx: &Shared,
                                                   mech_data: &mut Option<NonNull<()>>
 ) -> libc::c_int
 {
@@ -166,7 +166,7 @@ pub unsafe fn _gsasl_scram_sha1_plus_client_start(sctx: &Shared,
     return ret;
 }
 
-pub unsafe fn _gsasl_scram_sha256_client_start(sctx: &Shared,
+pub(crate) unsafe fn _gsasl_scram_sha256_client_start(sctx: &Shared,
                                                mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
@@ -184,7 +184,7 @@ pub unsafe fn _gsasl_scram_sha256_client_start(sctx: &Shared,
     return ret;
 }
 
-pub unsafe fn _gsasl_scram_sha256_plus_client_start(mut sctx: &Shared,
+pub(crate) unsafe fn _gsasl_scram_sha256_plus_client_start(mut sctx: &Shared,
                                                     mut mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {

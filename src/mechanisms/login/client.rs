@@ -59,7 +59,7 @@ pub struct _Gsasl_login_client_state {
     pub step: libc::c_int,
 }
 
-pub unsafe fn _gsasl_login_client_start(_ctx: &Shared,
+pub(crate) unsafe fn _gsasl_login_client_start(_ctx: &Shared,
                                         mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {

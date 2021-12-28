@@ -71,7 +71,7 @@ pub struct openid20_client_state {
     pub step: libc::c_int,
 }
 
-pub unsafe fn _gsasl_openid20_client_start(_sctx: &Shared,
+pub(crate) unsafe fn _gsasl_openid20_client_start(_sctx: &Shared,
                                            mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {

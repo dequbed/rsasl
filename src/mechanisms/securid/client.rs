@@ -32,7 +32,7 @@ extern "C" {
     fn strlen(_: *const libc::c_char) -> size_t;
 }
 
-pub unsafe fn _gsasl_securid_client_start(mut _sctx: &Shared,
+pub(crate) unsafe fn _gsasl_securid_client_start(mut _sctx: &Shared,
                                           mut mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {

@@ -71,7 +71,7 @@ pub struct saml20_server_state {
     pub step: libc::c_int,
 }
 
-pub unsafe fn _gsasl_saml20_server_start(_sctx: &Shared,
+pub(crate) unsafe fn _gsasl_saml20_server_start(_sctx: &Shared,
                                          mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {

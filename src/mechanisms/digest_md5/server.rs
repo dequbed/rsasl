@@ -44,7 +44,7 @@ pub struct _Gsasl_digest_md5_server_state {
     pub finish: digest_md5_finish,
 }
 
-pub unsafe fn _gsasl_digest_md5_server_start(_sctx: &Shared,
+pub(crate) unsafe fn _gsasl_digest_md5_server_start(_sctx: &Shared,
                                              mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {

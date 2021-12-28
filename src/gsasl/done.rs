@@ -269,7 +269,7 @@ extern "C" {
  * used with other libgsasl functions after this call.
  **/
 #[no_mangle]
-pub unsafe fn gsasl_done(_ctx: &mut Shared) {
+pub(crate) unsafe fn gsasl_done(_ctx: &mut Shared) {
     /*
     let mut i: size_t = 0;
     i = 0 as libc::c_int as size_t;

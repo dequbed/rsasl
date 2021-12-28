@@ -64,7 +64,7 @@ pub struct _Gsasl_login_server_state {
     pub password: *mut libc::c_char,
 }
 
-pub unsafe fn _gsasl_login_server_start(_sctx: &Shared,
+pub(crate) unsafe fn _gsasl_login_server_start(_sctx: &Shared,
                                         mech_data: &mut Option<NonNull<()>>,
 )
     -> libc::c_int {

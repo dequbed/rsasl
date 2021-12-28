@@ -1,7 +1,62 @@
+//! RSASL is a pure Rust SASL framework designed to make crates implementing SASL-authenticated
+//! protocol not have to worry about SASL.
+//!
+//! # Where to start
+//! - [I'm implementing some network protocol and I need to add SASL authentication to it!](#protocol-implementations)
+//! - [I'm an user of such a protocol crate and I need to configure my credentials!](#application-code)
+//! - [I'm both/either/none of those but I have to implement a custom SASL mechanism!](#custom-mechanisms)
+//!
+//!
+//! ## Protocol Implementations
+//! Crates implementing a protocol should allow users to provide an [`SASL`] struct at run time.
+//! Users construct this struct configuring the supported Mechanisms, their priorities and
+//! providing all required information for the authentication exchange, such as username and
+//! password.
+//!
+//! Protocol crates then call [`SASL::suggest_client_mechanism()`] or
+//! [`SASL::suggest_server_mechanism()`] to decide on a common Mechanism based on user preference
+//! and call [`SASL::client_start()`] or [`SASL::server_start()`] to actually start an
+//! authentication exchange, returning a [`Session`] struct. (See the documentation for
+//! [`Session`] on how to perform the actual authentication exchange)
+//!
+//! In addition protocol implementations should add a dependency on rsasl like this:
+//! ```toml
+//! [dependencies]
+//! rsasl = { version = "2", default-features = false, features = ["provider"]}
+//! ```
+//! or
+//! ```Cargo.toml
+//! [dependencies]
+//! rsasl = { version = "2", default-features = false, features = ["provider_base64"]}
+//! ```
+//! if they need base64 support.
+//!
+//! This makes use of [feature unification](https://doc.rust-lang.org/cargo/reference/features.html#feature-unification)
+//! to make rsasl a (nearly) zero-dependency crate and putting all decisions about compiled-in
+//! support and features into the hand of the final user.
+//! To this end a protocol crate **should not** re-export anything from the rsasl crate! Doing so
+//! may lead to a situation where users can't use any mechanisms since they only depend on
+//! rsasl via a transient dependency that has no mechanism features enabled.
+//!
+//! ## Application Code
+//!
+//! Application code needs to construct a [`SASL`] struct that can then be passed to the protocol
+//! handler to perform authentication exchanges. You need to provide this [`SASL`] struct with
+//! either all required information such as username and password beforehand (this is usually
+//! the best approach if you know all information beforehand) or by adding a [`Callback`] that
+//! can request information piece by piece (this is the best approach if you have an interactive
+//! client and want to be able to query your users or if you're implementing a server that has to
+//! validate a provided password).
+//!
+//! Applications can explicitly enable and disable mechanism support using features, with the
+//! default being to add all IANA-registered mechanisms.
+//! See the module documentation for [`mechanisms`] for details.
+//!
+//! ## Custom Mechanisms
+//!
+//! See [`Registry`]
 
-use std::ffi::CStr;
 use std::fmt::Debug;
-use std::ops::Deref;
 use std::sync::Arc;
 
 pub use libc;
@@ -12,8 +67,9 @@ pub mod error;
 mod callback;
 
 mod gsasl;
-mod mechanisms;
-mod mechname;
+pub mod mechanisms;
+pub mod mechname;
+mod registry;
 
 pub use gsasl::consts;
 
@@ -34,7 +90,7 @@ pub use error::{
 use crate::consts::RsaslError;
 use crate::error::SASLError;
 use crate::gsasl::init::register_builtin_mechs;
-use crate::session::Session;
+pub use crate::session::Session;
 
 
 
@@ -52,23 +108,37 @@ use crate::session::Session;
 // and instead do TLS.
 
 #[derive(Debug)]
+/// SASL Provider context
+///
+/// This is the central type required to use SASL both for protocol implementations requiring the
+/// use of SASL and for users wanting to provide SASL authentication to such implementations.
 pub struct SASL {
-    shared: Arc<Shared>,
+    shared: Shared,
 }
 
 impl SASL {
-    pub fn new(shared: Shared) -> Self {
+    pub(crate) fn new(shared: Shared) -> Self {
         Self {
-            shared: Arc::new(shared),
+            shared,
         }
     }
+}
 
+#[cfg(any(feature = "provider"))]
+/// ### Provider functions
+///
+/// These methods are only available when compiled with feature `provider`
+/// or `provider_base64` (enabled by default).
+/// They are mainly relevant for protocol implementations wanting to start an
+/// authentication exchange.
+impl SASL {
     /// Returns the list of client mechanisms supported by this provider.
     ///
-    pub fn client_mech_list(&self) -> impl Iterator<Item=&str> {
-        let shared = self.shared.clone();
+    /// An interactive client "logging in" to some server application would use this method. The
+    /// server application would use [`SASL::server_mech_list()`].
+    pub fn client_mech_list(&self) -> impl Iterator<Item=&mechname::Mechanism> {
         self.shared.mechs.iter().filter_map(move |builder| {
-            if builder.client().start(&shared).is_ok() {
+            if builder.client().start(&self.shared).is_ok() {
                 Some(builder.name())
             } else {
                 None
@@ -78,10 +148,11 @@ impl SASL {
 
     /// Returns the list of Server Mechanisms supported by this provider.
     ///
-    pub fn server_mech_list(&self) -> impl Iterator<Item=&str> {
-        let shared = self.shared.clone();
+    /// An server allowing client software to "log in" would use this method. A client
+    /// application would use [`SASL::client_mech_list()`].
+    pub fn server_mech_list(&self) -> impl Iterator<Item=&mechname::Mechanism> {
         self.shared.mechs.iter().filter_map(move |builder| {
-            if builder.server().start(&shared).is_ok() {
+            if builder.server().start(&self.shared).is_ok() {
                 Some(builder.name())
             } else {
                 None
@@ -91,16 +162,17 @@ impl SASL {
 
     /// Suggests a mechanism to use for client-side authentication, chosen from the given list of
     /// available mechanisms.
-    /// This will return Ok(None) if none of the given mechanisms are agreeable.
-    pub fn suggest_client_mechanism<'a>(&self, mechs: impl Iterator<Item=&'a str>) -> Option<&str>
+    /// If any passed mechanism names are invalid these are silently ignored.
+    /// This method will return `None` if none of the given mechanisms are agreeable.
+    pub fn suggest_client_mechanism<'a>(&self, mechs: impl Iterator<Item=&'a str>)
+        -> Option<&mechname::Mechanism>
     {
-        let shared = self.shared.clone();
-        let mut min: Option<(usize, &str)> = None;
+        let mut min: Option<(usize, &mechname::Mechanism)> = None;
         for mech in mechs {
-            let mut name = "";
+            let mut name: &mechname::Mechanism = mechname::Mechanism::new("");
             if let Some(idx) = self.shared.mechs.iter().position(|supported| {
                 name = supported.name();
-                mech == supported.name() && supported.client().start(&shared).is_ok()
+                supported.name() == mech && supported.client().start(&self.shared).is_ok()
             }) {
                 if min.is_none() || min.unwrap().0 > idx {
                     min = Some((idx, name));
@@ -113,16 +185,17 @@ impl SASL {
 
     /// Suggests a mechanism to use for server-side authentication, chosen from the given list of
     /// available mechanisms.
-    /// This will return Ok(None) if none of the given mechanisms are agreeable.
-    pub fn suggest_server_mechanism<'a>(&self, mechs: impl Iterator<Item=&'a str>) -> Option<&str>
+    /// If any passed mechanism names are invalid these are silently ignored.
+    /// This will return `None` if none of the given mechanisms are agreeable.
+    pub fn suggest_server_mechanism<'a>(&self, mechs: impl Iterator<Item=&'a str>)
+        -> Option<&mechname::Mechanism>
     {
-        let shared = self.shared.clone();
-        let mut min: Option<(usize, &str)> = None;
+        let mut min: Option<(usize, &mechname::Mechanism)> = None;
         for mech in mechs {
-            let mut name = "";
+            let mut name: &mechname::Mechanism = mechname::Mechanism::new("");
             if let Some(idx) = self.shared.mechs.iter().position(|supported| {
                 name = supported.name();
-                mech == supported.name() && supported.server().start(&shared).is_ok()
+                supported.name() == mech && supported.server().start(&self.shared).is_ok()
             }) {
                 if min.is_none() || min.unwrap().0 > idx {
                     min = Some((idx, name));
@@ -134,12 +207,12 @@ impl SASL {
     }
 
     /// Returns whether there is client-side support for the given mechanism
-    pub fn client_supports(&self, mech: &str) -> bool {
+    pub fn client_supports(&self, mech: &mechname::Mechanism) -> bool {
         self.client_mech_list().any(|supported| supported == mech)
     }
 
     /// Returns whether there is server-side support for the specified mechanism
-    pub fn server_supports(&self, mech: &str) -> bool {
+    pub fn server_supports(&self, mech: &mechname::Mechanism) -> bool {
         self.server_mech_list().any(|supported| supported == mech)
     }
 
@@ -149,7 +222,7 @@ impl SASL {
     /// an authcid, optional authzid and password for PLAIN. To provide that data an application
     /// has to either call `set_property` before running the step that requires the data, or
     /// install a callback.
-    pub fn client_start(&self, mech: &str) -> Result<Session, SASLError> {
+    pub fn client_start(&self, mech: &mechname::Mechanism) -> Result<Session, SASLError> {
         for builder in self.shared.mechs.iter() {
             if builder.name() == mech {
                 let mechanism = builder.client().start(&self.shared)?;
@@ -157,7 +230,9 @@ impl SASL {
             }
         }
 
-        Err(SASLError::UnknownMechanism)
+        let mut mechanism = [0u8; 20];
+        (&mut mechanism[0..mech.as_bytes().len()]).copy_from_slice(mech.as_bytes());
+        Err(SASLError::UnknownMechanism { mechanism })
     }
 
     /// Starts a authentication exchange as the server role
@@ -166,8 +241,7 @@ impl SASL {
     /// authentication data provided by the user.
     ///
     /// See [Callback](Callback) on how to implement callbacks.
-    pub fn server_start(&self, mech: &str) -> Result<Session, SASLError>
-    {
+    pub fn server_start(&self, mech: &mechname::Mechanism) -> Result<Session, SASLError> {
         for builder in self.shared.mechs.iter() {
             if builder.name() == mech {
                 let mechanism = builder.server().start(&self.shared)?;
@@ -175,7 +249,9 @@ impl SASL {
             }
         }
 
-        Err(SASLError::UnknownMechanism)
+        let mut mechanism = [0u8; 20];
+        (&mut mechanism[0..mech.as_bytes().len()]).copy_from_slice(mech.as_bytes());
+        Err(SASLError::UnknownMechanism { mechanism })
     }
 
 }
@@ -185,52 +261,13 @@ impl SASL {
 // - List of mechanisms
 // - Global data
 // - Callback
-pub struct Shared {
+struct Shared {
     // registry: Box<dyn Registry>,
     mechs: Vec<Box<dyn Mech>>,
     callback: Option<Arc<Box<dyn Callback>>>,
 }
 
 impl Shared {
-    pub fn register_cmech(&mut self, name: &'static str,
-                          client: MechanismVTable,
-                          server: MechanismVTable)
-    {
-        let mut mech = MechContainer {
-            name,
-            client: CMechBuilder { vtable: client },
-            server: CMechBuilder { vtable: server }
-        };
-        mech.init();
-        self.mechs.push(Box::new(mech));
-    }
-
-    pub fn register<C: 'static + MechanismBuilder, S: 'static + MechanismBuilder>(
-        &mut self,
-        name: &'static str,
-        client: C,
-        server: S)
-    {
-        let mut mech = Box::new(MechContainer { name, client, server });
-        mech.init();
-        self.mechs.push(mech);
-    }
-
-    pub fn new() -> Result<Self, RsaslError> {
-        let mut this = Self {
-            mechs: Vec::new(),
-            callback: None,
-        };
-
-        unsafe {
-            let rc = register_builtin_mechs(&mut this);
-            if rc == GSASL_OK as libc::c_int {
-                Ok(this)
-            } else {
-                Err(rc as libc::c_uint)
-            }
-        }
-    }
 }
 
 // SASL Impl:

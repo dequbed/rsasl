@@ -67,7 +67,7 @@ pub struct _Gsasl_digest_md5_client_state {
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-pub unsafe fn _gsasl_digest_md5_client_start(_sctx: &Shared,
+pub(crate) unsafe fn _gsasl_digest_md5_client_start(_sctx: &Shared,
                                              mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {

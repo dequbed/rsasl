@@ -87,11 +87,11 @@ unsafe fn _gsasl_listmech(_ctx: &Shared,
  * Return value: Returns %GSASL_OK if successful, or error code.
  **/
 #[no_mangle]
-pub unsafe fn gsasl_client_mechlist(_ctx: &Shared, _out: &mut *mut libc::c_char)
+pub(crate) unsafe fn gsasl_client_mechlist(_ctx: &Shared, _out: &mut *mut libc::c_char)
  -> libc::c_int {
     todo!()
 }
-pub unsafe fn gsasl_server_mechlist(_ctx: &Shared, _out: *mut *mut libc::c_char)
+pub(crate) unsafe fn gsasl_server_mechlist(_ctx: &Shared, _out: *mut *mut libc::c_char)
  -> libc::c_int {
     todo!()
 }

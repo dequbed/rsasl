@@ -16,10 +16,13 @@ pub enum SASLError {
     Io {
         source: std::io::Error,
     },
-    UnknownMechanism,
+    UnknownMechanism {
+        mechanism: [u8; 20]
+    },
     Base64DecodeError {
         source: base64::DecodeError,
     },
+    MechanismNameError(MechanismNameError),
     Gsasl(u32),
 }
 
@@ -29,11 +32,18 @@ impl Debug for SASLError {
             SASLError::Io { source } => {
                 Debug::fmt(source, f)
             },
-            SASLError::UnknownMechanism => {
-                f.write_str("No mechanism with the given name is implemented")
+            SASLError::UnknownMechanism { mechanism } => {
+                if let Ok(s) = std::str::from_utf8(mechanism) {
+                    write!(f, "No mechanism \"{}\" is implemented", s)
+                } else {
+                    write!(f, "No mechanism {:?} is implemented", mechanism)
+                }
             }
             SASLError::Base64DecodeError { source } => {
                 Debug::fmt(source, f)
+            },
+            SASLError::MechanismNameError(e) => {
+                Debug::fmt(e, f)
             },
             SASLError::Gsasl(n) =>
                 write!(f, "{}[{}]",
@@ -49,11 +59,14 @@ impl Display for SASLError {
             SASLError::Io { source } => {
                 Display::fmt(source, f)
             },
-            SASLError::UnknownMechanism => {
-                f.write_str("Unkown Mechanism")
+            SASLError::UnknownMechanism { mechanism } => {
+                f.write_str("Unknown Mechanism")
             }
             SASLError::Base64DecodeError { source } => {
                 Display::fmt(source, f)
+            },
+            SASLError::MechanismNameError(e) => {
+                Display::fmt(e, f)
             },
             SASLError::Gsasl(n) =>
                 write!(f, "({}): {}",
@@ -64,6 +77,12 @@ impl Display for SASLError {
 }
 
 impl std::error::Error for SASLError {}
+
+impl From<MechanismNameError> for SASLError {
+    fn from(e: MechanismNameError) -> Self {
+        SASLError::MechanismNameError(e)
+    }
+}
 
 impl From<u32> for SASLError {
     fn from(e: u32) -> Self {

@@ -25,9 +25,25 @@ impl Session {
         }
     }
 
-    /// Perform one step of SASL authentication. This reads data from `input` then processes it,
-    /// potentially calling a configured callback for required properties or enact decisions, and
-    /// writes any output data into the passed writer, returning the bytes written
+    /// Perform one step of SASL authentication.
+    ///
+    /// A protocol implementation calls this method with any data provided by the other party,
+    /// returning any response data written to the other party until after a Ok([`Step::Done`]) or
+    /// [`StepResult::Err`] is returned.
+    ///
+    /// To generate the first batch of data call this method with an input of `None`. If a `Step`
+    /// with a value of Some (i.e. `Step::Done(Some(_))` or `Step::NeedsMore(Some(_))`) is
+    /// returned the selected mechanism is initiated by your side and you can provide this data
+    /// to the other party.
+    /// If the Step contains a `None` the other party has to provide the initial batch of data.
+    ///
+    /// Not all protocols support both ClientFirst and ServerFirst Mechanisms, i.e. mechanisms in
+    /// which the client sends the first batch of data and mechanisms in which the server sends
+    /// the first batch of data. Refer to the documentation of the protocol in question on how to
+    /// indicate to the other party that they have to provide the first batch of data.
+    ///
+    /// Keep in mind that SASL makes a distinction between zero-sized data to send (a Step
+    /// containing `Some(0)`) and no data to send (a `Step` containing `None`).
     pub fn step(&mut self, input: Option<impl AsRef<[u8]>>, writer: &mut impl Write) -> StepResult {
         if let Some(input) = input {
             self.mechanism.step(&mut self.session_data, Some(input.as_ref()), writer)
@@ -36,6 +52,15 @@ impl Session {
         }
     }
 
+    /// Perform one step of SASL authentication, base64 encoded.
+    ///
+    /// This is a utility function wrapping [`Session::step`] to consume and produce
+    /// base64-encoded data. See the documentation of `step` for details on how this function
+    /// operates.
+    ///
+    /// Requiring base64-encoded SASL data is common in line-based or textual formats, such as
+    /// SMTP, IMAP, XMPP and IRCv3.
+    /// Refer to your protocol documentation if SASL data needs to be base64 encoded.
     pub fn step64(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult {
         let input = input
             .map(|inp| base64::decode_config(inp, base64::STANDARD))
