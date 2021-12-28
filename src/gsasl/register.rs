@@ -9,7 +9,7 @@ pub(crate) unsafe fn gsasl_register(
     mech: &Gsasl_mechanism,
 ) -> libc::c_int
 {
-    let name = crate::mechname::Mechanism::new(mech.name);
+    let name = crate::mechname::Mechname::new(mech.name);
     ctx.register_cmech(name, mech.client, mech.server);
     return GSASL_OK as libc::c_int;
 }

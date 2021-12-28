@@ -1,14 +1,17 @@
 use std::io;
 use std::io::Cursor;
 use rsasl::consts::{AUTHID, GSASL_AUTHENTICATION_ERROR, PASSWORD};
-use rsasl::{SASL, Shared, Step};
+use rsasl::{SASL, Step};
+use rsasl::error::SASLError;
+use rsasl::mechname::Mechname;
 use rsasl::Step::{Done, NeedsMore};
 
 #[test]
 fn plain_client() {
-    let sasl = Shared::new().unwrap();
-    let prov = SASL::new(sasl);
-    let mut session = prov.client_start("PLAIN").unwrap();
+    let sasl = SASL::new();
+    println!("{:#?}", sasl);
+    let mut session = sasl.client_start(Mechname::try_parse(b"PLAIN").unwrap())
+        .unwrap();
 
     let username = "testuser".to_string();
     assert_eq!(username.len(), 8);
@@ -21,7 +24,8 @@ fn plain_client() {
     let mut out = Cursor::new(Vec::new());
 
     // Do an authentication step. In a PLAIN exchange there is only one step, with no data.
-    let step_result = session.step(None, &mut out).unwrap();
+    let data: Option<Vec<u8>> = None;
+    let step_result = session.step(data, &mut out).unwrap();
 
     match step_result {
         Done(Some(len)) => {
@@ -42,9 +46,8 @@ fn plain_client() {
 
 #[test]
 fn plain_server() {
-    let sasl = Shared::new().unwrap();
-    let prov = SASL::new(sasl);
-    let mut session = prov.server_start("PLAIN").unwrap();
+    let prov = SASL::new();
+    let mut session = prov.server_start(Mechname::try_parse(b"PLAIN").unwrap()).unwrap();
 
     let username = "testuser".to_string();
     assert_eq!(username.len(), 8);
@@ -64,13 +67,16 @@ fn plain_server() {
         NeedsMore(_) => panic!("PLAIN exchange took more than one step"),
     }
 
-    let mut session = prov.server_start("PLAIN").unwrap();
+    let mut session = prov.server_start(Mechname::try_parse(b"PLAIN").unwrap()).unwrap();
     let username = "testuser".to_string();
     let password = "secret".to_string();
     session.set_property::<AUTHID>(Box::new(username));
     session.set_property::<PASSWORD>(Box::new(password));
 
-    assert!(session.step(Some(b"\0testuser\0badpass"), &mut out)
-                   .unwrap_err()
-                   .matches(GSASL_AUTHENTICATION_ERROR));
+    if let SASLError::Gsasl(GSASL_AUTHENTICATION_ERROR) =
+        session.step(Some(b"\0testuser\0badpass"), &mut out).unwrap_err() {
+
+    } else {
+        panic!("Plain auth did not fail")
+    }
 }

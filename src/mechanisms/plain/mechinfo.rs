@@ -1,6 +1,9 @@
 use crate::gsasl::gsasl::{Gsasl_mechanism, MechanismVTable};
-use crate::mechanisms::plain::client::_gsasl_plain_client_step;
+use crate::mechanisms::plain::client::{_gsasl_plain_client_step, Plain};
 use crate::mechanisms::plain::server::_gsasl_plain_server_step;
+use crate::{CMechBuilder, Mechname};
+use crate::registry::MechanismDescription;
+use crate::registry::Initializer;
 
 /* mechinfo.c --- Definition of PLAIN mechanism.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -24,7 +27,7 @@ use crate::mechanisms::plain::server::_gsasl_plain_server_step;
  *
  */
 /* Get specification. */
-pub static mut gsasl_plain_mechanism: Gsasl_mechanism = Gsasl_mechanism {
+pub static gsasl_plain_mechanism: Gsasl_mechanism = Gsasl_mechanism {
     name: "PLAIN",
     client: MechanismVTable {
         init: None,
@@ -45,3 +48,21 @@ pub static mut gsasl_plain_mechanism: Gsasl_mechanism = Gsasl_mechanism {
         decode: None,
     },
 };
+
+static CLIENT: Plain = Plain;
+static SERVER: CMechBuilder = CMechBuilder {
+    name: "PLAIN",
+    vtable: gsasl_plain_mechanism.server
+};
+
+pub static PLAIN: Initializer = Initializer(|| MechanismDescription::new(
+    Mechname::new("PLAIN"),
+    true,
+    false,
+    false,
+    Some(&CLIENT),
+    Some(&SERVER)
+));
+
+#[cfg(any(feature = "registry_static"))]
+inventory::submit!(PLAIN);

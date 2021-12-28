@@ -4,8 +4,10 @@ use ::libc;
 use libc::size_t;
 use crate::consts::{AUTHID, AUTHZID, PASSWORD};
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK};
-use crate::{RsaslError, Shared, SASLError, SessionData, mechname, SASL};
+use crate::{RsaslError, Shared, SASLError, SessionData, mechname, SASL, Mechname, CMechBuilder};
 use crate::mechanism::{Authentication, MechanismBuilder, MechanismInstance};
+use crate::mechanisms::plain::mechinfo::gsasl_plain_mechanism;
+use crate::registry::MechanismDescription;
 use crate::session::StepResult;
 use crate::Step::Done;
 
@@ -135,7 +137,7 @@ pub struct Plain;
 impl MechanismBuilder for Plain {
     fn start(&self, _sasl: &SASL) -> Result<MechanismInstance, SASLError> {
         let i = MechanismInstance {
-            name: mechname::Mechanism::new("PLAIN"),
+            name: mechname::Mechname::new("PLAIN"),
             inner: Box::new(Plain),
         };
         Ok(i)

@@ -11,7 +11,7 @@ use crate::Step::{Done, NeedsMore};
 
 struct M {
     /// The name of this mechanism
-    pub name: &'static crate::mechname::Mechanism,
+    pub name: &'static crate::mechname::Mechname,
 
     /// This mechanism transfers (parts of) a client secret such as a password in plain text.
     ///
@@ -26,7 +26,7 @@ struct M {
 
 #[derive(Clone, Debug)]
 pub(crate) struct MechContainer<C, S> {
-    pub name: &'static crate::mechname::Mechanism,
+    pub name: &'static crate::mechname::Mechname,
     pub client: C,
     pub server: S,
 }
@@ -38,13 +38,13 @@ impl<C: MechanismBuilder, S: MechanismBuilder> MechContainer<C, S> {
 }
 
 pub(crate) trait Mech {
-    fn name(&self) -> &'static crate::mechname::Mechanism;
+    fn name(&self) -> &'static crate::mechname::Mechname;
     fn client(&self) -> &dyn MechanismBuilder;
     fn server(&self) -> &dyn MechanismBuilder;
 }
 
 impl<C: MechanismBuilder, S: MechanismBuilder> Mech for MechContainer<C, S> {
-    fn name(&self) -> &'static crate::mechname::Mechanism {
+    fn name(&self) -> &'static crate::mechname::Mechname {
         self.name
     }
 
@@ -121,7 +121,7 @@ impl Debug for MechanismVTable {
 
 #[derive(Clone, Debug)]
 pub struct CMechBuilder {
-    pub(crate) name: &'static mechname::Mechanism,
+    pub(crate) name: &'static str,
     pub(crate) vtable: MechanismVTable,
 }
 
@@ -138,7 +138,7 @@ impl MechanismBuilder for CMechBuilder {
             let res =  unsafe { start(&sasl.shared, &mut mech_data) };
             if res == GSASL_OK as libc::c_int {
                 let i = MechanismInstance {
-                    name: mechname::Mechanism::new("PLAIN"),
+                    name: mechname::Mechname::new("PLAIN"),
                     inner: Box::new(CMech { vtable: self.vtable, mech_data: None }),
                 };
                 return Ok(i);
@@ -147,7 +147,7 @@ impl MechanismBuilder for CMechBuilder {
             }
         } else {
             let i = MechanismInstance {
-                name: mechname::Mechanism::new("PLAIN"),
+                name: mechname::Mechname::new("PLAIN"),
                 inner: Box::new(CMech { vtable: self.vtable, mech_data: None }),
             };
             return Ok(i);
