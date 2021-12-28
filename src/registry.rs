@@ -1,12 +1,8 @@
+use std::fmt::Debug;
 use crate::{CMechBuilder, GSASL_OK, MechanismBuilder, MechanismVTable, MechContainer, mechname, register_builtin_mechs, SASLError};
 use crate::Mech;
 
-pub(crate) trait Registry {
-    fn find(&self, name: &str) -> Option<&dyn Mech>;
-
-    fn suggest(&self, proposed: &[&str]) -> Option<&[&str]> {
-        todo!()
-    }
+pub(crate) trait Registry: Debug {
 }
 
 #[repr(transparent)]
@@ -54,4 +50,7 @@ impl DynamicRegistry {
             }
         }
     }
+}
+
+impl Registry for DynamicRegistry {
 }
