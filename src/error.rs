@@ -2,6 +2,7 @@ use std::fmt;
 use std::ffi::CStr;
 use std::fmt::{Debug, Display, Formatter};
 use base64::DecodeError;
+use crate::consts::Gsasl_property;
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 
 pub type Result<T> = std::result::Result<T, SASLError>;
@@ -13,13 +14,17 @@ pub enum SASLError {
         source: std::io::Error,
     },
     UnknownMechanism {
-        mechanism: [u8; 20]
+        mechanism: [u8; 20],
+        len: usize,
     },
     Base64DecodeError {
         source: base64::DecodeError,
     },
     MechanismNameError(MechanismNameError),
     NoSecurityLayer,
+    NoCallback {
+        code: Gsasl_property,
+    },
     Gsasl(u32),
 }
 
@@ -29,11 +34,16 @@ impl Debug for SASLError {
             SASLError::Io { source } => {
                 Debug::fmt(source, f)
             },
-            SASLError::UnknownMechanism { mechanism } => {
+            SASLError::UnknownMechanism { mechanism, len } => {
+                let mechanism = &mechanism[0..*len];
                 if let Ok(s) = std::str::from_utf8(mechanism) {
-                    write!(f, "Unknown Mechanism \"{}\"", s)
+                    write!(f, "UnknownMechanism(\"{}\")", s)
                 } else {
-                    write!(f, "Unknown Mechanism {:?}", mechanism)
+                    f.write_str("UnknownMechanism(")?;
+                    for b in mechanism.iter() {
+                        write!(f, "{:X}", *b)?;
+                    }
+                    f.write_str(")")
                 }
             }
             SASLError::Base64DecodeError { source } => Debug::fmt(source, f),
@@ -42,7 +52,8 @@ impl Debug for SASLError {
                 write!(f, "{}[{}]",
                        rsasl_errname_to_str(*n).unwrap_or("UNKNOWN_ERROR"),
                        n),
-            SASLError::NoSecurityLayer => f.write_str("No Security Layer installed"),
+            SASLError::NoSecurityLayer => f.write_str("NoSecurityLayer"),
+            SASLError::NoCallback { code } => write!(f, "NoCallback({:?})", code),
         }
     }
 }
@@ -53,7 +64,8 @@ impl Display for SASLError {
             SASLError::Io { source } => {
                 Display::fmt(source, f)
             },
-            SASLError::UnknownMechanism { mechanism } => {
+            SASLError::UnknownMechanism { mechanism, len } => {
+                let mechanism = &mechanism[0..*len];
                 if let Ok(name) = std::str::from_utf8(mechanism) {
                     write!(f, "mechanism {} is not implemented", name)
                 } else {
@@ -72,6 +84,10 @@ impl Display for SASLError {
                        gsasl_err_to_str_internal(*n as i32)),
             SASLError::NoSecurityLayer => f.write_str("Tried wrapping data but no security layer \
                 is installed"),
+            SASLError::NoCallback { code } =>
+                write!(f,
+                       "callback could not provide the requested property {}",
+                       code),
         }
     }
 }

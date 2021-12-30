@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::collections::HashMap;
+use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 use base64::write::EncoderWriter;
@@ -62,9 +63,9 @@ impl Session {
     /// Requiring base64-encoded SASL data is common in line-based or textual formats, such as
     /// SMTP, IMAP, XMPP and IRCv3.
     /// Refer to your protocol documentation if SASL data needs to be base64 encoded.
-    pub fn step64(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult {
+    pub fn step64(&mut self, input: Option<impl AsRef<[u8]>>, writer: &mut impl Write) -> StepResult {
         let input = input
-            .map(|inp| base64::decode_config(inp, base64::STANDARD))
+            .map(|inp| base64::decode_config(inp.as_ref(), base64::STANDARD))
             .transpose()?;
         let mut writer64 = EncoderWriter::new(writer, base64::STANDARD);
         self.step(input, &mut writer64)
@@ -74,17 +75,26 @@ impl Session {
         self.session_data.set_property::<P>(item)
     }
 
-    pub fn get_property<P: Property>(&mut self) -> Option<P::Item> {
+    pub fn get_property<P: Property>(&mut self) -> Option<&P::Item> {
         self.session_data.get_property::<P>()
     }
 }
 
 
-#[derive(Debug)]
 pub struct SessionData {
     callback: Option<Arc<Box<dyn Callback>>>,
     property_cache: HashMap<Gsasl_property, Box<dyn Any>>,
     global_properties: Arc<HashMap<Gsasl_property, Box<dyn Any>>>,
+}
+
+impl Debug for SessionData {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SessionData")
+         .field("has callback", &self.callback.is_some())
+         .field("property cache", &self.property_cache)
+         .field("global properties", &self.global_properties)
+         .finish()
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -120,21 +130,22 @@ impl SessionData {
         }
     }
 
-    pub fn get_property_or_callback<P: Property>(&mut self) -> Option<P::Item> {
-        if let Some(item) = self.get_property::<P>() {
-            Some(item)
-        } else {
+    pub fn get_property_or_callback<P: Property>(&mut self) -> Option<&P::Item> {
+        if !self.has_property::<P>() {
             let _ = self.callback(P::code()).ok()?;
-            self.get_property::<P>()
         }
+        self.get_property::<P>()
     }
 
-    pub fn get_property<P: Property>(&self) -> Option<P::Item> {
+    pub fn has_property<P: Property>(&self) -> bool {
+        self.property_cache.contains_key(&P::code())
+    }
+
+    pub fn get_property<P: Property>(&self) -> Option<&P::Item> {
         self.property_cache.get(&P::code())
             .or_else(|| self.global_properties.get(&P::code()))
             .and_then(|prop| {
                 prop.downcast_ref::<P::Item>()
-                    .map(|prop| (*prop).clone())
         })
     }
 
@@ -150,7 +161,7 @@ impl SessionData {
 #[cfg(test)]
 mod tests {
     use crate::consts::{AUTHID, GSASL_AUTHID, GSASL_PASSWORD, PASSWORD};
-    use crate::{SASL, Shared};
+    use crate::{Mechname, SASL, Shared};
     use super::*;
 
     #[test]
@@ -168,16 +179,19 @@ mod tests {
         }
 
         let cbox = CB { data: 0 };
-        let mut session = SessionData::new(Some(Arc::new(Box::new(cbox))));
+        let mut session = SessionData::new(
+            Some(Arc::new(Box::new(cbox))),
+            Arc::new(HashMap::new())
+        );
 
         assert!(session.get_property::<AUTHID>().is_none());
-        assert_eq!(session.get_property_or_callback::<AUTHID>(), Some("is 0".to_string()))
+        assert_eq!(session.get_property_or_callback::<AUTHID>().unwrap(), "is 0");
     }
 
     #[test]
     fn property_set_get() {
-        let sasl = SASL::new(Shared::new().unwrap());
-        let mut sess = sasl.client_start("PLAIN")
+        let sasl = SASL::new();
+        let mut sess = sasl.client_start(Mechname::try_parse(b"PLAIN").unwrap())
             .unwrap();
 
         assert!(sess.get_property::<AUTHID>().is_none());
@@ -186,14 +200,14 @@ mod tests {
         assert!(sess.set_property::<AUTHID>(Box::new("test".to_string())).is_none());
         assert!(sess.set_property::<PASSWORD>(Box::new("secret".to_string())).is_none());
 
-        assert_eq!(sess.get_property::<AUTHID>(), Some("test".to_string()));
-        assert_eq!(sess.get_property::<PASSWORD>(), Some("secret".to_string()));
+        assert_eq!(sess.get_property::<AUTHID>().unwrap(), "test");
+        assert_eq!(sess.get_property::<PASSWORD>().unwrap(), "secret");
     }
 
     #[test]
     fn property_set_raw() {
-        let sasl = SASL::new(Shared::new().unwrap());
-        let mut sess = sasl.client_start("PLAIN").unwrap();
+        let sasl = SASL::new();
+        let mut sess = sasl.client_start(Mechname::try_parse(b"PLAIN").unwrap()).unwrap();
 
 
         assert!(sess.get_property::<AUTHID>().is_none());
@@ -204,7 +218,7 @@ mod tests {
             sess.session_data.set_property_raw(GSASL_PASSWORD, Box::new("secret".to_string()));
         }
 
-        assert_eq!(sess.get_property::<AUTHID>(), Some("test".to_string()));
-        assert_eq!(sess.get_property::<PASSWORD>(), Some("secret".to_string()));
+        assert_eq!(sess.get_property::<AUTHID>().unwrap(), "test");
+        assert_eq!(sess.get_property::<PASSWORD>().unwrap(), "secret");
     }
 }

@@ -176,12 +176,12 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut SessionData,
                 return GSASL_MALLOC_ERROR as libc::c_int
             }
             let service = if let Some(service) = sctx.get_property_or_callback::<SERVICE>() {
-                service
+                service.clone()
             } else {
                 return GSASL_NO_SERVICE as libc::c_int
             };
             let hostname = if let Some(hostname) = sctx.get_property_or_callback::<HOSTNAME>() {
-                hostname
+                hostname.clone()
             } else {
                 return GSASL_NO_HOSTNAME as libc::c_int
             };
@@ -196,7 +196,7 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut SessionData,
             let mut tmp2: *mut libc::c_char = 0 as *mut libc::c_char;
 
             if let Some(authid) = sctx.get_property_or_callback::<AUTHID>() {
-                let cauthid = CString::new(authid).expect("Username contains NULL");
+                let cauthid = CString::new(authid.clone()).expect("Username contains NULL");
                 (*state).response.username = strdup(cauthid.as_ptr());
                 if (*state).response.username.is_null() {
                     return GSASL_MALLOC_ERROR as libc::c_int;
@@ -206,7 +206,7 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut SessionData,
             }
 
             if let Some(authzid) = sctx.get_property_or_callback::<AUTHZID>() {
-                let cauthid = CString::new(authzid).expect("Username contains NULL");
+                let cauthid = CString::new(authzid.clone()).expect("Username contains NULL");
                 (*state).response.authzid = strdup(cauthid.as_ptr());
                 if (*state).response.authzid.is_null() {
                     return GSASL_MALLOC_ERROR as libc::c_int;
@@ -222,7 +222,7 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut SessionData,
             }
 
             if let Some(passwd) = sctx.get_property_or_callback::<PASSWORD>() {
-                let cpasswd = CString::new(passwd).expect("Username contains NULL");
+                let cpasswd = CString::new(passwd.clone()).expect("Username contains NULL");
                 tmp2 = utf8tolatin1ifpossible(cpasswd.as_ptr());
             } else {
                 return GSASL_NO_PASSWORD as libc::c_int;

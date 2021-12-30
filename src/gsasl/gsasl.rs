@@ -132,7 +132,7 @@ impl MechanismBuilder for MechanismVTable {
             if res == GSASL_OK as libc::c_int {
                 let i = MechanismInstance {
                     name: mechname::Mechname::new("PLAIN"),
-                    inner: Box::new(CMech { vtable: *self, mech_data: None }),
+                    inner: Box::new(CMech { vtable: *self, mech_data }),
                 };
                 return Ok(i);
             } else {

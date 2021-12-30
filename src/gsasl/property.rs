@@ -215,28 +215,28 @@ unsafe fn gsasl_property_fast(sctx: &mut SessionData,
         }
     } else if GSASL_ANONYMOUS_TOKEN == prop {
         if let Some(prop) = sctx.get_property::<ANONYMOUS_TOKEN>() {
-            let cstr = CString::new(prop).unwrap();
+            let cstr = Box::leak(Box::new(CString::new(prop.clone()).unwrap()));
             cstr.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_PASSWORD == prop {
         if let Some(prop) = sctx.get_property::<PASSWORD>() {
-            let cstr = CString::new(prop).unwrap();
+            let cstr = Box::leak(Box::new(CString::new(prop.clone()).unwrap()));
             cstr.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_AUTHZID == prop {
         if let Some(prop) = sctx.get_property::<AUTHZID>() {
-            let cstr = CString::new(prop).unwrap();
+            let cstr = Box::leak(Box::new(CString::new(prop.clone()).unwrap()));
             cstr.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_AUTHID == prop {
         if let Some(prop) = sctx.get_property::<AUTHID>() {
-            let cstr = Box::leak(Box::new(CString::new(prop).unwrap()));
+            let cstr = Box::leak(Box::new(CString::new(prop.clone()).unwrap()));
             (*cstr).as_ptr()
         } else {
             std::ptr::null()
@@ -260,12 +260,14 @@ pub unsafe fn gsasl_property_get(sctx: &mut SessionData,
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::ffi::CStr;
+    use std::sync::Arc;
     use super::*;
 
     #[test]
     fn property_get_set() {
-        let mut session = SessionData::new(None);
+        let mut session = SessionData::new(None, Arc::new(HashMap::new()));
 
         unsafe {
             let ptr = gsasl_property_fast(&mut session, GSASL_QOP);

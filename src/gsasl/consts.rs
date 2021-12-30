@@ -120,7 +120,10 @@ pub const GSASL_AUTHID: Gsasl_property = 1;
 // TODO: 2. Check if we can inventory around this for efficient storage.
 pub trait Property {
     type Item: Any + Clone;
-    fn code() -> Gsasl_property;
+    fn code() -> Gsasl_property where Self: Sized;
+    fn code_dyn(&self) -> Gsasl_property {
+        0
+    }
 }
 
 pub struct OPENID20_OUTCOME_DATA;
