@@ -1,44 +1,40 @@
 use std::ffi::CString;
 use std::io;
-use rsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_NO_AUTHID, GSASL_NO_CALLBACK, GSASL_PASSWORD};
-use rsasl::{
-    Shared,
-    SessionData,
-    Callback,
-    Property,
-    Step::{Done, NeedsMore},
-    session::StepResult,
-    buffer::SaslBuffer
-};
+use std::io::Cursor;
+use rsasl::consts::{AUTHID, GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_NO_AUTHID, GSASL_NO_CALLBACK, GSASL_PASSWORD, Gsasl_property, PASSWORD};
+use rsasl::{SessionData, Callback, Property, Step::{Done, NeedsMore}, session::StepResult, buffer::SaslBuffer, SASL};
+use rsasl::error::SASLError;
+use rsasl::error::SASLError::NoCallback;
+use rsasl::mechname::Mechname;
 
 // Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
 
-impl Callback<(), ()> for OurCallback {
-    fn callback(_sasl: &mut Shared<(), ()>, session: &mut SessionData<()>, prop: Property)
-        -> Result<(), u32>
+impl Callback for OurCallback {
+    fn callback(&self, session: &mut SessionData, code: Gsasl_property)
+        -> Result<(), SASLError>
     {
-        match prop {
+        match code {
             GSASL_PASSWORD => {
                 // Access the authentication id, i.e. the username to check the password for
-                let _authcid = session.get_property_or_callback(GSASL_AUTHID)
+                let _authcid = session.get_property_or_callback::<AUTHID>()
                     .ok_or(GSASL_NO_AUTHID)?;
 
-                session.set_property(GSASL_PASSWORD, "secret".as_bytes());
+                session.set_property::<PASSWORD>(Box::new("secret".to_string()));
 
                 Ok(())
             },
-            _ => Err(GSASL_NO_CALLBACK)
+            _ => Err(NoCallback { code })
         }
     }
 }
 
 pub fn main() {
-    let mut sasl = Shared::new_untyped().unwrap();
+    let mut sasl = SASL::new();
 
-    sasl.install_callback::<OurCallback>();
+    sasl.install_callback(Box::new(OurCallback));
 
-    let mut session = sasl.server_start("SCRAM-SHA-1").unwrap();
+    let mut session = sasl.server_start(Mechname::try_parse(b"SCRAM-SHA-1").unwrap()).unwrap();
 
     loop {
         // Read data from STDIN
@@ -49,9 +45,10 @@ pub fn main() {
         }
         in_data.pop(); // Remove the newline char at the end of the string
 
-        let data = CString::new(in_data.as_bytes()).unwrap();
+        let data = Some(in_data.into_boxed_str().into_boxed_bytes());
 
-        let step_result = session.step64(&data);
+        let mut out = Cursor::new(Vec::new());
+        let step_result = session.step64(data.as_ref(), &mut out);
 
         match step_result {
             Ok(Done(buffer)) => {
@@ -64,17 +61,5 @@ pub fn main() {
             }
             Err(e) => println!("{}", e),
         }
-    }
-}
-
-fn print_outcome(step_result: StepResult<SaslBuffer>) {
-    match step_result {
-        Ok(Done(buffer)) => {
-            println!("Authentication successful, bytes to return to client: {:?}", buffer.as_ref());
-        },
-        Ok(NeedsMore(_)) => assert!(false, "PLAIN exchange took more than one step"),
-        Err(e) if e.matches(GSASL_AUTHENTICATION_ERROR)
-            => println!("Authentication failed, bad username or password"),
-        Err(e) => println!("Authentication errored: {}", e),
     }
 }

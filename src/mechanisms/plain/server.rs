@@ -138,7 +138,7 @@ pub unsafe fn _gsasl_plain_server_step(sctx: &mut SessionData,
                        0 as *mut libc::c_int);
     rpl_free(passwdz as *mut libc::c_void);
     if res != GSASL_OK as libc::c_int { return res }
-    let old = sctx.get_property::<PASSWORD>();
+    let old = sctx.get_property::<PASSWORD>().map(Clone::clone);
     res = gsasl_property_set(sctx, GSASL_PASSWORD, passprep);
     if res != GSASL_OK as libc::c_int { return res }
     /* Authorization.  Let application verify credentials internally,
@@ -146,12 +146,12 @@ pub unsafe fn _gsasl_plain_server_step(sctx: &mut SessionData,
     res = gsasl_callback(0 as *mut Shared, sctx, GSASL_VALIDATE_SIMPLE);
     if res == GSASL_NO_CALLBACK as libc::c_int {
         if let Some(key) = old {
-            sctx.set_property::<PASSWORD>(Box::new(key));
+            sctx.set_property::<PASSWORD>(Box::new(key.clone()));
         }
         let mut normkey: *mut libc::c_char = 0 as *mut libc::c_char;
         /* The following will invoke a GSASL_PASSWORD callback. */
         let key = if let Some(key_rust) = sctx.get_property_or_callback::<PASSWORD>() {
-            CString::new(key_rust)
+            CString::new(key_rust.clone())
                 .expect("gsasl property password was an invalid C string")
         } else {
             rpl_free(passprep as *mut libc::c_void);

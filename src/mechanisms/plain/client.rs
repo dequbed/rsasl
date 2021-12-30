@@ -70,9 +70,9 @@ pub unsafe fn _gsasl_plain_client_step(sctx: &mut SessionData,
                                        output_len: *mut size_t
 ) -> libc::c_int
 {
-    let authzid = sctx.get_property_or_callback::<AUTHZID>();
-    let authid = sctx.get_property_or_callback::<AUTHID>();
-    let password = sctx.get_property_or_callback::<PASSWORD>();
+    let authzid = sctx.get_property_or_callback::<AUTHZID>().map(Clone::clone);
+    let authid = sctx.get_property_or_callback::<AUTHID>().map(Clone::clone);
+    let password = sctx.get_property_or_callback::<PASSWORD>().map(Clone::clone);
 
     let authzidlen: size_t = if let Some(ref authzid) = authzid {
         authzid.len()
@@ -148,11 +148,14 @@ impl Authentication for Plain {
     fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write)
         -> StepResult
     {
-        let authzid = session.get_property_or_callback::<AUTHZID>();
+        let authzid = session.get_property_or_callback::<AUTHZID>()
+            .map(Clone::clone);
 
         let authid = session.get_property_or_callback::<AUTHID>()
+            .map(Clone::clone)
             .ok_or(GSASL_NO_AUTHID)?;
         let password = session.get_property_or_callback::<PASSWORD>()
+            .map(Clone::clone)
             .ok_or(GSASL_NO_PASSWORD)?;
 
         let authzidbuf = if let Some(authz) = &authzid {
@@ -214,7 +217,9 @@ impl Authentication for Plain {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
     use std::io::Cursor;
+    use std::sync::Arc;
     use super::*;
     use crate::consts::{AUTHID, PASSWORD};
     use crate::SessionData;
@@ -222,7 +227,7 @@ mod test {
 
     #[test]
     fn simple() {
-        let mut session = SessionData::new(None);
+        let mut session = SessionData::new(None, Arc::new(HashMap::new()));
 
         let username = "testuser".to_string();
         assert_eq!(username.len(), 8);
@@ -257,7 +262,7 @@ mod test {
 
     #[test]
     fn split_writer() {
-        let mut session = SessionData::new(None);
+        let mut session = SessionData::new(None, Arc::new(HashMap::new()));
 
         let username = "testuser".to_string();
         assert_eq!(username.len(), 8);

@@ -143,6 +143,10 @@ impl SASL {
             callback: None,
         }
     }
+
+    pub fn install_callback(&mut self, callback: Box<dyn Callback>) {
+        self.callback = Some(Arc::new(callback));
+    }
 }
 
 impl Debug for SASL {
@@ -150,7 +154,7 @@ impl Debug for SASL {
         f.debug_struct("SASL")
             .field("registry", &self.registry)
             .field("global data", &self.global_data)
-            .field("callback", &self.callback)
+            .field("has callback", &self.callback.is_some())
             .finish()
     }
 }
@@ -185,11 +189,13 @@ impl SASL {
     /// available mechanisms.
     /// If any passed mechanism names are invalid these are silently ignored.
     /// This method will return `None` if none of the given mechanisms are agreeable.
-    pub fn suggest_client_mechanism<'a>(&self, mechs: impl Iterator<Item=&'a str>)
+    pub fn suggest_client_mechanism<'a>(&self, mechs: impl Iterator<Item=&'a &'a str>)
         -> Option<(&Mechname, &dyn MechanismBuilder)>
     {
         self.registry.suggest_client_mechanism(
-            mechs.filter_map(|name| Mechname::try_parse(name.as_bytes()).ok())
+            mechs.filter_map(|name| {
+                Mechname::try_parse(name.as_bytes()).ok()
+            })
         )
     }
 
@@ -232,8 +238,9 @@ impl SASL {
         }
 
         let mut mechanism = [0u8; 20];
-        (&mut mechanism[0..mech.as_bytes().len()]).copy_from_slice(mech.as_bytes());
-        Err(SASLError::UnknownMechanism { mechanism })
+        let len = mech.as_bytes().len();
+        (&mut mechanism[0..len]).copy_from_slice(mech.as_bytes());
+        Err(SASLError::UnknownMechanism { mechanism, len })
     }
 
     /// Starts a authentication exchange as the server role
@@ -253,11 +260,11 @@ impl SASL {
         }
 
         let mut mechanism = [0u8; 20];
-        (&mut mechanism[0..mech.as_bytes().len()]).copy_from_slice(mech.as_bytes());
-        Err(SASLError::UnknownMechanism { mechanism })
+        let len = mech.as_bytes().len();
+        (&mut mechanism[0..len]).copy_from_slice(mech.as_bytes());
+        Err(SASLError::UnknownMechanism { mechanism, len })
 
     }
-
 }
 
 struct Shared;

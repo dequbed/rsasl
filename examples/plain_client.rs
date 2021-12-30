@@ -1,16 +1,18 @@
 use std::io;
+use std::io::Cursor;
 use rsasl::consts::{AUTHID, GSASL_AUTHID, GSASL_PASSWORD, PASSWORD};
-use rsasl::{Shared, Step::{Done, NeedsMore}};
+use rsasl::{SASL, Step::{Done, NeedsMore}};
+use rsasl::mechname::Mechname;
 
 
 pub fn main() {
     // Create an untyped SASL because we won't store/retrieve information in the context since
     // we don't use callbacks.
-    let mut sasl = Shared::new().unwrap();
+    let mut sasl = SASL::new();
 
     // Usually you would first agree on a mechanism with the server, for demostration purposes
     // we directly start a PLAIN "exchange"
-    let mut session = sasl.client_start("PLAIN").unwrap();
+    let mut session = sasl.client_start(Mechname::try_parse(b"PLAIN").unwrap()).unwrap();
 
     // Read the "authcid" from stdin
     let mut username = String::new();
@@ -37,12 +39,15 @@ pub fn main() {
 
 
     // Do an authentication step. In a PLAIN exchange there is only one step, with no data.
-    let step_result = session.step(None).unwrap();
+    let mut out = Cursor::new(Vec::new());
+    let data: Option<&[u8]> = None;
+    let step_result = session.step(data, &mut out).unwrap();
 
     match step_result {
-        Done(Some(buffer)) => {
-            println!("Encoded bytes: {:?}", buffer.as_ref());
-            println!("As string: {:?}", unsafe { std::str::from_utf8_unchecked(&buffer.as_ref()) });
+        Done(Some(_)) => {
+            let buffer = out.into_inner();
+            println!("Encoded bytes: {:?}", buffer);
+            println!("As string: {:?}", std::str::from_utf8(&buffer.as_ref()));
         },
         Done(None) => {
             panic!("PLAIN exchange produced no output")

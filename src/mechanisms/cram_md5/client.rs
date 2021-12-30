@@ -110,7 +110,7 @@ pub unsafe fn _gsasl_cram_md5_client_step(sctx: &mut SessionData,
         return GSASL_NEEDS_MORE as libc::c_int
     }
     if let Some(prop) = sctx.get_property_or_callback::<AUTHID>() {
-        let cstr = CString::new(prop).unwrap();
+        let cstr = CString::new(prop.clone()).unwrap();
         rc = gsasl_saslprep(cstr.as_ptr(),
                             GSASL_ALLOW_UNASSIGNED,
                             &mut authid,
@@ -120,7 +120,7 @@ pub unsafe fn _gsasl_cram_md5_client_step(sctx: &mut SessionData,
         return GSASL_NO_AUTHID as libc::c_int;
     }
     if let Some(prop) = sctx.get_property_or_callback::<PASSWORD>() {
-        let cstr = CString::new(prop).unwrap();
+        let cstr = CString::new(prop.clone()).unwrap();
         /* XXX Use query strings here?  Specification is unclear. */
         rc = gsasl_saslprep(cstr.as_ptr(),
                             GSASL_ALLOW_UNASSIGNED,

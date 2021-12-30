@@ -211,13 +211,12 @@ pub unsafe fn _gsasl_scram_client_step(sctx: &mut SessionData,
 {
     let mech_data = mech_data
         .map(|ptr| ptr.as_ptr())
-        .unwrap_or_else(std::ptr::null_mut);
+        .unwrap();
 
     let input_len = input.map(|i| i.len()).unwrap_or(0);
     let input: *const libc::c_char = input.map(|i| i.as_ptr().cast()).unwrap_or(std::ptr::null());
 
-    let mut state: *mut scram_client_state =
-        mech_data as *mut scram_client_state;
+    let mut state: *mut scram_client_state = mech_data as *mut scram_client_state;
     let mut res: libc::c_int =
         GSASL_MECHANISM_CALLED_TOO_MANY_TIMES as libc::c_int;
     let mut rc: libc::c_int = 0;
