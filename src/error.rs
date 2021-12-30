@@ -283,10 +283,4 @@ mod tests {
             , None
         );
     }
-
-    #[test]
-    #[ignore]
-    fn err_to_str_valid() {
-        assert_eq!(rsasl_err_to_str(GSASL_OK as i32), Some(""));
-    }
 }
