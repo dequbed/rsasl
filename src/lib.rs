@@ -84,6 +84,8 @@ pub mod mechanism;
 pub mod mechname;
 mod registry;
 
+mod validate;
+
 pub use gsasl::consts;
 
 pub use callback::Callback;
@@ -127,11 +129,24 @@ pub use crate::session::Session;
 ///
 /// This is the central type required to use SASL both for protocol implementations requiring the
 /// use of SASL and for users wanting to provide SASL authentication to such implementations.
+///
+/// This struct is not `Clone` or `Copy`, but all functions required for authentication exchanges
+/// only need a non-mutable reference to it. If you need to do several authentication exchanges in
+/// parallel, e.g. in a server context, you can wrap it in an [`std::sync::Arc`] to add cheap
+/// cloning.
 pub struct SASL {
     shared: Shared,
-    registry: Registry,
-    global_data: Arc<HashMap<Property, Box<dyn Any>>>,
-    callback: Option<Arc<Box<dyn Callback>>>,
+
+    /// The registry contains all mechanism registered with this provider context and implements
+    /// features such as Prioritization of mechanisms
+    pub registry: Registry,
+
+    /// Global data that is valid irrespective of context, such as e.g. a OAuth2 callback url or
+    /// a GSSAPI realm.
+    /// Can also be used to store properties such as username and password
+    pub global_data: Arc<HashMap<Property, Box<dyn Any>>>,
+
+    pub callback: Option<Arc<Box<dyn Callback>>>,
 }
 
 impl SASL {

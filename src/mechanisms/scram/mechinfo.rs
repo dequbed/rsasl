@@ -1,8 +1,10 @@
+use std::fmt::{Display, Formatter};
 use crate::gsasl::gsasl::{Gsasl_mechanism, MechanismVTable};
 use crate::mechanisms::scram::client::{_gsasl_scram_client_finish, _gsasl_scram_client_step,
                               _gsasl_scram_sha1_client_start, _gsasl_scram_sha1_plus_client_start, _gsasl_scram_sha256_client_start, _gsasl_scram_sha256_plus_client_start};
 use crate::mechanisms::scram::server::{_gsasl_scram_server_finish, _gsasl_scram_server_step,
                               _gsasl_scram_sha1_plus_server_start, _gsasl_scram_sha1_server_start, _gsasl_scram_sha256_plus_server_start, _gsasl_scram_sha256_server_start};
+use crate::validate::Validation;
 
 /* mechinfo.c --- Definition of SCRAM mechanism.
  * Copyright (C) 2009-2021 Simon Josefsson

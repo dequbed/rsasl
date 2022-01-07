@@ -82,7 +82,7 @@ impl Debug for MechanismDescription {
 /// When both are supported a registry could collect `&'static MechanismDescription` directly.
 pub struct Initializer(pub fn() -> MechanismDescription);
 
-pub(crate) struct Registry {
+pub struct Registry {
     registered: Vec<MechanismDescription>
 }
 
@@ -162,7 +162,7 @@ impl Registry {
          */
     }
 
-    pub fn register_cmech(&mut self, name: &'static mechname::Mechname,
+    pub(crate) fn register_cmech(&mut self, name: &'static mechname::Mechname,
                           client: &'static MechanismVTable,
                           server: &'static MechanismVTable)
     {

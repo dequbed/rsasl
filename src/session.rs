@@ -8,6 +8,7 @@ use base64::write::EncoderWriter;
 use crate::{Callback, Mechname, SASLError};
 use crate::consts::{CallbackAction, GSASL_NO_CALLBACK, Gsasl_property, *, Property};
 use crate::mechanism::{Authentication, MechanismInstance};
+use crate::validate::*;
 
 pub struct Session {
     mechanism: MechanismInstance,
@@ -125,20 +126,13 @@ impl SessionData {
     pub fn callback(&mut self, code: Gsasl_property) -> Result<(), SASLError> {
         if let Some(cb) = self.callback.clone() {
             match code {
-                GSASL_VALIDATE_OPENID20 =>
-                    cb.validate(self, "OPENID20"),
-                GSASL_VALIDATE_SAML20 =>
-                    cb.validate(self, "SAML20"),
-                GSASL_VALIDATE_SECURID =>
-                    cb.validate(self, "SECURID"),
-                GSASL_VALIDATE_GSSAPI =>
-                    cb.validate(self, "GSSAPI"),
-                GSASL_VALIDATE_ANONYMOUS =>
-                    cb.validate(self, "ANONYMOUS"),
-                GSASL_VALIDATE_EXTERNAL =>
-                    cb.validate(self, "EXTERNAL"),
-                GSASL_VALIDATE_SIMPLE =>
-                    cb.validate(self, "SIMPLE"),
+                GSASL_VALIDATE_SIMPLE => cb.validate(self, &SIMPLE),
+                GSASL_VALIDATE_OPENID20 => cb.validate(self, &OPENID20),
+                GSASL_VALIDATE_SAML20 => cb.validate(self, &SAML20),
+                GSASL_VALIDATE_SECURID => cb.validate(self, &SECURID),
+                GSASL_VALIDATE_GSSAPI => cb.validate(self, &GSSAPI),
+                GSASL_VALIDATE_ANONYMOUS => cb.validate(self, &ANONYMOUS),
+                GSASL_VALIDATE_EXTERNAL => cb.validate(self, &EXTERNAL),
                 property => {
                     let action = CallbackAction::from_code(property).unwrap();
                     cb.provide_prop(self, action)
@@ -190,7 +184,7 @@ mod tests {
             data: usize,
         }
         impl Callback for CB {
-            fn callback(&self, session: &mut SessionData, _code: Gsasl_property) -> Result<(), SASLError> {
+            fn provide_prop(&self, session: &mut SessionData, _action: CallbackAction) -> Result<(), SASLError> {
                 let _ = session.set_property::<AUTHID>(Box::new(format!("is {}", self.data)));
 
                 Ok(())
