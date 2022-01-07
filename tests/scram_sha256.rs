@@ -1,7 +1,7 @@
 use rsasl::{rsasl_err_to_str, rsasl_errname_to_str, SASL, Step};
 use std::ffi::CString;
 use std::io::Cursor;
-use rsasl::consts::{AUTHID, PASSWORD};
+use rsasl::consts::{AuthId, Password};
 use rsasl::mechname::Mechname;
 use rsasl::session::StepResult;
 
@@ -15,10 +15,10 @@ pub fn test_scram_sha() {
     let authid = Box::new("testuser".to_string());
     let password = Box::new("secret".to_string());
 
-    client_session.set_property::<AUTHID>(authid.clone());
-    client_session.set_property::<PASSWORD>(password.clone());
-    server_session.set_property::<AUTHID>(authid);
-    server_session.set_property::<PASSWORD>(password);
+    client_session.set_property::<AuthId>(authid.clone());
+    client_session.set_property::<Password>(password.clone());
+    server_session.set_property::<AuthId>(authid);
+    server_session.set_property::<Password>(password);
 
     let mut out = Cursor::new(Vec::new());
     let data: Option<&[u8]> = None;

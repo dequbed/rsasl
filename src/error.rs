@@ -2,7 +2,7 @@ use std::fmt;
 use std::ffi::CStr;
 use std::fmt::{Debug, Display, Formatter};
 use base64::DecodeError;
-use crate::consts::Gsasl_property;
+use crate::consts::{GetProperty, Gsasl_property};
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 use crate::Mechname;
 use crate::validate::Validation;
@@ -26,6 +26,9 @@ pub enum SASLError {
     NoSecurityLayer,
     NoCallback {
         code: Gsasl_property,
+    },
+    NoCallbackDyn {
+        property: &'static dyn GetProperty,
     },
     NoValidate {
         validation: &'static dyn Validation
@@ -61,6 +64,7 @@ impl Debug for SASLError {
             SASLError::NoCallback { code } => write!(f, "NoCallback({:?})", code),
             SASLError::NoValidate { validation } =>
                 write!(f, "NoValidate({:?})", validation),
+            SASLError::NoCallbackDyn { property } => write!(f, "NoCallback({:?})", property),
         }
     }
 }
@@ -95,6 +99,10 @@ impl Display for SASLError {
                 write!(f,
                        "callback could not provide the requested property {}",
                        code),
+            SASLError::NoCallbackDyn { property } =>
+                write!(f,
+                       "callback could not provide the requested property {:?}",
+                       property),
             SASLError::NoValidate { validation } =>
                 write!(f,
                        "no validation callback for {} installed",

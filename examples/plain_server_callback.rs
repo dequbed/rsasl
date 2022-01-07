@@ -1,6 +1,6 @@
 use std::ffi::CString;
 use std::io::Cursor;
-use rsasl::consts::{AUTHID, GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_NO_AUTHID, GSASL_NO_CALLBACK, GSASL_NO_PASSWORD, GSASL_PASSWORD, Gsasl_property, PASSWORD};
+use rsasl::consts::{AuthId, GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_NO_AUTHID, GSASL_NO_CALLBACK, GSASL_NO_PASSWORD, GSASL_PASSWORD, Gsasl_property, Password};
 use rsasl::{SessionData, Callback, Property, Step, session::StepResult, buffer::SaslBuffer, SASL};
 use rsasl::error::SASLError;
 use rsasl::mechname::Mechname;
@@ -15,11 +15,11 @@ impl Callback for OurCallback {
         match code {
             GSASL_VALIDATE_SIMPLE => {
                 // Access the authentication id, i.e. the username to check the password for
-                let authcid = session.get_property::<AUTHID>()
+                let authcid = session.get_property::<AuthId>()
                     .ok_or(GSASL_NO_AUTHID)?;
 
                 // Access the password itself
-                let password = session.get_property::<PASSWORD>()
+                let password = session.get_property::<Password>()
                     .ok_or(GSASL_NO_PASSWORD)?;
 
                 // For brevity sake we use hard-coded credentials here.

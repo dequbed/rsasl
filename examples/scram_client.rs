@@ -1,7 +1,7 @@
 use std::io;
 use std::ffi::CString;
 use std::io::Cursor;
-use rsasl::consts::{AUTHID, GSASL_AUTHID, GSASL_PASSWORD, PASSWORD};
+use rsasl::consts::{AuthId, GSASL_AUTHID, GSASL_PASSWORD, Password};
 
 use rsasl::{SASL, Step::{Done, NeedsMore}};
 use rsasl::mechname::Mechname;
@@ -41,10 +41,10 @@ pub fn main() {
     print!("\n");
 
     // Set the username that will be used in the SCRAM-SHA-1 authentication
-    session.set_property::<AUTHID>(Box::new(username));
+    session.set_property::<AuthId>(Box::new(username));
 
     // Now set the password that will be used in the SCRAM-SHA-1 authentication
-    session.set_property::<PASSWORD>(Box::new(password));
+    session.set_property::<Password>(Box::new(password));
 
 
     let mut data: Option<Box<[u8]>> = None;

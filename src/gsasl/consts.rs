@@ -1,6 +1,9 @@
-use std::any::Any;
+use std::any::{Any, TypeId};
 use std::ffi::CString;
-use crate::Mechname;
+use std::fmt::{Debug, Display};
+use std::hash::Hash;
+use crate::as_any::AsAny;
+use crate::{Mechname, Session, SessionData};
 
 pub type RsaslError = libc::c_uint;
 pub const GSASL_IO_ERROR: libc::c_uint = 65;
@@ -50,30 +53,30 @@ pub const GSASL_OK: libc::c_uint = 0;
 pub enum CallbackAction {
     OPENID20_AUTHENTICATE_IN_BROWSER,
     SAML20_AUTHENTICATE_IN_BROWSER,
-    OPENID20_OUTCOME_DATA(OPENID20_OUTCOME_DATA),
-    OPENID20_REDIRECT_URL(OPENID20_REDIRECT_URL),
-    SAML20_REDIRECT_URL(SAML20_REDIRECT_URL),
-    SAML20_IDP_IDENTIFIER(SAML20_IDP_IDENTIFIER),
-    CB_TLS_UNIQUE(CB_TLS_UNIQUE),
-    SCRAM_STOREDKEY(SCRAM_STOREDKEY),
-    SCRAM_SERVERKEY(SCRAM_SERVERKEY),
-    SCRAM_SALTED_PASSWORD(SCRAM_SALTED_PASSWORD),
-    SCRAM_SALT(SCRAM_SALT),
-    SCRAM_ITER(SCRAM_ITER),
-    QOP(QOP),
-    QOPS(QOPS),
-    DIGEST_MD5_HASHED_PASSWORD(DIGEST_MD5_HASHED_PASSWORD),
-    REALM(REALM),
-    PIN(PIN),
-    SUGGESTED_PIN(SUGGESTED_PIN),
-    PASSCODE(PASSCODE),
-    GSSAPI_DISPLAY_NAME(GSSAPI_DISPLAY_NAME),
-    HOSTNAME(HOSTNAME),
-    SERVICE(SERVICE),
-    ANONYMOUS_TOKEN(ANONYMOUS_TOKEN),
-    PASSWORD(PASSWORD),
-    AUTHZID(AUTHZID),
-    AUTHID(AUTHID),
+    OPENID20_OUTCOME_DATA(OpenID20OutcomeData),
+    OPENID20_REDIRECT_URL(OpenID20RedirectUrl),
+    SAML20_REDIRECT_URL(SAML20RedirectUrl),
+    SAML20_IDP_IDENTIFIER(SAML20IDPIdentifier),
+    CB_TLS_UNIQUE(CBTlsUnique),
+    SCRAM_STOREDKEY(ScramStoredkey),
+    SCRAM_SERVERKEY(ScramServerkey),
+    SCRAM_SALTED_PASSWORD(ScramSaltedPassword),
+    SCRAM_SALT(ScramSalt),
+    SCRAM_ITER(ScramIter),
+    QOP(Qop),
+    QOPS(Qops),
+    DIGEST_MD5_HASHED_PASSWORD(DigestMD5HashedPassword),
+    REALM(Realm),
+    PIN(Pin),
+    SUGGESTED_PIN(SuggestedPin),
+    PASSCODE(Passcode),
+    GSSAPI_DISPLAY_NAME(GssapiDisplayName),
+    HOSTNAME(Hostname),
+    SERVICE(Service),
+    ANONYMOUS_TOKEN(AnonymousToken),
+    PASSWORD(Password),
+    AUTHZID(AuthzId),
+    AUTHID(AuthId),
 }
 
 impl CallbackAction {
@@ -84,30 +87,30 @@ impl CallbackAction {
             CallbackAction::SAML20_AUTHENTICATE_IN_BROWSER =>
                 GSASL_SAML20_AUTHENTICATE_IN_BROWSER,
             // todo: The rest
-            CallbackAction::OPENID20_OUTCOME_DATA(_) => OPENID20_OUTCOME_DATA::code(),
-            CallbackAction::OPENID20_REDIRECT_URL(_) => OPENID20_REDIRECT_URL::code(),
-            CallbackAction::SAML20_REDIRECT_URL(_) => SAML20_REDIRECT_URL::code(),
-            CallbackAction::SAML20_IDP_IDENTIFIER(_) => SAML20_IDP_IDENTIFIER::code(),
-            CallbackAction::CB_TLS_UNIQUE(_) => CB_TLS_UNIQUE::code(),
-            CallbackAction::SCRAM_STOREDKEY(_) => SCRAM_STOREDKEY::code(),
-            CallbackAction::SCRAM_SERVERKEY(_) => SCRAM_SERVERKEY::code(),
-            CallbackAction::SCRAM_SALTED_PASSWORD(_) => SCRAM_SALTED_PASSWORD::code(),
-            CallbackAction::SCRAM_SALT(_) => SCRAM_SALT::code(),
-            CallbackAction::SCRAM_ITER(_) => SCRAM_ITER::code(),
-            CallbackAction::QOP(_) => QOP::code(),
-            CallbackAction::QOPS(_) => QOPS::code(),
-            CallbackAction::DIGEST_MD5_HASHED_PASSWORD(_) => DIGEST_MD5_HASHED_PASSWORD::code(),
-            CallbackAction::REALM(_) => REALM::code(),
-            CallbackAction::PIN(_) => PIN::code(),
-            CallbackAction::SUGGESTED_PIN(_) => SUGGESTED_PIN::code(),
-            CallbackAction::PASSCODE(_) => PASSCODE::code(),
-            CallbackAction::GSSAPI_DISPLAY_NAME(_) => GSSAPI_DISPLAY_NAME::code(),
-            CallbackAction::HOSTNAME(_) => HOSTNAME::code(),
-            CallbackAction::SERVICE(_) => SERVICE::code(),
-            CallbackAction::ANONYMOUS_TOKEN(_) => ANONYMOUS_TOKEN::code(),
-            CallbackAction::PASSWORD(_) => PASSWORD::code(),
-            CallbackAction::AUTHZID(_) => AUTHZID::code(),
-            CallbackAction::AUTHID(_) => AUTHID::code(),
+            CallbackAction::OPENID20_OUTCOME_DATA(_) => OpenID20OutcomeData::code(),
+            CallbackAction::OPENID20_REDIRECT_URL(_) => OpenID20RedirectUrl::code(),
+            CallbackAction::SAML20_REDIRECT_URL(_) => SAML20RedirectUrl::code(),
+            CallbackAction::SAML20_IDP_IDENTIFIER(_) => SAML20IDPIdentifier::code(),
+            CallbackAction::CB_TLS_UNIQUE(_) => CBTlsUnique::code(),
+            CallbackAction::SCRAM_STOREDKEY(_) => ScramStoredkey::code(),
+            CallbackAction::SCRAM_SERVERKEY(_) => ScramServerkey::code(),
+            CallbackAction::SCRAM_SALTED_PASSWORD(_) => ScramSaltedPassword::code(),
+            CallbackAction::SCRAM_SALT(_) => ScramSalt::code(),
+            CallbackAction::SCRAM_ITER(_) => ScramIter::code(),
+            CallbackAction::QOP(_) => Qop::code(),
+            CallbackAction::QOPS(_) => Qops::code(),
+            CallbackAction::DIGEST_MD5_HASHED_PASSWORD(_) => DigestMD5HashedPassword::code(),
+            CallbackAction::REALM(_) => Realm::code(),
+            CallbackAction::PIN(_) => Pin::code(),
+            CallbackAction::SUGGESTED_PIN(_) => SuggestedPin::code(),
+            CallbackAction::PASSCODE(_) => Passcode::code(),
+            CallbackAction::GSSAPI_DISPLAY_NAME(_) => GssapiDisplayName::code(),
+            CallbackAction::HOSTNAME(_) => Hostname::code(),
+            CallbackAction::SERVICE(_) => Service::code(),
+            CallbackAction::ANONYMOUS_TOKEN(_) => AnonymousToken::code(),
+            CallbackAction::PASSWORD(_) => Password::code(),
+            CallbackAction::AUTHZID(_) => AuthzId::code(),
+            CallbackAction::AUTHID(_) => AuthId::code(),
         }
     }
 
@@ -115,30 +118,30 @@ impl CallbackAction {
         match code {
             GSASL_OPENID20_AUTHENTICATE_IN_BROWSER => Some(CallbackAction::OPENID20_AUTHENTICATE_IN_BROWSER),
             GSASL_SAML20_AUTHENTICATE_IN_BROWSER => Some(CallbackAction::SAML20_AUTHENTICATE_IN_BROWSER),
-            GSASL_OPENID20_OUTCOME_DATA => Some(CallbackAction::OPENID20_OUTCOME_DATA(OPENID20_OUTCOME_DATA)),
-            GSASL_OPENID20_REDIRECT_URL => Some(CallbackAction::OPENID20_REDIRECT_URL(OPENID20_REDIRECT_URL)),
-            GSASL_SAML20_REDIRECT_URL => Some(CallbackAction::SAML20_REDIRECT_URL(SAML20_REDIRECT_URL)),
-            GSASL_SAML20_IDP_IDENTIFIER => Some(CallbackAction::SAML20_IDP_IDENTIFIER(SAML20_IDP_IDENTIFIER)),
-            GSASL_CB_TLS_UNIQUE => Some(CallbackAction::CB_TLS_UNIQUE(CB_TLS_UNIQUE)),
-            GSASL_SCRAM_STOREDKEY => Some(CallbackAction::SCRAM_STOREDKEY(SCRAM_STOREDKEY)),
-            GSASL_SCRAM_SERVERKEY => Some(CallbackAction::SCRAM_SERVERKEY(SCRAM_SERVERKEY)),
-            GSASL_SCRAM_SALTED_PASSWORD => Some(CallbackAction::SCRAM_SALTED_PASSWORD(SCRAM_SALTED_PASSWORD)),
-            GSASL_SCRAM_SALT => Some(CallbackAction::SCRAM_SALT(SCRAM_SALT)),
-            GSASL_SCRAM_ITER => Some(CallbackAction::SCRAM_ITER(SCRAM_ITER)),
-            GSASL_QOP => Some(CallbackAction::QOP(QOP)),
-            GSASL_QOPS => Some(CallbackAction::QOPS(QOPS)),
-            GSASL_DIGEST_MD5_HASHED_PASSWORD => Some(CallbackAction::DIGEST_MD5_HASHED_PASSWORD(DIGEST_MD5_HASHED_PASSWORD)),
-            GSASL_REALM => Some(CallbackAction::REALM(REALM)),
-            GSASL_PIN => Some(CallbackAction::PIN(PIN)),
-            GSASL_SUGGESTED_PIN => Some(CallbackAction::SUGGESTED_PIN(SUGGESTED_PIN)),
-            GSASL_PASSCODE => Some(CallbackAction::PASSCODE(PASSCODE)),
-            GSASL_GSSAPI_DISPLAY_NAME => Some(CallbackAction::GSSAPI_DISPLAY_NAME(GSSAPI_DISPLAY_NAME)),
-            GSASL_HOSTNAME => Some(CallbackAction::HOSTNAME(HOSTNAME)),
-            GSASL_SERVICE => Some(CallbackAction::SERVICE(SERVICE)),
-            GSASL_ANONYMOUS_TOKEN => Some(CallbackAction::ANONYMOUS_TOKEN(ANONYMOUS_TOKEN)),
-            GSASL_PASSWORD => Some(CallbackAction::PASSWORD(PASSWORD)),
-            GSASL_AUTHZID => Some(CallbackAction::AUTHZID(AUTHZID)),
-            GSASL_AUTHID => Some(CallbackAction::AUTHID(AUTHID)),
+            GSASL_OPENID20_OUTCOME_DATA => Some(CallbackAction::OPENID20_OUTCOME_DATA(OpenID20OutcomeData)),
+            GSASL_OPENID20_REDIRECT_URL => Some(CallbackAction::OPENID20_REDIRECT_URL(OpenID20RedirectUrl)),
+            GSASL_SAML20_REDIRECT_URL => Some(CallbackAction::SAML20_REDIRECT_URL(SAML20RedirectUrl)),
+            GSASL_SAML20_IDP_IDENTIFIER => Some(CallbackAction::SAML20_IDP_IDENTIFIER(SAML20IDPIdentifier)),
+            GSASL_CB_TLS_UNIQUE => Some(CallbackAction::CB_TLS_UNIQUE(CBTlsUnique)),
+            GSASL_SCRAM_STOREDKEY => Some(CallbackAction::SCRAM_STOREDKEY(ScramStoredkey)),
+            GSASL_SCRAM_SERVERKEY => Some(CallbackAction::SCRAM_SERVERKEY(ScramServerkey)),
+            GSASL_SCRAM_SALTED_PASSWORD => Some(CallbackAction::SCRAM_SALTED_PASSWORD(ScramSaltedPassword)),
+            GSASL_SCRAM_SALT => Some(CallbackAction::SCRAM_SALT(ScramSalt)),
+            GSASL_SCRAM_ITER => Some(CallbackAction::SCRAM_ITER(ScramIter)),
+            GSASL_QOP => Some(CallbackAction::QOP(Qop)),
+            GSASL_QOPS => Some(CallbackAction::QOPS(Qops)),
+            GSASL_DIGEST_MD5_HASHED_PASSWORD => Some(CallbackAction::DIGEST_MD5_HASHED_PASSWORD(DigestMD5HashedPassword)),
+            GSASL_REALM => Some(CallbackAction::REALM(Realm)),
+            GSASL_PIN => Some(CallbackAction::PIN(Pin)),
+            GSASL_SUGGESTED_PIN => Some(CallbackAction::SUGGESTED_PIN(SuggestedPin)),
+            GSASL_PASSCODE => Some(CallbackAction::PASSCODE(Passcode)),
+            GSASL_GSSAPI_DISPLAY_NAME => Some(CallbackAction::GSSAPI_DISPLAY_NAME(GssapiDisplayName)),
+            GSASL_HOSTNAME => Some(CallbackAction::HOSTNAME(Hostname)),
+            GSASL_SERVICE => Some(CallbackAction::SERVICE(Service)),
+            GSASL_ANONYMOUS_TOKEN => Some(CallbackAction::ANONYMOUS_TOKEN(AnonymousToken)),
+            GSASL_PASSWORD => Some(CallbackAction::PASSWORD(Password)),
+            GSASL_AUTHZID => Some(CallbackAction::AUTHZID(AuthzId)),
+            GSASL_AUTHID => Some(CallbackAction::AUTHID(AuthId)),
             _ => None,
         }
 
@@ -181,130 +184,345 @@ pub const GSASL_PASSWORD: Gsasl_property = 3;
 pub const GSASL_AUTHZID: Gsasl_property = 2;
 pub const GSASL_AUTHID: Gsasl_property = 1;
 
-// TODO: 1. Make this a pure marker trait defining the output type.
+// TODO: 1. Can we make Get-/SetProperty a pure marker trait defining the output type?
 // TODO: 2. Check if we can inventory around this for efficient storage.
-pub trait Property {
-    type Item: Any + Clone;
-    fn code() -> Gsasl_property where Self: Sized;
+
+pub trait GetProperty: 'static + AsAny + Debug {
+    fn as_any(&self) -> &dyn Any {
+        <Self as AsAny>::as_any_super(self)
+    }
 }
 
-pub struct OPENID20_OUTCOME_DATA;
-impl Property for OPENID20_OUTCOME_DATA {
+pub trait SetProperty: GetProperty {
+    type Item: Any + Clone;
+    fn code() -> Gsasl_property where Self: Sized;
+    fn as_const() -> &'static dyn GetProperty {
+        todo!()
+    }
+}
+
+pub trait Property {
+    fn code_sta() -> Gsasl_property where Self: Sized;
+    fn code_dyn(&self) -> Gsasl_property;
+}
+
+impl<T: SetProperty> Property for T {
+    fn code_sta() -> Gsasl_property where Self: Sized {
+        <T as SetProperty>::code()
+    }
+
+    fn code_dyn(&self) -> Gsasl_property {
+        <T as SetProperty>::code()
+    }
+}
+
+impl PartialEq for &'static dyn GetProperty {
+    fn eq(&self, other: &Self) -> bool {
+        self.type_id() == other.type_id()
+    }
+}
+
+#[derive(Debug)]
+pub struct OpenID20AuthenticateInBrowser;
+impl GetProperty for OpenID20AuthenticateInBrowser {}
+impl SetProperty for OpenID20AuthenticateInBrowser {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_OPENID20_AUTHENTICATE_IN_BROWSER }
+}
+
+#[derive(Debug)]
+pub struct Saml20AuthenticateInBrowser;
+impl GetProperty for Saml20AuthenticateInBrowser {}
+impl SetProperty for Saml20AuthenticateInBrowser {
+    type Item = CString;
+    fn code() -> Gsasl_property { GSASL_SAML20_AUTHENTICATE_IN_BROWSER }
+}
+
+#[derive(Debug)]
+pub struct OpenID20OutcomeData;
+impl GetProperty for OpenID20OutcomeData {}
+impl SetProperty for OpenID20OutcomeData {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_OPENID20_OUTCOME_DATA }
 }
-pub struct OPENID20_REDIRECT_URL;
-impl Property for OPENID20_REDIRECT_URL {
+
+#[derive(Debug)]
+pub struct OpenID20RedirectUrl;
+
+impl GetProperty for OpenID20RedirectUrl {}
+
+impl SetProperty for OpenID20RedirectUrl {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_OPENID20_REDIRECT_URL }
 }
-pub struct SAML20_REDIRECT_URL;
-impl Property for SAML20_REDIRECT_URL {
+
+#[derive(Debug)]
+pub struct SAML20RedirectUrl;
+
+impl GetProperty for SAML20RedirectUrl {}
+
+impl SetProperty for SAML20RedirectUrl {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SAML20_REDIRECT_URL }
 }
-pub struct SAML20_IDP_IDENTIFIER;
-impl Property for SAML20_IDP_IDENTIFIER {
+
+#[derive(Debug)]
+pub struct SAML20IDPIdentifier;
+
+impl GetProperty for SAML20IDPIdentifier {}
+
+impl SetProperty for SAML20IDPIdentifier {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SAML20_IDP_IDENTIFIER }
 }
-pub struct CB_TLS_UNIQUE;
-impl Property for CB_TLS_UNIQUE {
+
+#[derive(Debug)]
+pub struct CBTlsUnique;
+
+impl GetProperty for CBTlsUnique {}
+
+impl SetProperty for CBTlsUnique {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_CB_TLS_UNIQUE }
 }
-pub struct SCRAM_STOREDKEY;
-impl Property for SCRAM_STOREDKEY {
+
+#[derive(Debug)]
+pub struct ScramStoredkey;
+
+impl GetProperty for ScramStoredkey {}
+
+impl SetProperty for ScramStoredkey {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SCRAM_STOREDKEY }
 }
-pub struct SCRAM_SERVERKEY;
-impl Property for SCRAM_SERVERKEY {
+
+#[derive(Debug)]
+pub struct ScramServerkey;
+
+impl GetProperty for ScramServerkey {}
+
+impl SetProperty for ScramServerkey {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SCRAM_SERVERKEY }
 }
-pub struct SCRAM_SALTED_PASSWORD;
-impl Property for SCRAM_SALTED_PASSWORD {
+
+#[derive(Debug)]
+pub struct ScramSaltedPassword;
+
+impl GetProperty for ScramSaltedPassword {}
+
+impl SetProperty for ScramSaltedPassword {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SCRAM_SALTED_PASSWORD }
 }
-pub struct SCRAM_SALT;
-impl Property for SCRAM_SALT {
+
+#[derive(Debug)]
+pub struct ScramSalt;
+
+impl GetProperty for ScramSalt {}
+
+impl SetProperty for ScramSalt {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SCRAM_SALT }
 }
-pub struct SCRAM_ITER;
-impl Property for SCRAM_ITER {
+
+#[derive(Debug)]
+pub struct ScramIter;
+
+impl GetProperty for ScramIter {}
+
+impl SetProperty for ScramIter {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SCRAM_ITER }
 }
-pub struct QOP;
-impl Property for QOP {
+
+#[derive(Debug)]
+pub struct Qop;
+
+impl GetProperty for Qop {}
+
+impl SetProperty for Qop {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_QOP }
 }
-pub struct QOPS;
-impl Property for QOPS {
+
+#[derive(Debug)]
+pub struct Qops;
+
+impl GetProperty for Qops {}
+
+impl SetProperty for Qops {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_QOPS }
 }
-pub struct DIGEST_MD5_HASHED_PASSWORD;
-impl Property for DIGEST_MD5_HASHED_PASSWORD {
+
+#[derive(Debug)]
+pub struct DigestMD5HashedPassword;
+
+impl GetProperty for DigestMD5HashedPassword {}
+
+impl SetProperty for DigestMD5HashedPassword {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_DIGEST_MD5_HASHED_PASSWORD }
 }
-pub struct REALM;
-impl Property for REALM {
+
+#[derive(Debug)]
+pub struct Realm;
+
+impl GetProperty for Realm {}
+
+impl SetProperty for Realm {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_REALM }
 }
-pub struct PIN;
-impl Property for PIN {
+
+#[derive(Debug)]
+pub struct Pin;
+
+impl GetProperty for Pin {}
+
+impl SetProperty for Pin {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_PIN }
 }
-pub struct SUGGESTED_PIN;
-impl Property for SUGGESTED_PIN {
+
+#[derive(Debug)]
+pub struct SuggestedPin;
+
+impl GetProperty for SuggestedPin {}
+
+impl SetProperty for SuggestedPin {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SUGGESTED_PIN }
 }
-pub struct PASSCODE;
-impl Property for PASSCODE {
+
+#[derive(Debug)]
+pub struct Passcode;
+
+impl GetProperty for Passcode {}
+
+impl SetProperty for Passcode {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_PASSCODE }
 }
-pub struct GSSAPI_DISPLAY_NAME;
-impl Property for GSSAPI_DISPLAY_NAME {
+
+#[derive(Debug)]
+pub struct GssapiDisplayName;
+
+impl GetProperty for GssapiDisplayName {}
+
+impl SetProperty for GssapiDisplayName {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_GSSAPI_DISPLAY_NAME }
 }
-pub struct HOSTNAME;
-impl Property for HOSTNAME {
+
+#[derive(Debug)]
+pub struct Hostname;
+
+impl GetProperty for Hostname {}
+
+impl SetProperty for Hostname {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_HOSTNAME }
 }
-pub struct SERVICE;
-impl Property for SERVICE {
+
+#[derive(Debug)]
+pub struct Service;
+
+impl GetProperty for Service {}
+
+impl SetProperty for Service {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SERVICE }
 }
-pub struct ANONYMOUS_TOKEN;
-impl Property for ANONYMOUS_TOKEN {
+
+#[derive(Debug)]
+pub struct AnonymousToken;
+
+impl GetProperty for AnonymousToken {}
+
+impl SetProperty for AnonymousToken {
     type Item = String;
     fn code() -> Gsasl_property { GSASL_ANONYMOUS_TOKEN }
 }
-pub struct PASSWORD;
-impl Property for PASSWORD {
+
+#[derive(Debug)]
+pub struct Password;
+
+impl GetProperty for Password {}
+
+impl SetProperty for Password {
     type Item = String;
     fn code() -> Gsasl_property { GSASL_PASSWORD }
 }
-pub struct AUTHZID;
-impl Property for AUTHZID {
+
+#[derive(Debug)]
+pub struct AuthzId;
+
+impl GetProperty for AuthzId {}
+
+impl SetProperty for AuthzId {
     type Item = String;
     fn code() -> Gsasl_property { GSASL_AUTHZID }
 }
-pub struct AUTHID;
-impl Property for AUTHID {
+
+#[derive(Debug)]
+pub struct AuthId;
+
+impl GetProperty for AuthId {}
+
+pub const AUTHID: &'static dyn GetProperty = &AuthId;
+impl SetProperty for AuthId {
     type Item = String;
     fn code() -> Gsasl_property { GSASL_AUTHID }
+    fn as_const() -> &'static dyn GetProperty {
+        AUTHID
+    }
+}
+
+
+pub const OPENID20_AUTHENTICATE_IN_BROWSER: &'static dyn GetProperty = &OpenID20AuthenticateInBrowser;
+pub const SAML20_AUTHENTICATE_IN_BROWSER: &'static dyn GetProperty = &Saml20AuthenticateInBrowser;
+pub const OPENID20_OUTCOME_DATA: &'static dyn GetProperty = &OpenID20OutcomeData;
+pub const OPENID20_REDIRECT_URL: &'static dyn GetProperty = &OpenID20RedirectUrl;
+pub const SAML20_REDIRECT_URL: &'static dyn GetProperty = &SAML20RedirectUrl;
+pub const SAML20_IDP_IDENTIFIER: &'static dyn GetProperty = &SAML20IDPIdentifier;
+pub const CB_TLS_UNIQUE: &'static dyn GetProperty = &CBTlsUnique;
+pub const SCRAM_STOREDKEY: &'static dyn GetProperty = &ScramStoredkey;
+pub const SCRAM_SERVERKEY: &'static dyn GetProperty = &ScramServerkey;
+pub const SCRAM_SALTED_PASSWORD: &'static dyn GetProperty = &ScramSaltedPassword;
+pub const SCRAM_SALT: &'static dyn GetProperty = &ScramSalt;
+pub const SCRAM_ITER: &'static dyn GetProperty = &ScramIter;
+pub const QOP: &'static dyn GetProperty = &Qop;
+pub const QOPS: &'static dyn GetProperty = &Qops;
+pub const DIGEST_MD5_HASHED_PASSWORD: &'static dyn GetProperty = &DigestMD5HashedPassword;
+pub const REALM: &'static dyn GetProperty = &Realm;
+pub const PIN: &'static dyn GetProperty = &Pin;
+pub const SUGGESTED_PIN: &'static dyn GetProperty = &SuggestedPin;
+pub const PASSCODE: &'static dyn GetProperty = &Passcode;
+pub const GSSAPI_DISPLAY_NAME: &'static dyn GetProperty = &GssapiDisplayName;
+pub const HOSTNAME: &'static dyn GetProperty = &Hostname;
+pub const SERVICE: &'static dyn GetProperty = &Service;
+pub const ANONYMOUS_TOKEN: &'static dyn GetProperty = &AnonymousToken;
+pub const PASSWORD: &'static dyn GetProperty = &Password;
+pub const AUTHZID: &'static dyn GetProperty = &AuthzId;
+
+#[cfg(test)]
+mod tests {
+    use std::any::type_name;
+    use std::collections::HashMap;
+    use super::*;
+
+    #[test]
+    fn test_dyn_prop() {
+        fn does(prop: &'static dyn GetProperty) {
+            if prop == PASSWORD {
+                println!("is OIDC_OUTCOME");
+            } else {
+                println!("is instead {:?}", prop);
+            }
+        }
+
+        does(PASSWORD);
+    }
 }

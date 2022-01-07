@@ -86,6 +86,9 @@ mod registry;
 
 mod validate;
 
+#[macro_use]
+pub mod as_any;
+
 pub use gsasl::consts;
 
 pub use callback::Callback;
