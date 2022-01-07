@@ -189,13 +189,12 @@ impl SASL {
     /// available mechanisms.
     /// If any passed mechanism names are invalid these are silently ignored.
     /// This method will return `None` if none of the given mechanisms are agreeable.
-    pub fn suggest_client_mechanism<'a>(&self, mechs: impl Iterator<Item=&'a &'a str>)
+    pub fn suggest_client_mechanism<'a>(&self, mechs: impl IntoIterator<Item=&'a &'a str>)
         -> Option<(&Mechname, &dyn MechanismBuilder)>
     {
         self.registry.suggest_client_mechanism(
-            mechs.filter_map(|name| {
-                Mechname::try_parse(name.as_bytes()).ok()
-            })
+            mechs.into_iter().filter_map(|name|
+                Mechname::try_parse(name.as_bytes()).ok())
         )
     }
 
@@ -203,11 +202,12 @@ impl SASL {
     /// available mechanisms.
     /// If any passed mechanism names are invalid these are silently ignored.
     /// This will return `None` if none of the given mechanisms are agreeable.
-    pub fn suggest_server_mechanism<'a>(&self, mechs: impl Iterator<Item=&'a str>)
+    pub fn suggest_server_mechanism<'a>(&self, mechs: impl IntoIterator<Item=&'a &'a str>)
         -> Option<(&Mechname, &dyn MechanismBuilder)>
     {
         self.registry.suggest_server_mechanism(
-            mechs.filter_map(|name| Mechname::try_parse(name.as_bytes()).ok())
+            mechs.into_iter().filter_map(|name|
+                Mechname::try_parse(name.as_bytes()).ok())
         )
     }
 
