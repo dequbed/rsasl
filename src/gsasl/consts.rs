@@ -196,9 +196,7 @@ pub trait GetProperty: 'static + AsAny + Debug {
 pub trait SetProperty: GetProperty {
     type Item: Any + Clone;
     fn code() -> Gsasl_property where Self: Sized;
-    fn as_const() -> &'static dyn GetProperty {
-        todo!()
-    }
+    fn as_const() -> &'static dyn GetProperty;
 }
 
 pub trait Property {
@@ -225,245 +223,345 @@ impl PartialEq for &'static dyn GetProperty {
 #[derive(Debug)]
 pub struct OpenID20AuthenticateInBrowser;
 impl GetProperty for OpenID20AuthenticateInBrowser {}
+pub const OPENID20_AUTHENTICATE_IN_BROWSER: &'static dyn GetProperty = &OpenID20AuthenticateInBrowser;
 impl SetProperty for OpenID20AuthenticateInBrowser {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_OPENID20_AUTHENTICATE_IN_BROWSER }
+    fn as_const() -> &'static dyn GetProperty {
+        OPENID20_AUTHENTICATE_IN_BROWSER
+    }
 }
 
 #[derive(Debug)]
 pub struct Saml20AuthenticateInBrowser;
 impl GetProperty for Saml20AuthenticateInBrowser {}
+pub const SAML20_AUTHENTICATE_IN_BROWSER: &'static dyn GetProperty = &Saml20AuthenticateInBrowser;
 impl SetProperty for Saml20AuthenticateInBrowser {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SAML20_AUTHENTICATE_IN_BROWSER }
+    fn as_const() -> &'static dyn GetProperty {
+        SAML20_AUTHENTICATE_IN_BROWSER
+    }
 }
 
 #[derive(Debug)]
 pub struct OpenID20OutcomeData;
 impl GetProperty for OpenID20OutcomeData {}
+pub const OPENID20_OUTCOME_DATA: &'static dyn GetProperty = &OpenID20OutcomeData;
 impl SetProperty for OpenID20OutcomeData {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_OPENID20_OUTCOME_DATA }
+    fn as_const() -> &'static dyn GetProperty {
+        OPENID20_OUTCOME_DATA
+    }
 }
 
 #[derive(Debug)]
 pub struct OpenID20RedirectUrl;
 
 impl GetProperty for OpenID20RedirectUrl {}
+pub const OPENID20_REDIRECT_URL: &'static dyn GetProperty = &OpenID20RedirectUrl;
 
 impl SetProperty for OpenID20RedirectUrl {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_OPENID20_REDIRECT_URL }
+    fn as_const() -> &'static dyn GetProperty {
+        OPENID20_REDIRECT_URL
+    }
 }
 
 #[derive(Debug)]
 pub struct SAML20RedirectUrl;
 
 impl GetProperty for SAML20RedirectUrl {}
+pub const SAML20_REDIRECT_URL: &'static dyn GetProperty = &SAML20RedirectUrl;
 
 impl SetProperty for SAML20RedirectUrl {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SAML20_REDIRECT_URL }
+    fn as_const() -> &'static dyn GetProperty {
+        SAML20_REDIRECT_URL
+    }
 }
 
 #[derive(Debug)]
 pub struct SAML20IDPIdentifier;
 
 impl GetProperty for SAML20IDPIdentifier {}
+pub const SAML20_IDP_IDENTIFIER: &'static dyn GetProperty = &SAML20IDPIdentifier;
 
 impl SetProperty for SAML20IDPIdentifier {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SAML20_IDP_IDENTIFIER }
+    fn as_const() -> &'static dyn GetProperty {
+        SAML20_IDP_IDENTIFIER
+    }
 }
 
 #[derive(Debug)]
 pub struct CBTlsUnique;
 
 impl GetProperty for CBTlsUnique {}
+pub const CB_TLS_UNIQUE: &'static dyn GetProperty = &CBTlsUnique;
 
 impl SetProperty for CBTlsUnique {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_CB_TLS_UNIQUE }
+    fn as_const() -> &'static dyn GetProperty {
+        CB_TLS_UNIQUE
+    }
 }
 
 #[derive(Debug)]
 pub struct ScramStoredkey;
 
 impl GetProperty for ScramStoredkey {}
+pub const SCRAM_STOREDKEY: &'static dyn GetProperty = &ScramStoredkey;
 
 impl SetProperty for ScramStoredkey {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SCRAM_STOREDKEY }
+    fn as_const() -> &'static dyn GetProperty {
+        SCRAM_STOREDKEY
+    }
 }
 
 #[derive(Debug)]
 pub struct ScramServerkey;
 
 impl GetProperty for ScramServerkey {}
+pub const SCRAM_SERVERKEY: &'static dyn GetProperty = &ScramServerkey;
 
 impl SetProperty for ScramServerkey {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SCRAM_SERVERKEY }
+    fn as_const() -> &'static dyn GetProperty {
+        SCRAM_SERVERKEY
+    }
 }
 
 #[derive(Debug)]
 pub struct ScramSaltedPassword;
 
 impl GetProperty for ScramSaltedPassword {}
+pub const SCRAM_SALTED_PASSWORD: &'static dyn GetProperty = &ScramSaltedPassword;
 
 impl SetProperty for ScramSaltedPassword {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SCRAM_SALTED_PASSWORD }
+    fn as_const() -> &'static dyn GetProperty {
+        SCRAM_SALTED_PASSWORD
+    }
 }
 
 #[derive(Debug)]
 pub struct ScramSalt;
 
 impl GetProperty for ScramSalt {}
+pub const SCRAM_SALT: &'static dyn GetProperty = &ScramSalt;
 
 impl SetProperty for ScramSalt {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SCRAM_SALT }
+    fn as_const() -> &'static dyn GetProperty {
+        SCRAM_SALT
+    }
 }
 
 #[derive(Debug)]
 pub struct ScramIter;
 
 impl GetProperty for ScramIter {}
+pub const SCRAM_ITER: &'static dyn GetProperty = &ScramIter;
 
 impl SetProperty for ScramIter {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SCRAM_ITER }
+    fn as_const() -> &'static dyn GetProperty {
+        SCRAM_ITER
+    }
 }
 
 #[derive(Debug)]
 pub struct Qop;
 
 impl GetProperty for Qop {}
+pub const QOP: &'static dyn GetProperty = &Qop;
 
 impl SetProperty for Qop {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_QOP }
+    fn as_const() -> &'static dyn GetProperty {
+        QOP
+    }
 }
 
 #[derive(Debug)]
 pub struct Qops;
 
 impl GetProperty for Qops {}
+pub const QOPS: &'static dyn GetProperty = &Qops;
 
 impl SetProperty for Qops {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_QOPS }
+    fn as_const() -> &'static dyn GetProperty {
+        QOPS
+    }
 }
 
 #[derive(Debug)]
 pub struct DigestMD5HashedPassword;
 
 impl GetProperty for DigestMD5HashedPassword {}
+pub const DIGEST_MD5_HASHED_PASSWORD: &'static dyn GetProperty = &DigestMD5HashedPassword;
 
 impl SetProperty for DigestMD5HashedPassword {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_DIGEST_MD5_HASHED_PASSWORD }
+    fn as_const() -> &'static dyn GetProperty {
+        DIGEST_MD5_HASHED_PASSWORD
+    }
 }
 
 #[derive(Debug)]
 pub struct Realm;
 
 impl GetProperty for Realm {}
+pub const REALM: &'static dyn GetProperty = &Realm;
 
 impl SetProperty for Realm {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_REALM }
+    fn as_const() -> &'static dyn GetProperty {
+        REALM
+    }
 }
 
 #[derive(Debug)]
 pub struct Pin;
 
 impl GetProperty for Pin {}
+pub const PIN: &'static dyn GetProperty = &Pin;
 
 impl SetProperty for Pin {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_PIN }
+    fn as_const() -> &'static dyn GetProperty {
+        PIN
+    }
 }
 
 #[derive(Debug)]
 pub struct SuggestedPin;
+pub const SUGGESTED_PIN: &'static dyn GetProperty = &SuggestedPin;
 
 impl GetProperty for SuggestedPin {}
 
 impl SetProperty for SuggestedPin {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SUGGESTED_PIN }
+    fn as_const() -> &'static dyn GetProperty {
+        SUGGESTED_PIN
+    }
 }
 
 #[derive(Debug)]
 pub struct Passcode;
 
 impl GetProperty for Passcode {}
+pub const PASSCODE: &'static dyn GetProperty = &Passcode;
 
 impl SetProperty for Passcode {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_PASSCODE }
+    fn as_const() -> &'static dyn GetProperty {
+        PASSCODE
+    }
 }
 
 #[derive(Debug)]
 pub struct GssapiDisplayName;
 
 impl GetProperty for GssapiDisplayName {}
+pub const GSSAPI_DISPLAY_NAME: &'static dyn GetProperty = &GssapiDisplayName;
 
 impl SetProperty for GssapiDisplayName {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_GSSAPI_DISPLAY_NAME }
+    fn as_const() -> &'static dyn GetProperty {
+        GSSAPI_DISPLAY_NAME
+    }
 }
 
 #[derive(Debug)]
 pub struct Hostname;
 
 impl GetProperty for Hostname {}
+pub const HOSTNAME: &'static dyn GetProperty = &Hostname;
 
 impl SetProperty for Hostname {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_HOSTNAME }
+    fn as_const() -> &'static dyn GetProperty {
+        HOSTNAME
+    }
 }
 
 #[derive(Debug)]
 pub struct Service;
 
 impl GetProperty for Service {}
+pub const SERVICE: &'static dyn GetProperty = &Service;
 
 impl SetProperty for Service {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SERVICE }
+    fn as_const() -> &'static dyn GetProperty {
+        SERVICE
+    }
 }
 
 #[derive(Debug)]
 pub struct AnonymousToken;
 
 impl GetProperty for AnonymousToken {}
+pub const ANONYMOUS_TOKEN: &'static dyn GetProperty = &AnonymousToken;
 
 impl SetProperty for AnonymousToken {
     type Item = String;
     fn code() -> Gsasl_property { GSASL_ANONYMOUS_TOKEN }
+    fn as_const() -> &'static dyn GetProperty {
+        ANONYMOUS_TOKEN
+    }
 }
 
 #[derive(Debug)]
 pub struct Password;
 
 impl GetProperty for Password {}
+pub const PASSWORD: &'static dyn GetProperty = &Password;
 
 impl SetProperty for Password {
     type Item = String;
     fn code() -> Gsasl_property { GSASL_PASSWORD }
+    fn as_const() -> &'static dyn GetProperty {
+        PASSWORD
+    }
 }
 
 #[derive(Debug)]
 pub struct AuthzId;
 
 impl GetProperty for AuthzId {}
+pub const AUTHZID: &'static dyn GetProperty = &AuthzId;
 
 impl SetProperty for AuthzId {
     type Item = String;
     fn code() -> Gsasl_property { GSASL_AUTHZID }
+    fn as_const() -> &'static dyn GetProperty {
+        AUTHZID
+    }
 }
 
 #[derive(Debug)]
@@ -480,32 +578,6 @@ impl SetProperty for AuthId {
     }
 }
 
-
-pub const OPENID20_AUTHENTICATE_IN_BROWSER: &'static dyn GetProperty = &OpenID20AuthenticateInBrowser;
-pub const SAML20_AUTHENTICATE_IN_BROWSER: &'static dyn GetProperty = &Saml20AuthenticateInBrowser;
-pub const OPENID20_OUTCOME_DATA: &'static dyn GetProperty = &OpenID20OutcomeData;
-pub const OPENID20_REDIRECT_URL: &'static dyn GetProperty = &OpenID20RedirectUrl;
-pub const SAML20_REDIRECT_URL: &'static dyn GetProperty = &SAML20RedirectUrl;
-pub const SAML20_IDP_IDENTIFIER: &'static dyn GetProperty = &SAML20IDPIdentifier;
-pub const CB_TLS_UNIQUE: &'static dyn GetProperty = &CBTlsUnique;
-pub const SCRAM_STOREDKEY: &'static dyn GetProperty = &ScramStoredkey;
-pub const SCRAM_SERVERKEY: &'static dyn GetProperty = &ScramServerkey;
-pub const SCRAM_SALTED_PASSWORD: &'static dyn GetProperty = &ScramSaltedPassword;
-pub const SCRAM_SALT: &'static dyn GetProperty = &ScramSalt;
-pub const SCRAM_ITER: &'static dyn GetProperty = &ScramIter;
-pub const QOP: &'static dyn GetProperty = &Qop;
-pub const QOPS: &'static dyn GetProperty = &Qops;
-pub const DIGEST_MD5_HASHED_PASSWORD: &'static dyn GetProperty = &DigestMD5HashedPassword;
-pub const REALM: &'static dyn GetProperty = &Realm;
-pub const PIN: &'static dyn GetProperty = &Pin;
-pub const SUGGESTED_PIN: &'static dyn GetProperty = &SuggestedPin;
-pub const PASSCODE: &'static dyn GetProperty = &Passcode;
-pub const GSSAPI_DISPLAY_NAME: &'static dyn GetProperty = &GssapiDisplayName;
-pub const HOSTNAME: &'static dyn GetProperty = &Hostname;
-pub const SERVICE: &'static dyn GetProperty = &Service;
-pub const ANONYMOUS_TOKEN: &'static dyn GetProperty = &AnonymousToken;
-pub const PASSWORD: &'static dyn GetProperty = &Password;
-pub const AUTHZID: &'static dyn GetProperty = &AuthzId;
 
 #[cfg(test)]
 mod tests {
