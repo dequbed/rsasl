@@ -2,6 +2,7 @@ use std::any::{Any, TypeId};
 use std::ffi::CString;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
+use std::marker::PhantomData;
 use crate::as_any::AsAny;
 use crate::{Mechname, Session, SessionData};
 
@@ -49,104 +50,6 @@ pub const GSASL_MECHANISM_CALLED_TOO_MANY_TIMES: libc::c_uint = 3;
 pub const GSASL_UNKNOWN_MECHANISM: libc::c_uint = 2;
 pub const GSASL_NEEDS_MORE: libc::c_uint = 1;
 pub const GSASL_OK: libc::c_uint = 0;
-
-pub enum CallbackAction {
-    OPENID20_AUTHENTICATE_IN_BROWSER,
-    SAML20_AUTHENTICATE_IN_BROWSER,
-    OPENID20_OUTCOME_DATA(OpenID20OutcomeData),
-    OPENID20_REDIRECT_URL(OpenID20RedirectUrl),
-    SAML20_REDIRECT_URL(SAML20RedirectUrl),
-    SAML20_IDP_IDENTIFIER(SAML20IDPIdentifier),
-    CB_TLS_UNIQUE(CBTlsUnique),
-    SCRAM_STOREDKEY(ScramStoredkey),
-    SCRAM_SERVERKEY(ScramServerkey),
-    SCRAM_SALTED_PASSWORD(ScramSaltedPassword),
-    SCRAM_SALT(ScramSalt),
-    SCRAM_ITER(ScramIter),
-    QOP(Qop),
-    QOPS(Qops),
-    DIGEST_MD5_HASHED_PASSWORD(DigestMD5HashedPassword),
-    REALM(Realm),
-    PIN(Pin),
-    SUGGESTED_PIN(SuggestedPin),
-    PASSCODE(Passcode),
-    GSSAPI_DISPLAY_NAME(GssapiDisplayName),
-    HOSTNAME(Hostname),
-    SERVICE(Service),
-    ANONYMOUS_TOKEN(AnonymousToken),
-    PASSWORD(Password),
-    AUTHZID(AuthzId),
-    AUTHID(AuthId),
-}
-
-impl CallbackAction {
-    pub fn code(&self) -> Gsasl_property {
-        match self {
-            CallbackAction::OPENID20_AUTHENTICATE_IN_BROWSER =>
-                GSASL_OPENID20_AUTHENTICATE_IN_BROWSER,
-            CallbackAction::SAML20_AUTHENTICATE_IN_BROWSER =>
-                GSASL_SAML20_AUTHENTICATE_IN_BROWSER,
-            // todo: The rest
-            CallbackAction::OPENID20_OUTCOME_DATA(_) => OpenID20OutcomeData::code(),
-            CallbackAction::OPENID20_REDIRECT_URL(_) => OpenID20RedirectUrl::code(),
-            CallbackAction::SAML20_REDIRECT_URL(_) => SAML20RedirectUrl::code(),
-            CallbackAction::SAML20_IDP_IDENTIFIER(_) => SAML20IDPIdentifier::code(),
-            CallbackAction::CB_TLS_UNIQUE(_) => CBTlsUnique::code(),
-            CallbackAction::SCRAM_STOREDKEY(_) => ScramStoredkey::code(),
-            CallbackAction::SCRAM_SERVERKEY(_) => ScramServerkey::code(),
-            CallbackAction::SCRAM_SALTED_PASSWORD(_) => ScramSaltedPassword::code(),
-            CallbackAction::SCRAM_SALT(_) => ScramSalt::code(),
-            CallbackAction::SCRAM_ITER(_) => ScramIter::code(),
-            CallbackAction::QOP(_) => Qop::code(),
-            CallbackAction::QOPS(_) => Qops::code(),
-            CallbackAction::DIGEST_MD5_HASHED_PASSWORD(_) => DigestMD5HashedPassword::code(),
-            CallbackAction::REALM(_) => Realm::code(),
-            CallbackAction::PIN(_) => Pin::code(),
-            CallbackAction::SUGGESTED_PIN(_) => SuggestedPin::code(),
-            CallbackAction::PASSCODE(_) => Passcode::code(),
-            CallbackAction::GSSAPI_DISPLAY_NAME(_) => GssapiDisplayName::code(),
-            CallbackAction::HOSTNAME(_) => Hostname::code(),
-            CallbackAction::SERVICE(_) => Service::code(),
-            CallbackAction::ANONYMOUS_TOKEN(_) => AnonymousToken::code(),
-            CallbackAction::PASSWORD(_) => Password::code(),
-            CallbackAction::AUTHZID(_) => AuthzId::code(),
-            CallbackAction::AUTHID(_) => AuthId::code(),
-        }
-    }
-
-    pub fn from_code(code: Gsasl_property) -> Option<Self> {
-        match code {
-            GSASL_OPENID20_AUTHENTICATE_IN_BROWSER => Some(CallbackAction::OPENID20_AUTHENTICATE_IN_BROWSER),
-            GSASL_SAML20_AUTHENTICATE_IN_BROWSER => Some(CallbackAction::SAML20_AUTHENTICATE_IN_BROWSER),
-            GSASL_OPENID20_OUTCOME_DATA => Some(CallbackAction::OPENID20_OUTCOME_DATA(OpenID20OutcomeData)),
-            GSASL_OPENID20_REDIRECT_URL => Some(CallbackAction::OPENID20_REDIRECT_URL(OpenID20RedirectUrl)),
-            GSASL_SAML20_REDIRECT_URL => Some(CallbackAction::SAML20_REDIRECT_URL(SAML20RedirectUrl)),
-            GSASL_SAML20_IDP_IDENTIFIER => Some(CallbackAction::SAML20_IDP_IDENTIFIER(SAML20IDPIdentifier)),
-            GSASL_CB_TLS_UNIQUE => Some(CallbackAction::CB_TLS_UNIQUE(CBTlsUnique)),
-            GSASL_SCRAM_STOREDKEY => Some(CallbackAction::SCRAM_STOREDKEY(ScramStoredkey)),
-            GSASL_SCRAM_SERVERKEY => Some(CallbackAction::SCRAM_SERVERKEY(ScramServerkey)),
-            GSASL_SCRAM_SALTED_PASSWORD => Some(CallbackAction::SCRAM_SALTED_PASSWORD(ScramSaltedPassword)),
-            GSASL_SCRAM_SALT => Some(CallbackAction::SCRAM_SALT(ScramSalt)),
-            GSASL_SCRAM_ITER => Some(CallbackAction::SCRAM_ITER(ScramIter)),
-            GSASL_QOP => Some(CallbackAction::QOP(Qop)),
-            GSASL_QOPS => Some(CallbackAction::QOPS(Qops)),
-            GSASL_DIGEST_MD5_HASHED_PASSWORD => Some(CallbackAction::DIGEST_MD5_HASHED_PASSWORD(DigestMD5HashedPassword)),
-            GSASL_REALM => Some(CallbackAction::REALM(Realm)),
-            GSASL_PIN => Some(CallbackAction::PIN(Pin)),
-            GSASL_SUGGESTED_PIN => Some(CallbackAction::SUGGESTED_PIN(SuggestedPin)),
-            GSASL_PASSCODE => Some(CallbackAction::PASSCODE(Passcode)),
-            GSASL_GSSAPI_DISPLAY_NAME => Some(CallbackAction::GSSAPI_DISPLAY_NAME(GssapiDisplayName)),
-            GSASL_HOSTNAME => Some(CallbackAction::HOSTNAME(Hostname)),
-            GSASL_SERVICE => Some(CallbackAction::SERVICE(Service)),
-            GSASL_ANONYMOUS_TOKEN => Some(CallbackAction::ANONYMOUS_TOKEN(AnonymousToken)),
-            GSASL_PASSWORD => Some(CallbackAction::PASSWORD(Password)),
-            GSASL_AUTHZID => Some(CallbackAction::AUTHZID(AuthzId)),
-            GSASL_AUTHID => Some(CallbackAction::AUTHID(AuthId)),
-            _ => None,
-        }
-
-    }
-}
 
 pub type Gsasl_property = libc::c_uint;
 pub const GSASL_VALIDATE_OPENID20: Gsasl_property = 506;
@@ -221,9 +124,9 @@ impl PartialEq for &'static dyn GetProperty {
 }
 
 #[derive(Debug)]
-pub struct OpenID20AuthenticateInBrowser;
+pub struct OpenID20AuthenticateInBrowser(PhantomData<()>);
 impl GetProperty for OpenID20AuthenticateInBrowser {}
-pub const OPENID20_AUTHENTICATE_IN_BROWSER: &'static dyn GetProperty = &OpenID20AuthenticateInBrowser;
+pub const OPENID20_AUTHENTICATE_IN_BROWSER: &'static dyn GetProperty = &OpenID20AuthenticateInBrowser(PhantomData);
 impl SetProperty for OpenID20AuthenticateInBrowser {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_OPENID20_AUTHENTICATE_IN_BROWSER }
@@ -233,9 +136,9 @@ impl SetProperty for OpenID20AuthenticateInBrowser {
 }
 
 #[derive(Debug)]
-pub struct Saml20AuthenticateInBrowser;
+pub struct Saml20AuthenticateInBrowser(PhantomData<()>);
 impl GetProperty for Saml20AuthenticateInBrowser {}
-pub const SAML20_AUTHENTICATE_IN_BROWSER: &'static dyn GetProperty = &Saml20AuthenticateInBrowser;
+pub const SAML20_AUTHENTICATE_IN_BROWSER: &'static dyn GetProperty = &Saml20AuthenticateInBrowser(PhantomData);
 impl SetProperty for Saml20AuthenticateInBrowser {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_SAML20_AUTHENTICATE_IN_BROWSER }
@@ -245,9 +148,9 @@ impl SetProperty for Saml20AuthenticateInBrowser {
 }
 
 #[derive(Debug)]
-pub struct OpenID20OutcomeData;
+pub struct OpenID20OutcomeData(PhantomData<()>);
 impl GetProperty for OpenID20OutcomeData {}
-pub const OPENID20_OUTCOME_DATA: &'static dyn GetProperty = &OpenID20OutcomeData;
+pub const OPENID20_OUTCOME_DATA: &'static dyn GetProperty = &OpenID20OutcomeData(PhantomData);
 impl SetProperty for OpenID20OutcomeData {
     type Item = CString;
     fn code() -> Gsasl_property { GSASL_OPENID20_OUTCOME_DATA }
@@ -257,10 +160,10 @@ impl SetProperty for OpenID20OutcomeData {
 }
 
 #[derive(Debug)]
-pub struct OpenID20RedirectUrl;
+pub struct OpenID20RedirectUrl(PhantomData<()>);
 
 impl GetProperty for OpenID20RedirectUrl {}
-pub const OPENID20_REDIRECT_URL: &'static dyn GetProperty = &OpenID20RedirectUrl;
+pub const OPENID20_REDIRECT_URL: &'static dyn GetProperty = &OpenID20RedirectUrl(PhantomData);
 
 impl SetProperty for OpenID20RedirectUrl {
     type Item = CString;
@@ -271,10 +174,10 @@ impl SetProperty for OpenID20RedirectUrl {
 }
 
 #[derive(Debug)]
-pub struct SAML20RedirectUrl;
+pub struct SAML20RedirectUrl(PhantomData<()>);
 
 impl GetProperty for SAML20RedirectUrl {}
-pub const SAML20_REDIRECT_URL: &'static dyn GetProperty = &SAML20RedirectUrl;
+pub const SAML20_REDIRECT_URL: &'static dyn GetProperty = &SAML20RedirectUrl(PhantomData);
 
 impl SetProperty for SAML20RedirectUrl {
     type Item = CString;
@@ -285,10 +188,10 @@ impl SetProperty for SAML20RedirectUrl {
 }
 
 #[derive(Debug)]
-pub struct SAML20IDPIdentifier;
+pub struct SAML20IDPIdentifier(PhantomData<()>);
 
 impl GetProperty for SAML20IDPIdentifier {}
-pub const SAML20_IDP_IDENTIFIER: &'static dyn GetProperty = &SAML20IDPIdentifier;
+pub const SAML20_IDP_IDENTIFIER: &'static dyn GetProperty = &SAML20IDPIdentifier(PhantomData);
 
 impl SetProperty for SAML20IDPIdentifier {
     type Item = CString;
@@ -299,10 +202,10 @@ impl SetProperty for SAML20IDPIdentifier {
 }
 
 #[derive(Debug)]
-pub struct CBTlsUnique;
+pub struct CBTlsUnique(PhantomData<()>);
 
 impl GetProperty for CBTlsUnique {}
-pub const CB_TLS_UNIQUE: &'static dyn GetProperty = &CBTlsUnique;
+pub const CB_TLS_UNIQUE: &'static dyn GetProperty = &CBTlsUnique(PhantomData);
 
 impl SetProperty for CBTlsUnique {
     type Item = CString;
@@ -313,10 +216,10 @@ impl SetProperty for CBTlsUnique {
 }
 
 #[derive(Debug)]
-pub struct ScramStoredkey;
+pub struct ScramStoredkey(PhantomData<()>);
 
 impl GetProperty for ScramStoredkey {}
-pub const SCRAM_STOREDKEY: &'static dyn GetProperty = &ScramStoredkey;
+pub const SCRAM_STOREDKEY: &'static dyn GetProperty = &ScramStoredkey(PhantomData);
 
 impl SetProperty for ScramStoredkey {
     type Item = CString;
@@ -327,10 +230,10 @@ impl SetProperty for ScramStoredkey {
 }
 
 #[derive(Debug)]
-pub struct ScramServerkey;
+pub struct ScramServerkey(PhantomData<()>);
 
 impl GetProperty for ScramServerkey {}
-pub const SCRAM_SERVERKEY: &'static dyn GetProperty = &ScramServerkey;
+pub const SCRAM_SERVERKEY: &'static dyn GetProperty = &ScramServerkey(PhantomData);
 
 impl SetProperty for ScramServerkey {
     type Item = CString;
@@ -341,10 +244,10 @@ impl SetProperty for ScramServerkey {
 }
 
 #[derive(Debug)]
-pub struct ScramSaltedPassword;
+pub struct ScramSaltedPassword(PhantomData<()>);
 
 impl GetProperty for ScramSaltedPassword {}
-pub const SCRAM_SALTED_PASSWORD: &'static dyn GetProperty = &ScramSaltedPassword;
+pub const SCRAM_SALTED_PASSWORD: &'static dyn GetProperty = &ScramSaltedPassword(PhantomData);
 
 impl SetProperty for ScramSaltedPassword {
     type Item = CString;
@@ -355,10 +258,10 @@ impl SetProperty for ScramSaltedPassword {
 }
 
 #[derive(Debug)]
-pub struct ScramSalt;
+pub struct ScramSalt(PhantomData<()>);
 
 impl GetProperty for ScramSalt {}
-pub const SCRAM_SALT: &'static dyn GetProperty = &ScramSalt;
+pub const SCRAM_SALT: &'static dyn GetProperty = &ScramSalt(PhantomData);
 
 impl SetProperty for ScramSalt {
     type Item = CString;
@@ -369,10 +272,10 @@ impl SetProperty for ScramSalt {
 }
 
 #[derive(Debug)]
-pub struct ScramIter;
+pub struct ScramIter(PhantomData<()>);
 
 impl GetProperty for ScramIter {}
-pub const SCRAM_ITER: &'static dyn GetProperty = &ScramIter;
+pub const SCRAM_ITER: &'static dyn GetProperty = &ScramIter(PhantomData);
 
 impl SetProperty for ScramIter {
     type Item = CString;
@@ -383,10 +286,10 @@ impl SetProperty for ScramIter {
 }
 
 #[derive(Debug)]
-pub struct Qop;
+pub struct Qop(PhantomData<()>);
 
 impl GetProperty for Qop {}
-pub const QOP: &'static dyn GetProperty = &Qop;
+pub const QOP: &'static dyn GetProperty = &Qop(PhantomData);
 
 impl SetProperty for Qop {
     type Item = CString;
@@ -397,10 +300,10 @@ impl SetProperty for Qop {
 }
 
 #[derive(Debug)]
-pub struct Qops;
+pub struct Qops(PhantomData<()>);
 
 impl GetProperty for Qops {}
-pub const QOPS: &'static dyn GetProperty = &Qops;
+pub const QOPS: &'static dyn GetProperty = &Qops(PhantomData);
 
 impl SetProperty for Qops {
     type Item = CString;
@@ -411,10 +314,10 @@ impl SetProperty for Qops {
 }
 
 #[derive(Debug)]
-pub struct DigestMD5HashedPassword;
+pub struct DigestMD5HashedPassword(PhantomData<()>);
 
 impl GetProperty for DigestMD5HashedPassword {}
-pub const DIGEST_MD5_HASHED_PASSWORD: &'static dyn GetProperty = &DigestMD5HashedPassword;
+pub const DIGEST_MD5_HASHED_PASSWORD: &'static dyn GetProperty = &DigestMD5HashedPassword(PhantomData);
 
 impl SetProperty for DigestMD5HashedPassword {
     type Item = CString;
@@ -425,10 +328,10 @@ impl SetProperty for DigestMD5HashedPassword {
 }
 
 #[derive(Debug)]
-pub struct Realm;
+pub struct Realm(PhantomData<()>);
 
 impl GetProperty for Realm {}
-pub const REALM: &'static dyn GetProperty = &Realm;
+pub const REALM: &'static dyn GetProperty = &Realm(PhantomData);
 
 impl SetProperty for Realm {
     type Item = CString;
@@ -439,10 +342,10 @@ impl SetProperty for Realm {
 }
 
 #[derive(Debug)]
-pub struct Pin;
+pub struct Pin(PhantomData<()>);
 
 impl GetProperty for Pin {}
-pub const PIN: &'static dyn GetProperty = &Pin;
+pub const PIN: &'static dyn GetProperty = &Pin(PhantomData);
 
 impl SetProperty for Pin {
     type Item = CString;
@@ -453,8 +356,8 @@ impl SetProperty for Pin {
 }
 
 #[derive(Debug)]
-pub struct SuggestedPin;
-pub const SUGGESTED_PIN: &'static dyn GetProperty = &SuggestedPin;
+pub struct SuggestedPin(PhantomData<()>);
+pub const SUGGESTED_PIN: &'static dyn GetProperty = &SuggestedPin(PhantomData);
 
 impl GetProperty for SuggestedPin {}
 
@@ -467,10 +370,10 @@ impl SetProperty for SuggestedPin {
 }
 
 #[derive(Debug)]
-pub struct Passcode;
+pub struct Passcode(PhantomData<()>);
 
 impl GetProperty for Passcode {}
-pub const PASSCODE: &'static dyn GetProperty = &Passcode;
+pub const PASSCODE: &'static dyn GetProperty = &Passcode(PhantomData);
 
 impl SetProperty for Passcode {
     type Item = CString;
@@ -481,10 +384,10 @@ impl SetProperty for Passcode {
 }
 
 #[derive(Debug)]
-pub struct GssapiDisplayName;
+pub struct GssapiDisplayName(PhantomData<()>);
 
 impl GetProperty for GssapiDisplayName {}
-pub const GSSAPI_DISPLAY_NAME: &'static dyn GetProperty = &GssapiDisplayName;
+pub const GSSAPI_DISPLAY_NAME: &'static dyn GetProperty = &GssapiDisplayName(PhantomData);
 
 impl SetProperty for GssapiDisplayName {
     type Item = CString;
@@ -495,10 +398,10 @@ impl SetProperty for GssapiDisplayName {
 }
 
 #[derive(Debug)]
-pub struct Hostname;
+pub struct Hostname(PhantomData<()>);
 
 impl GetProperty for Hostname {}
-pub const HOSTNAME: &'static dyn GetProperty = &Hostname;
+pub const HOSTNAME: &'static dyn GetProperty = &Hostname(PhantomData);
 
 impl SetProperty for Hostname {
     type Item = CString;
@@ -509,10 +412,10 @@ impl SetProperty for Hostname {
 }
 
 #[derive(Debug)]
-pub struct Service;
+pub struct Service(PhantomData<()>);
 
 impl GetProperty for Service {}
-pub const SERVICE: &'static dyn GetProperty = &Service;
+pub const SERVICE: &'static dyn GetProperty = &Service(PhantomData);
 
 impl SetProperty for Service {
     type Item = CString;
@@ -523,10 +426,10 @@ impl SetProperty for Service {
 }
 
 #[derive(Debug)]
-pub struct AnonymousToken;
+pub struct AnonymousToken(PhantomData<()>);
 
 impl GetProperty for AnonymousToken {}
-pub const ANONYMOUS_TOKEN: &'static dyn GetProperty = &AnonymousToken;
+pub const ANONYMOUS_TOKEN: &'static dyn GetProperty = &AnonymousToken(PhantomData);
 
 impl SetProperty for AnonymousToken {
     type Item = String;
@@ -537,10 +440,10 @@ impl SetProperty for AnonymousToken {
 }
 
 #[derive(Debug)]
-pub struct Password;
+pub struct Password(PhantomData<()>);
 
 impl GetProperty for Password {}
-pub const PASSWORD: &'static dyn GetProperty = &Password;
+pub const PASSWORD: &'static dyn GetProperty = &Password(PhantomData);
 
 impl SetProperty for Password {
     type Item = String;
@@ -551,10 +454,10 @@ impl SetProperty for Password {
 }
 
 #[derive(Debug)]
-pub struct AuthzId;
+pub struct AuthzId(PhantomData<()>);
 
 impl GetProperty for AuthzId {}
-pub const AUTHZID: &'static dyn GetProperty = &AuthzId;
+pub const AUTHZID: &'static dyn GetProperty = &AuthzId(PhantomData);
 
 impl SetProperty for AuthzId {
     type Item = String;
@@ -565,11 +468,11 @@ impl SetProperty for AuthzId {
 }
 
 #[derive(Debug)]
-pub struct AuthId;
+pub struct AuthId(PhantomData<()>);
 
 impl GetProperty for AuthId {}
 
-pub const AUTHID: &'static dyn GetProperty = &AuthId;
+pub const AUTHID: &'static dyn GetProperty = &AuthId(PhantomData);
 impl SetProperty for AuthId {
     type Item = String;
     fn code() -> Gsasl_property { GSASL_AUTHID }
