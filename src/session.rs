@@ -128,7 +128,7 @@ impl SessionData {
         let property = P::as_const();
         self.callback.clone()
             .map(|cb| cb.provide_prop(self, property))
-            .unwrap_or(Err(SASLError::NoCallbackDyn { property }))
+            .unwrap_or(Err(SASLError::NoCallback { property }))
     }
 
     pub fn validate<V: Validation>(&mut self) -> Result<(), SASLError> {

@@ -45,7 +45,7 @@ pub(crate) unsafe fn gsasl_callback(_ctx: *mut Shared,
             GSASL_PASSWORD => cb.provide_prop(sctx, PASSWORD),
             GSASL_AUTHZID => cb.provide_prop(sctx, AUTHZID),
             GSASL_AUTHID => cb.provide_prop(sctx, AUTHID),
-            code => Err(SASLError::NoCallback { code }),
+            code => unreachable!(),
         };
 
         if res.is_err() {
