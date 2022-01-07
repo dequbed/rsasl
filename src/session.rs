@@ -163,7 +163,6 @@ impl SessionData {
 
     pub(crate) unsafe fn set_property_raw(&mut self, prop: Gsasl_property, data: Box<String>) {
         todo!()
-        //let _ = self.property_cache.insert(prop, data);
     }
 }
 

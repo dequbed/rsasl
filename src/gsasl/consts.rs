@@ -97,7 +97,7 @@ pub trait GetProperty: 'static + AsAny + Debug {
 }
 
 pub trait SetProperty: GetProperty {
-    type Item: Any + Clone;
+    type Item: Any;
     fn code() -> Gsasl_property where Self: Sized;
     fn as_const() -> &'static dyn GetProperty;
 }
