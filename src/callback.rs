@@ -4,9 +4,9 @@ use crate::consts::{AUTHID, CallbackAction, Gsasl_property, Property};
 use crate::{Mechname, SASLError};
 use crate::SASLError::{NoCallback, NoValidate};
 use crate::session::SessionData;
+use crate::validate::Validation;
 
 pub trait Callback {
-    // New Style
     fn provide_prop(&self, _session: &mut SessionData, action: CallbackAction)
         -> Result<(), SASLError>
     {
@@ -14,9 +14,9 @@ pub trait Callback {
         return Err(NoCallback { code })
     }
 
-    fn validate(&self, session: &mut SessionData, mechanism: &str)
+    fn validate(&self, session: &mut SessionData, validation: &'static dyn Validation)
         -> Result<(), SASLError>
     {
-        return Err(NoValidate { mechanism: mechanism.to_string() })
+        return Err(NoValidate { validation })
     }
 }
