@@ -24,7 +24,6 @@ pub mod done;
 pub mod error;
 pub mod free;
 pub mod init;
-pub mod listmech;
 pub mod mechname;
 pub mod mechtools;
 pub mod property;
