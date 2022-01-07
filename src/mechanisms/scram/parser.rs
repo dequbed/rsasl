@@ -265,7 +265,7 @@ pub unsafe fn scram_parse_client_first(
     if !scram_valid_client_first(cf) { return -(1 as libc::c_int) }
     return 0 as libc::c_int;
 }
-#[no_mangle]
+
 pub unsafe fn scram_parse_server_first(
     mut str: *const libc::c_char,
     mut len: size_t,

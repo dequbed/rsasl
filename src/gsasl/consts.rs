@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::ffi::CString;
+use crate::Mechname;
 
 pub type RsaslError = libc::c_uint;
 pub const GSASL_IO_ERROR: libc::c_uint = 65;
@@ -47,13 +48,6 @@ pub const GSASL_NEEDS_MORE: libc::c_uint = 1;
 pub const GSASL_OK: libc::c_uint = 0;
 
 pub enum CallbackAction {
-    VALIDATE_OPENID20,
-    VALIDATE_SAML20,
-    VALIDATE_SECURID,
-    VALIDATE_GSSAPI,
-    VALIDATE_ANONYMOUS,
-    VALIDATE_EXTERNAL,
-    VALIDATE_SIMPLE,
     OPENID20_AUTHENTICATE_IN_BROWSER,
     SAML20_AUTHENTICATE_IN_BROWSER,
     OPENID20_OUTCOME_DATA(OPENID20_OUTCOME_DATA),
@@ -81,6 +75,76 @@ pub enum CallbackAction {
     AUTHZID(AUTHZID),
     AUTHID(AUTHID),
 }
+
+impl CallbackAction {
+    pub fn code(&self) -> Gsasl_property {
+        match self {
+            CallbackAction::OPENID20_AUTHENTICATE_IN_BROWSER =>
+                GSASL_OPENID20_AUTHENTICATE_IN_BROWSER,
+            CallbackAction::SAML20_AUTHENTICATE_IN_BROWSER =>
+                GSASL_SAML20_AUTHENTICATE_IN_BROWSER,
+            // todo: The rest
+            CallbackAction::OPENID20_OUTCOME_DATA(_) => OPENID20_OUTCOME_DATA::code(),
+            CallbackAction::OPENID20_REDIRECT_URL(_) => OPENID20_REDIRECT_URL::code(),
+            CallbackAction::SAML20_REDIRECT_URL(_) => SAML20_REDIRECT_URL::code(),
+            CallbackAction::SAML20_IDP_IDENTIFIER(_) => SAML20_IDP_IDENTIFIER::code(),
+            CallbackAction::CB_TLS_UNIQUE(_) => CB_TLS_UNIQUE::code(),
+            CallbackAction::SCRAM_STOREDKEY(_) => SCRAM_STOREDKEY::code(),
+            CallbackAction::SCRAM_SERVERKEY(_) => SCRAM_SERVERKEY::code(),
+            CallbackAction::SCRAM_SALTED_PASSWORD(_) => SCRAM_SALTED_PASSWORD::code(),
+            CallbackAction::SCRAM_SALT(_) => SCRAM_SALT::code(),
+            CallbackAction::SCRAM_ITER(_) => SCRAM_ITER::code(),
+            CallbackAction::QOP(_) => QOP::code(),
+            CallbackAction::QOPS(_) => QOPS::code(),
+            CallbackAction::DIGEST_MD5_HASHED_PASSWORD(_) => DIGEST_MD5_HASHED_PASSWORD::code(),
+            CallbackAction::REALM(_) => REALM::code(),
+            CallbackAction::PIN(_) => PIN::code(),
+            CallbackAction::SUGGESTED_PIN(_) => SUGGESTED_PIN::code(),
+            CallbackAction::PASSCODE(_) => PASSCODE::code(),
+            CallbackAction::GSSAPI_DISPLAY_NAME(_) => GSSAPI_DISPLAY_NAME::code(),
+            CallbackAction::HOSTNAME(_) => HOSTNAME::code(),
+            CallbackAction::SERVICE(_) => SERVICE::code(),
+            CallbackAction::ANONYMOUS_TOKEN(_) => ANONYMOUS_TOKEN::code(),
+            CallbackAction::PASSWORD(_) => PASSWORD::code(),
+            CallbackAction::AUTHZID(_) => AUTHZID::code(),
+            CallbackAction::AUTHID(_) => AUTHID::code(),
+        }
+    }
+
+    pub fn from_code(code: Gsasl_property) -> Option<Self> {
+        match code {
+            GSASL_OPENID20_AUTHENTICATE_IN_BROWSER => Some(CallbackAction::OPENID20_AUTHENTICATE_IN_BROWSER),
+            GSASL_SAML20_AUTHENTICATE_IN_BROWSER => Some(CallbackAction::SAML20_AUTHENTICATE_IN_BROWSER),
+            GSASL_OPENID20_OUTCOME_DATA => Some(CallbackAction::OPENID20_OUTCOME_DATA(OPENID20_OUTCOME_DATA)),
+            GSASL_OPENID20_REDIRECT_URL => Some(CallbackAction::OPENID20_REDIRECT_URL(OPENID20_REDIRECT_URL)),
+            GSASL_SAML20_REDIRECT_URL => Some(CallbackAction::SAML20_REDIRECT_URL(SAML20_REDIRECT_URL)),
+            GSASL_SAML20_IDP_IDENTIFIER => Some(CallbackAction::SAML20_IDP_IDENTIFIER(SAML20_IDP_IDENTIFIER)),
+            GSASL_CB_TLS_UNIQUE => Some(CallbackAction::CB_TLS_UNIQUE(CB_TLS_UNIQUE)),
+            GSASL_SCRAM_STOREDKEY => Some(CallbackAction::SCRAM_STOREDKEY(SCRAM_STOREDKEY)),
+            GSASL_SCRAM_SERVERKEY => Some(CallbackAction::SCRAM_SERVERKEY(SCRAM_SERVERKEY)),
+            GSASL_SCRAM_SALTED_PASSWORD => Some(CallbackAction::SCRAM_SALTED_PASSWORD(SCRAM_SALTED_PASSWORD)),
+            GSASL_SCRAM_SALT => Some(CallbackAction::SCRAM_SALT(SCRAM_SALT)),
+            GSASL_SCRAM_ITER => Some(CallbackAction::SCRAM_ITER(SCRAM_ITER)),
+            GSASL_QOP => Some(CallbackAction::QOP(QOP)),
+            GSASL_QOPS => Some(CallbackAction::QOPS(QOPS)),
+            GSASL_DIGEST_MD5_HASHED_PASSWORD => Some(CallbackAction::DIGEST_MD5_HASHED_PASSWORD(DIGEST_MD5_HASHED_PASSWORD)),
+            GSASL_REALM => Some(CallbackAction::REALM(REALM)),
+            GSASL_PIN => Some(CallbackAction::PIN(PIN)),
+            GSASL_SUGGESTED_PIN => Some(CallbackAction::SUGGESTED_PIN(SUGGESTED_PIN)),
+            GSASL_PASSCODE => Some(CallbackAction::PASSCODE(PASSCODE)),
+            GSASL_GSSAPI_DISPLAY_NAME => Some(CallbackAction::GSSAPI_DISPLAY_NAME(GSSAPI_DISPLAY_NAME)),
+            GSASL_HOSTNAME => Some(CallbackAction::HOSTNAME(HOSTNAME)),
+            GSASL_SERVICE => Some(CallbackAction::SERVICE(SERVICE)),
+            GSASL_ANONYMOUS_TOKEN => Some(CallbackAction::ANONYMOUS_TOKEN(ANONYMOUS_TOKEN)),
+            GSASL_PASSWORD => Some(CallbackAction::PASSWORD(PASSWORD)),
+            GSASL_AUTHZID => Some(CallbackAction::AUTHZID(AUTHZID)),
+            GSASL_AUTHID => Some(CallbackAction::AUTHID(AUTHID)),
+            _ => None,
+        }
+
+    }
+}
+
 pub type Gsasl_property = libc::c_uint;
 pub const GSASL_VALIDATE_OPENID20: Gsasl_property = 506;
 pub const GSASL_VALIDATE_SAML20: Gsasl_property = 505;
@@ -89,6 +153,7 @@ pub const GSASL_VALIDATE_GSSAPI: Gsasl_property = 503;
 pub const GSASL_VALIDATE_ANONYMOUS: Gsasl_property = 502;
 pub const GSASL_VALIDATE_EXTERNAL: Gsasl_property = 501;
 pub const GSASL_VALIDATE_SIMPLE: Gsasl_property = 500;
+
 pub const GSASL_OPENID20_AUTHENTICATE_IN_BROWSER: Gsasl_property = 251;
 pub const GSASL_SAML20_AUTHENTICATE_IN_BROWSER: Gsasl_property = 250;
 pub const GSASL_OPENID20_OUTCOME_DATA: Gsasl_property = 22;
@@ -121,9 +186,6 @@ pub const GSASL_AUTHID: Gsasl_property = 1;
 pub trait Property {
     type Item: Any + Clone;
     fn code() -> Gsasl_property where Self: Sized;
-    fn code_dyn(&self) -> Gsasl_property {
-        0
-    }
 }
 
 pub struct OPENID20_OUTCOME_DATA;

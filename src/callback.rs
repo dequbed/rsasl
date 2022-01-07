@@ -1,27 +1,22 @@
 use std::any::Any;
 use std::fmt::Debug;
-use crate::consts::{AUTHID, Gsasl_property, Property};
-use crate::SASLError;
-use crate::SASLError::NoCallback;
+use crate::consts::{AUTHID, CallbackAction, Gsasl_property, Property};
+use crate::{Mechname, SASLError};
+use crate::SASLError::{NoCallback, NoValidate};
 use crate::session::SessionData;
 
 pub trait Callback {
-    // Old Style
-    fn callback(&self, session: &mut SessionData, code: Gsasl_property) -> Result<(), SASLError>;
-
     // New Style
-    /// Provide the requested property to `session` by calling [`SessionData::set_property()`]
-    fn provide_property<P: Property>(&self, session: &mut SessionData)
+    fn provide_prop(&self, _session: &mut SessionData, action: CallbackAction)
         -> Result<(), SASLError>
-    where Self: Sized {
-        let code = P::code();
+    {
+        let code = action.code();
         return Err(NoCallback { code })
     }
 
-    fn provide_property_dyn(&self, session: &mut SessionData, property: &dyn Property<Item=&dyn Any>)
+    fn validate(&self, session: &mut SessionData, mechanism: &str)
         -> Result<(), SASLError>
     {
-        let code = AUTHID::code();
-        return Err(NoCallback { code })
+        return Err(NoValidate { mechanism: mechanism.to_string() })
     }
 }

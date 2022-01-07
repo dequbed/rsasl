@@ -5,8 +5,8 @@ use std::io::Write;
 use std::sync::Arc;
 use base64::write::EncoderWriter;
 
-use crate::{Callback, SASLError};
-use crate::consts::{GSASL_NO_CALLBACK, Gsasl_property, Property};
+use crate::{Callback, Mechname, SASLError};
+use crate::consts::{CallbackAction, GSASL_NO_CALLBACK, Gsasl_property, *, Property};
 use crate::mechanism::{Authentication, MechanismInstance};
 
 pub struct Session {
@@ -124,7 +124,26 @@ impl SessionData {
 impl SessionData {
     pub fn callback(&mut self, code: Gsasl_property) -> Result<(), SASLError> {
         if let Some(cb) = self.callback.clone() {
-            cb.callback(self, code)
+            match code {
+                GSASL_VALIDATE_OPENID20 =>
+                    cb.validate(self, "OPENID20"),
+                GSASL_VALIDATE_SAML20 =>
+                    cb.validate(self, "SAML20"),
+                GSASL_VALIDATE_SECURID =>
+                    cb.validate(self, "SECURID"),
+                GSASL_VALIDATE_GSSAPI =>
+                    cb.validate(self, "GSSAPI"),
+                GSASL_VALIDATE_ANONYMOUS =>
+                    cb.validate(self, "ANONYMOUS"),
+                GSASL_VALIDATE_EXTERNAL =>
+                    cb.validate(self, "EXTERNAL"),
+                GSASL_VALIDATE_SIMPLE =>
+                    cb.validate(self, "SIMPLE"),
+                property => {
+                    let action = CallbackAction::from_code(property).unwrap();
+                    cb.provide_prop(self, action)
+                },
+            }
         } else {
             Err(GSASL_NO_CALLBACK.into())
         }

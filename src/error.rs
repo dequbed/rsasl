@@ -4,6 +4,7 @@ use std::fmt::{Debug, Display, Formatter};
 use base64::DecodeError;
 use crate::consts::Gsasl_property;
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
+use crate::Mechname;
 
 pub type Result<T> = std::result::Result<T, SASLError>;
 
@@ -24,6 +25,9 @@ pub enum SASLError {
     NoSecurityLayer,
     NoCallback {
         code: Gsasl_property,
+    },
+    NoValidate {
+        mechanism: String,
     },
     Gsasl(u32),
 }
@@ -54,6 +58,8 @@ impl Debug for SASLError {
                        n),
             SASLError::NoSecurityLayer => f.write_str("NoSecurityLayer"),
             SASLError::NoCallback { code } => write!(f, "NoCallback({:?})", code),
+            SASLError::NoValidate { mechanism } =>
+                write!(f, "NoValidate({})", mechanism),
         }
     }
 }
@@ -88,6 +94,10 @@ impl Display for SASLError {
                 write!(f,
                        "callback could not provide the requested property {}",
                        code),
+            SASLError::NoValidate { mechanism } =>
+                write!(f,
+                       "no validation callback for {} installed",
+                       mechanism),
         }
     }
 }

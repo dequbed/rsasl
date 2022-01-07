@@ -1,7 +1,7 @@
 use std::ffi::CString;
 use std::io;
 use std::io::Cursor;
-use rsasl::consts::{AUTHID, GSASL_AUTHID, GSASL_NO_AUTHID, GSASL_NO_CALLBACK, GSASL_PASSWORD, Gsasl_property, PASSWORD};
+use rsasl::consts::{AUTHID, CallbackAction, GSASL_AUTHID, GSASL_NO_AUTHID, GSASL_NO_CALLBACK, GSASL_PASSWORD, Gsasl_property, PASSWORD};
 use rsasl::{SessionData, Callback, Property, Step::{Done, NeedsMore}, SASL};
 use rsasl::error::SASLError;
 use rsasl::mechname::Mechname;
@@ -10,11 +10,11 @@ use rsasl::mechname::Mechname;
 struct OurCallback;
 
 impl Callback for OurCallback {
-    fn callback(&self, session: &mut SessionData, code: Gsasl_property)
+    fn provide_prop(&self, session: &mut SessionData, action: CallbackAction)
         -> Result<(), SASLError>
     {
-        match code {
-            GSASL_PASSWORD => {
+        match action {
+            CallbackAction::PASSWORD(_) => {
                 // Access the authentication id, i.e. the username to check the password for
                 let _authcid = session.get_property_or_callback::<AUTHID>()
                     .ok_or(GSASL_NO_AUTHID)?;
