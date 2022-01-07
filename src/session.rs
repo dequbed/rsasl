@@ -6,7 +6,7 @@ use std::sync::Arc;
 use base64::write::EncoderWriter;
 
 use crate::{Callback, Mechname, SASLError};
-use crate::consts::{CallbackAction, GSASL_NO_CALLBACK, Gsasl_property, *, SetProperty};
+use crate::consts::{GSASL_NO_CALLBACK, Gsasl_property, *, SetProperty};
 use crate::mechanism::{Authentication, MechanismInstance};
 use crate::validate::*;
 

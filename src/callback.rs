@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::fmt::Debug;
-use crate::consts::{AuthId, AuthzId, CallbackAction, GetProperty, Gsasl_property, SetProperty};
+use crate::consts::{AuthId, AuthzId, GetProperty, Gsasl_property, SetProperty};
 use crate::{eq_type, Mechname, SASL, SASLError};
 use crate::SASLError::{NoCallback, NoCallbackDyn, NoValidate};
 use crate::session::SessionData;

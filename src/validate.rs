@@ -102,7 +102,6 @@ mod tests {
     use std::hash::{Hash, Hasher};
     use std::ptr::null_mut;
     use crate::{Callback, eq_type, SASLError, SessionData};
-    use crate::consts::CallbackAction;
     use crate::SASLError::NoValidate;
     use super::*;
 
