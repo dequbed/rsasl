@@ -32,7 +32,6 @@ pub mod register;
 pub mod saslprep;
 pub mod suggest;
 pub mod supportp;
-pub mod version;
 pub mod xcode;
 pub mod xfinish;
 pub mod xstep;
