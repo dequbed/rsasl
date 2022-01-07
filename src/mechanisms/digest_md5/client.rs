@@ -17,7 +17,7 @@ use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::gc_gnulib::gc_md5;
 use crate::gsasl::property::{gsasl_property_set};
 use crate::{Shared, SessionData};
-use crate::consts::{AUTHID, AUTHZID, HOSTNAME, PASSWORD, QOP, REALM, SERVICE};
+use crate::consts::{AuthId, AuthzId, Hostname, Password, Qop, Realm, Service};
 
 extern "C" {
 
@@ -157,7 +157,7 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut SessionData,
                                    digest_md5_qops2qopstr((*state).challenge.qops));
             if res != GSASL_OK as libc::c_int { return res }
 
-            if let Some(qop) = sctx.get_property_or_callback::<QOP>() {
+            if let Some(qop) = sctx.get_property_or_callback::<Qop>() {
                 if qop.as_bytes() == b"qop-int\0" {
                     (*state).response.qop = DIGEST_MD5_QOP_AUTH_INT
                 } else if qop.as_bytes() == b"qop-auth\0" {
@@ -175,12 +175,12 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut SessionData,
             if (*state).response.nonce.is_null() {
                 return GSASL_MALLOC_ERROR as libc::c_int
             }
-            let service = if let Some(service) = sctx.get_property_or_callback::<SERVICE>() {
+            let service = if let Some(service) = sctx.get_property_or_callback::<Service>() {
                 service.clone()
             } else {
                 return GSASL_NO_SERVICE as libc::c_int
             };
-            let hostname = if let Some(hostname) = sctx.get_property_or_callback::<HOSTNAME>() {
+            let hostname = if let Some(hostname) = sctx.get_property_or_callback::<Hostname>() {
                 hostname.clone()
             } else {
                 return GSASL_NO_HOSTNAME as libc::c_int
@@ -195,7 +195,7 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut SessionData,
             let mut tmp: *mut libc::c_char = 0 as *mut libc::c_char;
             let mut tmp2: *mut libc::c_char = 0 as *mut libc::c_char;
 
-            if let Some(authid) = sctx.get_property_or_callback::<AUTHID>() {
+            if let Some(authid) = sctx.get_property_or_callback::<AuthId>() {
                 let cauthid = CString::new(authid.clone()).expect("Username contains NULL");
                 (*state).response.username = strdup(cauthid.as_ptr());
                 if (*state).response.username.is_null() {
@@ -205,7 +205,7 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut SessionData,
                 return GSASL_NO_AUTHID as libc::c_int;
             }
 
-            if let Some(authzid) = sctx.get_property_or_callback::<AUTHZID>() {
+            if let Some(authzid) = sctx.get_property_or_callback::<AuthzId>() {
                 let cauthid = CString::new(authzid.clone()).expect("Username contains NULL");
                 (*state).response.authzid = strdup(cauthid.as_ptr());
                 if (*state).response.authzid.is_null() {
@@ -214,14 +214,14 @@ pub unsafe fn _gsasl_digest_md5_client_step(sctx: &mut SessionData,
             }
 
             gsasl_callback(0 as *mut Shared, sctx, GSASL_REALM);
-            if let Some(prop) = sctx.get_property::<REALM>() {
+            if let Some(prop) = sctx.get_property::<Realm>() {
                 (*state).response.realm = strdup(prop.as_ptr());
                 if (*state).response.realm.is_null() {
                     return GSASL_MALLOC_ERROR as libc::c_int
                 }
             }
 
-            if let Some(passwd) = sctx.get_property_or_callback::<PASSWORD>() {
+            if let Some(passwd) = sctx.get_property_or_callback::<Password>() {
                 let cpasswd = CString::new(passwd.clone()).expect("Username contains NULL");
                 tmp2 = utf8tolatin1ifpossible(cpasswd.as_ptr());
             } else {

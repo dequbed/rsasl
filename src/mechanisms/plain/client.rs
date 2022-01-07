@@ -2,7 +2,7 @@ use std::io::{IoSlice, Write};
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
-use crate::consts::{AUTHID, AUTHZID, PASSWORD};
+use crate::consts::{AuthId, AuthzId, Password};
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK};
 use crate::{RsaslError, Shared, SASLError, SessionData, mechname, SASL, Mechname, };
 use crate::mechanism::{Authentication, MechanismBuilder, MechanismInstance};
@@ -70,9 +70,9 @@ pub unsafe fn _gsasl_plain_client_step(sctx: &mut SessionData,
                                        output_len: *mut size_t
 ) -> libc::c_int
 {
-    let authzid = sctx.get_property_or_callback::<AUTHZID>().map(Clone::clone);
-    let authid = sctx.get_property_or_callback::<AUTHID>().map(Clone::clone);
-    let password = sctx.get_property_or_callback::<PASSWORD>().map(Clone::clone);
+    let authzid = sctx.get_property_or_callback::<AuthzId>().map(Clone::clone);
+    let authid = sctx.get_property_or_callback::<AuthId>().map(Clone::clone);
+    let password = sctx.get_property_or_callback::<Password>().map(Clone::clone);
 
     let authzidlen: size_t = if let Some(ref authzid) = authzid {
         authzid.len()
@@ -148,13 +148,13 @@ impl Authentication for Plain {
     fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write)
         -> StepResult
     {
-        let authzid = session.get_property_or_callback::<AUTHZID>()
+        let authzid = session.get_property_or_callback::<AuthzId>()
             .map(Clone::clone);
 
-        let authid = session.get_property_or_callback::<AUTHID>()
+        let authid = session.get_property_or_callback::<AuthId>()
             .map(Clone::clone)
             .ok_or(GSASL_NO_AUTHID)?;
-        let password = session.get_property_or_callback::<PASSWORD>()
+        let password = session.get_property_or_callback::<Password>()
             .map(Clone::clone)
             .ok_or(GSASL_NO_PASSWORD)?;
 
@@ -221,7 +221,7 @@ mod test {
     use std::io::Cursor;
     use std::sync::Arc;
     use super::*;
-    use crate::consts::{AUTHID, PASSWORD};
+    use crate::consts::{AuthId, Password};
     use crate::SessionData;
     use crate::Step::{Done, NeedsMore};
 
@@ -234,8 +234,8 @@ mod test {
         let password = "secret".to_string();
         assert_eq!(password.len(), 6);
 
-        session.set_property::<AUTHID>(Box::new(username));
-        session.set_property::<PASSWORD>(Box::new(password));
+        session.set_property::<AuthId>(Box::new(username));
+        session.set_property::<Password>(Box::new(password));
 
         let mut out = Cursor::new(Vec::new());
 
@@ -269,8 +269,8 @@ mod test {
         let password = "secret".to_string();
         assert_eq!(password.len(), 6);
 
-        session.set_property::<AUTHID>(Box::new(username));
-        session.set_property::<PASSWORD>(Box::new(password));
+        session.set_property::<AuthId>(Box::new(username));
+        session.set_property::<Password>(Box::new(password));
 
         struct SplitWriter {
             data: Cursor<Vec<u8>>,

@@ -6,7 +6,7 @@ use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_CRYPT
 use crate::gsasl::property::gsasl_property_set;
 use crate::gsasl::saslprep::{gsasl_saslprep, Gsasl_saslprep_flags};
 use crate::{Shared, SessionData};
-use crate::consts::PASSWORD;
+use crate::consts::Password;
 
 extern "C" {
     fn malloc(_: size_t) -> *mut libc::c_void;
@@ -126,7 +126,7 @@ pub unsafe fn _gsasl_cram_md5_server_step(sctx: &mut SessionData,
     rpl_free(username as *mut libc::c_void);
     if res != GSASL_OK as libc::c_int { return res }
 
-    if let Some(password) = sctx.get_property_or_callback::<PASSWORD>() {
+    if let Some(password) = sctx.get_property_or_callback::<Password>() {
         let cstr = CString::new(password.clone()).unwrap();
         /* FIXME: Use SASLprep here?  Treat string as storage string?
          Specification is unclear. */

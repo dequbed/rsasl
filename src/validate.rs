@@ -1,19 +1,21 @@
 use std::any::{Any, TypeId};
 use std::fmt::{Debug, Display, Formatter};
+use std::hash::Hash;
+use crate::as_any::AsAny;
 
 /// Marker trait for expected validation in a callback.
 /// Only ever passed as `&'static dyn Validation` trait object
-pub trait Validation: Display + Debug + AsAny {}
-
-pub trait AsAny {
-    fn as_any(&self) -> &dyn Any;
-}
-
-impl<T: Any> AsAny for T{
+pub trait Validation: 'static + Display + Debug + AsAny {
     fn as_any(&self) -> &dyn Any {
-        self
+        <Self as AsAny>::as_any_super(self)
+    }
+
+    fn as_const() -> &'static dyn Validation where Self: Sized {
+        todo!()
     }
 }
+
+pub struct ValidationTypeId(TypeId);
 
 #[derive(Debug)]
 pub struct Simple;
@@ -99,7 +101,7 @@ mod tests {
     use std::collections::HashMap;
     use std::hash::{Hash, Hasher};
     use std::ptr::null_mut;
-    use crate::{Callback, SASLError, SessionData};
+    use crate::{Callback, eq_type, SASLError, SessionData};
     use crate::consts::CallbackAction;
     use crate::SASLError::NoValidate;
     use super::*;
@@ -111,7 +113,7 @@ mod tests {
             fn validate(&self, session: &mut SessionData, validation: &'static dyn Validation)
                 -> Result<(), SASLError>
             {
-                if let Some(scram) = validation.as_any().downcast_ref::<Simple>() {
+                if eq_type!(validation, Simple) {
                     println!("Hey I know how to validate simple!");
                     Ok(())
                 } else {

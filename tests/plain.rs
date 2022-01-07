@@ -1,6 +1,6 @@
 use std::io;
 use std::io::Cursor;
-use rsasl::consts::{AUTHID, GSASL_AUTHENTICATION_ERROR, PASSWORD};
+use rsasl::consts::{AuthId, GSASL_AUTHENTICATION_ERROR, Password};
 use rsasl::{SASL, Step};
 use rsasl::error::SASLError;
 use rsasl::mechname::Mechname;
@@ -17,8 +17,8 @@ fn plain_client() {
     let password = "secret".to_string();
     assert_eq!(password.len(), 6);
 
-    session.set_property::<AUTHID>(Box::new(username));
-    session.set_property::<PASSWORD>(Box::new(password));
+    session.set_property::<AuthId>(Box::new(username));
+    session.set_property::<Password>(Box::new(password));
 
     let mut out = Cursor::new(Vec::new());
 
@@ -53,8 +53,8 @@ fn plain_server() {
     let password = "secret".to_string();
     assert_eq!(password.len(), 6);
 
-    session.set_property::<AUTHID>(Box::new(username));
-    session.set_property::<PASSWORD>(Box::new(password));
+    session.set_property::<AuthId>(Box::new(username));
+    session.set_property::<Password>(Box::new(password));
 
     let mut out = Cursor::new(Vec::new());
 
@@ -69,8 +69,8 @@ fn plain_server() {
     let mut session = prov.server_start(Mechname::try_parse(b"PLAIN").unwrap()).unwrap();
     let username = "testuser".to_string();
     let password = "secret".to_string();
-    session.set_property::<AUTHID>(Box::new(username));
-    session.set_property::<PASSWORD>(Box::new(password));
+    session.set_property::<AuthId>(Box::new(username));
+    session.set_property::<Password>(Box::new(password));
 
     if let SASLError::Gsasl(GSASL_AUTHENTICATION_ERROR) =
         session.step(Some(b"\0testuser\0badpass"), &mut out).unwrap_err() {

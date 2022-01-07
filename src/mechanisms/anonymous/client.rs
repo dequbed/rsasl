@@ -1,7 +1,7 @@
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
-use crate::consts::ANONYMOUS_TOKEN;
+use crate::consts::AnonymousToken;
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_ANONYMOUS_TOKEN,
                            GSASL_OK};
 use crate::SessionData;
@@ -62,7 +62,7 @@ pub unsafe fn _gsasl_anonymous_client_step(sctx: &mut SessionData,
                                            output_len: *mut size_t
 ) -> libc::c_int
 {
-    if let Some(token) = sctx.get_property_or_callback::<ANONYMOUS_TOKEN>() {
+    if let Some(token) = sctx.get_property_or_callback::<AnonymousToken>() {
         *output = strndup(token.as_ptr() as *const libc::c_char, token.len());
 
         if (*output).is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
