@@ -25,9 +25,6 @@ pub enum SASLError {
     MechanismNameError(MechanismNameError),
     NoSecurityLayer,
     NoCallback {
-        code: Gsasl_property,
-    },
-    NoCallbackDyn {
         property: &'static dyn GetProperty,
     },
     NoValidate {
@@ -61,10 +58,9 @@ impl Debug for SASLError {
                        rsasl_errname_to_str(*n).unwrap_or("UNKNOWN_ERROR"),
                        n),
             SASLError::NoSecurityLayer => f.write_str("NoSecurityLayer"),
-            SASLError::NoCallback { code } => write!(f, "NoCallback({:?})", code),
             SASLError::NoValidate { validation } =>
                 write!(f, "NoValidate({:?})", validation),
-            SASLError::NoCallbackDyn { property } => write!(f, "NoCallback({:?})", property),
+            SASLError::NoCallback { property } => write!(f, "NoCallback({:?})", property),
         }
     }
 }
@@ -95,11 +91,7 @@ impl Display for SASLError {
                        gsasl_err_to_str_internal(*n as i32)),
             SASLError::NoSecurityLayer => f.write_str("Tried wrapping data but no security layer \
                 is installed"),
-            SASLError::NoCallback { code } =>
-                write!(f,
-                       "callback could not provide the requested property {}",
-                       code),
-            SASLError::NoCallbackDyn { property } =>
+            SASLError::NoCallback { property } =>
                 write!(f,
                        "callback could not provide the requested property {:?}",
                        property),

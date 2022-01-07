@@ -4,7 +4,6 @@ use std::io::Cursor;
 use rsasl::consts::{AuthId, GetProperty, GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_NO_AUTHID, GSASL_NO_CALLBACK, GSASL_PASSWORD, Gsasl_property, Password};
 use rsasl::{SessionData, Callback, Property, Step::{Done, NeedsMore}, session::StepResult, buffer::SaslBuffer, SASL};
 use rsasl::error::SASLError;
-use rsasl::error::SASLError::NoCallback;
 use rsasl::mechname::Mechname;
 
 // Callback is an unit struct since no data can be accessed from it.
