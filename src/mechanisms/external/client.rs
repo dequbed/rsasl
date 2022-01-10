@@ -3,7 +3,7 @@ use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_OK};
 use crate::gsasl::property::gsasl_property_get;
-use crate::SessionData;
+use crate::session::SessionData;
 
 extern "C" {
     fn strdup(_: *const libc::c_char) -> *mut libc::c_char;

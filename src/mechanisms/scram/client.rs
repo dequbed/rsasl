@@ -14,7 +14,8 @@ use crate::mechanisms::scram::server::{scram_server_final, scram_server_first};
 use crate::mechanisms::scram::tokens::{scram_free_client_final, scram_free_client_first,
                               scram_free_server_final, scram_free_server_first};
 use crate::mechanisms::scram::tools::set_saltedpassword;
-use crate::{Shared, SessionData};
+use crate::session::SessionData;
+use crate::Shared;
 
 extern "C" {
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,

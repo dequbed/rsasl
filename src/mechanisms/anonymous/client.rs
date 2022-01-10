@@ -1,10 +1,10 @@
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
-use crate::consts::AnonymousToken;
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_ANONYMOUS_TOKEN,
                            GSASL_OK};
-use crate::SessionData;
+use crate::property::AnonymousToken;
+use crate::session::SessionData;
 
 extern "C" {
     fn strndup(_: *const libc::c_char, _: size_t) -> *mut libc::c_char;

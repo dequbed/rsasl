@@ -4,7 +4,8 @@ use libc::size_t;
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_OPENID20_REDIRECT_URL, GSASL_OK, GSASL_OPENID20_OUTCOME_DATA, GSASL_OPENID20_REDIRECT_URL, GSASL_VALIDATE_OPENID20};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set, gsasl_property_set_raw};
-use crate::{Shared, SessionData};
+use crate::session::SessionData;
+use crate::Shared;
 
 extern "C" {
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)

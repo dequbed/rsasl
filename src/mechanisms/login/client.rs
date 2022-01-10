@@ -3,7 +3,8 @@ use ::libc;
 use libc::size_t;
 use crate::gsasl::consts::{GSASL_AUTHID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_NEEDS_MORE, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD};
 use crate::gsasl::property::gsasl_property_get;
-use crate::{Shared, SessionData};
+use crate::session::SessionData;
+use crate::Shared;
 
 extern "C" {
     /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
@@ -59,8 +60,8 @@ pub struct _Gsasl_login_client_state {
     pub step: libc::c_int,
 }
 
-pub(crate) unsafe fn _gsasl_login_client_start(_ctx: &Shared,
-                                        mech_data: &mut Option<NonNull<()>>,
+pub(crate) unsafe fn _gsasl_login_client_start(_ctx: &crate::Shared,
+                                               mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int
 {
     let mut state: *mut _Gsasl_login_client_state =
@@ -73,7 +74,7 @@ pub(crate) unsafe fn _gsasl_login_client_start(_ctx: &Shared,
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn _gsasl_login_client_step(sctx: &mut SessionData,
+pub unsafe fn _gsasl_login_client_step(sctx: &mut crate::session::SessionData,
                                        mech_data: Option<NonNull<()>>,
                                        _input: Option<&[u8]>,
                                        output: *mut *mut libc::c_char,

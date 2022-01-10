@@ -1,8 +1,9 @@
 use std::ffi::CString;
 use libc::size_t;
-use crate::consts::*;
+use crate::gsasl::consts::*;
 use crate::gsasl::consts::{GSASL_OK, Gsasl_property};
-use crate::SessionData;
+use crate::property::*;
+use crate::session::SessionData;
 
 extern "C" {
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;

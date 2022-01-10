@@ -15,7 +15,8 @@ use crate::mechanisms::digest_md5::validate::digest_md5_validate;
 use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::gc_gnulib::gc_md5;
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
-use crate::{Shared, SessionData};
+use crate::session::SessionData;
+use crate::Shared;
 
 extern "C" {
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,

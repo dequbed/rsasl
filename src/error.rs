@@ -2,9 +2,8 @@ use std::fmt;
 use std::ffi::CStr;
 use std::fmt::{Debug, Display, Formatter};
 use base64::DecodeError;
-use crate::consts::{GetProperty, Gsasl_property};
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
-use crate::Mechname;
+use crate::property::Property;
 use crate::validate::Validation;
 
 pub type Result<T> = std::result::Result<T, SASLError>;
@@ -25,7 +24,7 @@ pub enum SASLError {
     MechanismNameError(MechanismNameError),
     NoSecurityLayer,
     NoCallback {
-        property: &'static dyn GetProperty,
+        property: Property,
     },
     NoValidate {
         validation: &'static dyn Validation

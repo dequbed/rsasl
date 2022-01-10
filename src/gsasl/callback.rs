@@ -1,7 +1,9 @@
 use ::libc;
 use crate::gsasl::consts::Gsasl_property;
-use crate::{GSASL_OK, Shared, SessionData, SASLError};
-use crate::consts::*;
+use crate::gsasl::consts::*;
+use crate::property::*;
+use crate::session::SessionData;
+use crate::Shared;
 use crate::validate::*;
 
 pub(crate) unsafe fn gsasl_callback(_ctx: *mut Shared,
@@ -45,7 +47,7 @@ pub(crate) unsafe fn gsasl_callback(_ctx: *mut Shared,
             GSASL_PASSWORD => cb.provide_prop(sctx, PASSWORD),
             GSASL_AUTHZID => cb.provide_prop(sctx, AUTHZID),
             GSASL_AUTHID => cb.provide_prop(sctx, AUTHID),
-            code => unreachable!(),
+            _ => unreachable!(),
         };
 
         if res.is_err() {

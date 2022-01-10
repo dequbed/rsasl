@@ -1,8 +1,8 @@
 use std::fmt::{Debug, Display, Formatter};
-use std::ptr::NonNull;
-use crate::{GSASL_OK, MechanismVTable, MechContainer, mechname, register_builtin_mechs, SASL, SASLError};
-use crate::Mech;
-use crate::mechanism::{MechanismBuilder, MechanismInstance};
+use crate::gsasl::consts::GSASL_OK;
+use crate::{MechanismBuilder, SASLError};
+use crate::gsasl::gsasl::MechanismVTable;
+use crate::gsasl::init::register_builtin_mechs;
 use crate::mechname::Mechname;
 
 #[derive(Copy, Clone)]
@@ -162,7 +162,7 @@ impl Registry {
          */
     }
 
-    pub(crate) fn register_cmech(&mut self, name: &'static mechname::Mechname,
+    pub(crate) fn register_cmech(&mut self, name: &'static Mechname,
                           client: &'static MechanismVTable,
                           server: &'static MechanismVTable)
     {
@@ -208,9 +208,6 @@ impl Default for Registry {
 
 #[cfg(feature = "registry_static")]
 pub mod static_registry {
-    use std::fmt::{Debug, Display, Formatter};
-    use crate::mechanism::MechanismBuilder;
-    use crate::mechname::Mechname;
     use crate::Registry;
     use crate::registry::{Initializer, MechanismDescription};
 

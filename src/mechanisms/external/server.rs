@@ -4,7 +4,8 @@ use libc::size_t;
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHZID, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_OK, GSASL_VALIDATE_EXTERNAL};
 use crate::gsasl::property::{gsasl_property_set, gsasl_property_set_raw};
-use crate::{Shared, SessionData};
+use crate::session::SessionData;
+use crate::Shared;
 
 extern "C" {
     fn memchr(_: *const libc::c_void, _: libc::c_int, _: size_t)

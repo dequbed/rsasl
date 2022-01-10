@@ -1,5 +1,5 @@
 use ::libc;
-use crate::consts::GSASL_OK;
+use crate::gsasl::consts::GSASL_OK;
 use crate::gsasl::gsasl::{Gsasl_mechanism};
 use crate::registry::Registry;
 

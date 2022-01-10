@@ -3,7 +3,8 @@ use std::ptr::NonNull;
 use libc::size_t;
 use crate::gsasl::consts::*;
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep};
-use crate::SessionData;
+use crate::property::{AuthId, Password};
+use crate::session::SessionData;
 
 extern "C" {
     fn malloc(_: size_t) -> *mut libc::c_void;

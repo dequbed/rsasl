@@ -5,8 +5,9 @@ use libc::size_t;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_PASSWORD, GSASL_OK};
 use crate::gsasl::property::gsasl_property_set;
 use crate::gsasl::saslprep::{gsasl_saslprep, Gsasl_saslprep_flags};
-use crate::{Shared, SessionData};
-use crate::consts::Password;
+use crate::property::Password;
+use crate::session::SessionData;
+use crate::Shared;
 
 extern "C" {
     fn malloc(_: size_t) -> *mut libc::c_void;
