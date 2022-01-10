@@ -2,19 +2,16 @@ use std::io::{IoSlice, Write};
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
-use crate::consts::{AuthId, AuthzId, Password};
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK};
-use crate::{RsaslError, Shared, SASLError, SessionData, mechname, SASL, Mechname, };
 use crate::mechanism::{Authentication, MechanismBuilder, MechanismInstance};
-use crate::mechanisms::plain::mechinfo::gsasl_plain_mechanism;
-use crate::registry::MechanismDescription;
-use crate::session::StepResult;
-use crate::Step::Done;
+use crate::property::{AuthId, AuthzId, Password};
+use crate::{Mechname, SASL, SASLError};
+use crate::session::Step::Done;
+use crate::session::{SessionData, StepResult};
 
 extern "C" {
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
      -> *mut libc::c_void;
-    fn strlen(_: *const libc::c_char) -> size_t;
     fn malloc(_: size_t) -> *mut libc::c_void;
 }
 
@@ -137,7 +134,7 @@ pub struct Plain;
 impl MechanismBuilder for Plain {
     fn start(&self, _sasl: &SASL) -> Result<MechanismInstance, SASLError> {
         let i = MechanismInstance {
-            name: mechname::Mechname::new("PLAIN"),
+            name: Mechname::new("PLAIN"),
             inner: Box::new(Plain),
         };
         Ok(i)
@@ -220,10 +217,9 @@ mod test {
     use std::collections::HashMap;
     use std::io::Cursor;
     use std::sync::Arc;
+    use crate::session::SessionData;
+    use crate::session::Step::NeedsMore;
     use super::*;
-    use crate::consts::{AuthId, Password};
-    use crate::SessionData;
-    use crate::Step::{Done, NeedsMore};
 
     #[test]
     fn simple() {

@@ -1,11 +1,9 @@
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
-use crate::{Shared, SessionData};
-use crate::consts::{ANONYMOUS_TOKEN, AnonymousToken, GSASL_AUTHENTICATION_ERROR};
-use crate::gsasl::callback::gsasl_callback;
-use crate::gsasl::consts::{GSASL_ANONYMOUS_TOKEN, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_OK, GSASL_VALIDATE_ANONYMOUS};
-use crate::gsasl::property::gsasl_property_set_raw;
+use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_OK};
+use crate::property::AnonymousToken;
+use crate::session::SessionData;
 use crate::validate::Anonymous;
 
 /* anonymous.h --- Prototypes for ANONYMOUS mechanism as defined in RFC 2245.

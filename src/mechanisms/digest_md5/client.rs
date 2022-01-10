@@ -16,8 +16,9 @@ use crate::mechanisms::digest_md5::session::{digest_md5_decode, digest_md5_encod
 use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::gc_gnulib::gc_md5;
 use crate::gsasl::property::{gsasl_property_set};
-use crate::{Shared, SessionData};
-use crate::consts::{AuthId, AuthzId, Hostname, Password, Qop, Realm, Service};
+use crate::property::{AuthId, AuthzId, Hostname, Password, Qop, Realm, Service};
+use crate::session::SessionData;
+use crate::Shared;
 
 extern "C" {
 

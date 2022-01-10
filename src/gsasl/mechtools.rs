@@ -1,7 +1,6 @@
 use ::libc;
 use libc::size_t;
-use crate::consts::{GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR};
-use crate::{GSASL_MECHANISM_PARSE_ERROR, GSASL_OK};
+use crate::gsasl::consts::{GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_OK};
 use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::gc_gnulib::{Gc_hash, gc_hmac_sha1, gc_hmac_sha256, GC_MD4, gc_sha1, GC_SHA1, gc_sha256, GC_SHA256};
 use crate::gsasl::gl::gc_pbkdf2::gc_pbkdf2_hmac;

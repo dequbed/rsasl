@@ -4,7 +4,8 @@ use libc::size_t;
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_NEEDS_MORE, GSASL_NO_AUTHID, GSASL_OK, GSASL_OPENID20_AUTHENTICATE_IN_BROWSER, GSASL_OPENID20_OUTCOME_DATA, GSASL_OPENID20_REDIRECT_URL};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set_raw};
-use crate::{Shared, SessionData};
+use crate::session::SessionData;
+use crate::Shared;
 
 extern "C" {
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char,

@@ -85,34 +85,22 @@ pub mod mechname;
 mod registry;
 
 mod validate;
+mod property;
 
 #[macro_use]
 pub mod as_any;
 
-pub use gsasl::consts;
-
-pub use callback::Callback;
-pub use session::SessionData;
-pub use buffer::SaslString;
-
-pub use session::Step;
-
-use crate::gsasl::consts::{GSASL_MECHANISM_PARSE_ERROR, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
-use crate::gsasl::gsasl::{MechContainer, Mech, MechanismVTable};
-pub use crate::gsasl::consts::Gsasl_property as Property;
-
-pub use error::{
-    rsasl_err_to_str,
-    rsasl_errname_to_str,
+pub use property::{
+    Property,
+    PropertyDefinition,
+    PropertyQ,
 };
-use crate::consts::RsaslError;
+use crate::callback::Callback;
 use crate::error::SASLError;
-use crate::gsasl::init::register_builtin_mechs;
 use crate::mechanism::MechanismBuilder;
 use crate::mechname::Mechname;
 use crate::registry::Registry;
-pub use crate::session::Session;
-
+use crate::session::Session;
 
 
 // SASL Provider:

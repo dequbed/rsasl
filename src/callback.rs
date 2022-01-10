@@ -1,13 +1,11 @@
-use std::any::Any;
-use std::fmt::Debug;
-use crate::consts::{AuthId, AuthzId, GetProperty, Gsasl_property, SetProperty};
-use crate::{eq_type, Mechname, SASL, SASLError};
+use crate::SASLError;
+use crate::property::Property;
 use crate::SASLError::{NoCallback, NoValidate};
 use crate::session::SessionData;
 use crate::validate::Validation;
 
 pub trait Callback {
-    fn provide_prop(&self, _session: &mut SessionData, property: &'static dyn GetProperty)
+    fn provide_prop(&self, _session: &mut SessionData, property: Property)
         -> Result<(), SASLError>
     {
         return Err(NoCallback { property })

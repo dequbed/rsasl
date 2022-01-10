@@ -1,8 +1,7 @@
-use std::fmt::Debug;
 use std::io::Write;
-use crate::{mechname, SASL, SASLError, SessionData};
+use crate::{Mechname, SASL, SASLError};
 use crate::SASLError::NoSecurityLayer;
-use crate::session::StepResult;
+use crate::session::{SessionData, StepResult};
 
 pub trait MechanismBuilder: Sync + Send {
     fn init(&self) {}
@@ -10,7 +9,7 @@ pub trait MechanismBuilder: Sync + Send {
 }
 
 pub struct MechanismInstance {
-    pub name: &'static mechname::Mechname,
+    pub name: &'static Mechname,
     pub(crate) inner: Box<dyn Authentication>,
 }
 

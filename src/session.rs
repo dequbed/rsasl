@@ -5,9 +5,10 @@ use std::io::Write;
 use std::sync::Arc;
 use base64::write::EncoderWriter;
 
-use crate::{Callback, Mechname, SASLError};
-use crate::consts::{GSASL_NO_CALLBACK, Gsasl_property, *, SetProperty};
+use crate::{Callback, Property, SASLError};
+use crate::gsasl::consts::Gsasl_property;
 use crate::mechanism::{Authentication, MechanismInstance};
+use crate::property::PropertyQ;
 use crate::validate::*;
 
 pub struct Session {
@@ -19,7 +20,7 @@ impl Session {
     pub(crate) fn new(
         callback: Option<Arc<Box<dyn Callback>>>,
         mechanism: MechanismInstance,
-        global_properties: Arc<HashMap<Gsasl_property, Box<dyn Any>>>,
+        global_properties: Arc<HashMap<Property, Box<dyn Any>>>,
     ) -> Self
     {
         Self {
@@ -72,12 +73,12 @@ impl Session {
         self.step(input, &mut writer64)
     }
 
-    pub fn set_property<P: SetProperty>(&mut self, item: Box<P::Item>) -> Option<Box<P::Item>> {
+    pub fn set_property<P: PropertyQ>(&mut self, item: Box<P::Item>) -> Option<Box<P::Item>> {
         self.session_data.set_property::<P>(item)
             .map(|old| old.downcast().expect("old session data value was of bad type"))
     }
 
-    pub fn get_property<P: SetProperty>(&mut self) -> Option<&P::Item> {
+    pub fn get_property<P: PropertyQ>(&mut self) -> Option<&P::Item> {
         self.session_data.get_property::<P>()
     }
 }
@@ -86,7 +87,7 @@ impl Session {
 pub struct SessionData {
     pub callback: Option<Arc<Box<dyn Callback>>>,
     pub property_cache: HashMap<TypeId, Box<dyn Any>>,
-    pub global_properties: Arc<HashMap<Gsasl_property, Box<dyn Any>>>,
+    pub global_properties: Arc<HashMap<Property, Box<dyn Any>>>,
 }
 
 impl Debug for SessionData {
@@ -113,7 +114,7 @@ pub type StepResult = Result<Step, SASLError>;
 impl SessionData {
     pub(crate) fn new(
         callback: Option<Arc<Box<dyn Callback>>>,
-        global_properties: Arc<HashMap<Gsasl_property, Box<dyn Any>>>,
+        global_properties: Arc<HashMap<Property, Box<dyn Any>>>,
     ) -> Self {
         Self {
             callback,
@@ -124,8 +125,8 @@ impl SessionData {
 }
 
 impl SessionData {
-    pub fn callback<P: SetProperty>(&mut self) -> Result<(), SASLError> {
-        let property = P::as_const();
+    pub fn callback<P: PropertyQ>(&mut self) -> Result<(), SASLError> {
+        let property = P::property();
         self.callback.clone()
             .map(|cb| cb.provide_prop(self, property))
             .unwrap_or(Err(SASLError::NoCallback { property }))
@@ -138,26 +139,26 @@ impl SessionData {
             .unwrap_or(Err(SASLError::NoValidate { validation }))
     }
 
-    pub fn get_property_or_callback<P: SetProperty>(&mut self) -> Option<&P::Item> {
+    pub fn get_property_or_callback<P: PropertyQ>(&mut self) -> Option<&P::Item> {
         if !self.has_property::<P>() {
             let _ = self.callback::<P>().ok()?;
         }
         self.get_property::<P>()
     }
 
-    pub fn has_property<P: SetProperty>(&self) -> bool {
+    pub fn has_property<P: PropertyQ>(&self) -> bool {
         self.property_cache.contains_key(&TypeId::of::<P>())
     }
 
-    pub fn get_property<P: SetProperty>(&self) -> Option<&P::Item> {
+    pub fn get_property<P: PropertyQ>(&self) -> Option<&P::Item> {
         self.property_cache.get(&TypeId::of::<P>())
-            .or_else(|| self.global_properties.get(&P::code()))
+            .or_else(|| self.global_properties.get(&P::property()))
             .and_then(|prop| {
                 prop.downcast_ref::<P::Item>()
         })
     }
 
-    pub fn set_property<P: SetProperty>(&mut self, item: Box<P::Item>) -> Option<Box<dyn Any>> {
+    pub fn set_property<P: PropertyQ>(&mut self, item: Box<P::Item>) -> Option<Box<dyn Any>> {
         self.property_cache.insert(TypeId::of::<P>(), item)
     }
 
@@ -168,8 +169,9 @@ impl SessionData {
 
 #[cfg(test)]
 mod tests {
-    use crate::consts::{AuthId, GSASL_AUTHID, GSASL_PASSWORD, Password};
-    use crate::{Mechname, SASL, Shared};
+    use crate::{Mechname, Property, SASL};
+    use crate::gsasl::consts::{GSASL_AUTHID, GSASL_PASSWORD};
+    use crate::property::{AuthId, Password};
     use super::*;
 
     #[test]
@@ -179,7 +181,7 @@ mod tests {
             data: usize,
         }
         impl Callback for CB {
-            fn provide_prop(&self, session: &mut SessionData, _action: &'static dyn GetProperty) ->
+            fn provide_prop(&self, session: &mut SessionData, _action: Property) ->
             Result<(), SASLError> {
                 let _ = session.set_property::<AuthId>(Box::new(format!("is {}", self.data)));
                 Ok(())

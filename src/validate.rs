@@ -1,6 +1,5 @@
 use std::any::{Any, TypeId};
 use std::fmt::{Debug, Display, Formatter};
-use std::hash::Hash;
 use crate::as_any::AsAny;
 
 /// Marker trait for expected validation in a callback.
@@ -14,8 +13,6 @@ pub trait Validation: 'static + Display + Debug + AsAny {
         todo!()
     }
 }
-
-pub struct ValidationTypeId(TypeId);
 
 #[derive(Debug)]
 pub struct Simple;
@@ -97,12 +94,11 @@ pub const EXTERNAL: External = External;
 #[cfg(test)]
 mod tests {
     use std::any::TypeId;
-    use std::collections::hash_map::DefaultHasher;
     use std::collections::HashMap;
-    use std::hash::{Hash, Hasher};
     use std::ptr::null_mut;
-    use crate::{Callback, eq_type, SASLError, SessionData};
+    use crate::{Callback, eq_type, SASLError};
     use crate::SASLError::NoValidate;
+    use crate::session::SessionData;
     use super::*;
 
     #[test]

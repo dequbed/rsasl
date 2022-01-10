@@ -2,11 +2,11 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::ptr::NonNull;
 use libc::size_t;
-use crate::{GSASL_OK, GSASL_UNKNOWN_MECHANISM, Shared, SASLError, SessionData, SASL, mechname};
-use crate::consts::GSASL_NEEDS_MORE;
-use crate::mechanism::{Authentication, MechanismBuilder, MechanismInstance};
-use crate::session::StepResult;
-use crate::Step::{Done, NeedsMore};
+use crate::{MechanismBuilder, Mechname, SASL, SASLError, Shared};
+use crate::gsasl::consts::{GSASL_NEEDS_MORE, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
+use crate::mechanism::{Authentication, MechanismInstance};
+use crate::session::{SessionData, StepResult};
+use crate::session::Step::{Done, NeedsMore};
 
 struct M {
     /// The name of this mechanism
@@ -131,7 +131,7 @@ impl MechanismBuilder for MechanismVTable {
             let res =  unsafe { start(&sasl.shared, &mut mech_data) };
             if res == GSASL_OK as libc::c_int {
                 let i = MechanismInstance {
-                    name: mechname::Mechname::new("PLAIN"),
+                    name: Mechname::new("PLAIN"),
                     inner: Box::new(CMech { vtable: *self, mech_data }),
                 };
                 return Ok(i);
@@ -140,7 +140,7 @@ impl MechanismBuilder for MechanismVTable {
             }
         } else {
             let i = MechanismInstance {
-                name: mechname::Mechname::new("PLAIN"),
+                name: Mechname::new("PLAIN"),
                 inner: Box::new(CMech { vtable: *self, mech_data: None }),
             };
             return Ok(i);

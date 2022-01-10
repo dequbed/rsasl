@@ -2,12 +2,13 @@ use std::ffi::CString;
 use std::ptr::NonNull;
 use ::libc;
 use libc::size_t;
-use crate::consts::Password;
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_CALLBACK, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD, GSASL_VALIDATE_SIMPLE};
 use crate::gsasl::property::{gsasl_property_set};
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep, Gsasl_saslprep_flags};
-use crate::{Shared, SessionData};
+use crate::property::Password;
+use crate::session::SessionData;
+use crate::Shared;
 
 extern "C" {
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t) -> *mut libc::c_void;
