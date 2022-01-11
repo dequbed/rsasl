@@ -8,7 +8,7 @@
 //!
 //! ```rust
 //! use std::marker::PhantomData;
-//! use rsasl::{Property, PropertyQ};
+//! use rsasl::{Property, PropertyQ, PropertyDefinition};
 //! // All Property types must implement Debug.
 //! #[derive(Debug)]
 //! // The `PhantomData` in the constructor is only used so external crates can't construct this type.
@@ -24,7 +24,7 @@
 //! }
 //! // This const is used by your mechanism to query and by your users to set your property. It
 //! // thus needs to be exported from your crate
-//! pub const MYCOOLPROPERTY: Property = Property::new(&PropertyDescription::new(
+//! pub const MYCOOLPROPERTY: Property = Property::new(&PropertyDefinition::new(
 //!     // Short name, used in `Debug` output
 //!     "mycoolnewproperty",
 //!     // A longer user-facing name used in `Display` output
@@ -33,13 +33,14 @@
 //! ```
 use std::ffi::CString;
 use std::fmt::{Debug, Display, Formatter};
+use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 
 #[derive(Debug)]
 pub struct PropertyDefinition {
     pub name: &'static str,
     pub display: &'static str,
-    source: &'static str,
+    pub source: &'static str,
 }
 impl PropertyDefinition {
     pub const fn new(name: &'static str, display: &'static str) -> Self {
@@ -48,37 +49,36 @@ impl PropertyDefinition {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
-#[repr(transparent)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 /// Defined by mechanism crates as they see fit, need to provide a `const` one too
 pub struct Property {
-    witness: *const PropertyDefinition,
+    name: &'static str,
+    display: &'static str,
+    source: &'static str,
 }
 impl Debug for Property {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        unsafe {
-            f.debug_tuple("Property")
-             .field(&self.name())
-                .field(&*self.witness)
-             .finish()
-        }
+        f.debug_struct("Property")
+         .field("name", &self.name)
+         .field("originating crate", &self.source)
+         .finish()
     }
 }
 impl Display for Property {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.display())
+        f.write_str(&self.display)
     }
 }
 impl Property {
     pub const fn new(definition: &'static PropertyDefinition) -> Self {
-        let witness = definition as *const _;
-        Self { witness }
+        Self {
+            name: definition.name,
+            display: definition.display,
+            source: definition.source,
+        }
     }
-    fn name(&self) -> &'static str {
-        unsafe { (&*self.witness).name }
-    }
-    fn display(&self) -> &'static str {
-        unsafe { (&*self.witness).display }
+    pub const fn name(&self) -> &'static str {
+        self.name
     }
 }
 
@@ -116,12 +116,6 @@ pub const AUTHZID: Property = Property::new(&PropertyDefinition::new(
 
 #[derive(Debug)]
 pub struct OpenID20AuthenticateInBrowser(PhantomData<()>);
-impl PropertyQ for OpenID20AuthenticateInBrowser {
-    type Item = CString;
-    fn property() -> Property {
-        OPENID20_AUTHENTICATE_IN_BROWSER
-    }
-}
 pub const OPENID20_AUTHENTICATE_IN_BROWSER: Property = Property::new(&PropertyDefinition::new(
     "openid20_authenticate_in_browser",
     "query to authenticate to the user's OIDC IdP using the systems browser"
@@ -403,7 +397,7 @@ impl PropertyQ for Password {
     }
 }
 pub const PASSWORD: Property = Property::new(&PropertyDefinition::new(
-    "Password", ""
+    "password", ""
 ));
 
 

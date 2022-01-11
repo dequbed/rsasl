@@ -1,12 +1,13 @@
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
+use std::ffi::CString;
 use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 use base64::write::EncoderWriter;
 
-use crate::{Callback, Property, SASLError};
-use crate::gsasl::consts::Gsasl_property;
+use crate::{Callback, Mechname, Property, SASLError};
+use crate::gsasl::consts::{Gsasl_property, property_from_code};
 use crate::mechanism::{Authentication, MechanismInstance};
 use crate::property::PropertyQ;
 use crate::validate::*;
@@ -18,14 +19,15 @@ pub struct Session {
 
 impl Session {
     pub(crate) fn new(
-        callback: Option<Arc<Box<dyn Callback>>>,
+        callback: Option<Arc<dyn Callback>>,
         mechanism: MechanismInstance,
         global_properties: Arc<HashMap<Property, Box<dyn Any>>>,
     ) -> Self
     {
+        let mechname = mechanism.name;
         Self {
             mechanism,
-            session_data: SessionData::new(callback, global_properties),
+            session_data: SessionData::new(callback, global_properties, mechname),
         }
     }
 
@@ -83,11 +85,11 @@ impl Session {
     }
 }
 
-
 pub struct SessionData {
-    pub callback: Option<Arc<Box<dyn Callback>>>,
-    pub property_cache: HashMap<TypeId, Box<dyn Any>>,
-    pub global_properties: Arc<HashMap<Property, Box<dyn Any>>>,
+    pub(crate) callback: Option<Arc<dyn Callback>>,
+    property_cache: HashMap<Property, Box<dyn Any>>,
+    global_properties: Arc<HashMap<Property, Box<dyn Any>>>,
+    mechname: &'static Mechname,
 }
 
 impl Debug for SessionData {
@@ -113,13 +115,15 @@ pub type StepResult = Result<Step, SASLError>;
 
 impl SessionData {
     pub(crate) fn new(
-        callback: Option<Arc<Box<dyn Callback>>>,
+        callback: Option<Arc<dyn Callback>>,
         global_properties: Arc<HashMap<Property, Box<dyn Any>>>,
+        mechname: &'static Mechname
     ) -> Self {
         Self {
             callback,
             property_cache: HashMap::new(),
             global_properties,
+            mechname,
         }
     }
 }
@@ -127,15 +131,12 @@ impl SessionData {
 impl SessionData {
     pub fn callback<P: PropertyQ>(&mut self) -> Result<(), SASLError> {
         let property = P::property();
-        self.callback.clone()
-            .map(|cb| cb.provide_prop(self, property))
-            .unwrap_or(Err(SASLError::NoCallback { property }))
+        self.callback_property(property)
     }
 
-    pub fn validate<V: Validation>(&mut self) -> Result<(), SASLError> {
-        let validation = V::as_const();
+    pub fn validate(&mut self, validation: Validation) -> Result<(), SASLError> {
         self.callback.clone()
-            .map(|cb| cb.validate(self, validation))
+            .map(|cb| cb.validate(self, validation, self.mechname))
             .unwrap_or(Err(SASLError::NoValidate { validation }))
     }
 
@@ -147,11 +148,11 @@ impl SessionData {
     }
 
     pub fn has_property<P: PropertyQ>(&self) -> bool {
-        self.property_cache.contains_key(&TypeId::of::<P>())
+        self.property_cache.contains_key(&P::property())
     }
 
     pub fn get_property<P: PropertyQ>(&self) -> Option<&P::Item> {
-        self.property_cache.get(&TypeId::of::<P>())
+        self.property_cache.get(&P::property())
             .or_else(|| self.global_properties.get(&P::property()))
             .and_then(|prop| {
                 prop.downcast_ref::<P::Item>()
@@ -159,11 +160,23 @@ impl SessionData {
     }
 
     pub fn set_property<P: PropertyQ>(&mut self, item: Box<P::Item>) -> Option<Box<dyn Any>> {
-        self.property_cache.insert(TypeId::of::<P>(), item)
+        self.property_cache.insert(P::property(), item)
     }
 
     pub(crate) unsafe fn set_property_raw(&mut self, prop: Gsasl_property, data: Box<String>) {
-        todo!()
+        let property = property_from_code(prop).unwrap();
+        self.property_cache.insert(property, data);
+    }
+
+    pub(crate) fn callback_raw(&mut self, prop: Gsasl_property) -> Result<(), SASLError> {
+        let property = property_from_code(prop).unwrap();
+        self.callback_property(property)
+    }
+
+    pub(crate) fn callback_property(&mut self, property: Property) -> Result<(), SASLError> {
+        self.callback.clone()
+            .map(|cb| cb.provide_prop(self, property))
+            .unwrap_or(Err(SASLError::NoCallback { property }))
     }
 }
 
@@ -171,7 +184,7 @@ impl SessionData {
 mod tests {
     use crate::{Mechname, Property, SASL};
     use crate::gsasl::consts::{GSASL_AUTHID, GSASL_PASSWORD};
-    use crate::property::{AuthId, Password};
+    use crate::property::{AuthId, AUTHID, Password, PASSWORD};
     use super::*;
 
     #[test]
@@ -189,9 +202,11 @@ mod tests {
         }
 
         let cbox = CB { data: 0 };
+        let mechname = Mechname::new("X-TEST");
         let mut session = SessionData::new(
-            Some(Arc::new(Box::new(cbox))),
-            Arc::new(HashMap::new())
+            Some(Arc::new(cbox)),
+            Arc::new(HashMap::new()),
+                mechname,
         );
 
         assert!(session.get_property::<AuthId>().is_none());
@@ -212,6 +227,7 @@ mod tests {
 
         assert_eq!(sess.get_property::<AuthId>().unwrap(), "test");
         assert_eq!(sess.get_property::<Password>().unwrap(), "secret");
+        println!("{:?}", sess.session_data.property_cache);
     }
 
     #[test]
@@ -231,4 +247,5 @@ mod tests {
         assert_eq!(sess.get_property::<AuthId>().unwrap(), "test");
         assert_eq!(sess.get_property::<Password>().unwrap(), "secret");
     }
+
 }

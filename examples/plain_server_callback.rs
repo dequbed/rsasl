@@ -1,26 +1,29 @@
-use std::ffi::CString;
 use std::io::Cursor;
-use rsasl::consts::{AuthId, GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_NO_AUTHID, GSASL_NO_CALLBACK, GSASL_NO_PASSWORD, GSASL_PASSWORD, Gsasl_property, Password};
-use rsasl::{SessionData, Callback, Property, Step, session::StepResult, buffer::SaslBuffer, SASL};
+use std::sync::Arc;
+use rsasl::callback::Callback;
 use rsasl::error::SASLError;
 use rsasl::mechname::Mechname;
+use rsasl::property::{AuthId, AUTHID, Password, PASSWORD};
+use rsasl::SASL;
+use rsasl::session::{SessionData, Step, StepResult};
+use rsasl::validate::{Validation, SIMPLE};
 
 // Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
 
 impl Callback for OurCallback {
-    fn callback(&self, session: &mut SessionData, code: Gsasl_property)
+    fn validate(&self, session: &mut SessionData, validation: Validation, _mechanism: &Mechname)
         -> Result<(), SASLError>
     {
-        match code {
-            GSASL_VALIDATE_SIMPLE => {
+        match validation {
+            SIMPLE => {
                 // Access the authentication id, i.e. the username to check the password for
                 let authcid = session.get_property::<AuthId>()
-                    .ok_or(GSASL_NO_AUTHID)?;
+                    .ok_or(SASLError::NoProperty { property: AUTHID })?;
 
                 // Access the password itself
                 let password = session.get_property::<Password>()
-                    .ok_or(GSASL_NO_PASSWORD)?;
+                    .ok_or(SASLError::NoProperty { property: PASSWORD })?;
 
                 // For brevity sake we use hard-coded credentials here.
                 if authcid == "username"
@@ -28,10 +31,10 @@ impl Callback for OurCallback {
                 {
                     Ok(())
                 } else {
-                    Err(GSASL_AUTHENTICATION_ERROR.into())
+                    Err(SASLError::AuthenticationFailure { reason: "bad username or password" })
                 }
             },
-            _ => Err(GSASL_NO_CALLBACK.into())
+            _ => Err(SASLError::NoValidate { validation })
         }
     }
 }
@@ -39,7 +42,7 @@ impl Callback for OurCallback {
 pub fn main() {
     let mut sasl = SASL::new();
 
-    sasl.install_callback(Box::new(OurCallback));
+    sasl.install_callback(Arc::new(OurCallback));
 
     // Authentication exchange 1
     {

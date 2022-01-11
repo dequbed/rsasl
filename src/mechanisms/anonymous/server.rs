@@ -4,7 +4,7 @@ use libc::size_t;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_OK};
 use crate::property::AnonymousToken;
 use crate::session::SessionData;
-use crate::validate::Anonymous;
+use crate::validate::ANONYMOUS;
 
 /* anonymous.h --- Prototypes for ANONYMOUS mechanism as defined in RFC 2245.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -70,7 +70,7 @@ pub unsafe fn _gsasl_anonymous_server_step(sctx: &mut SessionData,
         }
         sctx.set_property::<AnonymousToken>(Box::new(input.to_string()));
 
-        if let Err(_) = sctx.validate::<Anonymous>() {
+        if let Err(_) = sctx.validate(ANONYMOUS) {
             GSASL_AUTHENTICATION_ERROR as libc::c_int
         } else {
             GSASL_OK as libc::c_int

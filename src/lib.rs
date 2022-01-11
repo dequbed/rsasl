@@ -76,7 +76,7 @@ pub use libc;
 pub mod buffer;
 pub mod session;
 pub mod error;
-mod callback;
+pub mod callback;
 
 mod gsasl;
 pub mod mechanisms;
@@ -84,11 +84,8 @@ pub mod mechanism;
 pub mod mechname;
 mod registry;
 
-mod validate;
-mod property;
-
-#[macro_use]
-pub mod as_any;
+pub mod validate;
+pub mod property;
 
 pub use property::{
     Property,
@@ -126,8 +123,6 @@ use crate::session::Session;
 /// parallel, e.g. in a server context, you can wrap it in an [`std::sync::Arc`] to add cheap
 /// cloning.
 pub struct SASL {
-    shared: Shared,
-
     /// The registry contains all mechanism registered with this provider context and implements
     /// features such as Prioritization of mechanisms
     pub registry: Registry,
@@ -137,21 +132,20 @@ pub struct SASL {
     /// Can also be used to store properties such as username and password
     pub global_data: Arc<HashMap<Property, Box<dyn Any>>>,
 
-    pub callback: Option<Arc<Box<dyn Callback>>>,
+    pub callback: Option<Arc<dyn Callback>>,
 }
 
 impl SASL {
     pub fn new() -> Self {
         Self {
-            shared: Shared,
             registry: Registry::default(),
             global_data: Arc::new(HashMap::new()),
             callback: None,
         }
     }
 
-    pub fn install_callback(&mut self, callback: Box<dyn Callback>) {
-        self.callback = Some(Arc::new(callback));
+    pub fn install_callback(&mut self, callback: Arc<dyn Callback>) {
+        self.callback = Some(callback);
     }
 }
 
@@ -233,7 +227,7 @@ impl SASL {
     /// an authcid, optional authzid and password for PLAIN. To provide that data an application
     /// has to either call `set_property` before running the step that requires the data, or
     /// install a callback.
-    pub fn client_start(&self, mech: &mechname::Mechname) -> Result<Session, SASLError> {
+    pub fn client_start(&self, mech: &'static mechname::Mechname) -> Result<Session, SASLError> {
         for (name, builder) in self.registry.client_mech_list() {
             if name == mech {
                 let mechanism = builder.start(self)?;
@@ -255,7 +249,7 @@ impl SASL {
     /// authentication data provided by the user.
     ///
     /// See [Callback](Callback) on how to implement callbacks.
-    pub fn server_start(&self, mech: &mechname::Mechname) -> Result<Session, SASLError> {
+    pub fn server_start(&self, mech: &'static mechname::Mechname) -> Result<Session, SASLError> {
         for (name, builder) in self.registry.server_mech_list() {
             if name == mech {
                 let mechanism = builder.start(self)?;

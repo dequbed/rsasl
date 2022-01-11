@@ -1,3 +1,6 @@
+use crate::Property;
+use crate::property::*;
+
 pub type RsaslError = libc::c_uint;
 pub const GSASL_IO_ERROR: libc::c_uint = 65;
 pub const GSASL_GSSAPI_RELEASE_OID_SET_ERROR: libc::c_uint = 64;
@@ -78,3 +81,83 @@ pub const GSASL_ANONYMOUS_TOKEN: Gsasl_property = 4;
 pub const GSASL_PASSWORD: Gsasl_property = 3;
 pub const GSASL_AUTHZID: Gsasl_property = 2;
 pub const GSASL_AUTHID: Gsasl_property = 1;
+
+pub fn property_from_code(code: Gsasl_property) -> Option<Property> {
+    match code {
+        GSASL_OPENID20_AUTHENTICATE_IN_BROWSER => Some(OPENID20_AUTHENTICATE_IN_BROWSER),
+        GSASL_SAML20_AUTHENTICATE_IN_BROWSER => Some(SAML20_AUTHENTICATE_IN_BROWSER),
+        GSASL_OPENID20_OUTCOME_DATA => Some(OPENID20_OUTCOME_DATA),
+        GSASL_OPENID20_REDIRECT_URL => Some(OPENID20_REDIRECT_URL),
+        GSASL_SAML20_REDIRECT_URL => Some(SAML20_REDIRECT_URL),
+        GSASL_SAML20_IDP_IDENTIFIER => Some(SAML20_IDP_IDENTIFIER),
+        GSASL_CB_TLS_UNIQUE => Some(CB_TLS_UNIQUE),
+        GSASL_SCRAM_STOREDKEY => Some(SCRAM_STOREDKEY),
+        GSASL_SCRAM_SERVERKEY => Some(SCRAM_SERVERKEY),
+        GSASL_SCRAM_SALTED_PASSWORD => Some(SCRAM_SALTED_PASSWORD),
+        GSASL_SCRAM_SALT => Some(SCRAM_SALT),
+        GSASL_SCRAM_ITER => Some(SCRAM_ITER),
+        GSASL_QOP => Some(QOP),
+        GSASL_QOPS => Some(QOPS),
+        GSASL_DIGEST_MD5_HASHED_PASSWORD => Some(DIGEST_MD5_HASHED_PASSWORD),
+        GSASL_REALM => Some(REALM),
+        GSASL_PIN => Some(PIN),
+        GSASL_SUGGESTED_PIN => Some(SUGGESTED_PIN),
+        GSASL_PASSCODE => Some(PASSCODE),
+        GSASL_GSSAPI_DISPLAY_NAME => Some(GSSAPI_DISPLAY_NAME),
+        GSASL_HOSTNAME => Some(HOSTNAME),
+        GSASL_SERVICE => Some(SERVICE),
+        GSASL_ANONYMOUS_TOKEN => Some(ANONYMOUS_TOKEN),
+        GSASL_PASSWORD => Some(PASSWORD),
+        GSASL_AUTHZID => Some(AUTHZID),
+        GSASL_AUTHID => Some(AUTHID),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_property_from_code() {
+        let data: &[(Gsasl_property, Property)] = &[
+            (GSASL_OPENID20_OUTCOME_DATA, OpenID20OutcomeData::property()),
+            (GSASL_OPENID20_REDIRECT_URL, OpenID20RedirectUrl::property()),
+            (GSASL_SAML20_REDIRECT_URL, SAML20RedirectUrl::property()),
+            (GSASL_SAML20_IDP_IDENTIFIER, SAML20IDPIdentifier::property()),
+            (GSASL_CB_TLS_UNIQUE, CBTlsUnique::property()),
+            (GSASL_SCRAM_STOREDKEY, ScramStoredkey::property()),
+            (GSASL_SCRAM_SERVERKEY, ScramServerkey::property()),
+            (GSASL_SCRAM_SALTED_PASSWORD, ScramSaltedPassword::property()),
+            (GSASL_SCRAM_SALT, ScramSalt::property()),
+            (GSASL_SCRAM_ITER, ScramIter::property()),
+            (GSASL_QOP, Qop::property()),
+            (GSASL_QOPS, Qops::property()),
+            (GSASL_DIGEST_MD5_HASHED_PASSWORD, DigestMD5HashedPassword::property()),
+            (GSASL_REALM, Realm::property()),
+            (GSASL_PIN, Pin::property()),
+            (GSASL_SUGGESTED_PIN, SuggestedPin::property()),
+            (GSASL_PASSCODE, Passcode::property()),
+            (GSASL_GSSAPI_DISPLAY_NAME, GssapiDisplayName::property()),
+            (GSASL_HOSTNAME, Hostname::property()),
+            (GSASL_SERVICE, Service::property()),
+            (GSASL_ANONYMOUS_TOKEN, AnonymousToken::property()),
+            (GSASL_PASSWORD, Password::property()),
+            (GSASL_AUTHZID, AuthzId::property()),
+            (GSASL_AUTHID, AuthId::property()),
+        ];
+        for (idx, (code, should)) in data.iter().enumerate() {
+            println!("Checking ({}) {:?}: \"{}\"", code, should, should);
+            let prop = property_from_code(*code).expect("Failed to convert");
+            println!("{:?} == {:?}", prop, should);
+            assert_eq!(&prop, should);
+            let before = &data[0..idx];
+            let after = &data[(idx+1)..];
+            for (code, should) in before.iter().chain(after.iter()) {
+                println!("{} != {}", prop.name(), should.name());
+                assert_ne!(&prop, should);
+            }
+            println!("\n");
+        }
+    }
+}

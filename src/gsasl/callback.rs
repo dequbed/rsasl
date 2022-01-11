@@ -13,13 +13,13 @@ pub(crate) unsafe fn gsasl_callback(_ctx: *mut Shared,
 
     if let Some(cb) = sctx.callback.clone() {
         let res = match prop {
-            GSASL_VALIDATE_SIMPLE => cb.validate(sctx, &SIMPLE),
-            GSASL_VALIDATE_OPENID20 => cb.validate(sctx, &OPENID20),
-            GSASL_VALIDATE_SAML20 => cb.validate(sctx, &SAML20),
-            GSASL_VALIDATE_SECURID => cb.validate(sctx, &SECURID),
-            GSASL_VALIDATE_GSSAPI => cb.validate(sctx, &GSSAPI),
-            GSASL_VALIDATE_ANONYMOUS => cb.validate(sctx, &ANONYMOUS),
-            GSASL_VALIDATE_EXTERNAL => cb.validate(sctx, &EXTERNAL),
+            GSASL_VALIDATE_SIMPLE => sctx.validate(SIMPLE),
+            GSASL_VALIDATE_OPENID20 => sctx.validate(OPENID20),
+            GSASL_VALIDATE_SAML20 => sctx.validate(SAML20),
+            GSASL_VALIDATE_SECURID => sctx.validate(SECURID),
+            GSASL_VALIDATE_GSSAPI => sctx.validate(GSSAPI),
+            GSASL_VALIDATE_ANONYMOUS => sctx.validate(ANONYMOUS),
+            GSASL_VALIDATE_EXTERNAL => sctx.validate(EXTERNAL),
 
             GSASL_OPENID20_AUTHENTICATE_IN_BROWSER => cb.provide_prop(sctx, OPENID20_AUTHENTICATE_IN_BROWSER),
             GSASL_SAML20_AUTHENTICATE_IN_BROWSER => cb.provide_prop(sctx, SAML20_AUTHENTICATE_IN_BROWSER),

@@ -27,7 +27,13 @@ pub enum SASLError {
         property: Property,
     },
     NoValidate {
-        validation: &'static dyn Validation
+        validation: Validation,
+    },
+    NoProperty {
+        property: Property,
+    },
+    AuthenticationFailure {
+        reason: &'static str,
     },
     Gsasl(u32),
 }
@@ -60,6 +66,8 @@ impl Debug for SASLError {
             SASLError::NoValidate { validation } =>
                 write!(f, "NoValidate({:?})", validation),
             SASLError::NoCallback { property } => write!(f, "NoCallback({:?})", property),
+            SASLError::NoProperty { property } => write!(f, "NoProperty({:?})", property),
+            SASLError::AuthenticationFailure { .. } => f.write_str("AuthenticationFailure"),
         }
     }
 }
@@ -98,6 +106,14 @@ impl Display for SASLError {
                 write!(f,
                        "no validation callback for {} installed",
                        validation),
+            SASLError::NoProperty { property } =>
+                write!(f,
+                       "required property {} is not set",
+                       property),
+            SASLError::AuthenticationFailure { reason } =>
+                write!(f,
+                       "authentication failed: {}",
+                       reason),
         }
     }
 }

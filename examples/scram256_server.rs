@@ -1,29 +1,32 @@
 use std::ffi::CString;
 use std::io;
 use std::io::Cursor;
-use rsasl::consts::{AuthId, CallbackAction, GSASL_AUTHID, GSASL_NO_AUTHID, GSASL_NO_CALLBACK, GSASL_PASSWORD, Gsasl_property, Password};
-use rsasl::{SessionData, Callback, Property, Step::{Done, NeedsMore}, SASL};
+use std::sync::Arc;
+use rsasl::callback::Callback;
 use rsasl::error::SASLError;
 use rsasl::mechname::Mechname;
+use rsasl::property::{Property, AuthId, Password, PASSWORD, AUTHID};
+use rsasl::SASL;
+use rsasl::session::SessionData;
+use rsasl::session::Step::{Done, NeedsMore};
 
-// Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
 
 impl Callback for OurCallback {
-    fn provide_prop(&self, session: &mut SessionData, action: CallbackAction)
+    fn provide_prop(&self, session: &mut SessionData, property: Property)
         -> Result<(), SASLError>
     {
-        match action {
-            CallbackAction::PASSWORD(_) => {
+        match property {
+            PASSWORD => {
                 // Access the authentication id, i.e. the username to check the password for
                 let _authcid = session.get_property_or_callback::<AuthId>()
-                    .ok_or(GSASL_NO_AUTHID)?;
+                    .ok_or(SASLError::NoProperty { property: AUTHID })?;
 
                 session.set_property::<Password>(Box::new("secret".to_string()));
 
                 Ok(())
             },
-            _ => Err(GSASL_NO_CALLBACK.into())
+            _ => Err(SASLError::NoProperty { property })
         }
     }
 }
@@ -31,7 +34,7 @@ impl Callback for OurCallback {
 pub fn main() {
     let mut sasl = SASL::new();
 
-    sasl.install_callback(Box::new(OurCallback));
+    sasl.install_callback(Arc::new(OurCallback));
 
     let mut session = sasl.server_start(Mechname::try_parse(b"SCRAM-SHA-256").unwrap()).unwrap();
 
