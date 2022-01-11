@@ -1,28 +1,37 @@
-# SASL in Rust
+# The Rust SASL framework
 
 [![Latest Version]][crates.io]
 [![docs]][docs.rs]
 ![maintenance]
 ![license]
 
-rsasl is an implementation of the Simple Authentication and Security Layer — SASL.
+rsasl is an framework for the Simple Authentication and Security Layer — SASL.
 
-rsasl can provide a large number of mechanisms:
-- EXTERNAL
-- ANONYMOUS
-- PLAIN
-- LOGIN
-- CRAM-MD5
-- DIGEST-MD5
-- SCRAM-SHA-1
-- SCRAM-SHA-256
-- NTLM
-- SECURID
-- GSSAPI
-- GS2-KRB5
-- SAML20
-- OPENID20
-- KERBEROS_V5
+rsasl provide a large number of mechanisms by itself: (Crossed off ones are ported to pure Rust already, striked through
+ones aren't yet implemented in the 2.0 version / main branch)
+
+- [ ] EXTERNAL
+- [ ] ANONYMOUS
+- [x] PLAIN
+- [ ] LOGIN
+- [ ] CRAM-MD5
+- [ ] DIGEST-MD5
+- [ ] SCRAM-SHA-1
+- [ ] SCRAM-SHA-256
+- [ ] ~~NTLM~~
+- [ ] SECURID
+- [ ] ~~GSSAPI~~
+- [ ] ~~GS2-KRB5~~
+- [ ] SAML20
+- [ ] OPENID20
+- [ ] ~~KERBEROS_V5~~
+
+Additional mechanisms can be implemented by other crates.
+
+### Conditional compilation of mechanism
+
+rsasl allows users to select the available mechanisms at compile time using cargo features.
+For an overview refer to the module documentation of `rsasl::mechanisms`.
 
 # Versions
 
