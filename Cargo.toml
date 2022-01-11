@@ -18,19 +18,30 @@ default = [
     "provider", "provider_base64",
     "registry_static", "registry_dynamic",
     "scram-sha-1", "scram-sha-2",
-    "digest-md5", "cram-md5", "digest"
+    "digest-md5", "cram-md5", "digest",
+    "anonymous", "external",
+    "plain", "login"
 ]
 
-scram-sha-1 = ["hmac", "sha-1", "base64"]
-scram-sha-2 = ["hmac", "sha2", "base64"]
-digest-md5 = ["hmac", "md-5"]
-cram-md5 = ["hmac", "md-5"]
+scram-sha-1 = ["saslprep", "hmac", "sha-1", "base64"]
+scram-sha-2 = ["saslprep", "hmac", "sha2", "base64"]
+digest-md5 = ["saslprep", "hmac", "md-5"]
+cram-md5 = ["saslprep", "hmac", "md-5"]
+anonymous = []
+external = []
+plain = ["saslprep"]
+login = ["saslprep"]
+openid20 = []
+saml20 = []
+securid = []
 
 provider = []
 provider_base64 = ["provider", "base64"]
 
 registry_static = ["inventory"]
 registry_dynamic = []
+
+saslprep = ["stringprep"]
 
 [dependencies]
 libc = "0.2"
@@ -42,5 +53,7 @@ digest = { version = "0.10", optional = true }
 sha-1 = { version = "0.10", optional = true }
 sha2 = { version = "0.10", optional = true }
 md-5 = { version = "0.10", optional = true }
+
+stringprep = { version = "0.1", optional = true }
 
 inventory = { version = "0.2", optional = true }

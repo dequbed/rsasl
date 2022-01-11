@@ -1,10 +1,11 @@
+#[cfg(feature = "anonymous")]
 pub mod anonymous {
     pub mod client;
     pub mod mechinfo;
     pub mod server;
 }
 
-// mod anonymous
+#[cfg(feature = "cram-md5")]
 pub mod cram_md5 {
     pub mod challenge;
     pub mod client;
@@ -13,7 +14,7 @@ pub mod cram_md5 {
     pub mod server;
 }
 
-// mod cram_md5
+#[cfg(feature = "digest-md5")]
 pub mod digest_md5 {
     pub mod client;
     pub mod digesthmac;
@@ -29,41 +30,42 @@ pub mod digest_md5 {
     pub mod validate;
 }
 
-// mod digest_md5
+#[cfg(feature = "external")]
 pub mod external {
     pub mod client;
     pub mod mechinfo;
     pub mod server;
 }
 
-// mod gl
+#[cfg(feature = "login")]
 pub mod login {
     pub mod client;
     pub mod mechinfo;
     pub mod server;
 }
 
-// mod login
+#[cfg(feature = "openid20")]
 pub mod openid20 {
     pub mod client;
     pub mod mechinfo;
     pub mod server;
 }
 
-// mod openid20
+#[cfg(feature = "plain")]
 pub mod plain {
     pub mod client;
     pub mod mechinfo;
     pub mod server;
 }
 
-// mod plain
+#[cfg(feature = "saml20")]
 pub mod saml20 {
     pub mod client;
     pub mod mechinfo;
     pub mod server;
-}// mod saml20
+}
 
+#[cfg(any(feature = "scram-sha-1", feature = "scram-sha-2"))]
 pub mod scram {
     pub mod client;
     pub mod mechinfo;
@@ -75,10 +77,9 @@ pub mod scram {
     pub mod validate;
 }
 
-// mod scram
+#[cfg(feature = "securid")]
 pub mod securid {
     pub mod client;
     pub mod mechinfo;
     pub mod server;
-} // mod securid
-
+}
