@@ -128,10 +128,11 @@ impl MechanismBuilder for MechanismVTable {
     fn start(&self, sasl: &SASL) -> Result<MechanismInstance, SASLError> {
         if let Some(start) = self.start {
             let mut mech_data = None;
-            let res =  unsafe { start(&sasl.shared, &mut mech_data) };
+            let mechname = Mechname::new("TEST");
+            let res =  unsafe { start(&Shared, &mut mech_data) };
             if res == GSASL_OK as libc::c_int {
                 let i = MechanismInstance {
-                    name: Mechname::new("PLAIN"),
+                    name: mechname,
                     inner: Box::new(CMech { vtable: *self, mech_data }),
                 };
                 return Ok(i);

@@ -1,11 +1,10 @@
 use std::io;
 use std::ffi::CString;
 use std::io::Cursor;
-use rsasl::consts::{AuthId, GSASL_AUTHID, GSASL_PASSWORD, Password};
-
-use rsasl::{SASL, Step::{Done, NeedsMore}};
 use rsasl::mechname::Mechname;
-
+use rsasl::property::{AuthId, Password};
+use rsasl::SASL;
+use rsasl::session::Step::{Done, NeedsMore};
 
 // A SCRAM-SHA-1 authentication exchange.
 //

@@ -1,102 +1,99 @@
 use std::any::{Any, TypeId};
 use std::fmt::{Debug, Display, Formatter};
-use crate::as_any::AsAny;
-
-/// Marker trait for expected validation in a callback.
-/// Only ever passed as `&'static dyn Validation` trait object
-pub trait Validation: 'static + Display + Debug + AsAny {
-    fn as_any(&self) -> &dyn Any {
-        <Self as AsAny>::as_any_super(self)
-    }
-
-    fn as_const() -> &'static dyn Validation where Self: Sized {
-        todo!()
-    }
-}
 
 #[derive(Debug)]
-pub struct Simple;
-impl Display for Simple {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("simple username/password based auth")
+pub struct ValidationDefinition {
+    pub name: &'static str,
+    pub display: &'static str,
+    source: &'static str,
+}
+impl ValidationDefinition {
+    pub const fn new(name: &'static str, display: &'static str) -> Self {
+        let source = env!("CARGO_CRATE_NAME");
+        Self { name, display, source }
     }
 }
-impl Validation for Simple {}
 
-pub const SIMPLE: Simple = Simple;
-
-#[derive(Debug)]
-pub struct OpenID20;
-impl Display for OpenID20 {
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct Validation {
+    witness: *const ValidationDefinition,
+}
+impl Debug for Validation {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("simple username/password based auth")
+        let def = unsafe { &*self.witness };
+        f.debug_tuple("Validation")
+         .field(&def.name)
+         .finish()
     }
 }
-impl Validation for OpenID20 {}
-
-pub const OPENID20: OpenID20 = OpenID20;
-
-#[derive(Debug)]
-pub struct Saml20;
-impl Display for Saml20 {
+impl Display for Validation {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("simple username/password based auth")
+        let def = unsafe { &*self.witness };
+        f.write_str(def.display)
     }
 }
-impl Validation for Saml20 {}
-
-pub const SAML20: Saml20 = Saml20;
-
-#[derive(Debug)]
-pub struct SecurId;
-impl Display for SecurId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("simple username/password based auth")
+impl Validation {
+    pub const fn new(definition: &'static ValidationDefinition) -> Self {
+        let witness = definition as *const _;
+        Self { witness }
     }
 }
-impl Validation for SecurId {}
 
-pub const SECURID: SecurId = SecurId;
+/// Validation using Username/Password combination
+///
+/// An application MUST in this case check if the given [`Password`] matches the given
+/// [`AuthId`] and SHOULD check if the [`AuthzId`] is empty (if authorization id handling is not
+/// implemented) or if the given user is allowed to authorize as the given authorization id (if
+/// handling is implemented).
+pub const SIMPLE: Validation = Validation::new(&ValidationDefinition::new(
+    "simple", "username/password based authentication"
+));
 
-#[derive(Debug)]
-pub struct Gssapi;
-impl Display for Gssapi {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("simple username/password based auth")
-    }
-}
-impl Validation for Gssapi {}
+pub const OPENID20: Validation = Validation::new(&ValidationDefinition::new(
+    "openid20", "validate the users oidc token"
+));
 
-pub const GSSAPI: Gssapi = Gssapi;
+pub const SAML20: Validation = Validation::new(&ValidationDefinition::new(
+    "saml20", "validate the users saml token"
+));
 
-#[derive(Debug)]
-pub struct Anonymous;
-impl Display for Anonymous {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("simple username/password based auth")
-    }
-}
-impl Validation for Anonymous {}
+pub const SECURID: Validation = Validation::new(&ValidationDefinition::new(
+    "securid", "validate the user using SecurID"
+));
 
-pub const ANONYMOUS: Anonymous = Anonymous;
+/// GSSAPI validation
+///
+/// This validation is called at the end of a GSSAPI validation. The properties available depend
+/// on the exact GSSAPI mechanism but with Kerberos V5 (the ubiquitous default) [`Authzid`] and
+/// [`GssapiDisplayName`] should be checked containing the authZid and principal name respectively.
+pub const GSSAPI: Validation = Validation::new(&ValidationDefinition::new(
+    "gssapi", "validate the users gssapi authentication"
+));
 
-#[derive(Debug)]
-pub struct External;
-impl Display for External {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("simple username/password based auth")
-    }
-}
-impl Validation for External {}
+/// Anonymous validation
+///
+/// The anonymous authentication allows clients to specify a "token" of 0-255 utf-8 code points
+/// to be provided to the server. This token can be accessed using the [`AnonymousToken`] property.
+pub const ANONYMOUS: Validation = Validation::new(&ValidationDefinition::new(
+    "anonymous", "validate the provided anonymous token"
+));
 
-pub const EXTERNAL: External = External;
+/// External validation
+///
+/// This validation relies on external information outside the protocol connection itself, e.g.
+/// TLS client certificates, originating UID/GID of an UNIX socket connection, or source IP. No
+/// properties are provided.
+pub const EXTERNAL: Validation = Validation::new(&ValidationDefinition::new(
+    "external", "validate the connection using External information"
+));
 
 #[cfg(test)]
 mod tests {
     use std::any::TypeId;
     use std::collections::HashMap;
     use std::ptr::null_mut;
-    use crate::{Callback, eq_type, SASLError};
+    use crate::{Callback, eq_type, Mechname, SASLError};
     use crate::SASLError::NoValidate;
     use crate::session::SessionData;
     use super::*;
@@ -105,41 +102,64 @@ mod tests {
     fn test_validation_callback() {
         struct TestCallback;
         impl Callback for TestCallback {
-            fn validate(&self, session: &mut SessionData, validation: &'static dyn Validation)
+            fn validate(&self, session: &mut SessionData, validation: Validation, mechanism: &Mechname)
                 -> Result<(), SASLError>
             {
-                if eq_type!(validation, Simple) {
-                    println!("Hey I know how to validate simple!");
-                    Ok(())
-                } else {
-                    println!("Huh, I don't know how to validate {} ({:?})", validation, validation);
-                    Err(NoValidate { validation })
+                match validation {
+                    SIMPLE => {
+                        println!("Hey I know how to validate simple!");
+                        Ok(())
+                    }
+                    _ => {
+                        println!("Huh, I don't know how to validate {} ({:?}) for mech {}",
+                                 validation,
+                                 validation,
+                                 mechanism);
+                        Err(NoValidate { validation })
+                    }
                 }
             }
         }
 
         let cb = TestCallback;
         let s = unsafe { &mut *null_mut() as &mut SessionData };
-        cb.validate(s, &SIMPLE).unwrap();
-        cb.validate(s, &OPENID20).unwrap_err();
+        let mech = Mechname::try_parse(b"LOGIN").unwrap();
+        cb.validate(s, SIMPLE, mech).unwrap();
+        cb.validate(s, OPENID20, mech).unwrap_err();
     }
 
     #[test]
-    fn test_differentiable() {
-        let typeid_a = TypeId::of::<Simple>();
-        let typeid_b = TypeId::of::<SecurId>();
+    fn test_matchable() {
+        // This is an alternative idea for how to do Validation and possibly Property. To be
+        // evaluated
+        trait Foo {}
+        #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+        struct MatchTest {
+            inner: *const dyn Foo,
+        }
+        struct FooI;
+        impl Foo for FooI {}
+        struct FooJ;
+        impl Foo for FooJ {}
+        struct FooK;
+        impl Foo for FooK {}
+        const FOOC: &'static dyn Foo = &FooI;
+        const FOOD: &'static dyn Foo = &FooJ;
+        const FOOE: &'static dyn Foo = &FooK;
+        const FOOI: MatchTest = MatchTest { inner: FOOC as *const dyn Foo };
+        const FOOJ: MatchTest = MatchTest { inner: FOOD as *const dyn Foo };
+        const FOOK: MatchTest = MatchTest { inner: FOOE as *const dyn Foo };
 
-        assert_ne!(typeid_a, typeid_b);
+        fn t(t: MatchTest) {
+            match t {
+                FOOI => println!("known, fooi!"),
+                FOOJ => println!("known, fooj!"),
+                _ => println!("other"),
+            }
+        }
 
-        let mut map: HashMap<TypeId, u32> = HashMap::new();
-
-        let o = map.insert(typeid_a, 0xDEADBEEF);
-        assert!(o.is_none());
-
-        let o = map.insert(typeid_b, 0xCAFEBABE);
-        assert!(o.is_none());
-
-        assert_eq!(map.get(&typeid_a), Some(&0xDEADBEEF));
-        assert_eq!(map.get(&typeid_b), Some(&0xCAFEBABE));
+        t(FOOI);
+        t(FOOJ);
+        t(FOOK)
     }
 }

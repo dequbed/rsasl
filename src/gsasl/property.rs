@@ -225,8 +225,7 @@ pub unsafe fn gsasl_property_get(sctx: &mut SessionData,
 {
     let mut ptr = gsasl_property_fast(sctx, prop);
     if ptr.is_null() {
-        //let _ = sctx.callback(prop);
-        todo!();
+        let _ = sctx.callback_raw(prop);
         ptr = gsasl_property_fast(sctx, prop);
     }
     ptr
@@ -237,11 +236,13 @@ mod tests {
     use std::collections::HashMap;
     use std::ffi::CStr;
     use std::sync::Arc;
+    use crate::Mechname;
     use super::*;
 
     #[test]
     fn property_get_set() {
-        let mut session = SessionData::new(None, Arc::new(HashMap::new()));
+        let mechname = Mechname::new("X-TEST");
+        let mut session = SessionData::new(None, Arc::new(HashMap::new()), mechname);
 
         unsafe {
             let ptr = gsasl_property_fast(&mut session, GSASL_QOP);

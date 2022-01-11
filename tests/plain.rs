@@ -1,10 +1,10 @@
 use std::io;
 use std::io::Cursor;
-use rsasl::consts::{AuthId, GSASL_AUTHENTICATION_ERROR, Password};
-use rsasl::{SASL, Step};
 use rsasl::error::SASLError;
 use rsasl::mechname::Mechname;
-use rsasl::Step::{Done, NeedsMore};
+use rsasl::property::{AuthId, Password};
+use rsasl::SASL;
+use rsasl::session::Step::{Done, NeedsMore};
 
 #[test]
 fn plain_client() {

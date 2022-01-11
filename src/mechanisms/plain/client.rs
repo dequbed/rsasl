@@ -223,7 +223,7 @@ mod test {
 
     #[test]
     fn simple() {
-        let mut session = SessionData::new(None, Arc::new(HashMap::new()));
+        let mut session = SessionData::new(None, Arc::new(HashMap::new()), Mechname::new("X-TEST"));
 
         let username = "testuser".to_string();
         assert_eq!(username.len(), 8);
@@ -258,7 +258,7 @@ mod test {
 
     #[test]
     fn split_writer() {
-        let mut session = SessionData::new(None, Arc::new(HashMap::new()));
+        let mut session = SessionData::new(None, Arc::new(HashMap::new()), Mechname::new("X-TEST"));
 
         let username = "testuser".to_string();
         assert_eq!(username.len(), 8);
