@@ -1,9 +1,9 @@
 [package]
 name = "rsasl"
-version = "2.0.0-preview"
+version = "2.0.0-preview1"
 authors = ["Nadja Reitzenstein <me@dequbed.space>"]
 edition = "2018"
-description = "A SASL crate based on GNU gsasl"
+description = "The Rust SASL framework"
 license = "LGPL-2.1-or-later"
 repository = "https://github.com/dequbed/rsasl"
 readme = "README.md"
@@ -17,11 +17,15 @@ documentation = "https://docs.rs/rsasl"
 default = [
     "provider", "provider_base64",
     "registry_static", "registry_dynamic",
+    "client", "server",
     "scram-sha-1", "scram-sha-2",
     "digest-md5", "cram-md5", "digest",
     "anonymous", "external",
     "plain", "login"
 ]
+
+client = []
+server = []
 
 scram-sha-1 = ["saslprep", "hmac", "sha-1", "base64"]
 scram-sha-2 = ["saslprep", "hmac", "sha2", "base64"]
@@ -38,7 +42,7 @@ securid = []
 provider = []
 provider_base64 = ["provider", "base64"]
 
-registry_static = ["inventory"]
+registry_static = ["linkme"]
 registry_dynamic = []
 
 saslprep = ["stringprep"]
@@ -56,4 +60,4 @@ md-5 = { version = "0.10", optional = true }
 
 stringprep = { version = "0.1", optional = true }
 
-inventory = { version = "0.2", optional = true }
+linkme = { version = "0.2", optional = true }

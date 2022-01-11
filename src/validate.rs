@@ -93,7 +93,7 @@ mod tests {
     use std::any::TypeId;
     use std::collections::HashMap;
     use std::ptr::null_mut;
-    use crate::{Callback, eq_type, Mechname, SASLError};
+    use crate::{Callback, Mechname, SASLError};
     use crate::SASLError::NoValidate;
     use crate::session::SessionData;
     use super::*;

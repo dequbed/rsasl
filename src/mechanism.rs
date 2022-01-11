@@ -19,20 +19,7 @@ pub trait Authentication {
             input: Option<&[u8]>,
             writer: &mut dyn Write
     ) -> StepResult;
-}
 
-impl Authentication for MechanismInstance {
-    fn step(&mut self,
-            session: &mut SessionData,
-            input: Option<&[u8]>,
-            writer: &mut dyn Write
-        ) -> StepResult
-    {
-        self.inner.step(session, input, writer)
-    }
-}
-
-trait SecurityLayer {
     fn encode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SASLError> {
         Err(NoSecurityLayer)
     }
