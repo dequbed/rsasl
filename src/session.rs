@@ -52,9 +52,9 @@ impl Session {
     /// containing `Some(0)`) and no data to send (a `Step` containing `None`).
     pub fn step(&mut self, input: Option<impl AsRef<[u8]>>, writer: &mut impl Write) -> StepResult {
         if let Some(input) = input {
-            self.mechanism.step(&mut self.session_data, Some(input.as_ref()), writer)
+            self.mechanism.inner.step(&mut self.session_data, Some(input.as_ref()), writer)
         } else {
-            self.mechanism.step(&mut self.session_data, None, writer)
+            self.mechanism.inner.step(&mut self.session_data, None, writer)
         }
     }
 

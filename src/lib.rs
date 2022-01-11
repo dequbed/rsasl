@@ -82,7 +82,7 @@ mod gsasl;
 pub mod mechanisms;
 pub mod mechanism;
 pub mod mechname;
-mod registry;
+pub mod registry;
 
 pub mod validate;
 pub mod property;
@@ -138,7 +138,7 @@ pub struct SASL {
 impl SASL {
     pub fn new() -> Self {
         Self {
-            registry: Registry::default(),
+            registry: unimplemented!(),
             global_data: Arc::new(HashMap::new()),
             callback: None,
         }

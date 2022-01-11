@@ -3,7 +3,6 @@ use crate::mechanisms::plain::client::{_gsasl_plain_client_step, Plain};
 use crate::mechanisms::plain::server::_gsasl_plain_server_step;
 use crate::{Mechname};
 use crate::registry::MechanismDescription;
-use crate::registry::Initializer;
 
 /* mechinfo.c --- Definition of PLAIN mechanism.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -48,17 +47,3 @@ pub static gsasl_plain_mechanism: Gsasl_mechanism = Gsasl_mechanism {
         decode: None,
     },
 };
-
-static CLIENT: Plain = Plain;
-
-pub static PLAIN: Initializer = Initializer(|| MechanismDescription::new(
-    Mechname::new("PLAIN"),
-    true,
-    false,
-    false,
-    Some(&CLIENT),
-    Some(&gsasl_plain_mechanism.server)
-));
-
-#[cfg(any(feature = "registry_static"))]
-inventory::submit!(PLAIN);

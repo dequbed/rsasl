@@ -316,3 +316,12 @@ mod test {
         }
     }
 }
+
+#[cfg(feature = "registry_static")]
+use crate::registry::{distributed_slice, MECHANISMS_CLIENT, Mechanism, Client};
+
+#[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS_CLIENT))]
+pub static PLAIN: Client = Client(Mechanism {
+    matches: |name| name.as_str() == "PLAIN",
+    start: |_sasl| Box::new(Plain),
+});
