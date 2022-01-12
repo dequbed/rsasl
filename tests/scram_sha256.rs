@@ -12,8 +12,8 @@ pub fn test_scram_sha() {
 
     for i in 0..2 {
         let mut client_starts = i == 0;
-        let mut client_session = client_sasl.client_start(Mechname::try_parse(b"SCRAM-SHA-256").unwrap()).unwrap();
-        let mut server_session = server_sasl.server_start(Mechname::try_parse(b"SCRAM-SHA-256").unwrap()).unwrap();
+        let mut client_session = client_sasl.client_start(Mechname::new(b"SCRAM-SHA-256").unwrap()).unwrap();
+        let mut server_session = server_sasl.server_start(Mechname::new(b"SCRAM-SHA-256").unwrap()).unwrap();
 
         let authid = Box::new("testuser".to_string());
         let password = Box::new("secret".to_string());

@@ -127,7 +127,7 @@ pub unsafe fn _gsasl_cram_md5_server_step(sctx: &mut SessionData,
     rpl_free(username as *mut libc::c_void);
     if res != GSASL_OK as libc::c_int { return res }
 
-    if let Some(password) = sctx.get_property_or_callback::<Password>() {
+    if let Ok(password) = sctx.get_property_or_callback::<Password>() {
         let cstr = CString::new(password.clone()).unwrap();
         /* FIXME: Use SASLprep here?  Treat string as storage string?
          Specification is unclear. */

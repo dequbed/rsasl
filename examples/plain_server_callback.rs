@@ -48,7 +48,7 @@ pub fn main() {
     {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with correct password:\n   ");
-        let mut session = sasl.server_start(Mechname::try_parse(b"PLAIN").unwrap()).unwrap();
+        let mut session = sasl.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
         let step_result = session.step(Some(b"\0username\0secret"), &mut out);
         print_outcome(step_result, out.into_inner());
     }
@@ -56,7 +56,7 @@ pub fn main() {
     {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with wrong password:\n   ");
-        let mut session = sasl.server_start(Mechname::try_parse(b"PLAIN").unwrap()).unwrap();
+        let mut session = sasl.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
         let step_result = session.step(Some(b"\0username\0badpass"), &mut out);
         print_outcome(step_result, out.into_inner());
     }
@@ -64,7 +64,7 @@ pub fn main() {
     {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with malformed data:\n   ");
-        let mut session = sasl.server_start(Mechname::try_parse(b"PLAIN").unwrap()).unwrap();
+        let mut session = sasl.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
         let step_result = session.step(Some(b"\0username badpass"), &mut out);
         print_outcome(step_result, out.into_inner());
     }

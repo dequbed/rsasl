@@ -1,159 +1,25 @@
 use std::io::{IoSlice, Write};
-use std::ptr::NonNull;
-use ::libc;
-use libc::size_t;
-use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_NO_AUTHID, GSASL_NO_PASSWORD, GSASL_OK};
-use crate::mechanism::{Authentication, MechanismBuilder, MechanismInstance};
-use crate::property::{AuthId, AuthzId, Password};
-use crate::{Mechname, SASL, SASLError};
+use crate::mechanism::Authentication;
+use crate::property::{AuthId, AUTHID, AuthzId, Password};
+use crate::registry::Mechanism;
 use crate::session::Step::Done;
 use crate::session::{SessionData, StepResult};
-
-extern "C" {
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
-     -> *mut libc::c_void;
-    fn malloc(_: size_t) -> *mut libc::c_void;
-}
-
-/* plain.h --- Prototypes for SASL mechanism PLAIN as defined in RFC 2595.
- * Copyright (C) 2002-2021 Simon Josefsson
- *
- * This file is part of GNU SASL Library.
- *
- * GNU SASL Library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * GNU SASL Library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with GNU SASL Library; if not, write to the Free
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
-/* client.c --- SASL mechanism PLAIN as defined in RFC 2595, client side.
- * Copyright (C) 2002-2021 Simon Josefsson
- *
- * This file is part of GNU SASL Library.
- *
- * GNU SASL Library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * GNU SASL Library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with GNU SASL Library; if not, write to the Free
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
-/* Get specification. */
-/* Get memcpy, strdup, strlen. */
-/* Get malloc, free. */
-pub unsafe fn _gsasl_plain_client_step(sctx: &mut SessionData,
-                                       _mech_data: Option<NonNull<()>>,
-                                       _input: Option<&[u8]>,
-                                       output: *mut *mut libc::c_char,
-                                       output_len: *mut size_t
-) -> libc::c_int
-{
-    let authzid = sctx.get_property_or_callback::<AuthzId>().map(Clone::clone);
-    let authid = sctx.get_property_or_callback::<AuthId>().map(Clone::clone);
-    let password = sctx.get_property_or_callback::<Password>().map(Clone::clone);
-
-    let authzidlen: size_t = if let Some(ref authzid) = authzid {
-        authzid.len()
-    } else {
-        0
-    };
-
-    if authid.is_none() {
-        return GSASL_NO_AUTHID as libc::c_int
-    }
-    let authid = authid.unwrap();
-    let authidlen = authid.len();
-
-    if password.is_none() {
-        return GSASL_NO_PASSWORD as libc::c_int
-    }
-    let password = password.unwrap();
-    let passwordlen = password.len();
-
-    *output_len =
-        authzidlen.wrapping_add(1)
-            .wrapping_add(authidlen)
-            .wrapping_add(1)
-            .wrapping_add(passwordlen);
-
-    let mut out = malloc(*output_len) as *mut libc::c_char;
-    *output = out;
-
-    if out.is_null() {
-        return GSASL_MALLOC_ERROR as libc::c_int
-    }
-
-    if let Some(ref authzid) = authzid {
-        memcpy(out as *mut libc::c_void,
-               authzid.as_ptr() as *const libc::c_void,
-               authzid.len());
-        out = out.offset(authzid.len() as isize)
-    }
-    let fresh0 = out;
-    out = out.offset(1);
-    *fresh0 = '\u{0}' as i32 as libc::c_char;
-
-    memcpy(out as *mut libc::c_void,
-           authid.as_ptr() as *const libc::c_void,
-           authidlen);
-    out = out.offset(authidlen as isize);
-
-    let fresh1 = out;
-    out = out.offset(1);
-    *fresh1 = '\u{0}' as i32 as libc::c_char;
-
-    memcpy(out as *mut libc::c_void,
-           password.as_ptr() as *const libc::c_void,
-           passwordlen);
-    return GSASL_OK as libc::c_int;
-}
-
+use crate::{MechanismBuilder, Mechname, SASL, SASLError};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Plain;
-
-impl MechanismBuilder for Plain {
-    fn start(&self, _sasl: &SASL) -> Result<MechanismInstance, SASLError> {
-        let i = MechanismInstance {
-            name: Mechname::new("PLAIN"),
-            inner: Box::new(Plain),
-        };
-        Ok(i)
-    }
-}
 
 impl Authentication for Plain {
     fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write)
         -> StepResult
     {
-        let authzid = session.get_property_or_callback::<AuthzId>()
+        let authzid = session.get_property_or_callback::<AuthzId>().ok()
             .map(Clone::clone);
 
         let authid = session.get_property_or_callback::<AuthId>()
-            .map(Clone::clone)
-            .ok_or(GSASL_NO_AUTHID)?;
+            .map(Clone::clone)?;
         let password = session.get_property_or_callback::<Password>()
-            .map(Clone::clone)
-            .ok_or(GSASL_NO_PASSWORD)?;
+            .map(Clone::clone)?;
 
         let authzidbuf = if let Some(authz) = &authzid {
             authz.as_bytes()
@@ -223,7 +89,7 @@ mod test {
 
     #[test]
     fn simple() {
-        let mut session = SessionData::new(None, Arc::new(HashMap::new()), Mechname::new("X-TEST"));
+        let mut session = SessionData::new(None, Arc::new(HashMap::new()), Mechname::new_unchecked("X-TEST"));
 
         let username = "testuser".to_string();
         assert_eq!(username.len(), 8);
@@ -258,7 +124,7 @@ mod test {
 
     #[test]
     fn split_writer() {
-        let mut session = SessionData::new(None, Arc::new(HashMap::new()), Mechname::new("X-TEST"));
+        let mut session = SessionData::new(None, Arc::new(HashMap::new()), Mechname::new_unchecked("X-TEST"));
 
         let username = "testuser".to_string();
         assert_eq!(username.len(), 8);
@@ -318,10 +184,10 @@ mod test {
 }
 
 #[cfg(feature = "registry_static")]
-use crate::registry::{distributed_slice, MECHANISMS_CLIENT, Mechanism, Client};
-
+use crate::registry::{distributed_slice, MECHANISMS_CLIENT};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS_CLIENT))]
-pub static PLAIN: Client = Client(Mechanism {
+pub static PLAIN: Mechanism = Mechanism {
+    mechanisms: &[Mechname::const_new_unchecked("PLAIN")],
     matches: |name| name.as_str() == "PLAIN",
-    start: |_sasl| Box::new(Plain),
-});
+    start: |_sasl| Ok(Box::new(Plain)),
+};

@@ -36,7 +36,7 @@ pub fn main() {
 
     sasl.install_callback(Arc::new(OurCallback));
 
-    let mut session = sasl.server_start(Mechname::try_parse(b"SCRAM-SHA-256").unwrap()).unwrap();
+    let mut session = sasl.server_start(Mechname::new(b"SCRAM-SHA-256").unwrap()).unwrap();
 
     loop {
         // Read data from STDIN

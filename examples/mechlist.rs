@@ -18,8 +18,8 @@ pub fn main() {
     }
 
     println!("\n\nLet's check if we support specific mechanisms:");
-    println!("PLAIN client support: {}", sasl.client_supports(Mechname::try_parse(b"PLAIN").unwrap()));
-    println!("PLAIN server support: {}", sasl.server_supports(Mechname::try_parse(b"PLAIN").unwrap()));
+    println!("PLAIN client support: {}", sasl.client_supports(Mechname::new(b"PLAIN").unwrap()));
+    println!("PLAIN server support: {}", sasl.server_supports(Mechname::new(b"PLAIN").unwrap()));
 
-    println!("DEADBEEF client support: {}", sasl.client_supports(Mechname::try_parse(b"DEADBEEF").unwrap()));
+    println!("DEADBEEF client support: {}", sasl.client_supports(Mechname::new(b"DEADBEEF").unwrap()));
 }

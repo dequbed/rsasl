@@ -4,6 +4,7 @@ use std::fmt::{Debug, Display, Formatter};
 use base64::DecodeError;
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 use crate::property::Property;
+use crate::PropertyQ;
 use crate::validate::Validation;
 
 pub type Result<T> = std::result::Result<T, SASLError>;
@@ -35,7 +36,16 @@ pub enum SASLError {
     AuthenticationFailure {
         reason: &'static str,
     },
+    MechanismParseError,
     Gsasl(u32),
+}
+
+impl SASLError {
+    pub fn no_property<P: PropertyQ>() -> Self {
+        Self::NoProperty {
+            property: P::property(),
+        }
+    }
 }
 
 impl Debug for SASLError {

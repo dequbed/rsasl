@@ -13,7 +13,7 @@ pub fn main() {
 
     // Usually you would first agree on a mechanism with the server, for demostration purposes
     // we directly start a PLAIN "exchange"
-    let mut session = sasl.client_start(Mechname::try_parse(b"PLAIN").unwrap()).unwrap();
+    let mut session = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
 
     // Read the "authcid" from stdin
     let mut username = String::new();
