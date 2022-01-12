@@ -28,7 +28,6 @@
 pub mod anonymous {
     //! `ANONYMOUS` *mechanism. Requires feature "anonymous"*
     pub mod client;
-    pub mod mechinfo;
     pub mod server;
 }
 
@@ -63,7 +62,6 @@ pub mod digest_md5 {
 pub mod external {
     //! `EXTERNAL` *mechanism. Requires feature `external`*
     pub mod client;
-    pub mod mechinfo;
     pub mod server;
 }
 
