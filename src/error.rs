@@ -78,6 +78,7 @@ impl Debug for SASLError {
             SASLError::NoCallback { property } => write!(f, "NoCallback({:?})", property),
             SASLError::NoProperty { property } => write!(f, "NoProperty({:?})", property),
             SASLError::AuthenticationFailure { .. } => f.write_str("AuthenticationFailure"),
+            SASLError::MechanismParseError => f.write_str("MechanismParseError"),
         }
     }
 }
@@ -124,6 +125,8 @@ impl Display for SASLError {
                 write!(f,
                        "authentication failed: {}",
                        reason),
+            SASLError::MechanismParseError =>
+                f.write_str("mechanism encountered invalid input data"),
         }
     }
 }

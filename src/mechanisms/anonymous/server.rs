@@ -27,7 +27,7 @@ impl Authentication for Anonymous {
              characters.   As the encoding of a characters uses a sequence of 1
              to 4 octets, a token may be long as 1020 octets. */
             if input.len() == 0 || input.len() > 255 {
-                Err(SASLError::MechanismParseError)
+                return Err(SASLError::MechanismParseError);
             }
 
             session.set_property::<AnonymousToken>(Box::new(input.to_string()));

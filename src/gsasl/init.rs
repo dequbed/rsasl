@@ -13,20 +13,6 @@ pub static mut GSASL_VALID_MECHANISM_CHARACTERS: *const libc::c_char =
         *const libc::c_char;
 
 pub(crate) unsafe fn register_builtin_mechs(ctx: &mut SASL) -> libc::c_int {
-    #[cfg(feature = "anonymous")]
-        {
-            use crate::mechanisms::anonymous::mechinfo::gsasl_anonymous_mechanism;
-            let rc = gsasl_register(ctx, &mut gsasl_anonymous_mechanism);
-            if rc != GSASL_OK as libc::c_int { return rc }
-        }
-
-    #[cfg(feature = "external")]
-        {
-            use crate::mechanisms::external::mechinfo::gsasl_external_mechanism;
-            let rc = gsasl_register(ctx, &mut gsasl_external_mechanism);
-            if rc != GSASL_OK as libc::c_int { return rc }
-        }
-
     #[cfg(feature = "login")]
         {
             use crate::mechanisms::login::mechinfo::gsasl_login_mechanism;
