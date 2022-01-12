@@ -146,12 +146,12 @@ pub unsafe fn _gsasl_plain_server_step(sctx: &mut SessionData,
      but fall back to deal with it locally... */
     res = gsasl_callback(0 as *mut Shared, sctx, GSASL_VALIDATE_SIMPLE);
     if res == GSASL_NO_CALLBACK as libc::c_int {
-        if let Some(key) = old {
+        if let Ok(key) = old {
             sctx.set_property::<Password>(Box::new(key.clone()));
         }
         let mut normkey: *mut libc::c_char = 0 as *mut libc::c_char;
         /* The following will invoke a GSASL_PASSWORD callback. */
-        let key = if let Some(key_rust) = sctx.get_property_or_callback::<Password>() {
+        let key = if let Ok(key_rust) = sctx.get_property_or_callback::<Password>() {
             CString::new(key_rust.clone())
                 .expect("gsasl property password was an invalid C string")
         } else {

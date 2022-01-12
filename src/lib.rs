@@ -65,6 +65,7 @@
 //!         1. Write impl MechanismBuilder & impl Mechanism
 //!         2. Add to Registry
 //!         3. Done?
+//!
 
 use std::any::Any;
 use std::collections::HashMap;
@@ -94,9 +95,9 @@ pub use property::{
 };
 use crate::callback::Callback;
 use crate::error::SASLError;
-use crate::mechanism::MechanismBuilder;
+use crate::mechanism::{MechanismBuilder, MechanismInstance};
 use crate::mechname::Mechname;
-use crate::registry::Registry;
+use crate::registry::{Mechanism, MECHANISMS_CLIENT, MECHANISMS_SERVER};
 use crate::session::Session;
 
 
@@ -123,22 +124,16 @@ use crate::session::Session;
 /// parallel, e.g. in a server context, you can wrap it in an [`std::sync::Arc`] to add cheap
 /// cloning.
 pub struct SASL {
-    /// The registry contains all mechanism registered with this provider context and implements
-    /// features such as Prioritization of mechanisms
-    pub registry: Registry,
-
     /// Global data that is valid irrespective of context, such as e.g. a OAuth2 callback url or
     /// a GSSAPI realm.
     /// Can also be used to store properties such as username and password
     pub global_data: Arc<HashMap<Property, Box<dyn Any>>>,
-
     pub callback: Option<Arc<dyn Callback>>,
 }
 
 impl SASL {
     pub fn new() -> Self {
         Self {
-            registry: unimplemented!(),
             global_data: Arc::new(HashMap::new()),
             callback: None,
         }
@@ -152,7 +147,6 @@ impl SASL {
 impl Debug for SASL {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SASL")
-            .field("registry", &self.registry)
             .field("global data", &self.global_data)
             .field("has callback", &self.callback.is_some())
             .finish()
@@ -171,54 +165,50 @@ impl SASL {
     ///
     /// An interactive client "logging in" to some server application would use this method. The
     /// server application would use [`SASL::server_mech_list()`].
-    pub fn client_mech_list(&self) -> impl Iterator<Item=&Mechname>
+    pub fn client_mech_list(&self) -> impl IntoIterator<Item=&Mechanism>
     {
-        self.registry.client_mech_list().map(|(name, _)| name)
+        MECHANISMS_CLIENT.into_iter()
     }
 
     /// Returns the list of Server Mechanisms supported by this provider.
     ///
     /// An server allowing client software to "log in" would use this method. A client
     /// application would use [`SASL::client_mech_list()`].
-    pub fn server_mech_list(&self) -> impl Iterator<Item=&Mechname>
+    pub fn server_mech_list(&self) -> impl IntoIterator<Item=&Mechanism>
     {
-        self.registry.server_mech_list().map(|(name, _)| name)
+        MECHANISMS_SERVER.iter()
     }
 
     /// Suggests a mechanism to use for client-side authentication, chosen from the given list of
     /// available mechanisms.
     /// If any passed mechanism names are invalid these are silently ignored.
     /// This method will return `None` if none of the given mechanisms are agreeable.
-    pub fn suggest_client_mechanism<'a>(&self, mechs: impl IntoIterator<Item=&'a &'a str>)
-        -> Option<(&Mechname, &dyn MechanismBuilder)>
+    pub fn suggest_client_mechanism<'a>(&self, mechs: impl IntoIterator<Item=&'a [u8]>)
+        -> Option<&Mechanism>
     {
-        self.registry.suggest_client_mechanism(
-            mechs.into_iter().filter_map(|name|
-                Mechname::try_parse(name.as_bytes()).ok())
-        )
+        None
     }
 
     /// Suggests a mechanism to use for server-side authentication, chosen from the given list of
     /// available mechanisms.
     /// If any passed mechanism names are invalid these are silently ignored.
     /// This will return `None` if none of the given mechanisms are agreeable.
-    pub fn suggest_server_mechanism<'a>(&self, mechs: impl IntoIterator<Item=&'a &'a str>)
-        -> Option<(&Mechname, &dyn MechanismBuilder)>
+    pub fn suggest_server_mechanism<'a>(&self, mechs: impl IntoIterator<Item=&'a [u8]>)
+        -> Option<&Mechanism>
     {
-        self.registry.suggest_server_mechanism(
-            mechs.into_iter().filter_map(|name|
-                Mechname::try_parse(name.as_bytes()).ok())
-        )
+        None
     }
 
     /// Returns whether there is client-side support for the given mechanism
     pub fn client_supports(&self, mech: &mechname::Mechname) -> bool {
-        self.client_mech_list().any(|supported| supported == mech)
+        self.client_mech_list().into_iter().any(|supported|
+            supported.mechanisms.iter().any(|name| *name == mech))
     }
 
     /// Returns whether there is server-side support for the specified mechanism
     pub fn server_supports(&self, mech: &mechname::Mechname) -> bool {
-        self.server_mech_list().any(|supported| supported == mech)
+        self.server_mech_list().into_iter().any(|supported|
+            supported.mechanisms.iter().any(|name| *name == mech))
     }
 
     /// Starts a authentication exchange as a client
@@ -227,12 +217,16 @@ impl SASL {
     /// an authcid, optional authzid and password for PLAIN. To provide that data an application
     /// has to either call `set_property` before running the step that requires the data, or
     /// install a callback.
-    pub fn client_start(&self, mech: &'static mechname::Mechname) -> Result<Session, SASLError> {
-        for (name, builder) in self.registry.client_mech_list() {
-            if name == mech {
-                let mechanism = builder.start(self)?;
+    pub fn client_start(&self, mech: &mechname::Mechname) -> Result<Session, SASLError> {
+        let mut stored_name = None;
+        for mechanism in self.client_mech_list() {
+            if mechanism.mechanisms.iter().any(|name| {
+                stored_name = Some(*name);
+                *name == mech
+            }) {
+                let auth = (mechanism.start)(&self)?;
                 return Ok(Session::new(self.callback.clone(),
-                                       mechanism,
+                                       MechanismInstance { name: stored_name.unwrap(), inner: auth },
                                        self.global_data.clone()));
             }
         }
@@ -249,12 +243,16 @@ impl SASL {
     /// authentication data provided by the user.
     ///
     /// See [Callback](Callback) on how to implement callbacks.
-    pub fn server_start(&self, mech: &'static mechname::Mechname) -> Result<Session, SASLError> {
-        for (name, builder) in self.registry.server_mech_list() {
-            if name == mech {
-                let mechanism = builder.start(self)?;
+    pub fn server_start(&self, mech: &mechname::Mechname) -> Result<Session, SASLError> {
+        let mut stored_name = None;
+        for mechanism in self.server_mech_list() {
+            if mechanism.mechanisms.iter().any(|name| {
+                stored_name = Some(*name);
+                *name == mech
+            }) {
+                let auth = (mechanism.start)(&self)?;
                 return Ok(Session::new(self.callback.clone(),
-                                       mechanism,
+                                       MechanismInstance { name: stored_name.unwrap(), inner: auth },
                                        self.global_data.clone()));
             }
         }

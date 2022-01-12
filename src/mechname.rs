@@ -12,18 +12,25 @@ use crate::error::MechanismNameError::{InvalidChars, TooLong, TooShort};
 /// reason to have this struct is to ensure at type level and with no run-time overhead that a
 /// passed mechanism name was verified.
 ///
-/// The main way to construct a `&Mechanism` is by calling [`Mechanism::try_parse`]. This type
+/// The main way to construct a `&Mechanism` is by calling [`Mechanism::new`]. This type
 /// implements `Deref<Target=str>` so it can be used anywhere where `&str` is expected.
 pub struct Mechname {
     inner: str,
 }
 
 impl Mechname {
-    pub(crate) fn new<S: AsRef<str> + ?Sized>(s: &S) -> &Mechname {
+    /// `const` capable conversion from `&'a str` to `&'a Mechname`. This is safe from a memory
+    /// protection standpoint since `&Mechname` and `&str` have the exact same representation but
+    /// it can be used to break the contract of `Mechname` which may result in undefined behaviour.
+    pub const fn const_new_unchecked(s: &str) -> &Mechname {
+        unsafe { std::mem::transmute(s) }
+    }
+
+    pub(crate) fn new_unchecked<S: AsRef<str> + ?Sized>(s: &S) -> &Mechname {
         unsafe { &*(s.as_ref() as *const str as *const Mechname) }
     }
 
-    pub fn try_parse(input: &[u8]) -> Result<&Mechname, MechanismNameError> {
+    pub fn new(input: &[u8]) -> Result<&Mechname, MechanismNameError> {
         let input = input.as_ref();
         if input.len() < 1 {
             Err(TooShort)
@@ -38,7 +45,7 @@ impl Mechname {
                     // getting here is guaranteed valid ASCII and thus also guaranteed valid UTF-8
                     std::str::from_utf8_unchecked(input)
                 };
-                Ok(Mechname::new(s))
+                Ok(Mechname::new_unchecked(s))
             }
         }
     }
@@ -83,7 +90,7 @@ impl<'a> TryFrom<&'a [u8]> for &'a Mechname {
     type Error = MechanismNameError;
 
     fn try_from(value: &'a [u8]) -> Result<Self, Self::Error> {
-        Mechname::try_parse(value)
+        Mechname::new(value)
     }
 }
 
@@ -100,7 +107,7 @@ pub fn try_parse_mechanism_lenient(input: &[u8]) -> Result<&Mechname, MechanismN
         Err(TooShort)
     } else {
         if let Some(subslice) = input.split(is_invalid).next() {
-            Mechname::try_parse(subslice)
+            Mechname::new(subslice)
         } else {
             Err(InvalidChars(input[0]))
         }
@@ -144,19 +151,19 @@ mod tests {
 
         for m in valids {
             println!("Checking {}", m);
-            let res = Mechname::try_parse(m.as_bytes())
+            let res = Mechname::new(m.as_bytes())
                 .map(|m| m.as_bytes());
             assert_eq!(res, Ok(m.as_bytes()));
         }
         for m in toolong {
-            let e = Mechname::try_parse(m.as_bytes())
+            let e = Mechname::new(m.as_bytes())
                 .map(|m| m.as_bytes())
                 .unwrap_err();
             println!("Checking {}: {}", m, e);
             assert_eq!(e, TooLong);
         }
         for (m, bad) in invalidchars {
-            let e = Mechname::try_parse(m.as_bytes())
+            let e = Mechname::new(m.as_bytes())
                 .map(|m| m.as_bytes())
                 .unwrap_err();
             println!("Checking {}: {}", m, e);

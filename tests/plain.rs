@@ -9,7 +9,7 @@ use rsasl::session::Step::{Done, NeedsMore};
 #[test]
 fn plain_client() {
     let sasl = SASL::new();
-    let mut session = sasl.client_start(Mechname::try_parse(b"PLAIN").unwrap())
+    let mut session = sasl.client_start(Mechname::new(b"PLAIN").unwrap())
         .unwrap();
 
     let username = "testuser".to_string();
@@ -46,7 +46,7 @@ fn plain_client() {
 #[test]
 fn plain_server() {
     let prov = SASL::new();
-    let mut session = prov.server_start(Mechname::try_parse(b"PLAIN").unwrap()).unwrap();
+    let mut session = prov.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
 
     let username = "testuser".to_string();
     assert_eq!(username.len(), 8);
@@ -66,7 +66,7 @@ fn plain_server() {
         NeedsMore(_) => panic!("PLAIN exchange took more than one step"),
     }
 
-    let mut session = prov.server_start(Mechname::try_parse(b"PLAIN").unwrap()).unwrap();
+    let mut session = prov.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
     let username = "testuser".to_string();
     let password = "secret".to_string();
     session.set_property::<AuthId>(Box::new(username));

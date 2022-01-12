@@ -6,7 +6,7 @@ use std::io::Write;
 use std::sync::Arc;
 use base64::write::EncoderWriter;
 
-use crate::{Callback, Mechname, Property, SASLError};
+use crate::{Callback, Mechname, Property, SASL, SASLError};
 use crate::gsasl::consts::{Gsasl_property, property_from_code};
 use crate::mechanism::{Authentication, MechanismInstance};
 use crate::property::PropertyQ;
@@ -80,7 +80,7 @@ impl Session {
             .map(|old| old.downcast().expect("old session data value was of bad type"))
     }
 
-    pub fn get_property<P: PropertyQ>(&mut self) -> Option<&P::Item> {
+    pub fn get_property<P: PropertyQ>(&mut self) -> Result<&P::Item, SASLError> {
         self.session_data.get_property::<P>()
     }
 }
@@ -140,9 +140,9 @@ impl SessionData {
             .unwrap_or(Err(SASLError::NoValidate { validation }))
     }
 
-    pub fn get_property_or_callback<P: PropertyQ>(&mut self) -> Option<&P::Item> {
+    pub fn get_property_or_callback<P: PropertyQ>(&mut self) -> Result<&P::Item, SASLError> {
         if !self.has_property::<P>() {
-            let _ = self.callback::<P>().ok()?;
+            let _ = self.callback::<P>()?;
         }
         self.get_property::<P>()
     }
@@ -151,12 +151,11 @@ impl SessionData {
         self.property_cache.contains_key(&P::property())
     }
 
-    pub fn get_property<P: PropertyQ>(&self) -> Option<&P::Item> {
+    pub fn get_property<P: PropertyQ>(&self) -> Result<&P::Item, SASLError> {
         self.property_cache.get(&P::property())
             .or_else(|| self.global_properties.get(&P::property()))
-            .and_then(|prop| {
-                prop.downcast_ref::<P::Item>()
-        })
+            .and_then(|prop| prop.downcast_ref::<P::Item>())
+            .ok_or(SASLError::no_property::<P>())
     }
 
     pub fn set_property<P: PropertyQ>(&mut self, item: Box<P::Item>) -> Option<Box<dyn Any>> {
@@ -202,7 +201,7 @@ mod tests {
         }
 
         let cbox = CB { data: 0 };
-        let mechname = Mechname::new("X-TEST");
+        let mechname = Mechname::new_unchecked("X-TEST");
         let mut session = SessionData::new(
             Some(Arc::new(cbox)),
             Arc::new(HashMap::new()),
@@ -216,7 +215,7 @@ mod tests {
     #[test]
     fn property_set_get() {
         let sasl = SASL::new();
-        let mut sess = sasl.client_start(Mechname::try_parse(b"PLAIN").unwrap())
+        let mut sess = sasl.client_start(Mechname::new(b"PLAIN").unwrap())
             .unwrap();
 
         assert!(sess.get_property::<AuthId>().is_none());
@@ -233,7 +232,7 @@ mod tests {
     #[test]
     fn property_set_raw() {
         let sasl = SASL::new();
-        let mut sess = sasl.client_start(Mechname::try_parse(b"PLAIN").unwrap()).unwrap();
+        let mut sess = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
 
 
         assert!(sess.get_property::<AuthId>().is_none());

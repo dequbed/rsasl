@@ -123,7 +123,7 @@ mod tests {
 
         let cb = TestCallback;
         let s = unsafe { &mut *null_mut() as &mut SessionData };
-        let mech = Mechname::try_parse(b"LOGIN").unwrap();
+        let mech = Mechname::new(b"LOGIN").unwrap();
         cb.validate(s, SIMPLE, mech).unwrap();
         cb.validate(s, OPENID20, mech).unwrap_err();
     }
