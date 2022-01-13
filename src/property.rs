@@ -33,7 +33,7 @@
 //! ```
 use std::ffi::CString;
 use std::fmt::{Debug, Display, Formatter};
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::marker::PhantomData;
 
 #[derive(Debug)]

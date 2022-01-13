@@ -1,3 +1,4 @@
+#![allow(non_upper_case_globals, non_camel_case_types)]
 //! RSASL is a pure Rust SASL framework designed to make crates implementing SASL-authenticated
 //! protocol not have to worry about SASL.
 //!
@@ -94,7 +95,7 @@ pub use property::{
 };
 use crate::callback::Callback;
 use crate::error::SASLError;
-use crate::mechanism::{Authentication, MechanismBuilder, MechanismInstance};
+use crate::mechanism::{Authentication, MechanismBuilder};
 use crate::mechname::Mechname;
 use crate::registry::{Mechanism, MECHANISMS_CLIENT, MECHANISMS_SERVER};
 use crate::session::Session;
@@ -249,9 +250,6 @@ impl SASL {
         // `Result` is the first `Result::Err`.
         // If no break is encountered the `try_fold` will return `Ok(())` which we can then
         // interpret as this mechanism not being supported.
-
-        type FoldBreaker<S> = Result<(), S>;
-
         let foldout = mech_list.into_iter()
                           .try_fold((), move |(), supported| {
                               let opt = if supported.mechanism == mech {

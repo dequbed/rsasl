@@ -1,16 +1,16 @@
 use std::io::{IoSlice, Write};
 use crate::mechanism::Authentication;
-use crate::property::{AuthId, AUTHID, AuthzId, Password};
+use crate::property::{AuthId, AuthzId, Password};
 use crate::registry::Mechanism;
 use crate::session::Step::Done;
 use crate::session::{SessionData, StepResult};
-use crate::{MechanismBuilder, Mechname, SASL, SASLError};
+use crate::Mechname;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Plain;
 
 impl Authentication for Plain {
-    fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write)
+    fn step(&mut self, session: &mut SessionData, _input: Option<&[u8]>, writer: &mut dyn Write)
         -> StepResult
     {
         let authzid = session.get_property_or_callback::<AuthzId>().ok()
@@ -40,12 +40,6 @@ impl Authentication for Plain {
             IoSlice::new(data[3]),
             IoSlice::new(data[4]),
         ];
-
-        let outlen = authzid.as_ref().map(|s| s.len()).unwrap_or(0)
-            + 1
-            + authid.len()
-            + 1
-            + password.len();
 
         let mut skip = if authzid.is_none() { 1 } else { 0 };
         let mut written = 0;

@@ -1,16 +1,13 @@
-use std::any::{Any, TypeId};
 use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug)]
 pub struct ValidationDefinition {
     pub name: &'static str,
     pub display: &'static str,
-    source: &'static str,
 }
 impl ValidationDefinition {
     pub const fn new(name: &'static str, display: &'static str) -> Self {
-        let source = env!("CARGO_CRATE_NAME");
-        Self { name, display, source }
+        Self { name, display }
     }
 }
 
