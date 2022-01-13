@@ -55,21 +55,19 @@
 //! #[cfg_attr(feature = "rsasl/registry_static", distributed_slice(MECHANISMS_CLIENT))]
 //! // It is *crucial* that these `static`s are marked `pub` and reachable by dependent crates, see
 //! // the Note below.
-//! pub static MYCOOLMECHANISM_CLIENT: Client = Client(Mechanism {
-//!     matches: |name| name.as_str() == "X-MYCOOLMECHANISM",
-//!     start: |_sasl| Box::new(MyCoolMechanism),
-//! });
-//! #[cfg_attr(feature = "rsasl/registry_static", distributed_slice(MECHANISMS_SERVER))]
-//! pub static MYCOOLMECHANISM_SERVER: Server = Server(Mechanism {
-//!     matches: |name| name.as_str() == "X-MYCOOLMECHANISM",
-//!     start: |_sasl| Box::new(MyCoolMechanism),
-//! });
+//! pub static MYCOOLMECHANISM_CLIENT: Mechanism = Mechanism {
+//!     mechanism: unsafe { Mechname::const_new_unchecked("X-MYCOOLMECHANISM") },
+//!     client: Some(|_sasl| Ok(Box::new(MyCoolMechanism))),
+//!     // In this case only the client side is implemented
+//!     server: None,
+//! };
 //! ```
 //!
 //! Note: Due to [rustc issue #47384](https://github.com/rust-lang/rust/issues/47384) the static(s)
 //! for your Mechanism MUST be marked `pub` and be reachable by dependent crates, otherwise they
 //! may be silently dropped by the compiler.
 
+use std::fmt::{Debug, Display, Formatter};
 use crate::{SASL, SASLError};
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
@@ -86,8 +84,6 @@ pub type StartFn = fn (sasl: &SASL) -> Result<Box<dyn Authentication>, SASLError
 /// documentation][crate::registry] for details.
 pub struct Mechanism {
     /// The Mechanism served by this implementation.
-    ///
-    /// In most cases this
     pub mechanism: &'static Mechname,
 
     /// Construct a new instance of this Mechanism
@@ -105,14 +101,27 @@ impl Mechanism {
     }
 }
 
+impl Debug for Mechanism {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Mechanism")
+            .field("name", &self.mechanism)
+            .field("has client", &self.client.is_some())
+            .field("has server", &self.server.is_some())
+            .finish()
+    }
+}
+
+impl Display for Mechanism {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.mechanism)
+    }
+}
+
 #[cfg(feature = "registry_static")]
 mod registry_static {
     pub use linkme::distributed_slice;
     use super::Mechanism;
 
     #[distributed_slice]
-    pub static MECHANISMS_CLIENT: [Mechanism] = [..];
-
-    #[distributed_slice]
-    pub static MECHANISMS_SERVER: [Mechanism] = [..];
+    pub static MECHANISMS: [Mechanism] = [..];
 }

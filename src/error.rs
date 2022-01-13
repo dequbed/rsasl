@@ -37,7 +37,7 @@ pub enum SASLError {
         reason: &'static str,
     },
     MechanismParseError,
-    Gsasl(u32),
+    Gsasl(i32),
 }
 
 impl SASLError {
@@ -70,7 +70,7 @@ impl Debug for SASLError {
             SASLError::MechanismNameError(e) => Debug::fmt(e, f),
             SASLError::Gsasl(n) =>
                 write!(f, "{}[{}]",
-                       rsasl_errname_to_str(*n).unwrap_or("UNKNOWN_ERROR"),
+                       rsasl_errname_to_str(*n as u32).unwrap_or("UNKNOWN_ERROR"),
                        n),
             SASLError::NoSecurityLayer => f.write_str("NoSecurityLayer"),
             SASLError::NoValidate { validation } =>
@@ -105,8 +105,8 @@ impl Display for SASLError {
             },
             SASLError::Gsasl(n) =>
                 write!(f, "({}): {}",
-                       rsasl_errname_to_str(*n).unwrap_or("UNKNOWN_ERROR"),
-                       gsasl_err_to_str_internal(*n as i32)),
+                       rsasl_errname_to_str(*n as u32).unwrap_or("UNKNOWN_ERROR"),
+                       gsasl_err_to_str_internal(*n)),
             SASLError::NoSecurityLayer => f.write_str("no security layer is installed"),
             SASLError::NoCallback { property } =>
                 write!(f,
@@ -138,12 +138,6 @@ impl From<MechanismNameError> for SASLError {
     }
 }
 
-impl From<u32> for SASLError {
-    fn from(e: u32) -> Self {
-        SASLError::Gsasl(e)
-    }
-}
-
 impl From<base64::DecodeError> for SASLError {
     fn from(source: DecodeError) -> Self {
         SASLError::Base64DecodeError { source }
@@ -153,6 +147,12 @@ impl From<base64::DecodeError> for SASLError {
 impl From<std::io::Error> for SASLError {
     fn from(source: std::io::Error) -> Self {
         SASLError::Io { source }
+    }
+}
+
+impl From<i32> for SASLError {
+    fn from(e: i32) -> Self {
+        SASLError::Gsasl(e)
     }
 }
 

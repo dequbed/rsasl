@@ -18,12 +18,10 @@ impl Callback for OurCallback {
         match validation {
             SIMPLE => {
                 // Access the authentication id, i.e. the username to check the password for
-                let authcid = session.get_property::<AuthId>()
-                    .ok_or(SASLError::NoProperty { property: AUTHID })?;
+                let authcid = session.get_property::<AuthId>()?;
 
                 // Access the password itself
-                let password = session.get_property::<Password>()
-                    .ok_or(SASLError::NoProperty { property: PASSWORD })?;
+                let password = session.get_property::<Password>()?;
 
                 // For brevity sake we use hard-coded credentials here.
                 if authcid == "username"
