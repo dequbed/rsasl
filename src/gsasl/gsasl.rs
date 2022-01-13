@@ -2,9 +2,9 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::ptr::NonNull;
 use libc::size_t;
-use crate::{MechanismBuilder, Mechname, SASL, SASLError, Shared};
+use crate::{MechanismBuilder, SASLError, Shared};
 use crate::gsasl::consts::{GSASL_NEEDS_MORE, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
-use crate::mechanism::{Authentication, MechanismInstance};
+use crate::mechanism::Authentication;
 use crate::session::{SessionData, StepResult};
 use crate::session::Step::{Done, NeedsMore};
 
@@ -115,38 +115,6 @@ impl Debug for MechanismVTable {
             .field("has encode", &self.encode.is_some())
             .field("has decode", &self.decode.is_some())
             .finish()
-    }
-}
-
-impl MechanismBuilder for MechanismVTable {
-    fn init(&self) {
-        if let Some(init) = self.init {
-            unsafe { init() };
-        }
-    }
-
-    fn start(&self, sasl: &SASL) -> Result<MechanismInstance, SASLError> {
-        // TODO: This is wrong
-        if let Some(start) = self.start {
-            let mut mech_data = None;
-            let mechname = Mechname::new_unchecked("TEST");
-            let res =  unsafe { start(&Shared, &mut mech_data) };
-            if res == GSASL_OK as libc::c_int {
-                let i = MechanismInstance {
-                    name: mechname,
-                    inner: Box::new(CMech { vtable: *self, mech_data }),
-                };
-                return Ok(i);
-            } else {
-                return Err((res as u32).into());
-            }
-        } else {
-            let i = MechanismInstance {
-                name: Mechname::new_unchecked("PLAIN"),
-                inner: Box::new(CMech { vtable: *self, mech_data: None }),
-            };
-            return Ok(i);
-        }
     }
 }
 

@@ -59,10 +59,11 @@ pub trait Authentication {
             writer: &mut dyn Write
     ) -> StepResult;
 
-    fn encode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SASLError> {
+    // TODO: Document the problems with SASL security layers before release
+    fn encode(&mut self, _input: &[u8]) -> Result<Box<[u8]>, SASLError> {
         Err(NoSecurityLayer)
     }
-    fn decode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SASLError> {
+    fn decode(&mut self, _input: &[u8]) -> Result<Box<[u8]>, SASLError> {
         Err(NoSecurityLayer)
     }
 }

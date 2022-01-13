@@ -1,5 +1,4 @@
 use std::io::Write;
-use crate::{Mechanism, Mechname};
 use crate::mechanism::Authentication;
 use crate::property::AuthId;
 use crate::session::{SessionData, StepResult};
@@ -11,7 +10,7 @@ use crate::SASLError::MechanismParseError;
 pub struct External;
 
 impl Authentication for External {
-    fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write)
+    fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, _writer: &mut dyn Write)
         -> StepResult
     {
         if let Some(input) = input {

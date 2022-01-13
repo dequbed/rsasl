@@ -1,7 +1,7 @@
 use std::io::Write;
 use crate::mechanism::Authentication;
 use crate::property::AnonymousToken;
-use crate::{Mechanism, Mechname, SASLError};
+use crate::SASLError;
 use crate::session::{SessionData, StepResult};
 use crate::session::Step::Done;
 

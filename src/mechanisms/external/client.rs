@@ -1,5 +1,4 @@
 use std::io::Write;
-use crate::{Mechanism, Mechname};
 use crate::mechanism::Authentication;
 use crate::property::AuthId;
 use crate::session::{SessionData, StepResult};

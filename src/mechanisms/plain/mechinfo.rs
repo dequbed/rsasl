@@ -1,6 +1,5 @@
 use crate::gsasl::gsasl::{Gsasl_mechanism, MechanismVTable};
 use crate::mechanisms::plain::server::_gsasl_plain_server_step;
-use crate::{Mechname};
 
 /* mechinfo.c --- Definition of PLAIN mechanism.
  * Copyright (C) 2002-2021 Simon Josefsson

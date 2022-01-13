@@ -1,14 +1,13 @@
-use std::any::{Any, TypeId};
+use std::any::Any;
 use std::collections::HashMap;
-use std::ffi::CString;
 use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 use base64::write::EncoderWriter;
 
-use crate::{Callback, Mechname, Property, SASL, SASLError};
+use crate::{Callback, Mechname, Property, SASLError};
 use crate::gsasl::consts::{Gsasl_property, property_from_code};
-use crate::mechanism::{Authentication, MechanismInstance};
+use crate::mechanism::Authentication;
 use crate::property::PropertyQ;
 use crate::validate::*;
 

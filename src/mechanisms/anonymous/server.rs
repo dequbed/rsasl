@@ -1,10 +1,5 @@
 use std::io::Write;
-use std::ptr::NonNull;
-use ::libc;
-use libc::size_t;
-use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_OK};
-use crate::{Mechanism, Mechname, SASLError, validate};
-use crate::mechanism::Authentication;
+use crate::{Authentication, SASLError};
 use crate::property::AnonymousToken;
 use crate::session::{SessionData, StepResult};
 use crate::session::Step::{Done, NeedsMore};
@@ -14,7 +9,9 @@ use crate::validate::ANONYMOUS;
 pub struct Anonymous;
 
 impl Authentication for Anonymous {
-    fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
+    fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, _writer: &mut dyn Write)
+        -> StepResult
+    {
         let input = if let Some(buf) = input {
             buf
         } else {

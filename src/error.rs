@@ -107,8 +107,7 @@ impl Display for SASLError {
                 write!(f, "({}): {}",
                        rsasl_errname_to_str(*n).unwrap_or("UNKNOWN_ERROR"),
                        gsasl_err_to_str_internal(*n as i32)),
-            SASLError::NoSecurityLayer => f.write_str("Tried wrapping data but no security layer \
-                is installed"),
+            SASLError::NoSecurityLayer => f.write_str("no security layer is installed"),
             SASLError::NoCallback { property } =>
                 write!(f,
                        "callback could not provide the requested property {:?}",

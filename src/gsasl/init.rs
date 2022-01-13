@@ -7,11 +7,6 @@ extern "C" {
     fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
 }
 
-#[no_mangle]
-pub static mut GSASL_VALID_MECHANISM_CHARACTERS: *const libc::c_char =
-    b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_\x00" as *const u8 as
-        *const libc::c_char;
-
 pub(crate) unsafe fn register_builtin_mechs(ctx: &mut SASL) -> libc::c_int {
     #[cfg(feature = "login")]
         {
