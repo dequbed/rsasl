@@ -94,7 +94,7 @@ pub use property::{
 };
 use crate::callback::Callback;
 use crate::error::SASLError;
-use crate::mechanism::{MechanismBuilder, MechanismInstance};
+use crate::mechanism::{Authentication, MechanismBuilder, MechanismInstance};
 use crate::mechname::Mechname;
 use crate::registry::{Mechanism, MECHANISMS_CLIENT, MECHANISMS_SERVER};
 use crate::session::Session;
@@ -198,16 +198,81 @@ impl SASL {
         None
     }
 
-    /// Returns whether there is client-side support for the given mechanism
+    /// Returns whether there is client-side support for the given mechanism.
+    ///
+    /// You should not call this function to filter supported mechanisms if you intend to start a
+    /// session right away since this function only calls `self.client_start()` with the given
+    /// Mechanism name and throws away the Session.
     pub fn client_supports(&self, mech: &mechname::Mechname) -> bool {
-        self.client_mech_list().into_iter().any(|supported|
-            supported.mechanisms.iter().any(|name| *name == mech))
+        self.client_start(mech).is_ok()
     }
 
     /// Returns whether there is server-side support for the specified mechanism
+    ///
+    /// You should not call this function to filter supported mechanisms if you intend to start a
+    /// session right away since this function only calls `self.server_start()` with the given
+    /// Mechanism name and throws away the Session.
     pub fn server_supports(&self, mech: &mechname::Mechname) -> bool {
-        self.server_mech_list().into_iter().any(|supported|
-            supported.mechanisms.iter().any(|name| *name == mech))
+        self.server_start(mech).is_ok()
+    }
+
+    /// Start a new session with the given [`Authentication`] implementation
+    ///
+    /// This function should rarely be necessary, see [`SASL::client_start`] and
+    /// [`SASL::server_start`] for more ergonomic alternatives.
+    pub fn new_session(&self, authentication: Box<dyn Authentication>) -> Session {
+        todo!()
+    }
+
+    #[doc(hidden)]
+    #[inline(always)]
+    fn start_try_fold<'a>(
+        &self,
+        mech: &Mechname,
+        mech_list: impl IntoIterator<Item=&'a Mechanism>,
+        start: impl Fn(&Mechanism) -> Option<Result<Box<dyn Authentication>, SASLError>>,
+    )
+        -> Result<Session, SASLError>
+    {
+        // Using an inverted result to shortcircuit out of `try_fold`: We want to stop looking
+        // for mechanisms as soon as we found the first matching one. try_fold stop running as
+        // soon as the first `ControlFlow::Break` is found, which for the implementation of `Try` on
+        // `Result` is the first `Result::Err`.
+        // If no break is encountered the `try_fold` will return `Ok(())` which we can then
+        // interpret as this mechanism not being supported.
+
+        type FoldBreaker<S> = Result<(), S>;
+
+        let foldout = mech_list.into_iter()
+                          .try_fold((), move |(), supported| {
+                              let opt = if supported.mechanism == mech {
+                                  start(supported)
+                              } else {
+                                  None
+                              };
+                              match opt {
+                                  Some(res) => Err(res),
+                                  None => Ok(()),
+                              }
+                          });
+
+        match foldout {
+            Err(res) => Result::map(res, |b| self.new_session(b)),
+            Ok(()) => {
+                let len = mech.as_bytes().len();
+
+                // Valid mechanisms are never longer than 20 characters. Mechname provides us with
+                // the contract that an &Mechname is at most 20 bytes long.
+                let mut mechanism = [0u8; 20];
+                (&mut mechanism[0..len]).copy_from_slice(mech.as_bytes());
+
+                Err(SASLError::UnknownMechanism {
+                    mechanism,
+                    len,
+                })
+            }
+        }
+
     }
 
     /// Starts a authentication exchange as a client
@@ -217,23 +282,9 @@ impl SASL {
     /// has to either call `set_property` before running the step that requires the data, or
     /// install a callback.
     pub fn client_start(&self, mech: &mechname::Mechname) -> Result<Session, SASLError> {
-        let mut stored_name = None;
-        for mechanism in self.client_mech_list() {
-            if mechanism.mechanisms.iter().any(|name| {
-                stored_name = Some(*name);
-                *name == mech
-            }) {
-                let auth = (mechanism.start)(&self)?;
-                return Ok(Session::new(self.callback.clone(),
-                                       MechanismInstance { name: stored_name.unwrap(), inner: auth },
-                                       self.global_data.clone()));
-            }
-        }
-
-        let mut mechanism = [0u8; 20];
-        let len = mech.as_bytes().len();
-        (&mut mechanism[0..len]).copy_from_slice(mech.as_bytes());
-        Err(SASLError::UnknownMechanism { mechanism, len })
+        self.start_try_fold(mech,
+                            self.client_mech_list(),
+                            |mechanism| mechanism.client(&self))
     }
 
     /// Starts a authentication exchange as the server role
@@ -243,24 +294,9 @@ impl SASL {
     ///
     /// See [Callback](Callback) on how to implement callbacks.
     pub fn server_start(&self, mech: &mechname::Mechname) -> Result<Session, SASLError> {
-        let mut stored_name = None;
-        for mechanism in self.server_mech_list() {
-            if mechanism.mechanisms.iter().any(|name| {
-                stored_name = Some(*name);
-                *name == mech
-            }) {
-                let auth = (mechanism.start)(&self)?;
-                return Ok(Session::new(self.callback.clone(),
-                                       MechanismInstance { name: stored_name.unwrap(), inner: auth },
-                                       self.global_data.clone()));
-            }
-        }
-
-        let mut mechanism = [0u8; 20];
-        let len = mech.as_bytes().len();
-        (&mut mechanism[0..len]).copy_from_slice(mech.as_bytes());
-        Err(SASLError::UnknownMechanism { mechanism, len })
-
+        self.start_try_fold(mech,
+                            self.server_mech_list(),
+                            |mechanism| mechanism.server(&self))
     }
 }
 

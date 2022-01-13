@@ -22,6 +22,8 @@ impl Mechname {
     /// `const` capable conversion from `&'a str` to `&'a Mechname`. This is safe from a memory
     /// protection standpoint since `&Mechname` and `&str` have the exact same representation but
     /// it can be used to break the contract of `Mechname` which may result in undefined behaviour.
+    ///
+    /// Uses transmute due to [rustc issue #51911](https://github.com/rust-lang/rust/issues/51911)
     pub const fn const_new_unchecked(s: &str) -> &Mechname {
         unsafe { std::mem::transmute(s) }
     }

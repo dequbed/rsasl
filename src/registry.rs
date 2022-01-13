@@ -73,7 +73,6 @@
 use std::fmt::{Debug, Display, Formatter};
 use crate::gsasl::consts::GSASL_OK;
 use crate::{MechanismBuilder, SASL, SASLError};
-use crate::gsasl::gsasl::{Mech, MechanismVTable};
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 
@@ -88,27 +87,24 @@ pub type StartFn = fn (sasl: &SASL) -> Result<Box<dyn Authentication>, SASLError
 /// All mechanisms need to export a `static Mechanism` to be usable by rsasl, see the [module
 /// documentation][crate::registry] for details.
 pub struct Mechanism {
-    /// List of mechanisms implemented
-    pub mechanisms: &'static [&'static Mechname],
-
-    /// Match function to indicate support for the given mechanism
+    /// The Mechanism served by this implementation.
     ///
-    /// Usually an implementation only implements one specific mechanism, however in cases like
-    /// `SCRAM-*` or `GS2-*` one implementation can be used for many different mechanisms.
-    ///
-    /// To simply match a specific Mechanism name pass a static closure:
-    /// ```rust
-    /// # use rsasl::mechname::Mechname;
-    /// # use rsasl::registry::Mechanism;
-    /// # let a = Mechanism {
-    /// # start: |_sasl| unimplemented!(),
-    /// matches: |name: &Mechname| name.as_str() == "X-MYCOOLMECHANISM"
-    /// # };
-    /// ```
-    pub matches: MatchFn,
+    /// In most cases this
+    pub mechanism: &'static Mechname,
 
     /// Construct a new instance of this Mechanism
-    pub start: StartFn,
+    pub client: Option<StartFn>,
+    pub server: Option<StartFn>
+}
+
+impl Mechanism {
+    pub fn client(&self, sasl: &SASL) -> Option<Result<Box<dyn Authentication>, SASLError>> {
+       self.client.map(|f| f(sasl))
+    }
+
+    pub fn server(&self, sasl: &SASL) -> Option<Result<Box<dyn Authentication>, SASLError>> {
+        self.server.map(|f| f(sasl))
+    }
 }
 
 #[cfg(feature = "registry_static")]

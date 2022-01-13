@@ -21,12 +21,3 @@ impl Authentication for Anonymous {
         }
     }
 }
-
-#[cfg(feature = "registry_static")]
-use crate::registry::{distributed_slice, MECHANISMS_CLIENT};
-#[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS_CLIENT))]
-pub static ANONYMOUS_CLIENT: Mechanism = Mechanism {
-    mechanisms: &[Mechname::const_new_unchecked("ANONYMOUS")],
-    matches: |name| name.as_str() == "ANONYMOUS",
-    start: |_sasl| Ok(Box::new(Anonymous)),
-};
