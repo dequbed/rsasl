@@ -220,8 +220,17 @@ impl SASL {
     ///
     /// This function should rarely be necessary, see [`SASL::client_start`] and
     /// [`SASL::server_start`] for more ergonomic alternatives.
-    pub fn new_session(&self, authentication: Box<dyn Authentication>) -> Session {
-        todo!()
+    pub fn new_session(&self,
+                       mechname: &'static Mechname,
+                       mechanism: Box<dyn Authentication>)
+        -> Session
+    {
+        Session::new(
+            self.callback.clone(),
+            self.global_data.clone(),
+            mechname,
+            mechanism,
+        )
     }
 
     #[doc(hidden)]
@@ -246,7 +255,9 @@ impl SASL {
         let foldout = mech_list.into_iter()
                           .try_fold((), move |(), supported| {
                               let opt = if supported.mechanism == mech {
-                                  start(supported)
+                                  let name = supported.mechanism;
+                                  start(supported).map(|res|
+                                      res.map(|auth| (name, auth)))
                               } else {
                                   None
                               };
@@ -257,7 +268,8 @@ impl SASL {
                           });
 
         match foldout {
-            Err(res) => Result::map(res, |b| self.new_session(b)),
+            Err(res) => Result::map(res, |(name, auth)|
+                self.new_session(name, auth)),
             Ok(()) => {
                 let len = mech.as_bytes().len();
 

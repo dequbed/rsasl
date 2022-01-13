@@ -126,6 +126,7 @@ impl MechanismBuilder for MechanismVTable {
     }
 
     fn start(&self, sasl: &SASL) -> Result<MechanismInstance, SASLError> {
+        // TODO: This is wrong
         if let Some(start) = self.start {
             let mut mech_data = None;
             let mechname = Mechname::new_unchecked("TEST");

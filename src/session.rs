@@ -13,18 +13,18 @@ use crate::property::PropertyQ;
 use crate::validate::*;
 
 pub struct Session {
-    mechanism: MechanismInstance,
+    mechanism: Box<dyn Authentication>,
     session_data: SessionData,
 }
 
 impl Session {
     pub(crate) fn new(
         callback: Option<Arc<dyn Callback>>,
-        mechanism: MechanismInstance,
         global_properties: Arc<HashMap<Property, Box<dyn Any>>>,
+        mechname: &'static Mechname,
+        mechanism: Box<dyn Authentication>,
     ) -> Self
     {
-        let mechname = mechanism.name;
         Self {
             mechanism,
             session_data: SessionData::new(callback, global_properties, mechname),
@@ -52,9 +52,9 @@ impl Session {
     /// containing `Some(0)`) and no data to send (a `Step` containing `None`).
     pub fn step(&mut self, input: Option<impl AsRef<[u8]>>, writer: &mut impl Write) -> StepResult {
         if let Some(input) = input {
-            self.mechanism.inner.step(&mut self.session_data, Some(input.as_ref()), writer)
+            self.mechanism.step(&mut self.session_data, Some(input.as_ref()), writer)
         } else {
-            self.mechanism.inner.step(&mut self.session_data, None, writer)
+            self.mechanism.step(&mut self.session_data, None, writer)
         }
     }
 
