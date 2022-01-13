@@ -12,3 +12,4 @@ pub(crate) unsafe fn gsasl_register(
     //ctx.register_cmech(name, &mech.client, &mech.server);
     return GSASL_OK as libc::c_int;
 }
+

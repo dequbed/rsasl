@@ -187,7 +187,7 @@ mod test {
 use crate::registry::{distributed_slice, MECHANISMS_CLIENT};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS_CLIENT))]
 pub static PLAIN: Mechanism = Mechanism {
-    mechanisms: &[Mechname::const_new_unchecked("PLAIN")],
-    matches: |name| name.as_str() == "PLAIN",
-    start: |_sasl| Ok(Box::new(Plain)),
+    mechanism: &Mechname::const_new_unchecked("PLAIN"),
+    client: Some(|_sasl| Ok(Box::new(Plain))),
+    server: None,
 };
