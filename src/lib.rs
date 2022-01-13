@@ -74,7 +74,6 @@ use std::sync::Arc;
 
 pub use libc;
 
-pub mod buffer;
 pub mod session;
 pub mod error;
 pub mod callback;
