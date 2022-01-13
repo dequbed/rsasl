@@ -12,7 +12,7 @@ ones aren't yet implemented in the 2.0 version / main branch)
 
 - [x] EXTERNAL
 - [x] ANONYMOUS
-- [x] PLAIN
+- [ ] PLAIN
 - [ ] LOGIN
 - [ ] CRAM-MD5
 - [ ] DIGEST-MD5
