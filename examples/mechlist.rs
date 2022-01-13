@@ -7,6 +7,9 @@ pub fn main() {
     let client_mechlist = sasl.client_mech_list();
     let server_mechlist = sasl.server_mech_list();
 
+    let mechlist = &rsasl::registry::MECHANISMS;
+    println!("{:?}", mechlist.as_ref());
+
     println!("List of enabled CLIENT mechanisms:");
     for m in client_mechlist {
         println!(" - {}", m);

@@ -97,7 +97,7 @@ use crate::callback::Callback;
 use crate::error::SASLError;
 use crate::mechanism::{Authentication, MechanismBuilder};
 use crate::mechname::Mechname;
-use crate::registry::{Mechanism, MECHANISMS_CLIENT, MECHANISMS_SERVER};
+use crate::registry::{Mechanism, MECHANISMS};
 use crate::session::Session;
 
 
@@ -167,7 +167,7 @@ impl SASL {
     /// server application would use [`SASL::server_mech_list()`].
     pub fn client_mech_list(&self) -> impl IntoIterator<Item=&Mechanism>
     {
-        MECHANISMS_CLIENT.into_iter()
+        MECHANISMS.into_iter().filter(|mechanism| mechanism.client.is_some())
     }
 
     /// Returns the list of Server Mechanisms supported by this provider.
@@ -176,7 +176,7 @@ impl SASL {
     /// application would use [`SASL::client_mech_list()`].
     pub fn server_mech_list(&self) -> impl IntoIterator<Item=&Mechanism>
     {
-        MECHANISMS_SERVER.iter()
+        MECHANISMS.into_iter().filter(|mechanism| mechanism.server.is_some())
     }
 
     /// Suggests a mechanism to use for client-side authentication, chosen from the given list of

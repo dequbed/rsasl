@@ -1,65 +1,12 @@
 use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::ptr::NonNull;
-use libc::size_t;
-use crate::{MechanismBuilder, SASLError, Shared};
+use libc::{c_char, size_t};
+use crate::{MechanismBuilder, SASL, SASLError, Shared};
 use crate::gsasl::consts::{GSASL_NEEDS_MORE, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
 use crate::mechanism::Authentication;
 use crate::session::{SessionData, StepResult};
 use crate::session::Step::{Done, NeedsMore};
-
-struct M {
-    /// The name of this mechanism
-    pub name: &'static crate::mechname::Mechname,
-
-    /// This mechanism transfers (parts of) a client secret such as a password in plain text.
-    ///
-    /// Only use this kind of mechanism over a trusted connection such as one encrypted with TLS.
-    pub plaintext: bool,
-
-    /// This mechanism allows anonymous login.
-    pub anonymous: bool,
-
-
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct MechContainer<C, S> {
-    pub name: &'static crate::mechname::Mechname,
-    pub client: C,
-    pub server: S,
-}
-impl<C: MechanismBuilder, S: MechanismBuilder> MechContainer<C, S> {
-    pub fn init(&mut self) {
-        self.client.init();
-        self.server.init();
-    }
-}
-
-pub(crate) trait Mech {
-    fn name(&self) -> &'static crate::mechname::Mechname;
-    fn client(&self) -> &dyn MechanismBuilder;
-    fn server(&self) -> &dyn MechanismBuilder;
-}
-
-impl<C: MechanismBuilder, S: MechanismBuilder> Mech for MechContainer<C, S> {
-    fn name(&self) -> &'static crate::mechname::Mechname {
-        self.name
-    }
-
-    fn client(&self) -> &dyn MechanismBuilder {
-        &self.client
-    }
-
-    fn server(&self) -> &dyn MechanismBuilder {
-        &self.server
-    }
-}
-
-pub(crate) trait SecurityLayer {
-    fn encode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SASLError>;
-    fn decode(&mut self, input: &[u8]) -> Result<Box<[u8]>, SASLError>;
-}
 
 #[derive(Copy, Clone)]
 pub struct Gsasl_mechanism {
@@ -119,48 +66,80 @@ impl Debug for MechanismVTable {
 }
 
 #[derive(Clone, Debug)]
-pub struct CMech {
-    vtable: MechanismVTable,
+/// Mechanism state keeper for the mechanisms still implemented in C
+///
+/// This needs to keep hold of the mechanism data and the mechanism vtable
+pub(crate) struct CMechanismStateKeeper {
     mech_data: Option<NonNull<()>>,
+    vtable: MechanismVTable,
 }
 
-impl Authentication for CMech {
+impl CMechanismStateKeeper {
+    pub fn new(vtable: MechanismVTable) -> Result<Box<dyn Authentication>, SASLError> {
+        if vtable.init.is_some() {
+            panic!("Initialization of C Mechanism at a global level is not implemented")
+        }
+
+        let mut mech_data = None;
+
+        if let Some(start) = vtable.start {
+            let rc = unsafe { start(&Shared, &mut mech_data) };
+            if rc != GSASL_OK as i32 {
+                return Err(SASLError::Gsasl(rc));
+            }
+        }
+
+        Ok(Box::new(CMechanismStateKeeper {
+            mech_data,
+            vtable,
+        }))
+    }
+}
+
+impl Authentication for CMechanismStateKeeper {
     fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write)
         -> StepResult
     {
+        fn write_output(writer: &mut dyn Write, output: *mut c_char, outlen: size_t)
+            -> Result<Option<usize>, SASLError>
+        {
+            // Output == nullptr means send no data
+            if output.is_null() {
+                Ok(None)
+            } else {
+                // Output != nullptr but outlen == 0 means send data of zero len
+                if outlen > 0 {
+                    let outslice = unsafe {
+                        std::slice::from_raw_parts(output as *const _ as *const u8, outlen)
+                    };
+                    writer.write_all(outslice)?;
+                }
+                Ok(Some(outlen))
+            }
+        }
+
         if let Some(step) = self.vtable.step {
-            let mut output: *mut libc::c_char = std::ptr::null_mut();
+            // The Output is allocated by the C mechanisms and needs to be freed by us
+            let mut output: *mut c_char = std::ptr::null_mut();
             let mut outlen: size_t = 0;
 
             unsafe {
                 let res = step(session, self.mech_data.clone(), input, &mut output, &mut outlen);
                 if res == GSASL_OK as libc::c_int {
-                    if output.is_null() {
-                        Ok(Done(None))
-                    } else {
-                        let outslice = std::slice::from_raw_parts_mut(output as *mut u8, outlen);
-                        writer.write_all(outslice)?;
-                        Ok(Done(Some(outlen)))
-                    }
+                    Ok(Done(write_output(writer, output, outlen)?))
                 } else if res == GSASL_NEEDS_MORE as libc::c_int {
-                    if output.is_null() {
-                        Ok(NeedsMore(None))
-                    } else {
-                        let outslice = std::slice::from_raw_parts_mut(output as *mut u8, outlen);
-                        writer.write_all(outslice)?;
-                        Ok(NeedsMore(Some(outlen)))
-                    }
+                    Ok(NeedsMore(write_output(writer, output, outlen)?))
                 } else {
-                    Err((res as u32).into())
+                    Err(res.into())
                 }
             }
         } else {
-            Err(GSASL_UNKNOWN_MECHANISM.into())
+            Err((GSASL_UNKNOWN_MECHANISM as i32).into())
         }
     }
 }
 
-impl Drop for CMech {
+impl Drop for CMechanismStateKeeper {
     fn drop(&mut self) {
         if let Some(finish) = self.vtable.finish {
             unsafe { finish(self.mech_data) };
