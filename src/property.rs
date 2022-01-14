@@ -6,9 +6,9 @@
 //! 1. A type indicating your property
 //! 2. A `const Property` that is used to query this property
 //!
-//! ```rust
+//! ```no-run
 //! use std::marker::PhantomData;
-//! use rsasl::{Property, PropertyQ, PropertyDefinition};
+//! use rsasl::{Property, PropertyQ};
 //! // All Property types must implement Debug.
 //! #[derive(Debug)]
 //! // The `PhantomData` in the constructor is only used so external crates can't construct this type.

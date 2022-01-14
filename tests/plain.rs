@@ -1,10 +1,14 @@
 use std::io;
 use std::io::Cursor;
+use std::sync::Arc;
+use rsasl::callback::Callback;
 use rsasl::error::SASLError;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
 use rsasl::SASL;
+use rsasl::session::SessionData;
 use rsasl::session::Step::{Done, NeedsMore};
+use rsasl::validate::{Validation, validations};
 
 #[test]
 fn plain_client() {
@@ -45,16 +49,30 @@ fn plain_client() {
 
 #[test]
 fn plain_server() {
-    let prov = SASL::new();
+    struct CB;
+    impl Callback for CB {
+        fn validate(&self, session: &mut SessionData, validation: Validation, mechanism: &Mechname)
+            -> Result<(), SASLError>
+        {
+            match validation {
+                validations::SIMPLE => {
+                    let username = session.get_property::<AuthId>()?;
+                    let password = session.get_property::<Password>()?;
+
+                    if username.as_str() == "testuser" && password.as_str() == "secret" {
+                        Ok(())
+                    } else {
+                        Err(SASLError::AuthenticationFailure { reason: "bad username/password"})
+                    }
+                },
+                _ => Err(SASLError::NoValidate { validation }),
+            }
+        }
+    }
+
+    let mut prov = SASL::new();
+    prov.install_callback(Arc::new(CB));
     let mut session = prov.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
-
-    let username = "testuser".to_string();
-    assert_eq!(username.len(), 8);
-    let password = "secret".to_string();
-    assert_eq!(password.len(), 6);
-
-    session.set_property::<AuthId>(Box::new(username));
-    session.set_property::<Password>(Box::new(password));
 
     let mut out = Cursor::new(Vec::new());
 
@@ -67,15 +85,5 @@ fn plain_server() {
     }
 
     let mut session = prov.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
-    let username = "testuser".to_string();
-    let password = "secret".to_string();
-    session.set_property::<AuthId>(Box::new(username));
-    session.set_property::<Password>(Box::new(password));
-
-    if let SASLError::Gsasl(GSASL_AUTHENTICATION_ERROR) =
-        session.step(Some(b"\0testuser\0badpass"), &mut out).unwrap_err() {
-
-    } else {
-        panic!("Plain auth did not fail")
-    }
+    session.step(Some(b"\0testuser\0badpass"), &mut out).unwrap_err();
 }

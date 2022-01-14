@@ -95,6 +95,7 @@ mod tests {
     use crate::{Callback, Mechname, SASLError};
     use crate::SASLError::NoValidate;
     use crate::session::SessionData;
+    use crate::validate::validations::{OPENID20, SIMPLE};
     use super::*;
 
     #[test]

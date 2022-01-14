@@ -27,6 +27,7 @@
 //! # use std::io::Write;
 //! # use rsasl::mechanism::Authentication;
 //! # use rsasl::session::{SessionData, StepResult};
+//! # use rsasl::mechname::Mechname;
 //!
 //! // X-MYCOOLMECHANISM doesn't store any data between steps so it's an empty struct here
 //! pub struct MyCoolMechanism;
@@ -36,27 +37,20 @@
 //! # }
 //! }
 //!
-//! use rsasl::registry::{
-//!     Client,
-//!     Server,
-//!     Mechanism,
-//! };
+//! use rsasl::registry::Mechanism;
 //!
 //! // Since the static registry requires a feature flag, downstream crates should gate
 //! // automatic registration the same way. Either by matching on `feature = "rsasl/registry_static"
 //! // or by adding a feature flag that enables "rsasl/registry_static".
 //! #[cfg(feature = "rsasl/registry_static")]
-//! use rsasl::registry::{
-//!     MECHANISMS_CLIENT,
-//!     MECHANISMS_SERVER,
-//!     distributed_slice,
-//! };
+//! use rsasl::registry::{distributed_slice, MECHANISMS};
 //!
-//! #[cfg_attr(feature = "rsasl/registry_static", distributed_slice(MECHANISMS_CLIENT))]
+//! #[cfg_attr(feature = "rsasl/registry_static", distributed_slice(MECHANISMS))]
 //! // It is *crucial* that these `static`s are marked `pub` and reachable by dependent crates, see
 //! // the Note below.
-//! pub static MYCOOLMECHANISM_CLIENT: Mechanism = Mechanism {
-//!     mechanism: unsafe { Mechname::const_new_unchecked("X-MYCOOLMECHANISM") },
+//! pub static MYCOOLMECHANISM: Mechanism = Mechanism {
+//!     mechanism: Mechname::const_new_unchecked(b"X-MYCOOLMECHANISM"),
+//!     priority: 1100,
 //!     client: Some(|_sasl| Ok(Box::new(MyCoolMechanism))),
 //!     // In this case only the client side is implemented
 //!     server: None,
