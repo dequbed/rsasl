@@ -75,6 +75,7 @@ mod test {
     use std::collections::HashMap;
     use std::io::Cursor;
     use std::sync::Arc;
+    use crate::Mechname;
     use crate::session::SessionData;
     use crate::session::Step::NeedsMore;
     use super::*;

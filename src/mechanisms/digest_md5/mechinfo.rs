@@ -7,7 +7,7 @@ use crate::mechanisms::digest_md5::server::{_gsasl_digest_md5_server_decode, _gs
 use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static DIGEST_MD5: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unchecked("DIGEST-MD5"),
+    mechanism: &Mechname::const_new_unchecked(b"DIGEST-MD5"),
     client: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
         init: None,
         done: None,

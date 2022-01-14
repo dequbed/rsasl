@@ -7,7 +7,7 @@ use crate::mechanisms::login::server::{_gsasl_login_server_finish, _gsasl_login_
 use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static LOGIN: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unchecked("LOGIN"),
+    mechanism: &Mechname::const_new_unchecked(b"LOGIN"),
     client: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
         init: None,
         done: None,

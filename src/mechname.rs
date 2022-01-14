@@ -15,25 +15,30 @@ use crate::error::MechanismNameError::{InvalidChars, TooLong, TooShort};
 /// The main way to construct a `&Mechanism` is by calling [`Mechanism::new`]. This type
 /// implements `Deref<Target=str>` so it can be used anywhere where `&str` is expected.
 pub struct Mechname {
-    inner: str,
+    inner: [u8],
 }
 
 impl Mechname {
     /// `const` capable conversion from `&'a str` to `&'a Mechname`. This is safe from a memory
     /// protection standpoint since `&Mechname` and `&str` have the exact same representation but
     /// it can be used to break the contract of `Mechname` which may result in undefined behaviour.
+    /// This function uses const parameters to check the length of the passed Mechanism and will
+    /// fail to compile (with a rather cryptic message) when passed a `const [u8]` that's shorter
+    /// than 1 char or longer than 20.
     ///
     /// Uses transmute due to [rustc issue #51911](https://github.com/rust-lang/rust/issues/51911)
-    pub const fn const_new_unchecked(s: &str) -> &Mechname {
-        unsafe { std::mem::transmute(s) }
+    pub const fn const_new_unchecked<const LEN: usize>(s: &'static [u8; LEN]) -> &Mechname
+        where CheckLen<LEN>: IsOk
+    {
+        let r: &'static [u8] = s;
+        unsafe { std::mem::transmute(r) }
     }
 
-    pub(crate) fn new_unchecked<S: AsRef<str> + ?Sized>(s: &S) -> &Mechname {
-        unsafe { &*(s.as_ref() as *const str as *const Mechname) }
+    pub(crate) fn new_unchecked<S: AsRef<[u8]> + ?Sized>(s: &S) -> &Mechname {
+        unsafe { &*(s.as_ref() as *const [u8] as *const Mechname) }
     }
 
     pub fn new(input: &[u8]) -> Result<&Mechname, MechanismNameError> {
-        let input = input.as_ref();
         if input.len() < 1 {
             Err(TooShort)
         } else if input.len() > 20 {
@@ -42,12 +47,7 @@ impl Mechname {
             if let Some(byte) = input.iter().find(|byte| is_invalid(*byte)) {
                 Err(InvalidChars(*byte))
             } else {
-                let s = unsafe {
-                    // Safety: We just checked the entire string for a subset of ASCII so anything
-                    // getting here is guaranteed valid ASCII and thus also guaranteed valid UTF-8
-                    std::str::from_utf8_unchecked(input)
-                };
-                Ok(Mechname::new_unchecked(s))
+                Ok(Mechname::new_unchecked(input))
             }
         }
     }
@@ -55,13 +55,13 @@ impl Mechname {
     #[must_use]
     #[inline]
     pub fn as_str(&self) -> &str {
-        &self.inner
+        unsafe { std::str::from_utf8_unchecked(&self.inner) }
     }
 
     #[must_use]
     #[inline]
     pub fn as_bytes(&self) -> &[u8] {
-        self.inner.as_bytes()
+        &self.inner
     }
 }
 
@@ -124,6 +124,29 @@ pub fn is_invalid(byte: &u8) -> bool {
 
     !(isLet || is_num || is_sym)
 }
+
+pub trait IsOk {}
+pub struct CheckLen<const N: usize>;
+impl IsOk for CheckLen<1> {}
+impl IsOk for CheckLen<2> {}
+impl IsOk for CheckLen<3> {}
+impl IsOk for CheckLen<4> {}
+impl IsOk for CheckLen<5> {}
+impl IsOk for CheckLen<6> {}
+impl IsOk for CheckLen<7> {}
+impl IsOk for CheckLen<8> {}
+impl IsOk for CheckLen<9> {}
+impl IsOk for CheckLen<10> {}
+impl IsOk for CheckLen<11> {}
+impl IsOk for CheckLen<12> {}
+impl IsOk for CheckLen<13> {}
+impl IsOk for CheckLen<14> {}
+impl IsOk for CheckLen<15> {}
+impl IsOk for CheckLen<16> {}
+impl IsOk for CheckLen<17> {}
+impl IsOk for CheckLen<18> {}
+impl IsOk for CheckLen<19> {}
+impl IsOk for CheckLen<20> {}
 
 #[cfg(test)]
 mod tests {
