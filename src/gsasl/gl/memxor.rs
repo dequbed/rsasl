@@ -1,5 +1,3 @@
-use ::libc;
-pub type size_t = libc::c_ulong;
 /* memxor.h -- perform binary exclusive OR operation on memory blocks.
    Copyright (C) 2005, 2009-2021 Free Software Foundation, Inc.
 
@@ -37,13 +35,15 @@ pub type size_t = libc::c_ulong;
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 /* Written by Simon Josefsson.  The interface was inspired by memxor
    in Niels Möller's Nettle. */
+use libc::size_t;
+
 #[no_mangle]
 pub unsafe fn memxor(mut dest: *mut libc::c_void,
                                 mut src: *const libc::c_void, mut n: size_t)
  -> *mut libc::c_void {
     let mut s: *const libc::c_char = src as *const libc::c_char;
     let mut d: *mut libc::c_char = dest as *mut libc::c_char;
-    while n > 0 as libc::c_int as libc::c_ulong {
+    while n > 0 {
         let fresh0 = s;
         s = s.offset(1);
         let fresh1 = d;

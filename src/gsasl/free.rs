@@ -1,41 +1,6 @@
 use ::libc;
-extern "C" {
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <string.h>.
+use crate::gsasl::gl::free::rpl_free;
 
-   Copyright (C) 1995-1996, 2001-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <stdlib.h>.
-
-   Copyright (C) 1995, 2001-2004, 2006-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    fn rpl_free(ptr: *mut libc::c_void);
-}
 /* gsasl.h --- Header file for GNU SASL Library.
  * Copyright (C) 2002-2021 Simon Josefsson
  *
@@ -313,7 +278,7 @@ extern "C" {
  *
  * Since: 0.2.19
  **/
-#[no_mangle]
+
 pub unsafe fn gsasl_free(mut ptr: *mut libc::c_void) {
     rpl_free(ptr);
 }

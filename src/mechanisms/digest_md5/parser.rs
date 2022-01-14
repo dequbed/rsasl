@@ -1,31 +1,10 @@
 use ::libc;
-use libc::size_t;
+use libc::{memset, realloc, size_t, strcmp, strcpy, strdup, strlen, strndup, strtoul};
+use crate::gsasl::gl::free::rpl_free;
 use crate::mechanisms::digest_md5::getsubopt::digest_md5_getsubopt;
 use crate::mechanisms::digest_md5::qop::{digest_md5_qop, DIGEST_MD5_QOP_AUTH, DIGEST_MD5_QOP_AUTH_CONF, DIGEST_MD5_QOP_AUTH_INT};
 use crate::mechanisms::digest_md5::validate::{digest_md5_validate_challenge, digest_md5_validate_finish, digest_md5_validate_response};
 
-extern "C" {
-    fn rpl_free(ptr: *mut libc::c_void);
-
-    fn strtoul(_: *const libc::c_char, _: *mut *mut libc::c_char,
-               _: libc::c_int) -> size_t;
-
-    fn realloc(_: *mut libc::c_void, _: size_t) -> *mut libc::c_void;
-
-    fn memset(_: *mut libc::c_void, _: libc::c_int, _: size_t)
-     -> *mut libc::c_void;
-
-    fn strcpy(_: *mut libc::c_char, _: *const libc::c_char)
-     -> *mut libc::c_char;
-
-    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-
-    fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-
-    fn strndup(_: *const libc::c_char, _: size_t) -> *mut libc::c_char;
-
-    fn strlen(_: *const libc::c_char) -> size_t;
-}
 
 pub type digest_md5_cipher = libc::c_uint;
 pub const DIGEST_MD5_CIPHER_AES_CBC: digest_md5_cipher = 32;
@@ -308,7 +287,7 @@ unsafe fn parse_challenge(mut challenge: *mut libc::c_char,
 	   client MUST abort the authentication exchange. */
                 if (*out).servermaxbuf != 0 { return -(1 as libc::c_int) }
                 (*out).servermaxbuf =
-                    strtoul(value, 0 as *mut *mut libc::c_char, 10);
+                    strtoul(value, 0 as *mut *mut libc::c_char, 10) as usize;
                 /* FIXME: error handling. */
 	/* The value MUST be bigger than 16 (32 for Confidentiality
 	   protection with the "aes-cbc" cipher) and smaller or equal
@@ -470,8 +449,7 @@ unsafe fn parse_response(mut response: *mut libc::c_char,
                     return -(1 as libc::c_int)
                 }
                 (*out).nc =
-                    strtoul(value, 0 as *mut *mut libc::c_char,
-                            16 as libc::c_int)
+                    strtoul(value, 0 as *mut *mut libc::c_char, 16 as libc::c_int) as usize
             }
             5 => {
                 /* If present, it may appear exactly once and its value MUST
@@ -520,8 +498,7 @@ unsafe fn parse_response(mut response: *mut libc::c_char,
 	   authentication exchange. */
                 if (*out).clientmaxbuf != 0 { return -(1 as libc::c_int) }
                 (*out).clientmaxbuf =
-                    strtoul(value, 0 as *mut *mut libc::c_char,
-                            10 as libc::c_int);
+                    strtoul(value, 0 as *mut *mut libc::c_char, 10) as usize;
                 /* FIXME: error handling. */
 	/* If the value is less or equal to 16 (<<32 for aes-cbc>>) or
 	   bigger than 16777215 (i.e. 2**24-1), the server MUST abort

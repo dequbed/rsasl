@@ -1,12 +1,7 @@
 use ::libc;
-use libc::size_t;
+use libc::{size_t, strcmp, strlen};
 use crate::mechanisms::digest_md5::parser::{digest_md5_challenge, digest_md5_finish, digest_md5_response};
 use crate::mechanisms::digest_md5::qop::{DIGEST_MD5_QOP_AUTH, DIGEST_MD5_QOP_AUTH_CONF};
-
-extern "C" {
-    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    fn strlen(_: *const libc::c_char) -> size_t;
-}
 
 /* validate.c --- Validate consistency of DIGEST-MD5 tokens.
  * Copyright (C) 2004-2021 Simon Josefsson

@@ -7,7 +7,6 @@ use crate::session::SessionData;
 
 /* Hex encode HASHBUF which is HASH digest output and set salted
    password property to the hex encoded value. */
-#[no_mangle]
 pub unsafe fn set_saltedpassword(mut sctx: &mut SessionData,
                                  mut hash: Gsasl_hash,
                                  mut hashbuf: *const libc::c_char)

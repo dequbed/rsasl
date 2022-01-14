@@ -1,25 +1,13 @@
 use std::ptr::NonNull;
 use ::libc;
-use libc::size_t;
+use libc::{calloc, size_t, strdup, strlen};
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_NEEDS_MORE, GSASL_NO_SAML20_IDP_IDENTIFIER, GSASL_OK, GSASL_SAML20_AUTHENTICATE_IN_BROWSER, GSASL_SAML20_IDP_IDENTIFIER, GSASL_SAML20_REDIRECT_URL};
+use crate::gsasl::gl::free::rpl_free;
+use crate::gsasl::mechtools::_gsasl_gs2_generate_header;
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set_raw};
 use crate::session::SessionData;
 use crate::Shared;
-
-extern "C" {
-    fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    fn strlen(_: *const libc::c_char) -> size_t;
-    fn rpl_free(_: *mut libc::c_void);
-    fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
-    fn _gsasl_gs2_generate_header(nonstd: bool, cbflag: libc::c_char,
-                                  cbname: *const libc::c_char,
-                                  authzid: *const libc::c_char,
-                                  extralen: size_t,
-                                  extra: *const libc::c_char,
-                                  gs2h: *mut *mut libc::c_char,
-                                  gs2hlen: *mut size_t) -> libc::c_int;
-}
 
 /* client.c --- SAML20 mechanism, client side.
  * Copyright (C) 2010-2021 Simon Josefsson

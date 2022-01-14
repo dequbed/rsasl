@@ -1,9 +1,6 @@
 use ::libc;
-extern "C" {
-    fn free(__ptr: *mut libc::c_void);
-    fn __errno_location() -> *mut libc::c_int;
-}
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
+use libc::{__errno_location, free};
+
 /* A GNU-like <stdlib.h>.
 
    Copyright (C) 1995, 2001-2004, 2006-2021 Free Software Foundation, Inc.
@@ -39,7 +36,7 @@ extern "C" {
 /* written by Paul Eggert */
 /* Specification.  */
 /* A function definition is only needed if HAVE_FREE_POSIX is not defined.  */
-#[no_mangle]
+
 pub unsafe fn rpl_free(mut p: *mut libc::c_void) {
     let mut err: libc::c_int = *__errno_location();
     free(p);

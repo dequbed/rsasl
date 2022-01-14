@@ -1,23 +1,11 @@
 use ::libc;
-use libc::size_t;
+use libc::{malloc, memcpy, size_t, sprintf, strlen};
+use crate::gsasl::gl::free::rpl_free;
 use crate::mechanisms::digest_md5::parser::{digest_md5_cipher, DIGEST_MD5_CIPHER_RC4_40,
                                    DIGEST_MD5_CIPHER_RC4_56};
 use crate::mechanisms::digest_md5::qop::{digest_md5_qop, DIGEST_MD5_QOP_AUTH, DIGEST_MD5_QOP_AUTH_CONF,
                                 DIGEST_MD5_QOP_AUTH_INT};
 use crate::gsasl::gl::gc_gnulib::gc_md5;
-
-extern "C" {
-    fn malloc(_: size_t) -> *mut libc::c_void;
-    fn rpl_free(ptr: *mut libc::c_void);
-
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
-     -> *mut libc::c_void;
-
-    fn strlen(_: *const libc::c_char) -> size_t;
-
-    fn sprintf(_: *mut libc::c_char, _: *const libc::c_char, _: ...)
-     -> libc::c_int;
-}
 
 /* gc.h --- Header file for implementation agnostic crypto wrapper API.
  * Copyright (C) 2002-2005, 2007-2008, 2011-2021 Free Software Foundation, Inc.

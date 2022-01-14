@@ -1,47 +1,14 @@
 use std::ptr::NonNull;
 use ::libc;
-use libc::size_t;
+use libc::{calloc, malloc, memcpy, size_t, strdup, strlen};
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_OPENID20_REDIRECT_URL, GSASL_OK, GSASL_OPENID20_OUTCOME_DATA, GSASL_OPENID20_REDIRECT_URL, GSASL_VALIDATE_OPENID20};
+use crate::gsasl::gl::free::rpl_free;
+use crate::gsasl::mechtools::_gsasl_parse_gs2_header;
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set, gsasl_property_set_raw};
 use crate::session::SessionData;
 use crate::Shared;
 
-extern "C" {
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
-     -> *mut libc::c_void;
-    fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    fn rpl_free(_: *mut libc::c_void);
-    fn strlen(_: *const libc::c_char) -> size_t;
-    fn malloc(_: size_t) -> *mut libc::c_void;
-    fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
-    /* mechtools.h --- Helper functions available for use by any mechanism.
- * Copyright (C) 2010-2021 Simon Josefsson
- *
- * This file is part of GNU SASL Library.
- *
- * GNU SASL Library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * GNU SASL Library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with GNU SASL Library; if not, write to the Free
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
-    /* Get size_t. */
-    /* Get bool. */
-    fn _gsasl_parse_gs2_header(data: *const libc::c_char, len: size_t,
-                               authzid: *mut *mut libc::c_char,
-                               headerlen: *mut size_t) -> libc::c_int;
-}
 /* Get specification. */
 /* Get strdup, strlen. */
 /* Get calloc, free. */

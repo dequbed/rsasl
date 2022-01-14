@@ -1,7 +1,7 @@
 use ::libc;
 use digest::DynDigest;
 use hmac::{Hmac, Mac};
-use libc::size_t;
+use libc::{__errno_location, getrandom, size_t, ssize_t};
 use md5::Md5;
 use sha1::Sha1;
 use sha2::Sha256;
@@ -9,19 +9,6 @@ use sha2::Sha256;
 use crate::gsasl::gc::{GC_INVALID_HASH, GC_OK, GC_RANDOM_ERROR,
                  Gc_rc};
 
-extern "C" {
-    fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
-
-    fn rpl_free(ptr: *mut libc::c_void);
-
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
-     -> *mut libc::c_void;
-
-    fn __errno_location() -> *mut libc::c_int;
-
-    fn getrandom(__buffer: *mut libc::c_void, __length: size_t,
-                 __flags: libc::c_uint) -> ssize_t;
-}
 /* gc.h --- Header file for implementation agnostic crypto wrapper API.
  * Copyright (C) 2002-2005, 2007-2008, 2011-2021 Free Software Foundation, Inc.
  *
@@ -84,8 +71,6 @@ pub type gc_realloc_t
     Option<unsafe fn(_: *mut libc::c_void, _: size_t)
                -> *mut libc::c_void>;
 pub type gc_free_t = Option<unsafe fn(_: *mut libc::c_void) -> ()>;
-pub type ssize_t = __ssize_t;
-pub type __ssize_t = libc::c_long;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct _gc_cipher_ctx {
@@ -112,8 +97,7 @@ pub struct _gc_cipher_ctx {
 *
  */
 
-#[no_mangle]
-pub unsafe fn gc_done() { }
+
 /* Overwrite BUFFER with random data, under the control of getrandom
    FLAGS.  BUFFER contains LENGTH bytes.  Inspired by getentropy,
    however LENGTH is not restricted to 256.  Return 0 on success, -1
@@ -129,12 +113,12 @@ unsafe fn randomize(mut buffer: *mut libc::c_void,
         }
         loop  {
             bytes = getrandom(buf as *mut libc::c_void, length, flags);
-            if !(bytes < 0 as libc::c_int as libc::c_long) { break ; }
+            if !(bytes < 0) { break ; }
             if *__errno_location() != 4 as libc::c_int {
                 return GC_RANDOM_ERROR as libc::c_int
             }
         }
-        if bytes == 0 as libc::c_int as libc::c_long { break ; }
+        if bytes == 0 { break ; }
         buf = buf.offset(bytes as isize);
         length =
             (length as libc::c_ulong).wrapping_sub(bytes as libc::c_ulong) as

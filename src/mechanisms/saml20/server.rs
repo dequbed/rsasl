@@ -1,46 +1,14 @@
 use std::ptr::NonNull;
 use ::libc;
-use libc::size_t;
+use libc::{calloc, malloc, memcpy, size_t, strlen};
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_SAML20_REDIRECT_URL, GSASL_OK, GSASL_SAML20_IDP_IDENTIFIER, GSASL_SAML20_REDIRECT_URL, GSASL_VALIDATE_SAML20};
+use crate::gsasl::gl::free::rpl_free;
+use crate::gsasl::mechtools::_gsasl_parse_gs2_header;
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set, gsasl_property_set_raw};
 use crate::session::SessionData;
 use crate::Shared;
 
-extern "C" {
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
-     -> *mut libc::c_void;
-    fn rpl_free(_: *mut libc::c_void);
-    fn strlen(_: *const libc::c_char) -> size_t;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
-    /* mechtools.h --- Helper functions available for use by any mechanism.
- * Copyright (C) 2010-2021 Simon Josefsson
- *
- * This file is part of GNU SASL Library.
- *
- * GNU SASL Library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * GNU SASL Library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with GNU SASL Library; if not, write to the Free
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
-    /* Get size_t. */
-    /* Get bool. */
-    fn _gsasl_parse_gs2_header(data: *const libc::c_char, len: size_t,
-                               authzid: *mut *mut libc::c_char,
-                               headerlen: *mut size_t) -> libc::c_int;
-}
 /* server.c --- SAML20 mechanism, server side.
  * Copyright (C) 2010-2021 Simon Josefsson
  *
@@ -77,9 +45,7 @@ pub(crate) unsafe fn _gsasl_saml20_server_start(_sctx: &Shared,
 ) -> libc::c_int
 {
     let mut state: *mut saml20_server_state = 0 as *mut saml20_server_state;
-    state =
-        calloc(::std::mem::size_of::<saml20_server_state>() as libc::c_ulong,
-               1 as libc::c_int as libc::c_ulong) as *mut saml20_server_state;
+    state = calloc(::std::mem::size_of::<saml20_server_state>(), 1) as *mut saml20_server_state;
     if state.is_null() { return GSASL_MALLOC_ERROR as libc::c_int }
     *mech_data = NonNull::new(state as *mut ());
     return GSASL_OK as libc::c_int;
@@ -136,12 +102,11 @@ pub unsafe fn _gsasl_saml20_server_step(mut sctx: &mut SessionData,
                 return GSASL_NO_SAML20_REDIRECT_URL as libc::c_int
             }
             *output_len = strlen(p);
-            *output = malloc(*output_len as u64) as *mut libc::c_char;
+            *output = malloc(*output_len) as *mut libc::c_char;
             if (*output).is_null() {
                 return GSASL_MALLOC_ERROR as libc::c_int
             }
-            memcpy(*output as *mut libc::c_void, p as *const libc::c_void,
-                   *output_len as u64);
+            memcpy(*output as *mut libc::c_void, p as *const libc::c_void, *output_len);
             res = GSASL_NEEDS_MORE as libc::c_int;
             (*state).step += 1
         }

@@ -1,7 +1,7 @@
 use std::ffi::CString;
 use std::ptr::NonNull;
 use ::libc;
-use libc::size_t;
+use libc::{calloc, size_t, strcmp, strdup, strlen};
 use crate::gsasl::base64::gsasl_base64_to;
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_CRYPTO_ERROR, GSASL_INTEGRITY_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_AUTHID, GSASL_NO_HOSTNAME, GSASL_NO_PASSWORD, GSASL_NO_SERVICE, GSASL_OK, GSASL_QOPS, GSASL_REALM};
@@ -14,6 +14,7 @@ use crate::mechanisms::digest_md5::printer::digest_md5_print_response;
 use crate::mechanisms::digest_md5::qop::{DIGEST_MD5_QOP_AUTH, DIGEST_MD5_QOP_AUTH_INT, digest_md5_qops2qopstr};
 use crate::mechanisms::digest_md5::session::{digest_md5_decode, digest_md5_encode};
 use crate::gsasl::gc::GC_OK;
+use crate::gsasl::gl::free::rpl_free;
 use crate::gsasl::gl::gc_gnulib::gc_md5;
 use crate::gsasl::property::{gsasl_property_set};
 use crate::property::{AuthId, AuthzId, Hostname, Password, Qop, Realm, Service};
@@ -21,19 +22,8 @@ use crate::session::SessionData;
 use crate::Shared;
 
 extern "C" {
-
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,
                 _: ...) -> libc::c_int;
-
-    fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
-
-    fn rpl_free(ptr: *mut libc::c_void);
-
-    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-
-    fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-
-    fn strlen(_: *const libc::c_char) -> size_t;
 }
 
 #[derive(Copy, Clone)]

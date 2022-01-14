@@ -1,13 +1,6 @@
 use ::libc;
-use libc::size_t;
+use libc::{malloc, size_t, strcpy, strlen};
 use crate::gsasl::consts::{GSASL_MALLOC_ERROR, GSASL_OK, GSASL_SASLPREP_ERROR};
-
-extern "C" {
-    fn strcpy(_: *mut libc::c_char, _: *const libc::c_char)
-     -> *mut libc::c_char;
-    fn strlen(_: *const libc::c_char) -> size_t;
-    fn malloc(_: size_t) -> *mut libc::c_void;
-}
 
 pub type Gsasl_saslprep_flags = libc::c_uint;
 pub const GSASL_ALLOW_UNASSIGNED: Gsasl_saslprep_flags = 1;

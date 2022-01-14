@@ -1,16 +1,14 @@
 use ::libc;
-use libc::size_t;
+use libc::{memcpy, size_t, strlen};
 use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::gc_gnulib::gc_nonce;
 
 extern "C" {
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
-     -> *mut libc::c_void;
-    fn strlen(_: *const libc::c_char) -> size_t;
     fn __assert_fail(__assertion: *const libc::c_char,
                      __file: *const libc::c_char, __line: libc::c_uint,
                      __function: *const libc::c_char) -> !;
 }
+
 /* Store zero terminated CRAM-MD5 challenge in output buffer.  The
    CHALLENGE buffer must be allocated by the caller, and must have
    room for CRAM_MD5_CHALLENGE_LEN characters.  Returns 0 on success,

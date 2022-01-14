@@ -9,7 +9,6 @@
 pub mod consts;
 pub mod gsasl;
 
-// mod external
 pub mod gl {
     pub mod free;
     pub mod gc_gnulib;

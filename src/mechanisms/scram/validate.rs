@@ -1,10 +1,8 @@
 use ::libc;
+use libc::strchr;
 use crate::mechanisms::scram::client::{scram_client_final, scram_client_first};
 use crate::mechanisms::scram::server::{scram_server_final, scram_server_first};
 
-extern "C" {
-    fn strchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
-}
 /* tokens.h --- Types for SCRAM tokens.
  * Copyright (C) 2009-2021 Simon Josefsson
  *
