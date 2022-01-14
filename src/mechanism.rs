@@ -1,5 +1,5 @@
 use std::io::Write;
-use crate::{Mechname, SASL, SASLError};
+use crate::SASLError;
 use crate::SASLError::NoSecurityLayer;
 use crate::session::{SessionData, StepResult};
 

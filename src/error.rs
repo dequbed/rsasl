@@ -5,7 +5,7 @@ use base64::DecodeError;
 use stringprep::Error;
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 use crate::property::Property;
-use crate::{PropertyQ, SASL};
+use crate::PropertyQ;
 use crate::validate::Validation;
 
 pub type Result<T> = std::result::Result<T, SASLError>;
