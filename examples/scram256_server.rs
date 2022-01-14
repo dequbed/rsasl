@@ -5,7 +5,7 @@ use std::sync::Arc;
 use rsasl::callback::Callback;
 use rsasl::error::SASLError;
 use rsasl::mechname::Mechname;
-use rsasl::property::{Property, AuthId, Password, PASSWORD, AUTHID};
+use rsasl::property::{Property, AuthId, Password, properties};
 use rsasl::SASL;
 use rsasl::session::SessionData;
 use rsasl::session::Step::{Done, NeedsMore};
@@ -17,7 +17,7 @@ impl Callback for OurCallback {
         -> Result<(), SASLError>
     {
         match property {
-            PASSWORD => {
+            properties::PASSWORD => {
                 // Access the authentication id, i.e. the username to check the password for
                 let _authcid = session.get_property_or_callback::<AuthId>()?;
 

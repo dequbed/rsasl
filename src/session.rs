@@ -196,7 +196,7 @@ impl SessionData {
 mod tests {
     use crate::{Mechname, Property, SASL};
     use crate::gsasl::consts::{GSASL_AUTHID, GSASL_PASSWORD};
-    use crate::property::{AuthId, AUTHID, Password, PASSWORD};
+    use crate::property::{AuthId, Password};
     use super::*;
 
     #[test]

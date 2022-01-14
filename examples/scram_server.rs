@@ -7,7 +7,7 @@ use rsasl::error::SASLError;
 use rsasl::error::SASLError::NoCallback;
 use rsasl::mechname::Mechname;
 use rsasl::{Property, SASL};
-use rsasl::property::{AuthId, AUTHID, Password, PASSWORD};
+use rsasl::property::{AuthId, Password, properties};
 use rsasl::session::SessionData;
 use rsasl::session::Step::{Done, NeedsMore};
 
@@ -19,10 +19,9 @@ impl Callback for OurCallback {
         -> Result<(), SASLError>
     {
         match property {
-            PASSWORD => {
+            properties::PASSWORD => {
                 // Access the authentication id, i.e. the username to check the password for
-                let _authcid = session.get_property_or_callback::<AuthId>()
-                    .ok_or(SASLError::NoProperty { property: AUTHID })?;
+                let _authcid = session.get_property_or_callback::<AuthId>()?;
 
                 session.set_property::<Password>(Box::new("secret".to_string()));
 

@@ -251,7 +251,6 @@ mod tests {
         session.set_property::<Qop>(Box::new(CString::new("testservice").unwrap()));
         let cstr = session.get_property::<Qop>();
         println!("cstr {:?}", cstr);
-        assert!(cstr.is_err());
         unsafe {
             let ptr = gsasl_property_fast(&mut session, GSASL_QOP);
             println!("after {:?}", ptr);
