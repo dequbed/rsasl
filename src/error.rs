@@ -2,9 +2,10 @@ use std::fmt;
 use std::ffi::CStr;
 use std::fmt::{Debug, Display, Formatter};
 use base64::DecodeError;
+use stringprep::Error;
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 use crate::property::Property;
-use crate::PropertyQ;
+use crate::{PropertyQ, SASL};
 use crate::validate::Validation;
 
 pub type Result<T> = std::result::Result<T, SASLError>;
@@ -45,6 +46,50 @@ impl SASLError {
     pub fn no_property<P: PropertyQ>() -> Self {
         Self::NoProperty {
             property: P::property(),
+        }
+    }
+}
+
+impl PartialEq for SASLError {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            ( SASLError::UnknownMechanism { mechanism: m1, len: l1 }
+            , SASLError::UnknownMechanism { mechanism: m2, len: l2 }
+            ) => m1[..*l1] == m2[..*l2],
+
+            ( SASLError::Base64DecodeError { source: s1 }
+            , SASLError::Base64DecodeError { source: s2 }
+            ) => s1 == s2,
+
+            ( SASLError::MechanismNameError(e1)
+            , SASLError::MechanismNameError(e2)
+            ) => e1 == e2,
+
+            (SASLError::NoSecurityLayer, SASLError::NoSecurityLayer) => true,
+
+            ( SASLError::NoCallback { property: p1 }
+            , SASLError::NoCallback { property: p2 }
+            ) => p1 == p2,
+
+            ( SASLError::NoValidate { validation: v1 }
+            , SASLError::NoValidate { validation: v2 }
+            ) => v1 == v2,
+
+            ( SASLError::NoProperty { property: p1 }
+            , SASLError::NoProperty { property: p2 }
+            ) => p1 == p2,
+
+            ( SASLError::AuthenticationFailure { reason: r1 }
+            , SASLError::AuthenticationFailure { reason: r2 }
+            ) => r1 == r2,
+
+            (SASLError::MechanismParseError, SASLError::MechanismParseError) => true,
+
+            (SASLError::NoSharedMechanism, SASLError::NoSharedMechanism) => true,
+
+            (SASLError::Gsasl(c1), SASLError::Gsasl(c2)) => c1 == c2,
+
+            _ => false,
         }
     }
 }
@@ -157,6 +202,13 @@ impl From<std::io::Error> for SASLError {
 impl From<i32> for SASLError {
     fn from(e: i32) -> Self {
         SASLError::Gsasl(e)
+    }
+}
+
+#[cfg(feature = "saslprep")]
+impl From<stringprep::Error> for SASLError {
+    fn from(_: Error) -> Self {
+        SASLError::MechanismParseError
     }
 }
 

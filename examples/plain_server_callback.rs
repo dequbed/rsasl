@@ -6,15 +6,17 @@ use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
 use rsasl::SASL;
 use rsasl::session::{SessionData, Step, StepResult};
+use rsasl::session::Step::Done;
 use rsasl::validate::{Validation, validations};
 
 // Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
 
 impl Callback for OurCallback {
-    fn validate(&self, session: &mut SessionData, validation: Validation, _mechanism: &Mechname)
+    fn validate(&self, session: &mut SessionData, validation: Validation, mechanism: &Mechname)
         -> Result<(), SASLError>
     {
+        println!("Asked to validate mech: {} w/ {}", mechanism, validation);
         match validation {
             validations::SIMPLE => {
                 // Access the authentication id, i.e. the username to check the password for
@@ -48,6 +50,7 @@ pub fn main() {
         print!("Authenticating to server with correct password:\n   ");
         let mut session = sasl.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
         let step_result = session.step(Some(b"\0username\0secret"), &mut out);
+        assert_eq!(step_result, Ok(Done(None)));
         print_outcome(step_result, out.into_inner());
     }
     // Authentication exchange 2
@@ -56,6 +59,7 @@ pub fn main() {
         print!("Authenticating to server with wrong password:\n   ");
         let mut session = sasl.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
         let step_result = session.step(Some(b"\0username\0badpass"), &mut out);
+        assert_eq!(step_result, Err(SASLError::AuthenticationFailure { reason: "bad username or password" }));
         print_outcome(step_result, out.into_inner());
     }
     // Authentication exchange 2
@@ -64,6 +68,7 @@ pub fn main() {
         print!("Authenticating to server with malformed data:\n   ");
         let mut session = sasl.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
         let step_result = session.step(Some(b"\0username badpass"), &mut out);
+        assert_eq!(step_result, Err(SASLError::MechanismParseError));
         print_outcome(step_result, out.into_inner());
     }
 }
