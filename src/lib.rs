@@ -106,7 +106,6 @@ pub mod init;
 
 pub mod validate;
 pub mod property;
-pub mod channel_binding;
 
 pub use property::{
     Property,
@@ -126,7 +125,7 @@ use crate::session::Session;
 /// use of SASL and for users wanting to provide SASL authentication to such implementations.
 ///
 /// This struct is not `Clone` or `Copy`, but all functions required for authentication exchanges
-/// only need a non-mutable reference to it. If you need to do several authentication exchanges in
+/// only need a non-mutable reference to it. If you want to do several authentication exchanges in
 /// parallel, e.g. in a server context, you can wrap it in an [`std::sync::Arc`] to add cheap
 /// cloning.
 pub struct SASL {
