@@ -1,6 +1,3 @@
-use ::libc;
-use crate::gsasl::consts::GSASL_OK;
-use crate::gsasl::register::gsasl_register;
 use crate::SASL;
 
 pub(crate) fn register_builtin(ctx: &mut SASL) {

@@ -24,7 +24,6 @@ pub mod error;
 pub mod free;
 pub mod mechtools;
 pub mod property;
-pub mod register;
 pub mod saslprep;
 pub mod gc;
 
