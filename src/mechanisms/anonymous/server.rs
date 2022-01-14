@@ -3,7 +3,7 @@ use crate::{Authentication, SASLError};
 use crate::property::AnonymousToken;
 use crate::session::{SessionData, StepResult};
 use crate::session::Step::{Done, NeedsMore};
-use crate::validate::ANONYMOUS;
+use crate::validate::validations::ANONYMOUS;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Anonymous;

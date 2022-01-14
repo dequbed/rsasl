@@ -3,10 +3,10 @@ use std::sync::Arc;
 use rsasl::callback::Callback;
 use rsasl::error::SASLError;
 use rsasl::mechname::Mechname;
-use rsasl::property::{AuthId, AUTHID, Password, PASSWORD};
+use rsasl::property::{AuthId, Password};
 use rsasl::SASL;
 use rsasl::session::{SessionData, Step, StepResult};
-use rsasl::validate::{Validation, SIMPLE};
+use rsasl::validate::{Validation, validations};
 
 // Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
@@ -16,7 +16,7 @@ impl Callback for OurCallback {
         -> Result<(), SASLError>
     {
         match validation {
-            SIMPLE => {
+            validations::SIMPLE => {
                 // Access the authentication id, i.e. the username to check the password for
                 let authcid = session.get_property::<AuthId>()?;
 

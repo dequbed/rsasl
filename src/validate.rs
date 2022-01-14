@@ -37,53 +37,57 @@ impl Validation {
     }
 }
 
-/// Validation using Username/Password combination
-///
-/// An application MUST in this case check if the given [`Password`] matches the given
-/// [`AuthId`] and SHOULD check if the [`AuthzId`] is empty (if authorization id handling is not
-/// implemented) or if the given user is allowed to authorize as the given authorization id (if
-/// handling is implemented).
-pub const SIMPLE: Validation = Validation::new(&ValidationDefinition::new(
-    "simple", "username/password based authentication"
-));
+pub mod validations {
+    use super::*;
 
-pub const OPENID20: Validation = Validation::new(&ValidationDefinition::new(
-    "openid20", "validate the users oidc token"
-));
+    /// Validation using Username/Password combination
+    ///
+    /// An application MUST in this case check if the given [`Password`] matches the given
+    /// [`AuthId`] and SHOULD check if the [`AuthzId`] is empty (if authorization id handling is not
+    /// implemented) or if the given user is allowed to authorize as the given authorization id (if
+    /// handling is implemented).
+    pub const SIMPLE: Validation = Validation::new(&ValidationDefinition::new(
+        "simple", "username/password based authentication"
+    ));
 
-pub const SAML20: Validation = Validation::new(&ValidationDefinition::new(
-    "saml20", "validate the users saml token"
-));
+    pub const OPENID20: Validation = Validation::new(&ValidationDefinition::new(
+        "openid20", "validate the users oidc token"
+    ));
 
-pub const SECURID: Validation = Validation::new(&ValidationDefinition::new(
-    "securid", "validate the user using SecurID"
-));
+    pub const SAML20: Validation = Validation::new(&ValidationDefinition::new(
+        "saml20", "validate the users saml token"
+    ));
 
-/// GSSAPI validation
-///
-/// This validation is called at the end of a GSSAPI validation. The properties available depend
-/// on the exact GSSAPI mechanism but with Kerberos V5 (the ubiquitous default) [`Authzid`] and
-/// [`GssapiDisplayName`] should be checked containing the authZid and principal name respectively.
-pub const GSSAPI: Validation = Validation::new(&ValidationDefinition::new(
-    "gssapi", "validate the users gssapi authentication"
-));
+    pub const SECURID: Validation = Validation::new(&ValidationDefinition::new(
+        "securid", "validate the user using SecurID"
+    ));
 
-/// Anonymous validation
-///
-/// The anonymous authentication allows clients to specify a "token" of 0-255 utf-8 code points
-/// to be provided to the server. This token can be accessed using the [`AnonymousToken`] property.
-pub const ANONYMOUS: Validation = Validation::new(&ValidationDefinition::new(
-    "anonymous", "validate the provided anonymous token"
-));
+    /// GSSAPI validation
+    ///
+    /// This validation is called at the end of a GSSAPI validation. The properties available depend
+    /// on the exact GSSAPI mechanism but with Kerberos V5 (the ubiquitous default) [`Authzid`] and
+    /// [`GssapiDisplayName`] should be checked containing the authZid and principal name respectively.
+    pub const GSSAPI: Validation = Validation::new(&ValidationDefinition::new(
+        "gssapi", "validate the users gssapi authentication"
+    ));
 
-/// External validation
-///
-/// This validation relies on external information outside the protocol connection itself, e.g.
-/// TLS client certificates, originating UID/GID of an UNIX socket connection, or source IP. No
-/// properties are provided.
-pub const EXTERNAL: Validation = Validation::new(&ValidationDefinition::new(
-    "external", "validate the connection using External information"
-));
+    /// Anonymous validation
+    ///
+    /// The anonymous authentication allows clients to specify a "token" of 0-255 utf-8 code points
+    /// to be provided to the server. This token can be accessed using the [`AnonymousToken`] property.
+    pub const ANONYMOUS: Validation = Validation::new(&ValidationDefinition::new(
+        "anonymous", "validate the provided anonymous token"
+    ));
+
+    /// External validation
+    ///
+    /// This validation relies on external information outside the protocol connection itself, e.g.
+    /// TLS client certificates, originating UID/GID of an UNIX socket connection, or source IP. No
+    /// properties are provided.
+    pub const EXTERNAL: Validation = Validation::new(&ValidationDefinition::new(
+        "external", "validate the connection using External information"
+    ));
+}
 
 #[cfg(test)]
 mod tests {
