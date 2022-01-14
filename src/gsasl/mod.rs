@@ -22,7 +22,6 @@ pub mod callback;
 pub mod crypto;
 pub mod error;
 pub mod free;
-pub mod init;
 pub mod mechtools;
 pub mod property;
 pub mod register;
