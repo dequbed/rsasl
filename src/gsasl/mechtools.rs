@@ -357,7 +357,6 @@ pub unsafe fn _gsasl_hex_p(mut hexstr: *const libc::c_char)
  *
  * Since: 1.10
  **/
-#[no_mangle]
 pub unsafe fn _gsasl_hash(mut hash: Gsasl_hash,
                                      mut in_0: *const libc::c_char,
                                      mut inlen: size_t,
@@ -395,7 +394,6 @@ pub unsafe fn _gsasl_hash(mut hash: Gsasl_hash,
  *
  * Since: 1.10
  **/
-#[no_mangle]
 pub unsafe fn _gsasl_hmac(mut hash: Gsasl_hash,
                                      mut key: *const libc::c_char,
                                      mut keylen: size_t,
@@ -464,7 +462,6 @@ pub unsafe fn _gsasl_hmac(mut hash: Gsasl_hash,
  *
  * Since: 1.10
  **/
-#[no_mangle]
 pub unsafe fn _gsasl_pbkdf2(mut hash: Gsasl_hash,
                                        mut password: *const libc::c_char,
                                        mut passwordlen: size_t,

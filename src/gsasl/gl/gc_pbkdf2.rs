@@ -143,7 +143,6 @@ unsafe fn gc_pbkdf2_prf(mut prf: gc_prf_func, mut hLen: size_t,
    (typical iteration counts are 1000-20000).  This function
    "stretches" the key to be exactly dkLen bytes long.  GC_OK is
    returned on success, otherwise a Gc_rc error code is returned.  */
-#[no_mangle]
 pub unsafe fn gc_pbkdf2_hmac(mut hash: Gc_hash,
                                         mut P: *const libc::c_char,
                                         mut Plen: size_t,
