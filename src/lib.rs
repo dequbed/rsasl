@@ -62,6 +62,10 @@
 //!
 //! ## Custom Mechanisms
 //!
+//! The system to add custom mechanisms is in flux and does not observe the same stability
+//! guarantees as the rest of the crate. Breaking changes in this system may happen even for
+//! minor changes of the crate version.
+//!
 // TODO:
 //     - Explain Upstream or separate crate
 //     - Explain registry_static / registry_dynamic features => what *must* mech crates export?
@@ -106,7 +110,6 @@ pub mod channel_binding;
 
 pub use property::{
     Property,
-    PropertyDefinition,
     PropertyQ,
 };
 use crate::callback::Callback;
@@ -221,20 +224,20 @@ impl SASL {
         -> Result<Session, SASLError>
     {
         mechs.into_iter()
-            .filter_map(|name| {
-                self.client_mech_list().into_iter().find_map(
-                    |mech| if mech.mechanism == name {
-                        mech.client(&self)
-                            // Option<Result<Session, SASLError>> -> Option<(priority, name, Session)>
-                            .map(|res| res.ok().map(|auth| (mech.priority, mech.mechanism, auth)))
-                            .flatten()
-                    } else {
-                        None
-                    })
-            })
-            .max_by(|(a, _, _), (b, _, _)| a.cmp(b))
-            .map(|(_, name, auth)| self.new_session(name, auth))
-            .ok_or(SASLError::NoSharedMechanism)
+             .filter_map(|name| {
+                 self.client_mech_list().into_iter().find_map(
+                     |mech| if mech.mechanism == name {
+                         mech.client(&self)
+                             // Option<Result<Session, SASLError>> -> Option<(&Mechanism, Session)>
+                             .map(|res| res.ok().map(|auth| (mech, auth)))
+                             .flatten()
+                     } else {
+                         None
+                     })
+             })
+             .max_by(|(a, _), (b, _)| (self.sort_fn)(a, b))
+             .map(|(m, auth)| self.new_session(m.mechanism, auth))
+             .ok_or(SASLError::NoSharedMechanism)
     }
 
     pub fn server_start_suggested<'a>(&self, mechs: impl IntoIterator<Item=&'a Mechname>)
@@ -245,14 +248,14 @@ impl SASL {
                  self.server_mech_list().into_iter().find_map(
                      |mech| if mech.mechanism == name {
                          mech.server(&self)
-                             .map(|res| res.ok().map(|auth| (mech.priority, mech.mechanism, auth)))
+                             .map(|res| res.ok().map(|auth| (mech, auth)))
                              .flatten()
                      } else {
                          None
                      })
              })
-             .max_by(|(a, _, _), (b, _, _)| a.cmp(b))
-             .map(|(_, name, auth)| self.new_session(name, auth))
+             .max_by(|(a, _), (b, _)| (self.sort_fn)(a, b))
+             .map(|(m, auth)| self.new_session(m.mechanism, auth))
              .ok_or(SASLError::NoSharedMechanism)
     }
 
