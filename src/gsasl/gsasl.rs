@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::ptr::NonNull;
 use libc::{c_char, size_t};
-use crate::{MechanismBuilder, SASL, SASLError, Shared};
+use crate::{SASLError, Shared};
 use crate::gsasl::consts::{GSASL_NEEDS_MORE, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
 use crate::mechanism::Authentication;
 use crate::session::{SessionData, StepResult};

@@ -96,7 +96,7 @@ pub use property::{
 };
 use crate::callback::Callback;
 use crate::error::SASLError;
-use crate::mechanism::{Authentication, MechanismBuilder};
+use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 use crate::registry::{Mechanism, MECHANISMS};
 use crate::session::Session;

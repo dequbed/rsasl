@@ -1,10 +1,8 @@
 use std::io::{IoSlice, Write};
 use crate::mechanism::Authentication;
 use crate::property::{AuthId, AuthzId, Password};
-use crate::registry::Mechanism;
 use crate::session::Step::Done;
 use crate::session::{SessionData, StepResult};
-use crate::Mechname;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Plain;
