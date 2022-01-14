@@ -89,7 +89,6 @@ unsafe fn scram_escape(mut str: *const libc::c_char)
 /* Print SCRAM client-first token into newly allocated output string
    OUT.  Returns 0 on success, -1 on invalid token, and -2 on memory
    allocation errors. */
-#[no_mangle]
 pub unsafe fn scram_print_client_first(
     mut cf: *mut scram_client_first,
     mut out: *mut *mut libc::c_char
@@ -134,7 +133,6 @@ pub unsafe fn scram_print_client_first(
 /* Print SCRAM server-first token into newly allocated output string
    OUT.  Returns 0 on success, -1 on invalid token, and -2 on memory
    allocation errors. */
-#[no_mangle]
 pub unsafe fn scram_print_server_first(
     mut sf: *mut scram_server_first,
     mut out: *mut *mut libc::c_char
@@ -155,7 +153,6 @@ pub unsafe fn scram_print_server_first(
 /* Print SCRAM client-final token into newly allocated output string
    OUT.  Returns 0 on success, -1 on invalid token, and -2 on memory
    allocation errors. */
-#[no_mangle]
 pub unsafe fn scram_print_client_final(
     mut cl: *mut scram_client_final,
     mut out: *mut *mut libc::c_char
@@ -176,7 +173,6 @@ pub unsafe fn scram_print_client_final(
 /* Print SCRAM server-final token into newly allocated output string
    OUT.  Returns 0 on success, -1 on invalid token, and -2 on memory
    allocation errors. */
-#[no_mangle]
 pub unsafe fn scram_print_server_final(
     mut sl: *mut scram_server_final,
     mut out: *mut *mut libc::c_char,

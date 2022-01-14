@@ -115,7 +115,6 @@ unsafe fn unescape(mut str: *const libc::c_char, mut len: size_t)
     *p = '\u{0}' as i32 as libc::c_char;
     return out;
 }
-#[no_mangle]
 pub unsafe fn scram_parse_client_first(
     mut str: *const libc::c_char,
     mut len: size_t,
@@ -388,7 +387,6 @@ pub unsafe fn scram_parse_server_first(
  *
  */
 /* Get token types. */
-#[no_mangle]
 pub unsafe fn scram_parse_client_final(
     mut str: *const libc::c_char,
     mut len: size_t,
@@ -515,7 +513,6 @@ pub unsafe fn scram_parse_client_final(
     if !scram_valid_client_final(cl) { return -(1 as libc::c_int) }
     return 0 as libc::c_int;
 }
-#[no_mangle]
 pub unsafe fn scram_parse_server_final(
     mut str: *const libc::c_char,
     mut len: size_t,

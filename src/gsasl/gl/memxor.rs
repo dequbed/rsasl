@@ -37,7 +37,6 @@
    in Niels Möller's Nettle. */
 use libc::size_t;
 
-#[no_mangle]
 pub unsafe fn memxor(mut dest: *mut libc::c_void,
                                 mut src: *const libc::c_void, mut n: size_t)
  -> *mut libc::c_void {
