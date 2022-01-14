@@ -1,12 +1,13 @@
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
+use libc::passwd;
 use rsasl::callback::Callback;
 use rsasl::error::SASLError;
 use rsasl::mechname::Mechname;
-use rsasl::property::{AuthId, Password};
+use rsasl::property::{AuthId, AuthzId, Password};
 use rsasl::SASL;
-use rsasl::session::SessionData;
+use rsasl::session::{SessionData, StepResult};
 use rsasl::session::Step::{Done, NeedsMore};
 use rsasl::validate::{Validation, validations};
 
@@ -86,4 +87,41 @@ fn plain_server() {
 
     let mut session = prov.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
     session.step(Some(b"\0testuser\0badpass"), &mut out).unwrap_err();
+}
+
+#[test]
+fn plain_client_edgecase_tests() {
+    let sasl = SASL::new();
+    fn l(sasl: &SASL,
+         authid: Box<String>,
+         authzid: Option<Box<String>>,
+         passwd: Box<String>,
+         expected: &StepResult,
+         expected_output: &[u8]) {
+        let mut client = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
+        client.set_property::<AuthId>(authid);
+        if let Some(authzid) = authzid {
+            client.set_property::<AuthzId>(authzid);
+        }
+        client.set_property::<Password>(passwd);
+        let mut out = Cursor::new(Vec::new());
+        let input: Option<&[u8]> = None;
+        assert_eq!(client.step(input, &mut out), *expected);
+        let buf = out.into_inner();
+        assert_eq!(&buf[..], expected_output);
+    }
+
+    let data: &[(&str, Option<&str>, &str, StepResult, &[u8])] = &[
+        ("", None, "", Ok(Done(Some(2))), b"\0\0"),
+        ("\0", None, "\0\0", Ok(Done(Some(5))), b"\0\0\0\0\0"),
+    ];
+
+    for (authid, authzid, passwd, expected, output) in data.into_iter() {
+        l(&sasl,
+          Box::new(authid.to_string()),
+          authzid.map(|s: &str| Box::new(s.to_string())),
+          Box::new(passwd.to_string()),
+          expected,
+          *output);
+    }
 }
