@@ -1,10 +1,33 @@
 use std::ffi::CString;
+use std::io::Write;
+use rsasl::mechanism::Authentication;
 use rsasl::mechname::Mechname;
+use rsasl::registry::Mechanism;
 use rsasl::SASL;
+use rsasl::session::{SessionData, StepResult};
+
+struct Test;
+impl Authentication for Test {
+    fn step(&mut self, _session: &mut SessionData, _input: Option<&[u8]>, _writer: &mut dyn Write)
+        -> StepResult
+    {
+        unimplemented!()
+    }
+}
+
+const TEST: Mechanism = Mechanism {
+    mechanism: Mechname::const_new_unchecked(b"X-TEST"),
+    priority: 500,
+    client: Some(|_sasl| Ok(Box::new(Test))),
+    server: None
+};
 
 pub fn main() {
     let mut sasl = SASL::new();
-    println!("{:?}", sasl);
+
+    sasl.register(&TEST);
+
+    println!("{:#?}", sasl);
 
     let client_mechlist = sasl.client_mech_list();
     let server_mechlist = sasl.server_mech_list();

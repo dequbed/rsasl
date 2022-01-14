@@ -1,6 +1,6 @@
 #![allow(non_upper_case_globals, non_camel_case_types)]
-//! RSASL is a pure Rust SASL framework designed to make crates implementing SASL-authenticated
-//! protocol not have to worry about SASL.
+//! RSASL is a pure Rust SASL framework designed to make supporting SASL in protocols, doing SASL
+//! authentication in application code and adding new Mechanisms simple and safe.
 //!
 //! # Where to start
 //! - [I'm implementing some network protocol and I need to add SASL authentication to it!](#protocol-implementations)
@@ -18,9 +18,9 @@
 //! [`SASL::suggest_server_mechanism()`] to decide on a common Mechanism based on user preference
 //! and call [`SASL::client_start()`] or [`SASL::server_start()`] to actually start an
 //! authentication exchange, returning a [`Session`] struct. (See the documentation for
-//! [`Session`] on how to perform the actual authentication exchange)
+//! [`Session`] on how to perform the steps of an authentication exchange)
 //!
-//! In addition protocol implementations should add a dependency on rsasl like this:
+//! In addition protocol implementations should depend on rsasl like this:
 //! ```toml
 //! [dependencies]
 //! rsasl = { version = "2", default-features = false, features = ["provider"]}
@@ -38,6 +38,10 @@
 //! may lead to a situation where users can't use any mechanisms since they only depend on
 //! rsasl via a transient dependency that has no mechanism features enabled.
 //!
+// (TODO: How to handle EXTERNAL?)
+// Bonus minus points: sasl.wrap(data) and sasl.unwrap(data) for security layers. Prefer to not
+// and instead do TLS.
+//!
 //! ## Application Code
 //!
 //! Application code needs to construct a [`SASL`] struct that can then be passed to the protocol
@@ -52,23 +56,33 @@
 //! default being to add all IANA-registered mechanisms.
 //! See the module documentation for [`mechanisms`] for details.
 //!
-//! TODO:
-//!     - Static vs Dynamic Registry
-//!     - Explicit dependency because feature unification
+// TODO:
+//     - Static vs Dynamic Registry
+//     - Explicit dependency because feature unification
 //!
 //! ## Custom Mechanisms
 //!
-//! TODO:
-//!     - Explain Upstream or separate crate
-//!     - Explain registry_static / registry_dynamic features => what *must* mech crates export?
-//!     - Steps to mechanism:
-//!         0. Depend on rsasl with `custom_mechanism` feature
-//!         1. Write impl MechanismBuilder & impl Mechanism
-//!         2. Add to Registry
-//!         3. Done?
-//!
+// TODO:
+//     - Explain Upstream or separate crate
+//     - Explain registry_static / registry_dynamic features => what *must* mech crates export?
+//     - Steps to mechanism:
+//         0. Depend on rsasl with `custom_mechanism` feature
+//         1. Write impl MechanismBuilder & impl Mechanism
+//         2. Add to Registry
+//         3. Done?
+
+// SASL Mech:
+// I need to add a Mechanism
+// 1. init() -> Global constructor, called once per SASLProvider.
+// 2. start() -> Instance initializer. validate that required things are present, construct a struct
+//      impl Mechanism containing all state you'll carry around. This function is also used to check
+//      if the current context can support your mechanism so don't do too volatile things.
+// 3. step(input: Option<&[u8]>, output: impl Write) -> process input, write output, indicate new
+//      state (containing how much you've written too!)
+// 4. encode()/decode() security layer stuff. Please don't.
 
 use std::any::Any;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
@@ -88,6 +102,7 @@ pub mod init;
 
 pub mod validate;
 pub mod property;
+pub mod channel_binding;
 
 pub use property::{
     Property,
@@ -101,19 +116,6 @@ use crate::mechname::Mechname;
 use crate::registry::{Mechanism, MECHANISMS};
 use crate::session::Session;
 
-
-// SASL Provider:
-// I'm a protocol and I need to do SASL
-// 1. get sasl: &SASLProvider from $somewhere
-// 2. Get list of supported via sasl.get_supported_mechs()
-// 3. When offered more than one by a client/server, use sasl.suggest_(client|server)_mechanism()
-// 4. call session = (sasl.client_start(MECHANISM) | sasl.server_start(MECHANISM))
-// 5. call session.step(data, &mut out) or session.step64(data, &mut out) as needed.
-// 6. ???
-// 7. PROFIT!
-// (TODO: How to handle EXTERNAL?)
-// Bonus minus points: sasl.wrap(data) and sasl.unwrap(data) for security layers. Prefer to not
-// and instead do TLS.
 
 /// SASL Provider context
 ///
@@ -129,12 +131,15 @@ pub struct SASL {
     /// a GSSAPI realm.
     /// Can also be used to store properties such as username and password
     pub global_data: Arc<HashMap<Property, Box<dyn Any>>>,
+
     pub callback: Option<Arc<dyn Callback>>,
 
     #[cfg(feature = "registry_dynamic")]
     dynamic_mechs: Vec<&'static Mechanism>,
     #[cfg(feature = "registry_static")]
     static_mechs: &'static [Mechanism],
+
+    sort_fn: fn (a: &&Mechanism, b: &&Mechanism) -> Ordering,
 }
 
 impl SASL {
@@ -148,6 +153,8 @@ impl SASL {
 
             #[cfg(feature = "registry_static")]
             static_mechs: &registry::MECHANISMS,
+
+            sort_fn: |a, b| a.priority.cmp(&b.priority),
         }
     }
 
@@ -194,7 +201,9 @@ impl SASL {
     /// server application would use [`SASL::server_mech_list()`].
     pub fn client_mech_list(&self) -> impl IntoIterator<Item=&Mechanism>
     {
-        MECHANISMS.into_iter().filter(|mechanism| mechanism.client.is_some())
+        MECHANISMS.into_iter()
+            .chain(self.dynamic_mechs.iter().map(|m| *m))
+            .filter(|mechanism| mechanism.client.is_some())
     }
 
     /// Returns the list of Server Mechanisms supported by this provider.
@@ -203,27 +212,48 @@ impl SASL {
     /// application would use [`SASL::client_mech_list()`].
     pub fn server_mech_list(&self) -> impl IntoIterator<Item=&Mechanism>
     {
-        MECHANISMS.into_iter().filter(|mechanism| mechanism.server.is_some())
+        MECHANISMS.into_iter()
+            .chain(self.dynamic_mechs.iter().map(|m| *m))
+            .filter(|mechanism| mechanism.server.is_some())
     }
 
-    /// Suggests a mechanism to use for client-side authentication, chosen from the given list of
-    /// available mechanisms.
-    /// If any passed mechanism names are invalid these are silently ignored.
-    /// This method will return `None` if none of the given mechanisms are agreeable.
-    pub fn suggest_client_mechanism<'a>(&self, mechs: impl IntoIterator<Item=&'a [u8]>)
-        -> Option<&Mechanism>
+    pub fn client_start_suggested<'a>(&self, mechs: impl IntoIterator<Item=&'a Mechname>)
+        -> Result<Session, SASLError>
     {
-        None
+        let mut list = self.client_mech_list().into_iter();
+        mechs.into_iter()
+            .filter_map(|name| {
+                list.find_map(|mech| if mech.mechanism == name {
+                    mech.client(&self)
+                        // Option<Result<Session, SASLError>> -> Option<(priority, name, Session)>
+                        .map(|res| res.ok().map(|auth| (mech.priority, mech.mechanism, auth)))
+                        .flatten()
+                } else {
+                    None
+                })
+            })
+            .max_by(|(a, _, _), (b, _, _)| a.cmp(b))
+            .map(|(_, name, auth)| self.new_session(name, auth))
+            .ok_or(SASLError::NoSharedMechanism)
     }
 
-    /// Suggests a mechanism to use for server-side authentication, chosen from the given list of
-    /// available mechanisms.
-    /// If any passed mechanism names are invalid these are silently ignored.
-    /// This will return `None` if none of the given mechanisms are agreeable.
-    pub fn suggest_server_mechanism<'a>(&self, mechs: impl IntoIterator<Item=&'a [u8]>)
-        -> Option<&Mechanism>
+    pub fn server_start_suggested<'a>(&self, mechs: impl IntoIterator<Item=&'a Mechname>)
+        -> Result<Session, SASLError>
     {
-        None
+        let mut list = self.server_mech_list().into_iter();
+        mechs.into_iter()
+             .filter_map(|name| {
+                 list.find_map(|mech| if mech.mechanism == name {
+                     mech.server(&self)
+                         .map(|res| res.ok().map(|auth| (mech.priority, mech.mechanism, auth)))
+                         .flatten()
+                 } else {
+                     None
+                 })
+             })
+             .max_by(|(a, _, _), (b, _, _)| a.cmp(b))
+             .map(|(_, name, auth)| self.new_session(name, auth))
+             .ok_or(SASLError::NoSharedMechanism)
     }
 
     /// Returns whether there is client-side support for the given mechanism.
@@ -263,7 +293,7 @@ impl SASL {
 
     #[doc(hidden)]
     #[inline(always)]
-    fn start_try_fold<'a>(
+    fn start_inner<'a>(
         &self,
         mech: &Mechname,
         mech_list: impl IntoIterator<Item=&'a Mechanism>,
@@ -309,7 +339,6 @@ impl SASL {
                 })
             }
         }
-
     }
 
     /// Starts a authentication exchange as a client
@@ -319,9 +348,9 @@ impl SASL {
     /// has to either call `set_property` before running the step that requires the data, or
     /// install a callback.
     pub fn client_start(&self, mech: &mechname::Mechname) -> Result<Session, SASLError> {
-        self.start_try_fold(mech,
-                            self.client_mech_list(),
-                            |mechanism| mechanism.client(&self))
+        self.start_inner(mech,
+                         self.client_mech_list(),
+                         |mechanism| mechanism.client(&self))
     }
 
     /// Starts a authentication exchange as the server role
@@ -331,30 +360,10 @@ impl SASL {
     ///
     /// See [Callback](Callback) on how to implement callbacks.
     pub fn server_start(&self, mech: &mechname::Mechname) -> Result<Session, SASLError> {
-        self.start_try_fold(mech,
-                            self.server_mech_list(),
-                            |mechanism| mechanism.server(&self))
+        self.start_inner(mech,
+                         self.server_mech_list(),
+                         |mechanism| mechanism.server(&self))
     }
 }
 
 struct Shared;
-
-// SASL Impl:
-// I'm using a crate that wants me to do SASL
-// 1. Construct a as global as possible SASLProvider with the mechanisms you want. Give it a
-// custom priority list if you want.
-// 2. Install a callback or provide required Property value beforehand (hey, you configured the
-// list of mechanisms, you know what Properties will be required)
-// 3. Pass this SASLProvider to the protocol handler
-// 4. Expect callbacks if you didn't provide all Properties. Also expect callbacks if you're
-// doing the server end of things
-
-// SASL Mech:
-// I need to add a Mechanism
-// 1. init() -> Global constructor, called once per SASLProvider.
-// 2. start() -> Instance initializer. validate that required things are present, construct a struct
-//      impl Mechanism containing all state you'll carry around. This function is also used to check
-//      if the current context can support your mechanism so don't do too volatile things.
-// 3. step(input: Option<&[u8]>, output: impl Write) -> process input, write output, indicate new
-//      state (containing how much you've written too!)
-// 4. encode()/decode() security layer stuff. Please don't.

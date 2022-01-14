@@ -37,6 +37,7 @@ pub enum SASLError {
         reason: &'static str,
     },
     MechanismParseError,
+    NoSharedMechanism,
     Gsasl(i32),
 }
 
@@ -79,6 +80,7 @@ impl Debug for SASLError {
             SASLError::NoProperty { property } => write!(f, "NoProperty({:?})", property),
             SASLError::AuthenticationFailure { .. } => f.write_str("AuthenticationFailure"),
             SASLError::MechanismParseError => f.write_str("MechanismParseError"),
+            SASLError::NoSharedMechanism => f.write_str("NoSharedMechanism"),
         }
     }
 }
@@ -126,6 +128,8 @@ impl Display for SASLError {
                        reason),
             SASLError::MechanismParseError =>
                 f.write_str("mechanism encountered invalid input data"),
+            SASLError::NoSharedMechanism =>
+                f.write_str("no shared mechanism found to use"),
         }
     }
 }

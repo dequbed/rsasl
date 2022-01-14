@@ -1,17 +1,8 @@
 use std::io::Write;
 use crate::{Mechname, SASL, SASLError};
+use crate::channel_binding::ChannelBindingsCB;
 use crate::SASLError::NoSecurityLayer;
 use crate::session::{SessionData, StepResult};
-
-pub trait MechanismBuilder: Sync + Send {
-    fn init(&self) {}
-    fn start(&self, sasl: &SASL) -> Result<MechanismInstance, SASLError>;
-}
-
-pub struct MechanismInstance {
-    pub name: &'static Mechname,
-    pub(crate) inner: Box<dyn Authentication>,
-}
 
 /// Trait implemented to be one party in an authentication exchange
 ///

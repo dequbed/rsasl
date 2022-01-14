@@ -8,7 +8,8 @@ use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static DIGEST_MD5: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unchecked(b"DIGEST-MD5"),
-    client: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    priority: 0,
+    client: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_digest_md5_client_start),
@@ -17,7 +18,7 @@ pub static DIGEST_MD5: Mechanism = Mechanism {
         encode: Some(_gsasl_digest_md5_client_encode),
         decode: Some(_gsasl_digest_md5_client_decode),
     })),
-    server: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    server: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_digest_md5_server_start),

@@ -67,6 +67,7 @@
 //! for your Mechanism MUST be marked `pub` and be reachable by dependent crates, otherwise they
 //! may be silently dropped by the compiler.
 
+use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Formatter};
 use crate::{SASL, SASLError};
 use crate::mechanism::Authentication;
@@ -78,6 +79,7 @@ pub use registry_static::*;
 pub type MatchFn = fn (name: &Mechname) -> bool;
 pub type StartFn = fn (sasl: &SASL) -> Result<Box<dyn Authentication>, SASLError>;
 
+#[derive(Copy, Clone)]
 /// Mechanism Implementation
 ///
 /// All mechanisms need to export a `static Mechanism` to be usable by rsasl, see the [module
@@ -85,6 +87,8 @@ pub type StartFn = fn (sasl: &SASL) -> Result<Box<dyn Authentication>, SASLError
 pub struct Mechanism {
     /// The Mechanism served by this implementation.
     pub mechanism: &'static Mechname,
+
+    pub priority: usize,
 
     /// Construct a new instance of this Mechanism
     pub client: Option<StartFn>,

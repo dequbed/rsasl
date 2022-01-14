@@ -8,7 +8,8 @@ use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static LOGIN: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unchecked(b"LOGIN"),
-    client: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    priority: 200,
+    client: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_login_client_start),
@@ -17,7 +18,7 @@ pub static LOGIN: Mechanism = Mechanism {
         encode: None,
         decode: None,
     })),
-    server: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    server: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_login_server_start),
