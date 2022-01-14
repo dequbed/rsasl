@@ -1,5 +1,4 @@
 use std::fmt::{Debug, Display, Formatter};
-use crate::mechanisms::digest_md5::parser::digest_md5_finish;
 
 #[derive(Debug)]
 pub struct ValidationDefinition {

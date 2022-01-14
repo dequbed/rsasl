@@ -61,7 +61,6 @@
 //! for your Mechanism MUST be marked `pub` and be reachable by dependent crates, otherwise they
 //! may be silently dropped by the compiler.
 
-use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Formatter};
 use crate::{SASL, SASLError};
 use crate::mechanism::Authentication;

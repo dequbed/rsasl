@@ -1,4 +1,3 @@
-use crate::gsasl::gsasl::{CMechanismStateKeeper, MechanismVTable};
 use crate::{Mechanism, Mechname};
 use crate::mechanisms::plain::{client, server};
 

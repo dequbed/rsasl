@@ -2,7 +2,7 @@ use std::io::Write;
 use stringprep::saslprep;
 use crate::property::{AuthId, AuthzId, Password};
 use crate::session::{SessionData, StepResult};
-use crate::{Authentication, SASLError, Shared};
+use crate::{Authentication, SASLError};
 use crate::session::Step::{Done, NeedsMore};
 use crate::validate::validations::SIMPLE;
 
