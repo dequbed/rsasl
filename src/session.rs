@@ -39,6 +39,10 @@ impl Session {
     pub fn get_property<P: PropertyQ>(&mut self) -> Result<&P::Item, SASLError> {
         self.session_data.get_property::<P>()
     }
+
+    pub fn get_mechanism(&self) -> &'static Mechname {
+        self.session_data.mechname
+    }
 }
 
 #[cfg(feature = "provider")]

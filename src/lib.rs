@@ -220,17 +220,17 @@ impl SASL {
     pub fn client_start_suggested<'a>(&self, mechs: impl IntoIterator<Item=&'a Mechname>)
         -> Result<Session, SASLError>
     {
-        let mut list = self.client_mech_list().into_iter();
         mechs.into_iter()
             .filter_map(|name| {
-                list.find_map(|mech| if mech.mechanism == name {
-                    mech.client(&self)
-                        // Option<Result<Session, SASLError>> -> Option<(priority, name, Session)>
-                        .map(|res| res.ok().map(|auth| (mech.priority, mech.mechanism, auth)))
-                        .flatten()
-                } else {
-                    None
-                })
+                self.client_mech_list().into_iter().find_map(
+                    |mech| if mech.mechanism == name {
+                        mech.client(&self)
+                            // Option<Result<Session, SASLError>> -> Option<(priority, name, Session)>
+                            .map(|res| res.ok().map(|auth| (mech.priority, mech.mechanism, auth)))
+                            .flatten()
+                    } else {
+                        None
+                    })
             })
             .max_by(|(a, _, _), (b, _, _)| a.cmp(b))
             .map(|(_, name, auth)| self.new_session(name, auth))
@@ -240,16 +240,16 @@ impl SASL {
     pub fn server_start_suggested<'a>(&self, mechs: impl IntoIterator<Item=&'a Mechname>)
         -> Result<Session, SASLError>
     {
-        let mut list = self.server_mech_list().into_iter();
         mechs.into_iter()
              .filter_map(|name| {
-                 list.find_map(|mech| if mech.mechanism == name {
-                     mech.server(&self)
-                         .map(|res| res.ok().map(|auth| (mech.priority, mech.mechanism, auth)))
-                         .flatten()
-                 } else {
-                     None
-                 })
+                 self.server_mech_list().into_iter().find_map(
+                     |mech| if mech.mechanism == name {
+                         mech.server(&self)
+                             .map(|res| res.ok().map(|auth| (mech.priority, mech.mechanism, auth)))
+                             .flatten()
+                     } else {
+                         None
+                     })
              })
              .max_by(|(a, _, _), (b, _, _)| a.cmp(b))
              .map(|(_, name, auth)| self.new_session(name, auth))
