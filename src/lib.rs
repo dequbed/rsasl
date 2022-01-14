@@ -84,6 +84,7 @@ pub mod mechanisms;
 pub mod mechanism;
 pub mod mechname;
 pub mod registry;
+pub mod init;
 
 pub mod validate;
 pub mod property;
@@ -129,6 +130,11 @@ pub struct SASL {
     /// Can also be used to store properties such as username and password
     pub global_data: Arc<HashMap<Property, Box<dyn Any>>>,
     pub callback: Option<Arc<dyn Callback>>,
+
+    #[cfg(feature = "registry_dynamic")]
+    dynamic_mechs: Vec<&'static Mechanism>,
+    #[cfg(feature = "registry_static")]
+    static_mechs: &'static [Mechanism],
 }
 
 impl SASL {
@@ -136,7 +142,17 @@ impl SASL {
         Self {
             global_data: Arc::new(HashMap::new()),
             callback: None,
+
+            #[cfg(feature = "registry_dynamic")]
+            dynamic_mechs: Vec::new(),
+
+            #[cfg(feature = "registry_static")]
+            static_mechs: &registry::MECHANISMS,
         }
+    }
+
+    pub fn init(&mut self) {
+        init::register_builtin(self);
     }
 
     pub fn install_callback(&mut self, callback: Arc<dyn Callback>) {
@@ -146,10 +162,21 @@ impl SASL {
 
 impl Debug for SASL {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SASL")
-            .field("global data", &self.global_data)
-            .field("has callback", &self.callback.is_some())
-            .finish()
+        let mut s = f.debug_struct("SASL");
+        s.field("global data", &self.global_data)
+         .field("has callback", &self.callback.is_some());
+        #[cfg(feature = "registry_dynamic")]
+            s.field("registered mechanisms", &self.dynamic_mechs);
+        #[cfg(feature = "registry_static")]
+            s.field("collected mechanisms", &self.static_mechs);
+        s.finish()
+    }
+}
+
+#[cfg(feature = "registry_dynamic")]
+impl SASL {
+    pub fn register(&mut self, mechanism: &'static Mechanism) {
+        self.dynamic_mechs.push(mechanism)
     }
 }
 

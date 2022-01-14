@@ -3,7 +3,9 @@ use rsasl::mechname::Mechname;
 use rsasl::SASL;
 
 pub fn main() {
-    let sasl = SASL::new();
+    let mut sasl = SASL::new();
+    println!("{:?}", sasl);
+
     let client_mechlist = sasl.client_mech_list();
     let server_mechlist = sasl.server_mech_list();
 
