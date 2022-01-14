@@ -32,35 +32,35 @@
 //! ));
 //! ```
 use std::ffi::CString;
-use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
 use std::marker::PhantomData;
+use std::fmt::{Debug, Display, Formatter};
 
-#[derive(Debug)]
-pub struct PropertyDefinition {
-    pub name: &'static str,
-    pub display: &'static str,
-    pub source: &'static str,
-}
-impl PropertyDefinition {
-    pub const fn new(name: &'static str, display: &'static str) -> Self {
-        let source = env!("CARGO_CRATE_NAME");
-        Self { name, display, source }
+mod construct {
+    #[derive(Debug)]
+    pub struct PropertyDefinition {
+        pub name: &'static str,
+        pub display: &'static str,
+    }
+    impl PropertyDefinition {
+        pub const fn new(name: &'static str, display: &'static str) -> Self {
+            Self { name, display }
+        }
     }
 }
+use construct::*;
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 /// Defined by mechanism crates as they see fit, need to provide a `const` one too
 pub struct Property {
     name: &'static str,
     display: &'static str,
-    source: &'static str,
 }
 impl Debug for Property {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Property")
          .field("name", &self.name)
-         .field("originating crate", &self.source)
+         .field("description", &self.display)
          .finish()
     }
 }
@@ -74,7 +74,6 @@ impl Property {
         Self {
             name: definition.name,
             display: definition.display,
-            source: definition.source,
         }
     }
     pub const fn name(&self) -> &'static str {
