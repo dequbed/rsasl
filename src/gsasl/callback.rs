@@ -1,10 +1,10 @@
 use ::libc;
 use crate::gsasl::consts::Gsasl_property;
 use crate::gsasl::consts::*;
-use crate::property::*;
+use crate::property::properties::*;
 use crate::session::SessionData;
 use crate::Shared;
-use crate::validate::*;
+use crate::validate::validations::*;
 
 pub(crate) unsafe fn gsasl_callback(_ctx: *mut Shared,
                              sctx: &mut SessionData,

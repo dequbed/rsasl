@@ -98,8 +98,6 @@ impl PropertyQ for AuthId {
         AUTHID
     }
 }
-pub const AUTHID: Property = Property::new(&PropertyDefinition::new(
-    "authid", "authentication id"));
 
 #[derive(Debug)]
 pub struct AuthzId(PhantomData<()>);
@@ -109,16 +107,10 @@ impl PropertyQ for AuthzId {
         AUTHZID
     }
 }
-pub const AUTHZID: Property = Property::new(&PropertyDefinition::new(
-    "authzid", "authorization id"));
 
 
 #[derive(Debug)]
 pub struct OpenID20AuthenticateInBrowser(PhantomData<()>);
-pub const OPENID20_AUTHENTICATE_IN_BROWSER: Property = Property::new(&PropertyDefinition::new(
-    "openid20_authenticate_in_browser",
-    "query to authenticate to the user's OIDC IdP using the systems browser"
-));
 
 #[derive(Debug)]
 pub struct Saml20AuthenticateInBrowser(PhantomData<()>);
@@ -128,10 +120,6 @@ impl PropertyQ for Saml20AuthenticateInBrowser {
         SAML20_AUTHENTICATE_IN_BROWSER
     }
 }
-pub const SAML20_AUTHENTICATE_IN_BROWSER: Property = Property::new(&PropertyDefinition::new(
-    "saml20_authenticate_in_browser",
-    "query to authenticate to the user's SAML IdP using the systems browser"
-));
 
 #[derive(Debug)]
 pub struct OpenID20OutcomeData(PhantomData<()>);
@@ -141,8 +129,6 @@ impl PropertyQ for OpenID20OutcomeData {
         OPENID20_OUTCOME_DATA
     }
 }
-pub const OPENID20_OUTCOME_DATA: Property = Property::new(&PropertyDefinition::new(
-    "openid_outcome_data", "outcome of the OIDC authentication"));
 
 #[derive(Debug)]
 pub struct OpenID20RedirectUrl(PhantomData<()>);
@@ -152,9 +138,6 @@ impl PropertyQ for OpenID20RedirectUrl {
         OPENID20_REDIRECT_URL
     }
 }
-pub const OPENID20_REDIRECT_URL: Property = Property::new(&PropertyDefinition::new(
-    "openid_redirect_url", "OpenID Connect redirect url"
-));
 
 #[derive(Debug)]
 pub struct SAML20RedirectUrl(PhantomData<()>);
@@ -164,9 +147,6 @@ impl PropertyQ for SAML20RedirectUrl {
         SAML20_REDIRECT_URL
     }
 }
-pub const SAML20_REDIRECT_URL: Property = Property::new(&PropertyDefinition::new(
-    "saml20_redirect_url", "SAML redirect url"
-));
 
 
 #[derive(Debug)]
@@ -177,9 +157,6 @@ impl PropertyQ for SAML20IDPIdentifier {
         SAML20_IDP_IDENTIFIER
     }
 }
-pub const SAML20_IDP_IDENTIFIER: Property = Property::new(&PropertyDefinition::new(
-    "saml20_idp_identifier", "SAML IdP Identifier"
-));
 
 #[derive(Debug)]
 pub struct CBTlsUnique(PhantomData<()>);
@@ -189,9 +166,6 @@ impl PropertyQ for CBTlsUnique {
         CB_TLS_UNIQUE
     }
 }
-pub const CB_TLS_UNIQUE: Property = Property::new(&PropertyDefinition::new(
-    "cb_tls_unique", "TLS Channel binding \"unique\""
-));
 
 #[derive(Debug)]
 pub struct ScramStoredkey(PhantomData<()>);
@@ -201,9 +175,6 @@ impl PropertyQ for ScramStoredkey {
         SCRAM_STOREDKEY
     }
 }
-pub const SCRAM_STOREDKEY: Property = Property::new(&PropertyDefinition::new(
-    "scram_storedkey", "SCRAM stored key"
-));
 
 #[derive(Debug)]
 pub struct ScramServerkey(PhantomData<()>);
@@ -213,9 +184,6 @@ impl PropertyQ for ScramServerkey {
         SCRAM_SERVERKEY
     }
 }
-pub const SCRAM_SERVERKEY: Property = Property::new(&PropertyDefinition::new(
-    "ScramServerkey", ""
-));
 
 #[derive(Debug)]
 pub struct ScramSaltedPassword(PhantomData<()>);
@@ -225,9 +193,6 @@ impl PropertyQ for ScramSaltedPassword {
         SCRAM_SALTED_PASSWORD
     }
 }
-pub const SCRAM_SALTED_PASSWORD: Property = Property::new(&PropertyDefinition::new(
-    "ScramSaltedPassword", ""
-));
 
 #[derive(Debug)]
 pub struct ScramSalt(PhantomData<()>);
@@ -237,9 +202,6 @@ impl PropertyQ for ScramSalt {
         SCRAM_SALT
     }
 }
-pub const SCRAM_SALT: Property = Property::new(&PropertyDefinition::new(
-    "ScramSalt", ""
-));
 
 #[derive(Debug)]
 pub struct ScramIter(PhantomData<()>);
@@ -249,9 +211,6 @@ impl PropertyQ for ScramIter {
         SCRAM_ITER
     }
 }
-pub const SCRAM_ITER: Property = Property::new(&PropertyDefinition::new(
-    "ScramIter", ""
-));
 
 #[derive(Debug)]
 pub struct Qop(PhantomData<()>);
@@ -261,9 +220,6 @@ impl PropertyQ for Qop {
         QOP
     }
 }
-pub const QOP: Property = Property::new(&PropertyDefinition::new(
-    "Qop", ""
-));
 
 #[derive(Debug)]
 pub struct Qops(PhantomData<()>);
@@ -273,9 +229,6 @@ impl PropertyQ for Qops {
         QOPS
     }
 }
-pub const QOPS: Property = Property::new(&PropertyDefinition::new(
-    "Qops", ""
-));
 
 #[derive(Debug)]
 pub struct DigestMD5HashedPassword(PhantomData<()>);
@@ -285,9 +238,6 @@ impl PropertyQ for DigestMD5HashedPassword {
         DIGEST_MD5_HASHED_PASSWORD
     }
 }
-pub const DIGEST_MD5_HASHED_PASSWORD: Property = Property::new(&PropertyDefinition::new(
-    "DigestMD5HashedPassword", ""
-));
 
 #[derive(Debug)]
 pub struct Realm(PhantomData<()>);
@@ -297,9 +247,6 @@ impl PropertyQ for Realm {
         REALM
     }
 }
-pub const REALM: Property = Property::new(&PropertyDefinition::new(
-    "Realm", ""
-));
 
 #[derive(Debug)]
 pub struct Pin(PhantomData<()>);
@@ -309,9 +256,6 @@ impl PropertyQ for Pin {
         PIN
     }
 }
-pub const PIN: Property = Property::new(&PropertyDefinition::new(
-    "Pin", ""
-));
 
 #[derive(Debug)]
 pub struct SuggestedPin(PhantomData<()>);
@@ -321,9 +265,6 @@ impl PropertyQ for SuggestedPin {
         SUGGESTED_PIN
     }
 }
-pub const SUGGESTED_PIN: Property = Property::new(&PropertyDefinition::new(
-    "SuggestedPin", ""
-));
 
 #[derive(Debug)]
 pub struct Passcode(PhantomData<()>);
@@ -333,9 +274,6 @@ impl PropertyQ for Passcode {
         PASSCODE
     }
 }
-pub const PASSCODE: Property = Property::new(&PropertyDefinition::new(
-    "Passcode", ""
-));
 
 #[derive(Debug)]
 pub struct GssapiDisplayName(PhantomData<()>);
@@ -345,9 +283,6 @@ impl PropertyQ for GssapiDisplayName {
         GSSAPI_DISPLAY_NAME
     }
 }
-pub const GSSAPI_DISPLAY_NAME: Property = Property::new(&PropertyDefinition::new(
-    "GssapiDisplayName", ""
-));
 
 #[derive(Debug)]
 pub struct Hostname(PhantomData<()>);
@@ -357,9 +292,6 @@ impl PropertyQ for Hostname {
         HOSTNAME
     }
 }
-pub const HOSTNAME: Property = Property::new(&PropertyDefinition::new(
-    "Hostname", ""
-));
 
 #[derive(Debug)]
 pub struct Service(PhantomData<()>);
@@ -369,10 +301,6 @@ impl PropertyQ for Service {
         SERVICE
     }
 }
-pub const SERVICE: Property = Property::new(&PropertyDefinition::new(
-    "Service", ""
-));
-
 
 #[derive(Debug)]
 pub struct AnonymousToken(PhantomData<()>);
@@ -382,10 +310,6 @@ impl PropertyQ for AnonymousToken {
         ANONYMOUS_TOKEN
     }
 }
-pub const ANONYMOUS_TOKEN: Property = Property::new(&PropertyDefinition::new(
-    "AnonymousToken", ""
-));
-
 
 #[derive(Debug)]
 pub struct Password(PhantomData<()>);
@@ -395,9 +319,89 @@ impl PropertyQ for Password {
         PASSWORD
     }
 }
-pub const PASSWORD: Property = Property::new(&PropertyDefinition::new(
-    "password", ""
-));
+
+pub mod properties {
+    use super::*;
+
+    pub const AUTHID: Property = Property::new(&PropertyDefinition::new(
+        "authid", "authentication id"));
+    pub const AUTHZID: Property = Property::new(&PropertyDefinition::new(
+        "authzid", "authorization id"));
+    pub const OPENID20_AUTHENTICATE_IN_BROWSER: Property = Property::new(&PropertyDefinition::new(
+        "openid20_authenticate_in_browser",
+        "query to authenticate to the user's OIDC IdP using the systems browser"
+    ));
+    pub const SAML20_AUTHENTICATE_IN_BROWSER: Property = Property::new(&PropertyDefinition::new(
+        "saml20_authenticate_in_browser",
+        "query to authenticate to the user's SAML IdP using the systems browser"
+    ));
+    pub const OPENID20_OUTCOME_DATA: Property = Property::new(&PropertyDefinition::new(
+        "openid_outcome_data", "outcome of the OIDC authentication"));
+    pub const OPENID20_REDIRECT_URL: Property = Property::new(&PropertyDefinition::new(
+        "openid_redirect_url", "OpenID Connect redirect url"
+    ));
+    pub const SAML20_REDIRECT_URL: Property = Property::new(&PropertyDefinition::new(
+        "saml20_redirect_url", "SAML redirect url"
+    ));
+    pub const SAML20_IDP_IDENTIFIER: Property = Property::new(&PropertyDefinition::new(
+        "saml20_idp_identifier", "SAML IdP Identifier"
+    ));
+    pub const CB_TLS_UNIQUE: Property = Property::new(&PropertyDefinition::new(
+        "cb_tls_unique", "TLS Channel binding \"unique\""
+    ));
+    pub const SCRAM_STOREDKEY: Property = Property::new(&PropertyDefinition::new(
+        "scram_storedkey", "SCRAM stored key"
+    ));
+    pub const SCRAM_SERVERKEY: Property = Property::new(&PropertyDefinition::new(
+        "ScramServerkey", ""
+    ));
+    pub const SCRAM_SALTED_PASSWORD: Property = Property::new(&PropertyDefinition::new(
+        "ScramSaltedPassword", ""
+    ));
+    pub const SCRAM_SALT: Property = Property::new(&PropertyDefinition::new(
+        "ScramSalt", ""
+    ));
+    pub const SCRAM_ITER: Property = Property::new(&PropertyDefinition::new(
+        "ScramIter", ""
+    ));
+    pub const QOP: Property = Property::new(&PropertyDefinition::new(
+        "Qop", ""
+    ));
+    pub const QOPS: Property = Property::new(&PropertyDefinition::new(
+        "Qops", ""
+    ));
+    pub const DIGEST_MD5_HASHED_PASSWORD: Property = Property::new(&PropertyDefinition::new(
+        "DigestMD5HashedPassword", ""
+    ));
+    pub const REALM: Property = Property::new(&PropertyDefinition::new(
+        "Realm", ""
+    ));
+    pub const PIN: Property = Property::new(&PropertyDefinition::new(
+        "Pin", ""
+    ));
+    pub const SUGGESTED_PIN: Property = Property::new(&PropertyDefinition::new(
+        "SuggestedPin", ""
+    ));
+    pub const PASSCODE: Property = Property::new(&PropertyDefinition::new(
+        "Passcode", ""
+    ));
+    pub const GSSAPI_DISPLAY_NAME: Property = Property::new(&PropertyDefinition::new(
+        "GssapiDisplayName", ""
+    ));
+    pub const HOSTNAME: Property = Property::new(&PropertyDefinition::new(
+        "Hostname", ""
+    ));
+    pub const SERVICE: Property = Property::new(&PropertyDefinition::new(
+        "Service", ""
+    ));
+    pub const ANONYMOUS_TOKEN: Property = Property::new(&PropertyDefinition::new(
+        "AnonymousToken", ""
+    ));
+    pub const PASSWORD: Property = Property::new(&PropertyDefinition::new(
+        "password", ""
+    ));
+}
+use properties::*;
 
 
 #[cfg(test)]

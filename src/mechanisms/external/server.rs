@@ -2,7 +2,7 @@ use std::io::Write;
 use crate::mechanism::Authentication;
 use crate::property::AuthId;
 use crate::session::{SessionData, StepResult};
-use crate::validate::EXTERNAL;
+use crate::validate::validations::EXTERNAL;
 use crate::session::Step::Done;
 use crate::SASLError::MechanismParseError;
 

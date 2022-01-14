@@ -14,13 +14,13 @@ pub trait Callback {
     /// # use rsasl::error::SASLError;
     /// # use rsasl::error::SASLError::NoCallback;
     /// # use rsasl::Property;
-    /// # use rsasl::property::Password;
+    /// use rsasl::property::{properties, Password};
     /// # use rsasl::session::SessionData;
     /// # struct CB;
     /// # impl Callback for CB {
     /// fn provide_prop(&self, session: &mut SessionData, property: Property) -> Result<(), SASLError> {
     ///     match property {
-    ///         PASSWORD => {
+    ///         properties::PASSWORD => {
     ///             session.set_property::<Password>(Box::new("secret".to_string()));
     ///             Ok(())
     ///         }

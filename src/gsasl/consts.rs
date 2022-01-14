@@ -1,5 +1,5 @@
 use crate::Property;
-use crate::property::*;
+use crate::property::properties::*;
 
 pub type RsaslError = libc::c_uint;
 pub const GSASL_IO_ERROR: libc::c_uint = 65;
