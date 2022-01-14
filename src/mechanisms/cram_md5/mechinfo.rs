@@ -7,7 +7,7 @@ use crate::mechanisms::cram_md5::server::{_gsasl_cram_md5_server_finish, _gsasl_
 use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static CRAM_MD5: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unchecked("CRAM-MD5"),
+    mechanism: &Mechname::const_new_unchecked(b"CRAM-MD5"),
     client: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
         init: None,
         done: None,

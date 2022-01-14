@@ -7,7 +7,7 @@ use crate::mechanisms::plain::server::_gsasl_plain_server_step;
 use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static PLAIN: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unchecked("PLAIN"),
+    mechanism: &Mechname::const_new_unchecked(b"PLAIN"),
     client: Some(|_sasl| Ok(Box::new(client::Plain))),
     server: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
             init: None,
