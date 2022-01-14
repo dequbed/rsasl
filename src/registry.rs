@@ -90,7 +90,6 @@ pub struct Mechanism {
 
     pub priority: usize,
 
-    /// Construct a new instance of this Mechanism
     pub client: Option<StartFn>,
     pub server: Option<StartFn>
 }
