@@ -19,8 +19,7 @@ impl Callback for OurCallback {
         match property {
             PASSWORD => {
                 // Access the authentication id, i.e. the username to check the password for
-                let _authcid = session.get_property_or_callback::<AuthId>()
-                    .ok_or(SASLError::NoProperty { property: AUTHID })?;
+                let _authcid = session.get_property_or_callback::<AuthId>()?;
 
                 session.set_property::<Password>(Box::new("secret".to_string()));
 
