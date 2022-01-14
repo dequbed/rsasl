@@ -75,7 +75,7 @@ pub(crate) struct CMechanismStateKeeper {
 }
 
 impl CMechanismStateKeeper {
-    pub fn new(vtable: MechanismVTable) -> Result<Box<dyn Authentication>, SASLError> {
+    pub fn build(vtable: MechanismVTable) -> Result<Box<dyn Authentication>, SASLError> {
         if vtable.init.is_some() {
             panic!("Initialization of C Mechanism at a global level is not implemented")
         }

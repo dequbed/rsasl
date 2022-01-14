@@ -8,7 +8,8 @@ use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static SCRAM_SHA1: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unchecked(b"SCRAM-SHA-1"),
-    client: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    priority: 400,
+    client: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha1_client_start),
@@ -17,7 +18,7 @@ pub static SCRAM_SHA1: Mechanism = Mechanism {
         encode: None,
         decode: None,
     })),
-    server: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    server: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha1_server_start),
@@ -31,7 +32,8 @@ pub static SCRAM_SHA1: Mechanism = Mechanism {
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static SCRAM_SHA1_PLUS: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unchecked(b"SCRAM-SHA-1-PLUS"),
-    client: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    priority: 500,
+    client: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha1_plus_client_start),
@@ -40,7 +42,7 @@ pub static SCRAM_SHA1_PLUS: Mechanism = Mechanism {
         encode: None,
         decode: None,
     })),
-    server: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    server: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha1_plus_server_start),
@@ -54,7 +56,8 @@ pub static SCRAM_SHA1_PLUS: Mechanism = Mechanism {
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static SCRAM_SHA256: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unchecked(b"SCRAM-SHA-256"),
-    client: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    priority: 600,
+    client: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha256_client_start),
@@ -63,7 +66,7 @@ pub static SCRAM_SHA256: Mechanism = Mechanism {
         encode: None,
         decode: None,
     })),
-    server: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    server: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha256_server_start),
@@ -77,7 +80,8 @@ pub static SCRAM_SHA256: Mechanism = Mechanism {
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unchecked(b"SCRAM-SHA-256-PLUS"),
-    client: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    priority: 700,
+    client: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha256_plus_client_start),
@@ -86,7 +90,7 @@ pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
         encode: None,
         decode: None,
     })),
-    server: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    server: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_scram_sha256_plus_server_start),

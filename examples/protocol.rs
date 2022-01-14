@@ -9,7 +9,7 @@ struct ProtocolHandler {
 
 impl ProtocolHandler {
     fn handle_auth(&mut self, mechs: &[&str]) -> Result<(), SASLError> {
-        let mech = self.sasl_handler.suggest_client_mechanism(mechs);
+        let mech = self.sasl_handler.client_start_suggested(mechs);
         if let Some(mech) = mech {
         }
         todo!()

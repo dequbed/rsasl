@@ -7,8 +7,9 @@ use crate::mechanisms::saml20::server::{_gsasl_saml20_server_finish, _gsasl_saml
 use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static SAML20: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unchecked("SAML20"),
-    client: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    priority: 1000,
+    mechanism: &Mechname::const_new_unchecked(b"SAML20"),
+    client: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_saml20_client_start),
@@ -17,7 +18,7 @@ pub static SAML20: Mechanism = Mechanism {
         encode: None,
         decode: None,
     })),
-    server: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    server: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_saml20_server_start),

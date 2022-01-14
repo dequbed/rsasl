@@ -7,8 +7,9 @@ use crate::mechanisms::securid::server::_gsasl_securid_server_step;
 use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static SECURID: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unchecked("SECURID"),
-    client: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    mechanism: &Mechname::const_new_unchecked(b"SECURID"),
+    priority: 300,
+    client: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: Some(_gsasl_securid_client_start),
@@ -17,7 +18,7 @@ pub static SECURID: Mechanism = Mechanism {
         encode: None,
         decode: None,
     })),
-    server: Some(|_sasl| CMechanismStateKeeper::new(MechanismVTable {
+    server: Some(|_sasl| CMechanismStateKeeper::build(MechanismVTable {
         init: None,
         done: None,
         start: None,

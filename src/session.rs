@@ -6,6 +6,7 @@ use std::sync::Arc;
 use base64::write::EncoderWriter;
 
 use crate::{Callback, Mechname, Property, SASLError};
+use crate::channel_binding::NoChannelBindings;
 use crate::gsasl::consts::{Gsasl_property, property_from_code};
 use crate::mechanism::Authentication;
 use crate::property::PropertyQ;
@@ -30,7 +31,21 @@ impl Session {
         }
     }
 
+    pub fn set_property<P: PropertyQ>(&mut self, item: Box<P::Item>) -> Option<Box<P::Item>> {
+        self.session_data.set_property::<P>(item)
+            .map(|old| old.downcast().expect("old session data value was of bad type"))
+    }
+
+    pub fn get_property<P: PropertyQ>(&mut self) -> Result<&P::Item, SASLError> {
+        self.session_data.get_property::<P>()
+    }
+}
+
+#[cfg(feature = "provider")]
+impl Session {
     /// Perform one step of SASL authentication.
+    ///
+    /// *requires feature `provider`*
     ///
     /// A protocol implementation calls this method with any data provided by the other party,
     /// returning any response data written to the other party until after a Ok([`Step::Done`]) or
@@ -56,8 +71,13 @@ impl Session {
             self.mechanism.step(&mut self.session_data, None, writer)
         }
     }
+}
 
+#[cfg(feature = "provider_base64")]
+impl Session {
     /// Perform one step of SASL authentication, base64 encoded.
+    ///
+    /// *requires feature `provider_base64`*
     ///
     /// This is a utility function wrapping [`Session::step`] to consume and produce
     /// base64-encoded data. See the documentation of `step` for details on how this function
@@ -72,15 +92,6 @@ impl Session {
             .transpose()?;
         let mut writer64 = EncoderWriter::new(writer, base64::STANDARD);
         self.step(input, &mut writer64)
-    }
-
-    pub fn set_property<P: PropertyQ>(&mut self, item: Box<P::Item>) -> Option<Box<P::Item>> {
-        self.session_data.set_property::<P>(item)
-            .map(|old| old.downcast().expect("old session data value was of bad type"))
-    }
-
-    pub fn get_property<P: PropertyQ>(&mut self) -> Result<&P::Item, SASLError> {
-        self.session_data.get_property::<P>()
     }
 }
 
@@ -207,7 +218,7 @@ mod tests {
                 mechname,
         );
 
-        assert!(session.get_property::<AuthId>().is_none());
+        assert!(session.get_property::<AuthId>().is_err());
         assert_eq!(session.get_property_or_callback::<AuthId>().unwrap(), "is 0");
     }
 
@@ -217,7 +228,7 @@ mod tests {
         let mut sess = sasl.client_start(Mechname::new(b"PLAIN").unwrap())
             .unwrap();
 
-        assert!(sess.get_property::<AuthId>().is_none());
+        assert!(sess.get_property::<AuthId>().is_err());
         assert!(sess.session_data.property_cache.is_empty());
 
         assert!(sess.set_property::<AuthId>(Box::new("test".to_string())).is_none());
@@ -234,7 +245,7 @@ mod tests {
         let mut sess = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
 
 
-        assert!(sess.get_property::<AuthId>().is_none());
+        assert!(sess.get_property::<AuthId>().is_err());
         assert!(sess.session_data.property_cache.is_empty());
 
         unsafe {
