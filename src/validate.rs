@@ -1,4 +1,5 @@
 use std::fmt::{Debug, Display, Formatter};
+use crate::mechanisms::digest_md5::parser::digest_md5_finish;
 
 #[derive(Debug)]
 pub struct ValidationDefinition {
@@ -12,28 +13,25 @@ impl ValidationDefinition {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
-#[repr(transparent)]
 pub struct Validation {
-    witness: *const ValidationDefinition,
+    name: &'static str,
+    display: &'static str,
 }
 impl Debug for Validation {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let def = unsafe { &*self.witness };
         f.debug_tuple("Validation")
-         .field(&def.name)
+         .field(&self.name)
          .finish()
     }
 }
 impl Display for Validation {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let def = unsafe { &*self.witness };
-        f.write_str(def.display)
+        f.write_str(self.display)
     }
 }
 impl Validation {
     pub const fn new(definition: &'static ValidationDefinition) -> Self {
-        let witness = definition as *const _;
-        Self { witness }
+        Self { name: definition.name, display: definition.display }
     }
 }
 

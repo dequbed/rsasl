@@ -1,6 +1,5 @@
 use std::io::Write;
 use crate::{Mechname, SASL, SASLError};
-use crate::channel_binding::ChannelBindingsCB;
 use crate::SASLError::NoSecurityLayer;
 use crate::session::{SessionData, StepResult};
 
