@@ -1,17 +1,9 @@
 use std::ffi::CString;
-use libc::size_t;
+use libc::{size_t, strlen};
 use crate::gsasl::consts::*;
 use crate::gsasl::consts::{GSASL_OK, Gsasl_property};
 use crate::property::*;
 use crate::session::SessionData;
-
-extern "C" {
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
-     -> *mut libc::c_void;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn rpl_free(ptr: *mut libc::c_void);
-}
 
 pub unsafe fn gsasl_property_set(mut sctx: &mut SessionData,
                                  mut prop: Gsasl_property,

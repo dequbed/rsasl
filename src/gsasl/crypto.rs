@@ -1,14 +1,11 @@
 use ::libc;
-use libc::size_t;
+use libc::{size_t, strlen};
 use crate::gsasl::consts::GSASL_OK;
+use crate::gsasl::gl::free::rpl_free;
 use crate::gsasl::gl::gc_gnulib::{gc_nonce, gc_random};
 use crate::gsasl::mechtools::{_gsasl_hash, _gsasl_hmac, _gsasl_pbkdf2, Gsasl_hash, GSASL_HASH_SHA1_SIZE, GSASL_HASH_SHA256_SIZE};
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep};
 
-extern "C" {
-    fn strlen(_: *const libc::c_char) -> size_t;
-    fn rpl_free(ptr: *mut libc::c_void);
-}
 /* gc.h --- Header file for implementation agnostic crypto wrapper API.
  * Copyright (C) 2002-2005, 2007-2008, 2011-2021 Free Software Foundation, Inc.
  *
@@ -408,7 +405,7 @@ pub unsafe fn gsasl_scram_secrets_from_salted_password(mut hash:
  *
  * Since: 1.10
  **/
-#[no_mangle]
+
 pub unsafe fn gsasl_scram_secrets_from_password(mut hash:
                                                                Gsasl_hash,
                                                            mut password:

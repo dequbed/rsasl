@@ -1,10 +1,7 @@
 use ::libc;
+use libc::strdup;
+use crate::gsasl::gl::free::rpl_free;
 use crate::mechanisms::digest_md5::getsubopt::digest_md5_getsubopt;
-
-extern "C" {
-    fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    fn rpl_free(_: *mut libc::c_void);
-}
 
 pub type digest_md5_qop = libc::c_uint;
 pub const DIGEST_MD5_QOP_AUTH_CONF: digest_md5_qop = 4;

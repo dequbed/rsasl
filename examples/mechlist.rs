@@ -1,6 +1,7 @@
 use std::ffi::CString;
 use std::io::Write;
 use rsasl::mechanism::Authentication;
+use rsasl::mechanisms::securid::mechinfo::SECURID;
 use rsasl::mechname::Mechname;
 use rsasl::registry::Mechanism;
 use rsasl::SASL;
@@ -24,7 +25,6 @@ const TEST: Mechanism = Mechanism {
 
 pub fn main() {
     let mut sasl = SASL::new();
-
     sasl.register(&TEST);
 
     println!("{:#?}", sasl);

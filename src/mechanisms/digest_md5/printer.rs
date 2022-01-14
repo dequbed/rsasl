@@ -1,12 +1,11 @@
 use ::libc;
 use libc::size_t;
+use crate::gsasl::gl::free::rpl_free;
 use crate::mechanisms::digest_md5::parser::{digest_md5_challenge, DIGEST_MD5_CIPHER_3DES, DIGEST_MD5_CIPHER_AES_CBC, DIGEST_MD5_CIPHER_DES, DIGEST_MD5_CIPHER_RC4, DIGEST_MD5_CIPHER_RC4_40, DIGEST_MD5_CIPHER_RC4_56, digest_md5_finish, digest_md5_response};
 use crate::mechanisms::digest_md5::qop::{DIGEST_MD5_QOP_AUTH, DIGEST_MD5_QOP_AUTH_CONF, DIGEST_MD5_QOP_AUTH_INT};
 use crate::mechanisms::digest_md5::validate::{digest_md5_validate_challenge, digest_md5_validate_finish, digest_md5_validate_response};
 
 extern "C" {
-    fn rpl_free(ptr: *mut libc::c_void);
-
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,
                 _: ...) -> libc::c_int;
 }

@@ -1,21 +1,11 @@
 use std::ptr::NonNull;
 use ::libc;
-use libc::size_t;
+use libc::{malloc, memchr, memcpy, size_t, strdup, strlen};
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_OK, GSASL_PASSCODE, GSASL_PIN, GSASL_SUGGESTED_PIN, GSASL_VALIDATE_SECURID};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
 use crate::session::SessionData;
 use crate::Shared;
-
-extern "C" {
-    fn malloc(_: size_t) -> *mut libc::c_void;
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
-     -> *mut libc::c_void;
-    fn memchr(_: *const libc::c_void, _: libc::c_int, _: size_t)
-     -> *mut libc::c_void;
-    fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    fn strlen(_: *const libc::c_char) -> size_t;
-}
 
 /* securid.h --- Prototypes for SASL mechanism SECURID as defined in RFC 2808.
  * Copyright (C) 2002-2021 Simon Josefsson

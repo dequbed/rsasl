@@ -1,37 +1,12 @@
 use std::ptr::NonNull;
 use ::libc;
-use libc::size_t;
+use libc::{calloc, size_t, strcmp, strdup, strlen, strndup};
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_CALLBACK, GSASL_OK, GSASL_PASSWORD, GSASL_VALIDATE_SIMPLE};
+use crate::gsasl::gl::free::rpl_free;
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
 use crate::session::SessionData;
 use crate::Shared;
-
-extern "C" {
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <string.h>.
-
-   Copyright (C) 1995-1996, 2001-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    fn rpl_free(ptr: *mut libc::c_void);
-    fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
-    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    fn strndup(_: *const libc::c_char, _: size_t) -> *mut libc::c_char;
-    fn strlen(_: *const libc::c_char) -> size_t;
-}
 
 /* server.c --- Non-standard SASL mechanism LOGIN, server side.
  * Copyright (C) 2002-2021 Simon Josefsson

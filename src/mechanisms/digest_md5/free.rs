@@ -1,14 +1,8 @@
 use ::libc;
-use libc::size_t;
+use libc::{memset, size_t};
+use crate::gsasl::gl::free::rpl_free;
 use crate::mechanisms::digest_md5::parser::{digest_md5_challenge, digest_md5_finish,
                                        digest_md5_response};
-
-extern "C" {
-    fn rpl_free(ptr: *mut libc::c_void);
-
-    fn memset(_: *mut libc::c_void, _: libc::c_int, _: size_t)
-     -> *mut libc::c_void;
-}
 
 /* free.h --- Free allocated data in DIGEST-MD5 token structures.
  * Copyright (C) 2004-2021 Simon Josefsson

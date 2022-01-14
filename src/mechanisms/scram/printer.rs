@@ -1,15 +1,12 @@
 use ::libc;
-use libc::size_t;
+use libc::{malloc, memcpy, size_t, strlen};
+use crate::gsasl::gl::free::rpl_free;
 use crate::mechanisms::scram::client::{scram_client_final, scram_client_first};
 use crate::mechanisms::scram::server::{scram_server_final, scram_server_first};
 use crate::mechanisms::scram::validate::{scram_valid_client_final, scram_valid_client_first, scram_valid_server_final, scram_valid_server_first};
 
 extern "C" {
-    fn malloc(_: size_t) -> *mut libc::c_void;
-    fn rpl_free(ptr: *mut libc::c_void);
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char, _: ...) -> libc::c_int;
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t) -> *mut libc::c_void;
-    fn strlen(_: *const libc::c_char) -> size_t;
 }
 
 /* printer.h --- Convert SCRAM token structures into strings.

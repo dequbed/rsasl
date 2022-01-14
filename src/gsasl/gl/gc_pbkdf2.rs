@@ -1,19 +1,9 @@
 use ::libc;
-use libc::size_t;
+use libc::{malloc, memcpy, memset, size_t};
 use crate::gsasl::gc::{GC_INVALID_HASH, GC_MALLOC_ERROR, GC_OK, GC_PKCS5_DERIVED_KEY_TOO_LONG, GC_PKCS5_INVALID_DERIVED_KEY_LENGTH, GC_PKCS5_INVALID_ITERATION_COUNT, Gc_rc};
+use crate::gsasl::gl::free::rpl_free;
 use crate::gsasl::gl::gc_gnulib::{Gc_hash, gc_hmac_sha1, gc_hmac_sha256};
 
-extern "C" {
-    fn rpl_free(ptr: *mut libc::c_void);
-
-    fn malloc(_: size_t) -> *mut libc::c_void;
-
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
-     -> *mut libc::c_void;
-
-    fn memset(_: *mut libc::c_void, _: libc::c_int, _: size_t)
-     -> *mut libc::c_void;
-}
 /* gc.h --- Header file for implementation agnostic crypto wrapper API.
  * Copyright (C) 2002-2005, 2007-2008, 2011-2021 Free Software Foundation, Inc.
  *

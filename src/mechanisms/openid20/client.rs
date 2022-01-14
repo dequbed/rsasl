@@ -1,44 +1,13 @@
 use std::ptr::NonNull;
 use ::libc;
-use libc::size_t;
+use libc::{calloc, size_t, strdup, strlen, strncmp};
 use crate::gsasl::callback::gsasl_callback;
 use crate::gsasl::consts::{GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_NEEDS_MORE, GSASL_NO_AUTHID, GSASL_OK, GSASL_OPENID20_AUTHENTICATE_IN_BROWSER, GSASL_OPENID20_OUTCOME_DATA, GSASL_OPENID20_REDIRECT_URL};
+use crate::gsasl::gl::free::rpl_free;
+use crate::gsasl::mechtools::_gsasl_gs2_generate_header;
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set_raw};
 use crate::session::SessionData;
 use crate::Shared;
-
-extern "C" {
-    fn strncmp(_: *const libc::c_char, _: *const libc::c_char,
-               _: size_t) -> libc::c_int;
-    fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    fn strlen(_: *const libc::c_char) -> size_t;
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <stdlib.h>.
-
-   Copyright (C) 1995, 2001-2004, 2006-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    fn rpl_free(_: *mut libc::c_void);
-    fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
-    fn _gsasl_gs2_generate_header(nonstd: bool, cbflag: libc::c_char,
-                                  cbname: *const libc::c_char,
-                                  authzid: *const libc::c_char,
-                                  extralen: size_t,
-                                  extra: *const libc::c_char,
-                                  gs2h: *mut *mut libc::c_char,
-                                  gs2hlen: *mut size_t) -> libc::c_int;
-}
 
 /* client.c --- OPENID20 mechanism, client side.
  * Copyright (C) 2011-2021 Simon Josefsson

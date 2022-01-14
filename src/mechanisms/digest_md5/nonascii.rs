@@ -1,13 +1,5 @@
 use ::libc;
-use libc::size_t;
-extern "C" {
-
-    fn malloc(_: size_t) -> *mut libc::c_void;
-
-    fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-
-    fn strlen(_: *const libc::c_char) -> size_t;
-}
+use libc::{malloc, size_t, strdup, strlen};
 
 /* server.c --- DIGEST-MD5 mechanism from RFC 2831, server side.
  * Copyright (C) 2002-2021 Simon Josefsson

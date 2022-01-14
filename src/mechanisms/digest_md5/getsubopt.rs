@@ -1,10 +1,6 @@
 use ::libc;
-use libc::size_t;
-extern "C" {
-    fn memcmp(_: *const libc::c_void, _: *const libc::c_void, _: size_t) -> libc::c_int;
+use libc::{memchr, memcmp, size_t};
 
-    fn memchr(_: *const libc::c_void, _: libc::c_int, _: size_t) -> *mut libc::c_void;
-}
 /* getsubopt.c --- Parse comma separate list into words, DIGEST-MD5 style.
  * Copyright (C) 2002-2021 Simon Josefsson
  * Copyright (C) 1996, 1997, 1999 Free Software Foundation, Inc.

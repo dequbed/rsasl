@@ -8,7 +8,7 @@ extern "C" {
                  __msgid: *const libc::c_char, __category: libc::c_int)
      -> *mut libc::c_char;
 }
-/* *INDENT-OFF* */
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct C2RustUnnamed_0 {

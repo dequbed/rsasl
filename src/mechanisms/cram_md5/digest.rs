@@ -1,10 +1,7 @@
 use ::libc;
-use libc::size_t;
+use libc::{size_t, strlen};
 use crate::gsasl::gl::gc_gnulib::gc_hmac_md5;
 
-extern "C" {
-    fn strlen(_: *const libc::c_char) -> size_t;
-}
 /* gc.h --- Header file for implementation agnostic crypto wrapper API.
  * Copyright (C) 2002-2005, 2007-2008, 2011-2021 Free Software Foundation, Inc.
  *
@@ -50,7 +47,7 @@ extern "C" {
    SECRET, respectively, is zero terminated.  The RESPONSE buffer must
    be allocated by the caller, and must have room for
    CRAM_MD5_DIGEST_LEN characters.*/
-#[no_mangle]
+
 pub unsafe fn cram_md5_digest(mut challenge: *const libc::c_char,
                                          mut challengelen: size_t,
                                          mut secret: *const libc::c_char,

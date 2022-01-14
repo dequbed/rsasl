@@ -1,78 +1,16 @@
 use std::ffi::CString;
 use std::ptr::NonNull;
 use ::libc;
-use libc::size_t;
+use libc::{calloc, malloc, memcmp, memcpy, size_t, strdup, strlen};
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_PASSWORD, GSASL_OK};
+use crate::gsasl::gl::free::rpl_free;
 use crate::gsasl::property::gsasl_property_set;
 use crate::gsasl::saslprep::{gsasl_saslprep, Gsasl_saslprep_flags};
+use crate::mechanisms::cram_md5::challenge::cram_md5_challenge;
+use crate::mechanisms::cram_md5::digest::cram_md5_digest;
 use crate::property::Password;
 use crate::session::SessionData;
 use crate::Shared;
-
-extern "C" {
-    fn malloc(_: size_t) -> *mut libc::c_void;
-    fn calloc(_: size_t, _: size_t) -> *mut libc::c_void;
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <string.h>.
-
-   Copyright (C) 1995-1996, 2001-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-    fn rpl_free(ptr: *mut libc::c_void);
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
-     -> *mut libc::c_void;
-    fn memcmp(_: *const libc::c_void, _: *const libc::c_void,
-              _: size_t) -> libc::c_int;
-    fn strdup(_: *const libc::c_char) -> *mut libc::c_char;
-    fn strlen(_: *const libc::c_char) -> size_t;
-    /* Store zero terminated CRAM-MD5 challenge in output buffer.  The
-   CHALLENGE buffer must be allocated by the caller, and must have
-   room for CRAM_MD5_CHALLENGE_LEN characters.  Returns 0 on success,
-   and -1 on randomness problems.  */
-    fn cram_md5_challenge(challenge: *mut libc::c_char) -> libc::c_int;
-    /* digest.h --- Generate a CRAM-MD5 hex encoded HMAC-MD5 response string.
- * Copyright (C) 2002-2021 Simon Josefsson
- *
- * This file is part of GNU SASL Library.
- *
- * GNU SASL Library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * GNU SASL Library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with GNU SASL Library; if not, write to the Free
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA 02110-1301, USA.
- *
- */
-    /* Get size_t. */
-    /* Compute hex encoded HMAC-MD5 on the CHALLENGELEN long string
-   CHALLENGE, keyed with SECRET of length SECRETLEN.  Use a
-   CHALLENGELEN or SECRETLEN of 0 to indicate that CHALLENGE or
-   SECRET, respectively, is zero terminated.  The RESPONSE buffer must
-   be allocated by the caller, and must have room for
-   CRAM_MD5_DIGEST_LEN characters.*/
-    fn cram_md5_digest(challenge: *const libc::c_char, challengelen: size_t,
-                       secret: *const libc::c_char, secretlen: size_t,
-                       response: *mut libc::c_char);
-}
 
 pub(crate) unsafe fn _gsasl_cram_md5_server_start(_ctx: &Shared,
                                            mech_data: &mut Option<NonNull<()>>,

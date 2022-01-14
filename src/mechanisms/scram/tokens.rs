@@ -1,12 +1,9 @@
 use ::libc;
-use libc::size_t;
+use libc::{memset, size_t};
+use crate::gsasl::gl::free::rpl_free;
 use crate::mechanisms::scram::client::{scram_client_final, scram_client_first};
 use crate::mechanisms::scram::server::{scram_server_final, scram_server_first};
 
-extern "C" {
-    fn rpl_free(ptr: *mut libc::c_void);
-    fn memset(_: *mut libc::c_void, _: libc::c_int, _: size_t) -> *mut libc::c_void;
-}
 /* tokens.h --- Types for SCRAM tokens.
  * Copyright (C) 2009-2021 Simon Josefsson
  *

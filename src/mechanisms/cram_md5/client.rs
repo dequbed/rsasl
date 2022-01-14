@@ -1,48 +1,12 @@
 use std::ffi::CString;
 use std::ptr::NonNull;
-use libc::size_t;
+use libc::{malloc, memcpy, size_t, strlen};
 use crate::gsasl::consts::*;
+use crate::gsasl::gl::free::rpl_free;
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep};
+use crate::mechanisms::cram_md5::digest::cram_md5_digest;
 use crate::property::{AuthId, Password};
 use crate::session::SessionData;
-
-extern "C" {
-    fn malloc(_: size_t) -> *mut libc::c_void;
-    /* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* A GNU-like <string.h>.
-
-   Copyright (C) 1995-1996, 2001-2021 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-
-    fn rpl_free(ptr: *mut libc::c_void);
-
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
-     -> *mut libc::c_void;
-
-    fn strlen(_: *const libc::c_char) -> size_t;
-    /* Compute hex encoded HMAC-MD5 on the CHALLENGELEN long string
-   CHALLENGE, keyed with SECRET of length SECRETLEN.  Use a
-   CHALLENGELEN or SECRETLEN of 0 to indicate that CHALLENGE or
-   SECRET, respectively, is zero terminated.  The RESPONSE buffer must
-   be allocated by the caller, and must have room for
-   CRAM_MD5_DIGEST_LEN characters.*/
-
-    fn cram_md5_digest(challenge: *const libc::c_char, challengelen: size_t,
-                       secret: *const libc::c_char, secretlen: size_t,
-                       response: *mut libc::c_char);
-}
 
 /* cram-md5.h --- Prototypes for CRAM-MD5 mechanism as defined in RFC 2195.
  * Copyright (C) 2002-2021 Simon Josefsson

@@ -1,17 +1,8 @@
 use ::libc;
-use libc::size_t;
+use libc::{malloc, memchr, memcpy, size_t, strnlen};
 use crate::mechanisms::scram::client::{scram_client_final, scram_client_first};
 use crate::mechanisms::scram::server::{scram_server_final, scram_server_first};
 use crate::mechanisms::scram::validate::{scram_valid_client_final, scram_valid_client_first, scram_valid_server_final, scram_valid_server_first};
-
-extern "C" {
-    fn malloc(_: size_t) -> *mut libc::c_void;
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
-     -> *mut libc::c_void;
-    fn memchr(_: *const libc::c_void, _: libc::c_int, _: size_t)
-     -> *mut libc::c_void;
-    fn strnlen(__string: *const libc::c_char, __maxlen: size_t) -> size_t;
-}
 
 /* tokens.h --- Types for SCRAM tokens.
  * Copyright (C) 2009-2021 Simon Josefsson

@@ -1,20 +1,9 @@
 use ::libc;
-use libc::size_t;
+use libc::{malloc, memcmp, memcpy, size_t};
+use crate::gsasl::gl::free::rpl_free;
 use crate::mechanisms::digest_md5::qop::{digest_md5_qop, DIGEST_MD5_QOP_AUTH_CONF,
                                   DIGEST_MD5_QOP_AUTH_INT};
 use crate::gsasl::gl::gc_gnulib::gc_hmac_md5;
-
-extern "C" {
-    fn rpl_free(ptr: *mut libc::c_void);
-
-    fn malloc(_: size_t) -> *mut libc::c_void;
-
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: size_t)
-     -> *mut libc::c_void;
-
-    fn memcmp(_: *const libc::c_void, _: *const libc::c_void,
-              _: size_t) -> libc::c_int;
-}
 
 pub unsafe fn digest_md5_encode(mut input: *const libc::c_char,
                                            mut input_len: size_t,
