@@ -1,4 +1,4 @@
-use crate::{Mechanism, Mechname};
+use crate::{Mechanism, Mechname, Side};
 use crate::gsasl::gsasl::{CMechanismStateKeeper, MechanismVTable};
 use crate::mechanisms::securid::client::{_gsasl_securid_client_finish, _gsasl_securid_client_start, _gsasl_securid_client_step};
 use crate::mechanisms::securid::server::_gsasl_securid_server_step;
@@ -27,4 +27,5 @@ pub static SECURID: Mechanism = Mechanism {
         encode: None,
         decode: None,
     })),
+    first: Side::Client,
 };

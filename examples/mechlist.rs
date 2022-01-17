@@ -5,7 +5,7 @@ use rsasl::mechanisms::securid::mechinfo::SECURID;
 use rsasl::mechname::Mechname;
 use rsasl::registry::Mechanism;
 use rsasl::SASL;
-use rsasl::session::{SessionData, StepResult};
+use rsasl::session::{SessionData, Side, StepResult};
 
 struct Test;
 impl Authentication for Test {
@@ -20,11 +20,13 @@ const TEST: Mechanism = Mechanism {
     mechanism: Mechname::const_new_unchecked(b"X-TEST"),
     priority: 500,
     client: Some(|_sasl| Ok(Box::new(Test))),
-    server: None
+    server: None,
+    first: Side::Client,
 };
 
 pub fn main() {
     let mut sasl = SASL::new();
+    sasl.init();
     sasl.register(&TEST);
 
     println!("{:#?}", sasl);

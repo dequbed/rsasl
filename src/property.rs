@@ -6,7 +6,7 @@
 //! 1. A type indicating your property
 //! 2. A `const Property` that is used to query this property
 //!
-//! ```no-run
+//! ```no_run
 //! use std::marker::PhantomData;
 //! use rsasl::{Property, PropertyQ};
 //! // All Property types must implement Debug.

@@ -1,5 +1,5 @@
 use ::libc;
-use libc::{size_t, strcmp, strlen};
+use libc::{strcmp, strlen};
 use crate::mechanisms::digest_md5::parser::{digest_md5_challenge, digest_md5_finish, digest_md5_response};
 use crate::mechanisms::digest_md5::qop::{DIGEST_MD5_QOP_AUTH, DIGEST_MD5_QOP_AUTH_CONF};
 

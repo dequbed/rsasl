@@ -1,5 +1,5 @@
 use ::libc;
-use libc::{memset, size_t};
+use libc::memset;
 use crate::gsasl::gl::free::rpl_free;
 use crate::mechanisms::scram::client::{scram_client_final, scram_client_first};
 use crate::mechanisms::scram::server::{scram_server_final, scram_server_first};

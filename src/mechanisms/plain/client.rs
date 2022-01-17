@@ -75,14 +75,15 @@ mod test {
     use std::collections::HashMap;
     use std::io::Cursor;
     use std::sync::Arc;
-    use crate::Mechname;
+    use crate::mechanisms::plain::mechinfo::PLAIN;
+    use crate::{Mechname, Side};
     use crate::session::SessionData;
     use crate::session::Step::NeedsMore;
     use super::*;
 
     #[test]
     fn simple() {
-        let mut session = SessionData::new(None, Arc::new(HashMap::new()), Mechname::new_unchecked("X-TEST"));
+        let mut session = SessionData::new(None, Arc::new(HashMap::new()), &PLAIN, Side::Client);
 
         let username = "testuser".to_string();
         assert_eq!(username.len(), 8);
@@ -117,7 +118,7 @@ mod test {
 
     #[test]
     fn split_writer() {
-        let mut session = SessionData::new(None, Arc::new(HashMap::new()), Mechname::new_unchecked("X-TEST"));
+        let mut session = SessionData::new(None, Arc::new(HashMap::new()), &PLAIN, Side::Client);
 
         let username = "testuser".to_string();
         assert_eq!(username.len(), 8);

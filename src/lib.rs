@@ -93,6 +93,7 @@ use std::sync::Arc;
 
 pub use libc;
 
+pub mod sasl;
 pub mod session;
 pub mod error;
 pub mod callback;
@@ -116,7 +117,7 @@ use crate::error::SASLError;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 use crate::registry::{Mechanism, MECHANISMS};
-use crate::session::Session;
+use crate::session::{Session, Side};
 
 
 /// SASL Provider context
@@ -144,31 +145,6 @@ pub struct SASL {
     sort_fn: fn (a: &&Mechanism, b: &&Mechanism) -> Ordering,
 }
 
-impl SASL {
-    pub fn new() -> Self {
-        Self {
-            global_data: Arc::new(HashMap::new()),
-            callback: None,
-
-            #[cfg(feature = "registry_dynamic")]
-            dynamic_mechs: Vec::new(),
-
-            #[cfg(feature = "registry_static")]
-            static_mechs: &registry::MECHANISMS,
-
-            sort_fn: |a, b| a.priority.cmp(&b.priority),
-        }
-    }
-
-    pub fn init(&mut self) {
-        init::register_builtin(self);
-    }
-
-    pub fn install_callback(&mut self, callback: Arc<dyn Callback>) {
-        self.callback = Some(callback);
-    }
-}
-
 impl Debug for SASL {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut s = f.debug_struct("SASL");
@@ -179,13 +155,6 @@ impl Debug for SASL {
         #[cfg(feature = "registry_static")]
             s.field("collected mechanisms", &self.static_mechs);
         s.finish()
-    }
-}
-
-#[cfg(feature = "registry_dynamic")]
-impl SASL {
-    pub fn register(&mut self, mechanism: &'static Mechanism) {
-        self.dynamic_mechs.push(mechanism)
     }
 }
 
@@ -201,22 +170,50 @@ impl SASL {
     ///
     /// An interactive client "logging in" to some server application would use this method. The
     /// server application would use [`SASL::server_mech_list()`].
-    pub fn client_mech_list(&self) -> impl IntoIterator<Item=&Mechanism>
+    pub fn client_mech_list(&self) -> impl IntoIterator<Item=&'static Mechanism> + '_
     {
-        MECHANISMS.into_iter()
-            .chain(self.dynamic_mechs.iter().map(|m| *m))
-            .filter(|mechanism| mechanism.client.is_some())
+        #[cfg(feature = "registry_static")] {
+            #[cfg(feature = "registry_dynamic")] {
+                MECHANISMS.into_iter()
+                          .chain(self.dynamic_mechs.iter().map(|m| *m))
+                          .filter(|mechanism| mechanism.client.is_some())
+            }
+            #[cfg(not(feature = "registry_dynamic"))] {
+                MECHANISMS.into_iter()
+                          .filter(|mechanism| mechanism.client.is_some())
+            }
+        }
+        #[cfg(all(not(feature = "registry_static"), feature = "registry_dynamic"))] {
+            self.dynamic_mechs.iter().map(|m| *m)
+        }
+        #[cfg(not(any(feature = "registry_static", feature = "registry_dynamic")))] {
+            []
+        }
     }
 
     /// Returns the list of Server Mechanisms supported by this provider.
     ///
     /// An server allowing client software to "log in" would use this method. A client
     /// application would use [`SASL::client_mech_list()`].
-    pub fn server_mech_list(&self) -> impl IntoIterator<Item=&Mechanism>
+    pub fn server_mech_list(&self) -> impl IntoIterator<Item=&'static Mechanism> + '_
     {
-        MECHANISMS.into_iter()
-            .chain(self.dynamic_mechs.iter().map(|m| *m))
-            .filter(|mechanism| mechanism.server.is_some())
+        let statics = {
+            #[cfg(feature = "registry_static")] {
+                MECHANISMS.into_iter()
+            }
+            #[cfg(not(feature = "registry_static"))] {
+                [].into_iter()
+            }
+        };
+        let dynamics = {
+            #[cfg(feature = "registry_dynamic")] {
+                self.dynamic_mechs.iter().map(|m| *m)
+            }
+            #[cfg(not(feature = "registry_dynamic"))] {
+                (&[]).iter()
+            }
+        };
+        statics.chain(dynamics).filter(|mechanism| mechanism.server.is_some())
     }
 
     pub fn client_start_suggested<'a>(&self, mechs: impl IntoIterator<Item=&'a Mechname>)
@@ -235,7 +232,7 @@ impl SASL {
                      })
              })
              .max_by(|(a, _), (b, _)| (self.sort_fn)(a, b))
-             .map(|(m, auth)| self.new_session(m.mechanism, auth))
+             .map(|(m, auth)| self.new_session(m, auth, Side::Client))
              .ok_or(SASLError::NoSharedMechanism)
     }
 
@@ -254,7 +251,7 @@ impl SASL {
                      })
              })
              .max_by(|(a, _), (b, _)| (self.sort_fn)(a, b))
-             .map(|(m, auth)| self.new_session(m.mechanism, auth))
+             .map(|(m, auth)| self.new_session(m, auth, Side::Server))
              .ok_or(SASLError::NoSharedMechanism)
     }
 
@@ -281,15 +278,18 @@ impl SASL {
     /// This function should rarely be necessary, see [`SASL::client_start`] and
     /// [`SASL::server_start`] for more ergonomic alternatives.
     pub fn new_session(&self,
-                       mechname: &'static Mechname,
-                       mechanism: Box<dyn Authentication>)
+                       mechdesc: &'static Mechanism,
+                       mechanism: Box<dyn Authentication>,
+                       side: Side,
+    )
         -> Session
     {
         Session::new(
             self.callback.clone(),
             self.global_data.clone(),
-            mechname,
+            mechdesc,
             mechanism,
+            side,
         )
     }
 
@@ -298,8 +298,9 @@ impl SASL {
     fn start_inner<'a>(
         &self,
         mech: &Mechname,
-        mech_list: impl IntoIterator<Item=&'a Mechanism>,
+        mech_list: impl IntoIterator<Item=&'static Mechanism>,
         start: impl Fn(&Mechanism) -> Option<Result<Box<dyn Authentication>, SASLError>>,
+        side: Side,
     )
         -> Result<Session, SASLError>
     {
@@ -310,35 +311,24 @@ impl SASL {
         // If no break is encountered the `try_fold` will return `Ok(())` which we can then
         // interpret as this mechanism not being supported.
         let foldout = mech_list.into_iter()
-                          .try_fold((), move |(), supported| {
-                              let opt = if supported.mechanism == mech {
-                                  let name = supported.mechanism;
-                                  start(supported).map(|res|
-                                      res.map(|auth| (name, auth)))
-                              } else {
-                                  None
-                              };
-                              match opt {
-                                  Some(res) => Err(res),
-                                  None => Ok(()),
-                              }
-                          });
+                               .try_fold((), move |(), supported| {
+                                   let opt = if supported.mechanism == mech {
+                                       start(supported).map(|res|
+                                           res.map(|auth| (supported, auth)))
+                                   } else {
+                                       None
+                                   };
+                                   match opt {
+                                       Some(res) => Err(res),
+                                       None => Ok(()),
+                                   }
+                               });
 
         match foldout {
             Err(res) => Result::map(res, |(name, auth)|
-                self.new_session(name, auth)),
+                self.new_session(name, auth, side)),
             Ok(()) => {
-                let len = mech.as_bytes().len();
-
-                // Valid mechanisms are never longer than 20 characters. Mechname provides us with
-                // the contract that an &Mechname is at most 20 bytes long.
-                let mut mechanism = [0u8; 20];
-                (&mut mechanism[0..len]).copy_from_slice(mech.as_bytes());
-
-                Err(SASLError::UnknownMechanism {
-                    mechanism,
-                    len,
-                })
+                Err(SASLError::unknown_mechanism(mech))
             }
         }
     }
@@ -352,7 +342,8 @@ impl SASL {
     pub fn client_start(&self, mech: &mechname::Mechname) -> Result<Session, SASLError> {
         self.start_inner(mech,
                          self.client_mech_list(),
-                         |mechanism| mechanism.client(&self))
+                         |mechanism| mechanism.client(&self),
+                         Side::Client)
     }
 
     /// Starts a authentication exchange as the server role
@@ -364,8 +355,26 @@ impl SASL {
     pub fn server_start(&self, mech: &mechname::Mechname) -> Result<Session, SASLError> {
         self.start_inner(mech,
                          self.server_mech_list(),
-                         |mechanism| mechanism.server(&self))
+                         |mechanism| mechanism.server(&self),
+                         Side::Server)
     }
 }
 
 struct Shared;
+
+pub mod docs {
+    //! Modules purely for documentation
+
+    pub mod readme {
+        //! Render of the repositories' README.md:
+        #![doc = include_str!("../README.md")]
+    }
+
+    pub mod adr {
+        //! Architecture design record explaining design decisions
+
+        pub mod adr0001_property_and_validation_newtype {
+            #![doc = include_str!("../docs/decisions/0001-property-and-validation-newtype.md")]
+        }
+    }
+}
