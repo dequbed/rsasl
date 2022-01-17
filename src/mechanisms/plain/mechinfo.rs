@@ -1,4 +1,4 @@
-use crate::{Mechanism, Mechname};
+use crate::{Mechanism, Mechname, Side};
 use crate::mechanisms::plain::{client, server};
 
 #[cfg(feature = "registry_static")]
@@ -9,4 +9,5 @@ pub static PLAIN: Mechanism = Mechanism {
     priority: 300,
     client: Some(|_sasl| Ok(Box::new(client::Plain))),
     server: Some(|_sasl| Ok(Box::new(server::Plain))),
+    first: Side::Client,
 };

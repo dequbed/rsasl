@@ -1,4 +1,4 @@
-use crate::{Mechanism, Mechname};
+use crate::{Mechanism, Mechname, Side};
 use crate::gsasl::gsasl::{CMechanismStateKeeper, MechanismVTable};
 use crate::mechanisms::cram_md5::client::_gsasl_cram_md5_client_step;
 use crate::mechanisms::cram_md5::server::{_gsasl_cram_md5_server_finish, _gsasl_cram_md5_server_start, _gsasl_cram_md5_server_step};
@@ -27,4 +27,5 @@ pub static CRAM_MD5: Mechanism = Mechanism {
         encode: None,
         decode: None,
     })),
+    first: Side::Server,
 };

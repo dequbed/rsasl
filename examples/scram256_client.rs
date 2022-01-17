@@ -6,17 +6,11 @@ use rsasl::property::{AuthId, Password};
 use rsasl::SASL;
 use rsasl::session::Step::{Done, NeedsMore};
 
-// A SCRAM-SHA-1 authentication exchange.
-//
-// Run both this and the `scram_server` example to pass data to and fro
-
 pub fn main() {
-    // Create an untyped SASL because we won't store/retrieve information in the context since
-    // we don't use callbacks.
     let mut sasl = SASL::new();
 
     // Usually you would first agree on a mechanism with the server, for demostration purposes
-    // we directly start a SCRAM-SHA-1 "exchange"
+    // we directly start a SCRAM-SHA-256 "exchange"
     let mut session = sasl.client_start(Mechname::new(b"SCRAM-SHA-256").unwrap()).unwrap();
 
     // Read the "authcid" from stdin

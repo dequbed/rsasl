@@ -228,13 +228,13 @@ mod tests {
     use std::collections::HashMap;
     use std::ffi::CStr;
     use std::sync::Arc;
-    use crate::Mechname;
+    use crate::mechanisms::plain::mechinfo::PLAIN;
+    use crate::{Mechname, Side};
     use super::*;
 
     #[test]
     fn property_get_set() {
-        let mechname = Mechname::new_unchecked("X-TEST");
-        let mut session = SessionData::new(None, Arc::new(HashMap::new()), mechname);
+        let mut session = SessionData::new(None, Arc::new(HashMap::new()), &PLAIN, Side::Client);
 
         unsafe {
             let ptr = gsasl_property_fast(&mut session, GSASL_QOP);

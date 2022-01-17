@@ -1,4 +1,4 @@
-use crate::{Mechanism, Mechname};
+use crate::{Mechanism, Mechname, Side};
 use crate::mechanisms::external::{client, server};
 
 #[cfg(feature = "registry_static")]
@@ -8,5 +8,6 @@ pub static EXTERNAL: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unchecked(b"EXTERNAL"),
     priority: 100,
     client: Some(|_sasl| Ok(Box::new(client::External))),
-    server: Some(|_sasl| Ok(Box::new(server::External)))
+    server: Some(|_sasl| Ok(Box::new(server::External))),
+    first: Side::Client,
 };

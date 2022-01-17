@@ -1,4 +1,4 @@
-use crate::{Mechanism, Mechname};
+use crate::{Mechanism, Mechname, Side};
 use crate::gsasl::gsasl::{CMechanismStateKeeper, MechanismVTable};
 use crate::mechanisms::saml20::client::{_gsasl_saml20_client_finish, _gsasl_saml20_client_start, _gsasl_saml20_client_step};
 use crate::mechanisms::saml20::server::{_gsasl_saml20_server_finish, _gsasl_saml20_server_start, _gsasl_saml20_server_step};
@@ -27,4 +27,5 @@ pub static SAML20: Mechanism = Mechanism {
         encode: None,
         decode: None,
     })),
+    first: Side::Client,
 };

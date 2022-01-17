@@ -5,11 +5,17 @@ use std::io::Write;
 use std::sync::Arc;
 use base64::write::EncoderWriter;
 
-use crate::{Callback, Mechname, Property, SASLError};
+use crate::{Callback, Mechanism, Mechname, Property, SASLError};
 use crate::gsasl::consts::{Gsasl_property, property_from_code};
 use crate::mechanism::Authentication;
 use crate::property::PropertyQ;
 use crate::validate::*;
+
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+pub enum Side {
+    Client,
+    Server,
+}
 
 pub struct Session {
     mechanism: Box<dyn Authentication>,
@@ -20,13 +26,14 @@ impl Session {
     pub(crate) fn new(
         callback: Option<Arc<dyn Callback>>,
         global_properties: Arc<HashMap<Property, Box<dyn Any>>>,
-        mechname: &'static Mechname,
+        mechdesc: &'static Mechanism,
         mechanism: Box<dyn Authentication>,
+        side: Side,
     ) -> Self
     {
         Self {
             mechanism,
-            session_data: SessionData::new(callback, global_properties, mechname),
+            session_data: SessionData::new(callback, global_properties, mechdesc, side),
         }
     }
 
@@ -39,8 +46,12 @@ impl Session {
         self.session_data.get_property::<P>()
     }
 
-    pub fn get_mechanism(&self) -> &'static Mechname {
-        self.session_data.mechname
+    pub fn get_mechname(&self) -> &'static Mechname {
+        self.session_data.mechanism.mechanism
+    }
+
+    pub fn are_we_first(&self) -> bool {
+        self.session_data.side == self.session_data.mechanism.first
     }
 }
 
@@ -102,7 +113,8 @@ pub struct SessionData {
     pub(crate) callback: Option<Arc<dyn Callback>>,
     property_cache: HashMap<Property, Box<dyn Any>>,
     global_properties: Arc<HashMap<Property, Box<dyn Any>>>,
-    mechname: &'static Mechname,
+    mechanism: &'static Mechanism,
+    side: Side,
 }
 
 impl Debug for SessionData {
@@ -130,13 +142,15 @@ impl SessionData {
     pub(crate) fn new(
         callback: Option<Arc<dyn Callback>>,
         global_properties: Arc<HashMap<Property, Box<dyn Any>>>,
-        mechname: &'static Mechname
+        mechanism: &'static Mechanism,
+        side: Side,
     ) -> Self {
         Self {
             callback,
             property_cache: HashMap::new(),
             global_properties,
-            mechname,
+            mechanism,
+            side,
         }
     }
 }
@@ -149,7 +163,7 @@ impl SessionData {
 
     pub fn validate(&mut self, validation: Validation) -> Result<(), SASLError> {
         self.callback.clone()
-            .map(|cb| cb.validate(self, validation, self.mechname))
+            .map(|cb| cb.validate(self, validation, self.mechanism.mechanism))
             .unwrap_or(Err(SASLError::NoValidate { validation }))
     }
 
@@ -196,6 +210,7 @@ impl SessionData {
 mod tests {
     use crate::{Mechname, Property, SASL};
     use crate::gsasl::consts::{GSASL_AUTHID, GSASL_PASSWORD};
+    use crate::mechanisms::plain::mechinfo::PLAIN;
     use crate::property::{AuthId, Password};
     use super::*;
 
@@ -218,7 +233,8 @@ mod tests {
         let mut session = SessionData::new(
             Some(Arc::new(cbox)),
             Arc::new(HashMap::new()),
-                mechname,
+                &PLAIN,
+            Side::Client,
         );
 
         assert!(session.get_property::<AuthId>().is_err());

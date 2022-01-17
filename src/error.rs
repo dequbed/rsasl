@@ -1,3 +1,4 @@
+use std::cmp::min;
 use std::fmt;
 use std::ffi::CStr;
 use std::fmt::{Debug, Display, Formatter};
@@ -5,21 +6,48 @@ use base64::DecodeError;
 use stringprep::Error;
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 use crate::property::Property;
-use crate::PropertyQ;
+use crate::{Mechname, PropertyQ};
 use crate::validate::Validation;
 
 pub type Result<T> = std::result::Result<T, SASLError>;
 
 static UNKNOWN_ERROR: &'static str = "The given error code is unknown to gsasl";
 
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+/// Statically sized mechanism name container
+pub struct MechanismArray {
+    len: u8,
+    data: [u8; 20],
+}
+impl MechanismArray {
+    pub fn new(name: &Mechname) -> Self {
+        let len = min(name.len(), 20);
+        let mut data = [0u8; 20];
+        (&mut data[0..len]).copy_from_slice(name.as_bytes());
+
+        Self {
+            len: len as u8,
+            data,
+        }
+    }
+
+    pub fn as_mechname(&self) -> &Mechname {
+        // Safe because the only way to construct `Self` is from a valid Mechname
+        unsafe { Mechname::new_unchecked(&self.data[0..(self.len as usize)]) }
+    }
+}
+impl Display for MechanismArray {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(self.as_mechname(), f)
+    }
+}
+
+// Contain mostly fat pointers so 16 bytes. Try to not be (much) bigger than that
 pub enum SASLError {
     Io {
         source: std::io::Error,
     },
-    UnknownMechanism {
-        mechanism: [u8; 20],
-        len: usize,
-    },
+    UnknownMechanism(MechanismArray),
     Base64DecodeError {
         source: base64::DecodeError,
     },
@@ -48,14 +76,17 @@ impl SASLError {
             property: P::property(),
         }
     }
+    pub fn unknown_mechanism(name: &Mechname) -> Self {
+        Self::UnknownMechanism(MechanismArray::new(name))
+    }
 }
 
 impl PartialEq for SASLError {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            ( SASLError::UnknownMechanism { mechanism: m1, len: l1 }
-            , SASLError::UnknownMechanism { mechanism: m2, len: l2 }
-            ) => m1[..*l1] == m2[..*l2],
+            ( SASLError::UnknownMechanism(m1)
+            , SASLError::UnknownMechanism(m2)
+            ) => m1 == m2,
 
             ( SASLError::Base64DecodeError { source: s1 }
             , SASLError::Base64DecodeError { source: s2 }
@@ -100,17 +131,8 @@ impl Debug for SASLError {
             SASLError::Io { source } => {
                 Debug::fmt(source, f)
             },
-            SASLError::UnknownMechanism { mechanism, len } => {
-                let mechanism = &mechanism[0..*len];
-                if let Ok(s) = std::str::from_utf8(mechanism) {
-                    write!(f, "UnknownMechanism(\"{}\")", s)
-                } else {
-                    f.write_str("UnknownMechanism(")?;
-                    for b in mechanism.iter() {
-                        write!(f, "{:X}", *b)?;
-                    }
-                    f.write_str(")")
-                }
+            SASLError::UnknownMechanism(mecharray) => {
+                write!(f, "UnknownMechanism(\"{}\")", mecharray)
             }
             SASLError::Base64DecodeError { source } => Debug::fmt(source, f),
             SASLError::MechanismNameError(e) => Debug::fmt(e, f),
@@ -136,13 +158,8 @@ impl Display for SASLError {
             SASLError::Io { source } => {
                 Display::fmt(source, f)
             },
-            SASLError::UnknownMechanism { mechanism, len } => {
-                let mechanism = &mechanism[0..*len];
-                if let Ok(name) = std::str::from_utf8(mechanism) {
-                    write!(f, "mechanism {} is not implemented", name)
-                } else {
-                    write!(f, "mechanism {:?} is not implemented", mechanism)
-                }
+            SASLError::UnknownMechanism(mecharray) => {
+                write!(f, "mechanism {} is not implemented", mecharray)
             }
             SASLError::Base64DecodeError { source } => {
                 Display::fmt(source, f)

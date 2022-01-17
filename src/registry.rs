@@ -62,7 +62,7 @@
 //! may be silently dropped by the compiler.
 
 use std::fmt::{Debug, Display, Formatter};
-use crate::{SASL, SASLError};
+use crate::{SASL, SASLError, Side};
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 
@@ -84,7 +84,27 @@ pub struct Mechanism {
     pub priority: usize,
 
     pub client: Option<StartFn>,
-    pub server: Option<StartFn>
+    pub server: Option<StartFn>,
+
+    pub first: Side,
+}
+
+pub struct MechanismSecurityFactors {
+    /// Maximum possible Security Strength Factor (SSF) of the security layers installed
+    ///
+    /// SSF is a very fuzzy value but in general equates to the numbers of 'bits' of security,
+    /// usually being linked to the key size. E.g. encryption using DES has `56`, 3DES `112`,
+    /// AES128 `128`, and so on.
+    /// Security layers that do not provide confidentiality (i.e. encryption) but integrity
+    /// protection (via e.g. HMAC) usually have a SSF of 1.
+    pub max_ssf: u16,
+
+    /// This mechanism doesn't transfer secrets in plain text and is thus not susceptible to
+    /// simple eavesdropping attacks.
+    pub noplain: bool,
+    /// This mechanism supports mutual authentication, i.e. if the authentication exchange
+    /// succeeds then both the client and server have verified the identity of the other.
+    pub mutual: bool,
 }
 
 impl Mechanism {
@@ -120,4 +140,11 @@ mod registry_static {
 
     #[distributed_slice]
     pub static MECHANISMS: [Mechanism] = [..];
+}
+
+#[cfg(feature = "registry_dynamic")]
+impl SASL {
+    pub fn register(&mut self, mechanism: &'static Mechanism) {
+        self.dynamic_mechs.push(mechanism)
+    }
 }

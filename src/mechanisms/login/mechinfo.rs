@@ -1,5 +1,5 @@
 use crate::gsasl::gsasl::{CMechanismStateKeeper, MechanismVTable};
-use crate::{Mechanism, Mechname};
+use crate::{Mechanism, Mechname, Side};
 use crate::mechanisms::login::client::{_gsasl_login_client_finish, _gsasl_login_client_start, _gsasl_login_client_step};
 use crate::mechanisms::login::server::{_gsasl_login_server_finish, _gsasl_login_server_start, _gsasl_login_server_step};
 
@@ -27,4 +27,5 @@ pub static LOGIN: Mechanism = Mechanism {
         encode: None,
         decode: None,
     })),
+    first: Side::Server,
 };
