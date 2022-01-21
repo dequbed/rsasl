@@ -37,7 +37,6 @@ pub fn find_proofs<D, HMAC, HL>(
         .expect("HMAC can work with any key size");
     salted_password_hmac.update(b"Client Key");
     let mut client_key = salted_password_hmac.finalize().into_bytes();
-    println!("Client Key: {:?}", client_key.as_slice().iter().map(|u| *u as i8).collect::<Vec<i8>>());
 
     let mut salted_password_hmac = HMAC::new_from_slice(salted_password)
         .expect("HMAC can work with any key size");
@@ -45,7 +44,6 @@ pub fn find_proofs<D, HMAC, HL>(
     let server_key = salted_password_hmac.finalize().into_bytes();
 
     let stored_key = D::digest(client_key.as_ref());
-    println!("Stored Key: {:?}", stored_key.as_slice().iter().map(|u| *u as i8).collect::<Vec<i8>>());
 
     let auth_message_parts: [&[u8]; 10] = [
         b"n=", username.as_bytes(), b",r=", client_nonce, b",",
@@ -53,7 +51,6 @@ pub fn find_proofs<D, HMAC, HL>(
         b",c=", gs2headerb64.as_bytes(), b",r=", combined_nonce,
     ];
     let o: Vec<u8> = auth_message_parts.iter().map(|s| s.iter()).flatten().map(|b| *b).collect();
-    println!("AuthMessage: {}", std::str::from_utf8(&o[..]).unwrap());
 
     let mut stored_key_hmac = HMAC::new_from_slice(stored_key.as_ref())
         .expect("HMAC can work with any key size");
@@ -61,7 +58,6 @@ pub fn find_proofs<D, HMAC, HL>(
         stored_key_hmac.update(part);
     }
     let client_signature = stored_key_hmac.finalize().into_bytes();
-    println!("Client Signature: {:?}", client_signature.as_slice().iter().map(|u| *u as i8).collect::<Vec<i8>>());
 
     // Client Key => Client Proof
     {
