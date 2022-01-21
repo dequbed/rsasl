@@ -252,7 +252,6 @@ impl<const N: usize> WaitingServerFirst<N> {
         let salt = base64::decode(salt).unwrap();
         let mut salted_password = [0u8; 32];
         hash_password::<Hmac<sha2::Sha256>>(password, iterations, &salt[..], &mut salted_password);
-        println!("Salted Password {:?}", salted_password.map(|u| u as i8).as_slice());
 
         self.gs2_header.extend_from_slice(cbdata.as_ref().map(|b| b.as_ref()).unwrap_or(&[]));
         let gs2headerb64 = base64::encode(self.gs2_header);
