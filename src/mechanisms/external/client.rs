@@ -11,7 +11,7 @@ impl Authentication for External {
     fn step(&mut self, session: &mut SessionData, _input: Option<&[u8]>, writer: &mut dyn Write)
         -> StepResult
     {
-        if let Ok(authid) = session.get_property_or_callback::<AuthId>() {
+        if let Some(authid) = session.get_property_or_callback::<AuthId>()? {
             let buf = authid.as_bytes();
             writer.write_all(buf)?;
             Ok(Done(Some(buf.len())))

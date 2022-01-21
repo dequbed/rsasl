@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::sync::Arc;
 use crate::mechanism::Authentication;
 use crate::property::AuthId;
 use crate::session::{SessionData, StepResult};
@@ -15,7 +16,7 @@ impl Authentication for External {
     {
         if let Some(input) = input {
             if let Ok(authid) = std::str::from_utf8(input) {
-                session.set_property::<AuthId>(Box::new(authid.to_string()));
+                session.set_property::<AuthId>(Arc::new(authid.to_string()));
             } else {
                 return Err(MechanismParseError);
             }

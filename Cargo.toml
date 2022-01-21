@@ -25,8 +25,8 @@ default = [
     "openid20", "saml20"
 ]
 
-scram-sha-1 = ["saslprep", "hmac", "sha-1", "base64"]
-scram-sha-2 = ["saslprep", "hmac", "sha2", "base64"]
+scram-sha-1 = ["saslprep", "hmac", "sha-1", "base64", "rand", "pbkdf2"]
+scram-sha-2 = ["saslprep", "hmac", "sha2", "base64", "rand", "pbkdf2"]
 digest-md5 = ["saslprep", "hmac", "md-5"]
 cram-md5 = ["saslprep", "hmac", "md-5"]
 anonymous = []
@@ -50,11 +50,15 @@ libc = "0.2"
 
 base64 = { version = "0.13", optional = true }
 
+rand = { version = "0.8", optional = true }
+
 hmac = { version = "0.12", optional = true }
 digest = { version = "0.10", optional = true }
 sha-1 = { version = "0.10", optional = true }
 sha2 = { version = "0.10", optional = true }
 md-5 = { version = "0.10", optional = true }
+
+pbkdf2 = { version = "0.10", optional = true, default_features = false }
 
 stringprep = { version = "0.1", optional = true }
 

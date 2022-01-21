@@ -5,7 +5,7 @@ use std::sync::Arc;
 use rsasl::callback::Callback;
 use rsasl::error::SASLError;
 use rsasl::mechname::Mechname;
-use rsasl::property::{Property, AuthId, Password, properties};
+use rsasl::property::{Property, AuthId, Password, properties, ScramSaltedPassword, ScramSalt, ScramIter, ScramStoredkey, ScramServerkey};
 use rsasl::SASL;
 use rsasl::session::SessionData;
 use rsasl::session::Step::{Done, NeedsMore};
@@ -19,9 +19,10 @@ impl Callback for OurCallback {
         match property {
             properties::PASSWORD => {
                 // Access the authentication id, i.e. the username to check the password for
-                let _authcid = session.get_property_or_callback::<AuthId>()?;
+                let authcid = session.get_property_or_callback::<AuthId>()?;
+                println!("auth'ing user {:?}", authcid);
 
-                session.set_property::<Password>(Box::new("secret".to_string()));
+                session.set_property::<Password>(Arc::new("secret".to_string()));
 
                 Ok(())
             },
@@ -44,7 +45,7 @@ pub fn main() {
             println!("error: {}", error);
             return;
         }
-        in_data.pop(); // Remove the newline char at the end of the string
+        let in_data = in_data.trim().to_string(); // Remove the newline char at the end of the string
 
         let data = Some(in_data.into_boxed_str().into_boxed_bytes());
         let mut out = Cursor::new(Vec::new());
@@ -72,7 +73,9 @@ pub fn main() {
                 break;
             }
             Err(e) => {
-                println!("{}", e);
+                let buffer = out.into_inner();
+                let output = std::str::from_utf8(buffer.as_ref()).unwrap();
+                println!("{} || {}", e, output);
                 break;
             },
         }

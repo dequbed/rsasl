@@ -1,4 +1,5 @@
 use std::ffi::CString;
+use std::sync::Arc;
 use libc::{size_t, strlen};
 use crate::gsasl::consts::*;
 use crate::gsasl::consts::{GSASL_OK, Gsasl_property};
@@ -29,7 +30,7 @@ pub unsafe fn gsasl_property_set_raw(mut sctx: &mut SessionData,
         .expect("gsasl_property_set_raw called with NULL-containing string")
         .into_string()
         .expect("gsasl_propery_set_raw called with non-UTF8 string");
-    sctx.set_property_raw(prop, Box::new(cstring));
+    sctx.set_property_raw(prop, Arc::new(cstring));
 
     return GSASL_OK as libc::c_int;
 }
@@ -57,67 +58,67 @@ unsafe fn gsasl_property_fast(sctx: &mut SessionData,
  -> *const libc::c_char {
 
     if GSASL_OPENID20_OUTCOME_DATA == prop {
-        if let Ok(prop) = sctx.get_property::<OpenID20OutcomeData>() {
+        if let Some(prop) = sctx.get_property::<OpenID20OutcomeData>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_OPENID20_REDIRECT_URL == prop {
-        if let Ok(prop) = sctx.get_property::<OpenID20RedirectUrl>() {
+        if let Some(prop) = sctx.get_property::<OpenID20RedirectUrl>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_SAML20_REDIRECT_URL == prop {
-        if let Ok(prop) = sctx.get_property::<SAML20RedirectUrl>() {
+        if let Some(prop) = sctx.get_property::<SAML20RedirectUrl>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_SAML20_IDP_IDENTIFIER == prop {
-        if let Ok(prop) = sctx.get_property::<SAML20IDPIdentifier>() {
+        if let Some(prop) = sctx.get_property::<SAML20IDPIdentifier>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_CB_TLS_UNIQUE == prop {
-        if let Ok(prop) = sctx.get_property::<CBTlsUnique>() {
+        if let Some(prop) = sctx.get_property::<CBTlsUnique>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_SCRAM_STOREDKEY == prop {
-        if let Ok(prop) = sctx.get_property::<ScramStoredkey>() {
+        if let Some(prop) = sctx.get_property::<ScramStoredkey>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_SCRAM_SERVERKEY == prop {
-        if let Ok(prop) = sctx.get_property::<ScramServerkey>() {
+        if let Some(prop) = sctx.get_property::<ScramServerkey>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_SCRAM_SALTED_PASSWORD == prop {
-        if let Ok(prop) = sctx.get_property::<ScramSaltedPassword>() {
+        if let Some(prop) = sctx.get_property::<ScramSaltedPassword>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_SCRAM_SALT == prop {
-        if let Ok(prop) = sctx.get_property::<ScramSalt>() {
+        if let Some(prop) = sctx.get_property::<ScramSalt>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_SCRAM_ITER == prop {
-        if let Ok(prop) = sctx.get_property::<ScramIter>() {
+        if let Some(prop) = sctx.get_property::<ScramIter>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_QOP == prop {
-        if let Ok(it) = sctx.get_property::<Qop>() {
+        if let Some(it) = sctx.get_property::<Qop>() {
             let ptr = it.as_ptr();
             println!("ret {:?} @ {:?}", it, ptr);
             ptr
@@ -125,83 +126,83 @@ unsafe fn gsasl_property_fast(sctx: &mut SessionData,
             std::ptr::null()
         }
     } else if GSASL_QOPS == prop {
-        if let Ok(prop) = sctx.get_property::<Qops>() {
+        if let Some(prop) = sctx.get_property::<Qops>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_DIGEST_MD5_HASHED_PASSWORD == prop {
-        if let Ok(prop) = sctx.get_property::<DigestMD5HashedPassword>() {
+        if let Some(prop) = sctx.get_property::<DigestMD5HashedPassword>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_REALM == prop {
-        if let Ok(prop) = sctx.get_property::<Realm>() {
+        if let Some(prop) = sctx.get_property::<Realm>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_PIN == prop {
-        if let Ok(prop) = sctx.get_property::<Pin>() {
+        if let Some(prop) = sctx.get_property::<Pin>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_SUGGESTED_PIN == prop {
-        if let Ok(prop) = sctx.get_property::<SuggestedPin>() {
+        if let Some(prop) = sctx.get_property::<SuggestedPin>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_PASSCODE == prop {
-        if let Ok(prop) = sctx.get_property::<Passcode>() {
+        if let Some(prop) = sctx.get_property::<Passcode>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_GSSAPI_DISPLAY_NAME == prop {
-        if let Ok(prop) = sctx.get_property::<GssapiDisplayName>() {
+        if let Some(prop) = sctx.get_property::<GssapiDisplayName>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_HOSTNAME == prop {
-        if let Ok(prop) = sctx.get_property::<Hostname>() {
+        if let Some(prop) = sctx.get_property::<Hostname>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_SERVICE == prop {
-        if let Ok(prop) = sctx.get_property::<Service>() {
+        if let Some(prop) = sctx.get_property::<Service>() {
             prop.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_ANONYMOUS_TOKEN == prop {
-        if let Ok(prop) = sctx.get_property::<AnonymousToken>() {
-            let cstr = Box::leak(Box::new(CString::new(prop.clone()).unwrap()));
+        if let Some(prop) = sctx.get_property::<AnonymousToken>() {
+            let cstr = Box::leak(Box::new(CString::new(prop.as_bytes().to_owned()).unwrap()));
             cstr.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_PASSWORD == prop {
-        if let Ok(prop) = sctx.get_property::<Password>() {
-            let cstr = Box::leak(Box::new(CString::new(prop.clone()).unwrap()));
+        if let Some(prop) = sctx.get_property::<Password>() {
+            let cstr = Box::leak(Box::new(CString::new(prop.as_bytes().to_owned()).unwrap()));
             cstr.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_AUTHZID == prop {
-        if let Ok(prop) = sctx.get_property::<AuthzId>() {
-            let cstr = Box::leak(Box::new(CString::new(prop.clone()).unwrap()));
+        if let Some(prop) = sctx.get_property::<AuthzId>() {
+            let cstr = Box::leak(Box::new(CString::new(prop.as_bytes().to_owned()).unwrap()));
             cstr.as_ptr()
         } else {
             std::ptr::null()
         }
     } else if GSASL_AUTHID == prop {
-        if let Ok(prop) = sctx.get_property::<AuthId>() {
-            let cstr = Box::leak(Box::new(CString::new(prop.clone()).unwrap()));
+        if let Some(prop) = sctx.get_property::<AuthId>() {
+            let cstr = Box::leak(Box::new(CString::new(prop.as_bytes().to_owned()).unwrap()));
             (*cstr).as_ptr()
         } else {
             std::ptr::null()
@@ -240,7 +241,7 @@ mod tests {
             let ptr = gsasl_property_fast(&mut session, GSASL_QOP);
             assert!(ptr.is_null());
         }
-        session.set_property::<Qop>(Box::new(CString::new("testservice").unwrap()));
+        session.set_property::<Qop>(Arc::new(CString::new("testservice").unwrap()));
         let cstr = session.get_property::<Qop>();
         println!("cstr {:?}", cstr);
         unsafe {

@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::sync::Arc;
 use crate::{Authentication, SASLError};
 use crate::property::AnonymousToken;
 use crate::session::{SessionData, StepResult};
@@ -27,7 +28,7 @@ impl Authentication for Anonymous {
                 return Err(SASLError::MechanismParseError);
             }
 
-            session.set_property::<AnonymousToken>(Box::new(input.to_string()));
+            session.set_property::<AnonymousToken>(Arc::new(input.to_string()));
             session.validate(ANONYMOUS)?;
 
             Ok(Done(None))

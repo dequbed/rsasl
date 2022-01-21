@@ -1,8 +1,451 @@
+use std::borrow::Cow;
+use std::io::IoSlice;
 use ::libc;
 use libc::{malloc, memchr, memcpy, size_t, strnlen};
-use crate::mechanisms::scram::client::{scram_client_final, scram_client_first};
+use crate::mechanisms::scram::client::{scram_client_final, scram_client_first, SCRAMError};
+use crate::mechanisms::scram::parser::ParseError::InvalidAttribute;
 use crate::mechanisms::scram::server::{scram_server_final, scram_server_first};
 use crate::mechanisms::scram::validate::{scram_valid_client_final, scram_valid_client_first, scram_valid_server_final, scram_valid_server_first};
+
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+pub enum SaslNameError {
+    Empty,
+    InvalidUtf8,
+    InvalidChar(u8),
+    InvalidEscape,
+}
+
+#[repr(transparent)]
+/// Escaped saslname type
+pub struct SaslName(str);
+impl SaslName {
+    /// Construct a new saslname from a given str
+    ///
+    /// This function will *fail* if the given name is not a valid saslname. To escape an
+    /// arbitratry string into a valid saslname use [`SaslName::escape`].
+    pub fn from_str(input: &str) -> Result<&Self, SaslNameError> {
+        if let Some(b) = input.find(&['\0', ',', '=']) {
+            Err(SaslNameError::InvalidChar(b as u8))
+        } else {
+            let this = unsafe { &*(input as *const str as *const SaslName) };
+            Ok(this)
+        }
+    }
+
+    pub fn from_boxed_str(mut input: Box<str>) -> Result<Box<Self>, SaslNameError> {
+        if let Some(b) = input.find(&['\0', ',', '=']) {
+            Err(SaslNameError::InvalidChar(b as u8))
+        } else {
+            let this = unsafe { Box::from_raw(Box::into_raw(input) as *mut SaslName) };
+            Ok(this)
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn escape(input: &str) -> Result<Cow<'_, str>, SaslNameError> {
+        if input.contains('\0') {
+            return Err(SaslNameError::InvalidChar(0));
+        }
+
+        if input.contains(&[',', '=']) {
+            Ok(input.replace(',', "=2C").replace('=', "=3D").into())
+        } else {
+            Ok(input.into())
+        }
+    }
+
+    pub fn unescape(&self) -> Result<Cow<'_, str>, SaslNameError> {
+        let v = &self.0;
+        if v.is_empty() {
+            return Err(SaslNameError::Empty);
+        }
+        if let Some(c) = v.find(&['\0', ',']) {
+            return Err(SaslNameError::InvalidChar(c as u8))
+        }
+        if let Some(bad) = v.bytes().position(|b| matches!(b, b'=')) {
+            let mut out = String::with_capacity(v.len());
+            let good = std::str::from_utf8(&v.as_bytes()[..bad]).map_err(|_| SaslNameError::InvalidUtf8)?;
+            out.push_str(good);
+            let mut v = &v[bad..];
+
+            while let Some(bad) = v.bytes().position(|b| matches!(b, b'=')) {
+                let good = std::str::from_utf8(&v.as_bytes()[..bad]).map_err(|_| SaslNameError::InvalidUtf8)?;
+                out.push_str(good);
+                let c = match &v.as_bytes()[bad+1..bad+3] {
+                    b"2C" => ',',
+                    b"3D" => '=',
+                    _ => return Err(SaslNameError::InvalidEscape),
+                };
+                out.push(c);
+                v = &v[bad..];
+            }
+
+            Ok(Cow::Owned(out))
+        } else {
+            Ok(Cow::Borrowed(&self.0))
+        }
+    }
+}
+
+
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+pub enum ParseError {
+    BadCBFlag,
+    BadCBName(u8),
+    BadGS2Header,
+    InvalidAttribute(u8),
+    MissingAttributes,
+    TooManyAttributes,
+    UnknownMandatoryExtensions,
+    BadUtf8,
+    BadNonce,
+}
+
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+pub enum GS2CBindFlag<'scram> {
+    SupportedNotUsed,
+    NotSupported,
+    Used(&'scram str)
+}
+impl<'scram> GS2CBindFlag<'scram> {
+    pub fn parse(input: &'scram [u8]) -> Result<Self, ParseError> {
+        match input {
+            b"n" => Ok(Self::NotSupported),
+            b"y" => Ok(Self::SupportedNotUsed),
+            x if input.len() > 2 && input[0] == b'p' && input[1] == b'=' => {
+                let cbname = &input[2..];
+                if let Some(bad) = cbname.into_iter()
+                      .find(|b|
+                          // According to [RFC5056 Section 7](https://www.rfc-editor.org/rfc/rfc5056#section-7)
+                          // valid cb names are only composed of ASCII alphanumeric, '.' and '-'
+                          !(matches!(b, b'.' | b'-' | b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z'))
+                      ) {
+                    Err(ParseError::BadCBName(*bad))
+                } else {
+                    // SAFE because we just checked for a subset of ASCII which is always UTF-8
+                    let name = unsafe { std::str::from_utf8_unchecked(cbname) };
+                    Ok(Self::Used(name))
+                }
+            },
+            _ => Err(ParseError::BadCBFlag),
+        }
+    }
+
+    pub fn to_ioslices(&self) -> [&'scram [u8]; 2] {
+        match self {
+            Self::NotSupported => [b"n", &[]],
+            Self::SupportedNotUsed => [b"y", &[]],
+            Self::Used(name) => [b"p=", name.as_bytes()],
+        }
+    }
+}
+
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+pub struct ClientFirstMessage<'scram> {
+    pub cbflag: GS2CBindFlag<'scram>,
+    pub authzid: Option<&'scram str>,
+    pub username: &'scram str,
+    pub nonce: &'scram [u8],
+}
+impl<'scram> ClientFirstMessage<'scram> {
+    pub fn new(
+        cbflag: GS2CBindFlag<'scram>,
+        authzid: Option<&'scram str>,
+        username: &'scram SaslName,
+        nonce: &'scram [u8],
+    )
+        -> Self
+    {
+        Self { cbflag, authzid, username: username.as_str(), nonce }
+    }
+
+    pub fn parse(input: &'scram [u8]) -> Result<Self, ParseError> {
+        let mut partiter = input.split(|b| matches!(b, b','));
+
+        let first = partiter.next().ok_or(ParseError::BadCBFlag)?;
+        let cbflag = GS2CBindFlag::parse(first)?;
+
+        let authzid = partiter.next().ok_or(ParseError::BadGS2Header)?;
+        let authzid = if !authzid.is_empty() {
+            Some(std::str::from_utf8(authzid).map_err(|_| ParseError::BadUtf8)?)
+        } else {
+            None
+        };
+
+        let mut next = partiter.next().ok_or(ParseError::MissingAttributes)?;
+        if &next[0..2] == b"m=" {
+            return Err(ParseError::UnknownMandatoryExtensions);
+        }
+
+        let username = if &next[0..2] == b"n=" {
+            std::str::from_utf8(&next[2..]).map_err(|_| ParseError::BadUtf8)?
+        } else {
+            return Err(ParseError::InvalidAttribute(next[0] as u8));
+        };
+
+        let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
+        let nonce = if &next[0..2] == b"r=" {
+            &next[2..]
+        } else {
+            return Err(ParseError::InvalidAttribute(next[0] as u8));
+        };
+        if !nonce.into_iter().all(|b| matches!(b, 0x21..=0x2B | 0x2D..=0x7E)) {
+            return Err(ParseError::BadNonce)
+        }
+
+        Ok(Self { cbflag, authzid, username, nonce })
+    }
+
+    pub fn to_ioslices(&self) -> [&'scram [u8]; 8] {
+        let [cba, cbb] = self.cbflag.to_ioslices();
+
+        let (prefix, authzid): (&[u8], &[u8]) = if let Some(authzid) = self.authzid {
+            (b",a=", authzid.as_bytes())
+        } else {
+            (b",", &[])
+        };
+
+        [
+            cba, cbb,
+            prefix, authzid,
+            b",n=", self.username.as_bytes(),
+            b",r=", self.nonce
+        ]
+    }
+}
+
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+pub struct ServerFirst<'scram> {
+    pub nonce: &'scram [u8],
+    pub salt: &'scram [u8],
+    pub iteration_count: &'scram [u8],
+}
+
+impl<'scram> ServerFirst<'scram> {
+    pub fn parse(input: &'scram [u8]) -> Result<Self, ParseError> {
+        let mut partiter = input.split(|b| matches!(b, b','));
+
+        let mut next = partiter.next().ok_or(ParseError::MissingAttributes)?;
+        if next.len() < 2 {
+            println!("{:?}", input);
+        }
+        if &next[0..2] == b"m=" {
+            return Err(ParseError::UnknownMandatoryExtensions);
+        }
+
+        let nonce = if &next[0..2] == b"r=" {
+            &next[2..]
+        } else {
+            return Err(ParseError::InvalidAttribute(next[0] as u8));
+        };
+
+        let mut next = partiter.next().ok_or(ParseError::MissingAttributes)?;
+        let salt = if &next[0..2] == b"s=" {
+            &next[2..]
+        } else {
+            return Err(ParseError::InvalidAttribute(next[0] as u8));
+        };
+
+        let mut next = partiter.next().ok_or(ParseError::MissingAttributes)?;
+        let iteration_count = if &next[0..2] == b"i=" {
+            &next[2..]
+        } else {
+            return Err(ParseError::InvalidAttribute(next[0] as u8));
+        };
+
+        if let Some(next) = partiter.next() {
+            return Err(ParseError::InvalidAttribute(next[0]));
+        }
+
+        Ok(Self { nonce, salt, iteration_count })
+    }
+
+    pub fn to_ioslices(&self) -> [&'scram [u8]; 6] {
+        [
+            b"r=", self.nonce,
+            b",s=", self.salt,
+            b",i=", self.iteration_count,
+        ]
+    }
+}
+
+pub struct ClientFinal<'scram> {
+    pub channel_binding: &'scram [u8],
+    pub nonce: &'scram [u8],
+    pub proof: &'scram [u8],
+}
+
+impl<'scram> ClientFinal<'scram> {
+    pub fn new(channel_binding: &'scram [u8], nonce: &'scram [u8], proof: &'scram [u8]) -> Self {
+        Self { channel_binding, nonce, proof }
+    }
+
+    pub fn parse(input: &'scram [u8]) -> Result<Self, ParseError> {
+        let mut partiter = input.split(|b| matches!(b, b','));
+
+        let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
+        let channel_binding = if &next[0..2] == b"c=" {
+            &next[2..]
+        } else {
+            return Err(ParseError::InvalidAttribute(next[0]));
+        };
+        let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
+        let nonce = if &next[0..2] == b"r=" {
+            &next[2..]
+        } else {
+            return Err(ParseError::InvalidAttribute(next[0]));
+        };
+        let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
+        let proof = if &next[0..2] == b"p=" {
+            &next[2..]
+        } else {
+            return Err(ParseError::InvalidAttribute(next[0]));
+        };
+
+        if let Some(next) = partiter.next() {
+            return Err(ParseError::InvalidAttribute(next[0]));
+        }
+
+        Ok(Self { channel_binding, nonce, proof })
+    }
+
+    pub fn to_ioslices(&self) -> [&'scram [u8]; 6] {
+        [
+            b"c=", self.channel_binding,
+            b",r=", self.nonce,
+            b",p=", self.proof,
+        ]
+    }
+}
+
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+pub enum ServerErrorValue {
+    InvalidEncoding,
+    ExtensionsNotSupported,
+    InvalidProof,
+    ChannelBindingsDontMatch,
+    ServerDoesSupportChannelBinding,
+    ChannelBindingNotSupported,
+    UnsupportedChannelBindingType,
+    UnknownUser,
+    InvalidUsernameEncoding,
+    NoResources,
+    OtherError
+}
+impl ServerErrorValue {
+    pub fn as_bytes(&self) -> &'static [u8] {
+        match self {
+            Self::InvalidEncoding => b"invalid-encoding",
+            Self::ExtensionsNotSupported => b"extensions-not-supported",
+            Self::InvalidProof => b"invalid-proof",
+            Self::ChannelBindingsDontMatch => b"channel-bindings-dont-match",
+            Self::ServerDoesSupportChannelBinding => b"server-does-support-channel-binding",
+            Self::ChannelBindingNotSupported => b"channel-binding-not-supported",
+            Self::UnsupportedChannelBindingType => b"unsupported-channel-binding-type",
+            Self::UnknownUser => b"unknown-user",
+            Self::InvalidUsernameEncoding => b"invalid-username-encoding",
+            Self::NoResources => b"no-resources",
+            Self::OtherError => b"other-error",
+        }
+    }
+}
+
+pub enum ServerFinal<'scram> {
+    Verifier(&'scram [u8]),
+    Error(ServerErrorValue),
+}
+
+impl<'scram> ServerFinal<'scram> {
+    pub fn parse(input: &'scram [u8]) -> Result<Self, ParseError> {
+        if &input[0..2] == b"v=" {
+            Ok(Self::Verifier(&input[2..]))
+        } else if &input[0..2] == b"e=" {
+            use ServerErrorValue::*;
+            let e = match &input[2..] {
+                b"invalid-encoding" => InvalidEncoding,
+                b"extensions-not-supported" => ExtensionsNotSupported,
+                b"invalid-proof" => InvalidProof,
+                b"channel-bindings-dont-match" => ChannelBindingsDontMatch,
+                b"server-does-support-channel-binding" => ServerDoesSupportChannelBinding,
+                b"channel-binding-not-supported" => ChannelBindingNotSupported,
+                b"unsupported-channel-binding-type" => UnsupportedChannelBindingType,
+                b"unknown-user" => UnknownUser,
+                b"invalid-username-encoding" => InvalidUsernameEncoding,
+                b"no-resources" => NoResources,
+                _ => OtherError,
+            };
+            Ok(Self::Error(e))
+        } else {
+            Err(ParseError::InvalidAttribute(input[0]))
+        }
+    }
+
+    pub fn to_ioslices(&self) -> [&'scram [u8]; 2] {
+        match self {
+            Self::Verifier(v) => [b"v=", v],
+            Self::Error(e) => [b"e=", e.as_bytes()],
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Cursor;
+    use crate::vectored_io::VectoredWriter;
+    use super::*;
+
+    #[test]
+    fn test_parse_gs2_cbind_flag() {
+        let valid: [(&[u8], GS2CBindFlag); 7] = [
+            (b"n", GS2CBindFlag::NotSupported),
+            (b"y", GS2CBindFlag::SupportedNotUsed),
+            (b"p=tls-unique", GS2CBindFlag::Used("tls-unique")),
+            (b"p=.", GS2CBindFlag::Used(".")),
+            (b"p=-", GS2CBindFlag::Used("-")),
+            (b"p=a", GS2CBindFlag::Used("a")),
+            (b"p=a-very-long-cb-name.indeed", GS2CBindFlag::Used("a-very-long-cb-name.indeed")),
+        ];
+
+        for (input, output) in valid.iter() {
+            assert_eq!(GS2CBindFlag::parse(input), Ok(*output))
+        }
+    }
+
+    #[test]
+    fn write_client_first_message() {
+        let username = "testuser";
+        let nonce = b"testnonce";
+        let cbname = "tls-unique";
+
+        let msg = ClientFirstMessage {
+            cbflag: GS2CBindFlag::Used(cbname),
+            authzid: None,
+            username,
+            nonce,
+        };
+
+        let expected = "p=tls-unique,,n=testuser,r=testnonce";
+
+        let mut out = Cursor::new(Vec::new());
+        let mut vecw = VectoredWriter::new(msg.to_ioslices());
+        let written = vecw.write_all_vectored(&mut out).unwrap();
+
+        let v = out.into_inner();
+        let f = std::str::from_utf8(&v[..]).unwrap();
+        println!("Output: {:?}", f);
+        assert_eq!(f, expected);
+
+        let parsed = ClientFirstMessage::parse(expected.as_bytes()).unwrap();
+        println!("Parsed: {:?}", parsed);
+        assert_eq!(parsed.cbflag, GS2CBindFlag::Used("tls-unique"));
+        assert_eq!(parsed.authzid, None);
+        assert_eq!(parsed.username, username);
+        assert_eq!(parsed.nonce, nonce);
+    }
+}
 
 /* tokens.h --- Types for SCRAM tokens.
  * Copyright (C) 2009-2021 Simon Josefsson

@@ -107,6 +107,9 @@ pub mod init;
 
 pub mod validate;
 pub mod property;
+pub mod channel_bindings;
+
+mod vectored_io;
 
 pub use property::{
     Property,
@@ -133,7 +136,7 @@ pub struct SASL {
     /// Global data that is valid irrespective of context, such as e.g. a OAuth2 callback url or
     /// a GSSAPI realm.
     /// Can also be used to store properties such as username and password
-    pub global_data: Arc<HashMap<Property, Box<dyn Any>>>,
+    pub global_data: Arc<HashMap<Property, Arc<dyn Any + Send + Sync>>>,
 
     pub callback: Option<Arc<dyn Callback>>,
 

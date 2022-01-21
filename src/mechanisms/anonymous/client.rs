@@ -12,7 +12,7 @@ impl Authentication for Anonymous {
     fn step(&mut self, session: &mut SessionData, _input: Option<&[u8]>, writer: &mut dyn Write)
         -> StepResult
     {
-        if let Ok(token) = session.get_property_or_callback::<AnonymousToken>() {
+        if let Some(token) = session.get_property_or_callback::<AnonymousToken>()? {
             let buf = token.as_bytes();
             writer.write_all(buf)?;
             Ok(Done(Some(buf.len())))
