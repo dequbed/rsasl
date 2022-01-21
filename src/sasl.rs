@@ -40,7 +40,7 @@ impl SASL {
 }
 
 pub struct Builder {
-    global_data: Option<Arc<HashMap<Property, Box<dyn Any>>>>,
+    global_data: Option<Arc<HashMap<Property, Arc<dyn Any + Send + Sync>>>>,
     callback: Option<Arc<dyn Callback>>,
     dynamic_mechs: Option<Vec<&'static Mechanism>>,
     static_mechs: Option<&'static [Mechanism]>,

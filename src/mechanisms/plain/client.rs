@@ -1,8 +1,10 @@
 use std::io::{IoSlice, Write};
 use crate::mechanism::Authentication;
 use crate::property::{AuthId, AuthzId, Password};
+use crate::SASLError;
 use crate::session::Step::Done;
 use crate::session::{SessionData, StepResult};
+use crate::vectored_io::VectoredWriter;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Plain;
@@ -11,60 +13,29 @@ impl Authentication for Plain {
     fn step(&mut self, session: &mut SessionData, _input: Option<&[u8]>, writer: &mut dyn Write)
         -> StepResult
     {
-        let authzid = session.get_property_or_callback::<AuthzId>().ok()
-            .map(Clone::clone);
+        let authzid = session.get_property_or_callback::<AuthzId>()?;
 
-        let authid = session.get_property_or_callback::<AuthId>()
-            .map(Clone::clone)?;
-        let password = session.get_property_or_callback::<Password>()
-            .map(Clone::clone)?;
+        let authid = session.get_property_or_callback::<AuthId>()?
+            .ok_or(SASLError::no_property::<AuthId>())?;
+        let password = session.get_property_or_callback::<Password>()?
+            .ok_or(SASLError::no_property::<Password>())?;
 
         let authzidbuf = if let Some(authz) = &authzid {
             authz.as_bytes()
         } else {
             &[]
         };
-        let data: &[&[u8]] = &[
+
+        let data: [&[u8]; 5] = [
             authzidbuf,
             &[0],
             authid.as_bytes(),
             &[0],
             password.as_bytes(),
         ];
-        let mut bufs: [IoSlice; 5] = [
-            IoSlice::new(data[0]),
-            IoSlice::new(data[1]),
-            IoSlice::new(data[2]),
-            IoSlice::new(data[3]),
-            IoSlice::new(data[4]),
-        ];
+        let mut vecw = VectoredWriter::new(data);
 
-        let mut skip = if authzid.is_none() { 1 } else { 0 };
-        let mut written = 0;
-        while {
-            let len = writer.write_vectored(&bufs[skip..])?;
-            written += len;
-
-            // Number of buffers to remove.
-            let mut remove = 0;
-            // Total length of all the to be removed buffers.
-            let mut accumulated_len = 0;
-            for buf in bufs[skip..].iter() {
-                if accumulated_len + buf.len() > len {
-                    break;
-                } else {
-                    accumulated_len += buf.len();
-                    remove += 1;
-                }
-            }
-            skip += remove;
-            if skip < 5 {
-                let rem = len - accumulated_len;
-                bufs[skip] = IoSlice::new(&data[skip][rem..]);
-            }
-
-            skip < 5
-        } {}
+        let written = vecw.write_all_vectored(writer)?;
 
         Ok(Done(Some(written)))
     }
@@ -90,8 +61,8 @@ mod test {
         let password = "secret".to_string();
         assert_eq!(password.len(), 6);
 
-        session.set_property::<AuthId>(Box::new(username));
-        session.set_property::<Password>(Box::new(password));
+        session.set_property::<AuthId>(Arc::new(username));
+        session.set_property::<Password>(Arc::new(password));
 
         let mut out = Cursor::new(Vec::new());
 
@@ -125,8 +96,8 @@ mod test {
         let password = "secret".to_string();
         assert_eq!(password.len(), 6);
 
-        session.set_property::<AuthId>(Box::new(username));
-        session.set_property::<Password>(Box::new(password));
+        session.set_property::<AuthId>(Arc::new(username));
+        session.set_property::<Password>(Arc::new(password));
 
         struct SplitWriter {
             data: Cursor<Vec<u8>>,

@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::sync::Arc;
 use stringprep::saslprep;
 use crate::property::{AuthId, AuthzId, Password};
 use crate::session::{SessionData, StepResult};
@@ -28,18 +29,18 @@ impl Authentication for Plain {
             let s = std::str::from_utf8(authzid)
                 .map_err(|_| SASLError::MechanismParseError)?;
             let authzidprep = saslprep(s)?.to_string();
-            session.set_property::<AuthzId>(Box::new(authzidprep));
+            session.set_property::<AuthzId>(Arc::new(authzidprep));
         }
 
         let authcid = std::str::from_utf8(authcid)
             .map_err(|_| SASLError::MechanismParseError)?;
         let authcidprep = saslprep(authcid)?.to_string();
-        session.set_property::<AuthId>(Box::new(authcidprep));
+        session.set_property::<AuthId>(Arc::new(authcidprep));
 
         let password = std::str::from_utf8(password)
             .map_err(|_| SASLError::MechanismParseError)?;
         let passwordprep = saslprep(password)?.to_string();
-        session.set_property::<Password>(Box::new(passwordprep));
+        session.set_property::<Password>(Arc::new(passwordprep));
 
         session.validate(SIMPLE)?;
         Ok(Done(None))

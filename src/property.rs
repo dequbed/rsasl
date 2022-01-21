@@ -86,7 +86,7 @@ impl Property {
 /// This trait is used to associate a type to this property so that [`get_property`] and
 /// [`set_property`] can properly downcast to this type
 pub trait PropertyQ: 'static + Debug {
-    type Item: 'static;
+    type Item: 'static + Send + Sync;
     fn property() -> Property;
 }
 

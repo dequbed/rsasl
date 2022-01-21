@@ -1,17 +1,29 @@
 use std::io;
 use std::ffi::CString;
 use std::io::Cursor;
+use std::sync::Arc;
+use rsasl::mechanisms::scram::client::ScramClient;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
+use rsasl::registry::Mechanism;
 use rsasl::SASL;
+use rsasl::session::Side;
 use rsasl::session::Step::{Done, NeedsMore};
 
 pub fn main() {
     let mut sasl = SASL::new();
+    const M: Mechanism = Mechanism {
+        mechanism: Mechname::const_new_unchecked(b"SCRAM"),
+        priority: 0,
+        client: Some(|_sasl| Ok(Box::new(ScramClient::<18>::new()))),
+        server: None,
+        first: Side::Client
+    };
+    sasl.register(&M);
 
     // Usually you would first agree on a mechanism with the server, for demostration purposes
     // we directly start a SCRAM-SHA-256 "exchange"
-    let mut session = sasl.client_start(Mechname::new(b"SCRAM-SHA-256").unwrap()).unwrap();
+    let mut session = sasl.client_start(Mechname::new(b"SCRAM").unwrap()).unwrap();
 
     // Read the "authcid" from stdin
     let mut username = String::new();
@@ -34,10 +46,10 @@ pub fn main() {
     print!("\n");
 
     // Set the username that will be used in the SCRAM-SHA-1 authentication
-    session.set_property::<AuthId>(Box::new(username));
+    session.set_property::<AuthId>(Arc::new(username));
 
     // Now set the password that will be used in the SCRAM-SHA-1 authentication
-    session.set_property::<Password>(Box::new(password));
+    session.set_property::<Password>(Arc::new(password));
 
 
     let mut data: Option<Box<[u8]>> = None;

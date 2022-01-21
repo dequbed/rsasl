@@ -1,6 +1,19 @@
+use std::borrow::Cow;
+use std::hash::Hash;
+use std::io::{IoSlice, Write};
+use std::marker::PhantomData;
+use std::num::NonZeroUsize;
+use std::ops::Deref;
 use std::ptr::NonNull;
 use ::libc;
-use libc::{calloc, malloc, memcmp, memcpy, size_t, strchr, strcmp, strdup, strlen};
+use digest::{CtOutput, Digest, FixedOutput, HashMarker, KeyInit, Output, Reset, Update};
+use digest::core_api::{BlockSizeUser, CoreProxy, FixedOutputCore};
+use digest::generic_array::typenum::{IsLess, Le, NonZero};
+use hmac::Hmac;
+use libc::{calloc, malloc, memcmp, memcpy, passwd, size_t, strchr, strcmp, strdup, strlen};
+use rand::{CryptoRng, Rng};
+use rand::distributions::{Distribution, Slice};
+use rand::rngs::ThreadRng;
 use crate::gsasl::base64::{gsasl_base64_from, gsasl_base64_to};
 use crate::gsasl::consts::{GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_CB_TLS_UNIQUE, GSASL_MALLOC_ERROR, GSASL_MECHANISM_CALLED_TOO_MANY_TIMES, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_NO_AUTHID, GSASL_NO_CB_TLS_UNIQUE, GSASL_NO_PASSWORD, GSASL_OK, GSASL_PASSWORD, GSASL_SCRAM_ITER, GSASL_SCRAM_SALT, GSASL_SCRAM_SALTED_PASSWORD};
 use crate::gsasl::crypto::{gsasl_hash_length, gsasl_nonce, gsasl_scram_secrets_from_password, gsasl_scram_secrets_from_salted_password};
@@ -10,14 +23,425 @@ use crate::gsasl::gl::memxor::memxor;
 use crate::gsasl::mechtools::{_gsasl_hex_decode, _gsasl_hex_p, _gsasl_hmac, Gsasl_hash, GSASL_HASH_SHA1, GSASL_HASH_SHA256};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
 use crate::gsasl::saslprep::{GSASL_ALLOW_UNASSIGNED, gsasl_saslprep};
-use crate::mechanisms::scram::parser::{scram_parse_server_final, scram_parse_server_first};
+use crate::mechanisms::scram::client::SCRAMError::ParseError;
+use crate::mechanisms::scram::parser::{ClientFinal, ClientFirstMessage, GS2CBindFlag, SaslName, SaslNameError, scram_parse_server_final, scram_parse_server_first, ServerErrorValue, ServerFinal, ServerFirst};
 use crate::mechanisms::scram::printer::{scram_print_client_final, scram_print_client_first};
 use crate::mechanisms::scram::server::{scram_server_final, scram_server_first};
 use crate::mechanisms::scram::tokens::{scram_free_client_final, scram_free_client_first,
                               scram_free_server_final, scram_free_server_first};
-use crate::mechanisms::scram::tools::set_saltedpassword;
-use crate::session::SessionData;
-use crate::Shared;
+use crate::mechanisms::scram::tools::{find_proofs, hash_password, set_saltedpassword};
+use crate::session::{SessionData, Step, StepResult};
+use crate::{Authentication, SASLError, Shared};
+use crate::property::{AuthId, AuthzId, CBTlsUnique, Password};
+use crate::session::Step::NeedsMore;
+use crate::vectored_io::VectoredWriter;
+
+/// All the characters that are valid chars for a nonce
+const PRINTABLE: &'static [u8] =
+    b"!\"#$%&'()*+-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxy";
+
+pub struct ScramClient<const N: usize> {
+    plus: bool,
+    state: Option<ScramClientState<N>>,
+}
+impl<const N: usize> ScramClient<N> {
+    pub fn new() -> Self {
+        Self {
+            plus: false,
+            state: Some(ScramClientState::Initial(State::new(None))),
+        }
+    }
+}
+enum ScramClientState<const N: usize> {
+    Initial(State<StateClientFirst<N>>),
+    ClientFirst(State<WaitingServerFirst<N>>),
+    ServerFirst(State<WaitingServerFinal<32>>),
+    Done(State<StateServerFinal>),
+}
+struct State<S> {
+    cbdata: Option<(&'static str, Box<[u8]>)>,
+    state: S,
+}
+impl<const N: usize> State<StateClientFirst<N>> {
+    pub fn new(cbdata: Option<(&'static str, Box<[u8]>)>) -> Self {
+        Self {
+            cbdata,
+            state: StateClientFirst::new(),
+        }
+    }
+
+    pub fn step(
+        self,
+        rng: &mut impl Rng,
+        authzid: Option<&str>,
+        username: Box<SaslName>,
+        writer: impl Write,
+        written: &mut usize,
+    ) -> Result<State<WaitingServerFirst<N>>, SASLError> {
+        let cbflag = if let Some((name, _)) = self.cbdata.as_ref() {
+            GS2CBindFlag::Used(name)
+        } else {
+            GS2CBindFlag::NotSupported
+        };
+        let state = self.state.send_client_first(rng, cbflag, authzid, username, writer, written)?;
+        Ok(State { state, cbdata: self.cbdata })
+    }
+}
+impl<const N: usize> State<WaitingServerFirst<N>> {
+    pub fn step(
+        mut self,
+        password: &str,
+        server_first: &[u8],
+        writer: impl Write,
+        written: &mut usize,
+    ) -> Result<State<WaitingServerFinal<32>>, SASLError> {
+        let cbdata = self.cbdata.map(|(_,b)| b);
+        let state = self.state.handle_server_first(password, cbdata, server_first, writer, written)?;
+        Ok(State { state, cbdata: None })
+    }
+}
+impl<const N: usize> State<WaitingServerFinal<N>> {
+    pub fn step(
+        self,
+        server_final: &[u8],
+    ) -> Result<bool, SASLError>
+    {
+        match self.state.handle_server_final(server_final) {
+            Ok(StateServerFinal { .. }) => Ok(true),
+            // TODO: Proper error handling
+            Err(SCRAMError::ParseError(_)) => Err(SASLError::MechanismParseError),
+            Err(SCRAMError::ServerError(ServerErrorValue::InvalidProof)) => Ok(false),
+            Err(SCRAMError::ServerError(ServerErrorValue::UnknownUser)) => Ok(false),
+            Err(SCRAMError::Protocol(ProtocolError::ServerSignatureMismatch)) => Ok(false),
+            Err(_) => Err(SASLError::MechanismParseError),
+        }
+    }
+}
+
+struct StateClientFirst<const N: usize> {
+    nonce: PhantomData<&'static [u8; N]>,
+    // Parameters Data required to send Client First Message
+    //cb_flag: Option<&'static str>,
+    //authzid: Option<&'static str>,
+    //username: &'static str,
+
+    // State <= Nothing
+    // Input <= Nothing
+
+    // Generate: client_nonce <- random
+    //           gs2_header <- cb_flag ',' authzid
+
+    // Output => ClientFirstMessage gs2_header ',' n=username ',' r=client_nonce
+
+    // State => gs2_header, client_nonce, username
+}
+impl<const N: usize> StateClientFirst<N> {
+    pub fn new() -> Self {
+        Self { nonce: PhantomData }
+    }
+
+    pub fn send_client_first(
+        self,
+        rng: &mut impl Rng,
+        cbflag: GS2CBindFlag<'_>,
+        authzid: Option<&str>,
+        username: Box<SaslName>,
+        writer: impl Write,
+        written: &mut usize,
+    ) -> Result<WaitingServerFirst<N>, SASLError>
+    {
+        // The PRINTABLE slice is const not empty which is the only failure case we unwrap.
+        let mut distribution = Slice::new(PRINTABLE).unwrap();
+        let client_nonce: [u8; N] = [0u8; N].map(|_| *distribution.sample(rng));
+
+        let b = ClientFirstMessage::new(
+            cbflag,
+            authzid,
+            &username,
+            &client_nonce[..],
+        ).to_ioslices();
+
+        let mut vecw = VectoredWriter::new(b);
+        (*written) = vecw.write_all_vectored(writer)?;
+
+        let gs2_header_len = b[0].len() + b[1].len() + b[2].len() + b[3].len();
+        let mut gs2_header = Vec::with_capacity(gs2_header_len);
+
+        // y | n | p=
+        gs2_header.extend_from_slice(b[0]);
+        // &[] | cbname
+        gs2_header.extend_from_slice(b[1]);
+        // b","
+        gs2_header.extend_from_slice(b[2]);
+        // authzid
+        gs2_header.extend_from_slice(b[3]);
+        // b","
+        gs2_header.extend_from_slice(b",");
+
+        Ok(WaitingServerFirst::new(gs2_header, client_nonce, username))
+    }
+}
+
+// Waiting for first server msg
+struct WaitingServerFirst<const N: usize> {
+    // Provided user password to be hashed with salt & iteration count from Server First Message
+    //password: &'static str,
+    //cbdata: Option<&[u8]>
+
+    // State <= gs2_header, client_nonce, username
+
+    gs2_header: Vec<u8>,
+    // Need to compare combined_nonce to be valid
+    client_nonce: [u8; N],
+
+    username: Box<SaslName>,
+
+    // Input <= Server First Message { combined_nonce, salt, iteration_count }
+
+    // Validate: len combined_nonce > len client_nonce
+    //           combined_nonce `beginsWith` client_nonce
+
+    // Generate: (proof, server_hmac) <- hash_with password salt iteration_count
+    //           channel_binding <- base64_encode ( gs2_header ++ cb_data )
+
+    // Output => ClientFinalMessage c=channel_binding,r=combined_nonce,p=proof
+    // State => server_hmac
+}
+impl<const N: usize> WaitingServerFirst<N> {
+    pub fn new(gs2_header: Vec<u8>, client_nonce: [u8; N], username: Box<SaslName>) -> Self {
+        Self { gs2_header, client_nonce, username }
+    }
+
+    pub fn handle_server_first(
+        mut self,
+        password: &str,
+        cbdata: Option<Box<[u8]>>,
+        server_first: &[u8],
+        writer: impl Write,
+        written: &mut usize,
+    ) -> Result<WaitingServerFinal<32>, SASLError>
+    {
+        let ServerFirst { nonce, salt, iteration_count } = ServerFirst::parse(server_first)
+            .map_err(|e| {
+                println!("{:?}", e);
+                SASLError::MechanismParseError
+            })?;
+
+        if !(nonce.len() > self.client_nonce.len() && nonce.starts_with(&self.client_nonce[..]))
+        {
+            todo!()
+            //return Err(SCRAMError::Protocol(ProtocolError::InvalidNonce));
+        }
+
+        let iterations: u32 = std::str::from_utf8(iteration_count)
+            // TODO: Error handling
+            .map_err(|_| super::parser::ParseError::BadUtf8).unwrap()
+            .parse()
+            // TODO: Error handling
+            .map_err(|e| {
+                println!("{:?}", e);
+                SASLError::MechanismParseError
+            })?;
+            //.map_err(|_| SCRAMError::Protocol(ProtocolError::IterationCountFormat))?;
+
+        if iterations == 0 {
+            todo!()
+            //return Err(SCRAMError::Protocol(ProtocolError::IterationCountZero));
+        }
+
+        let salt = base64::decode(salt).unwrap();
+        let mut salted_password = [0u8; 32];
+        hash_password::<Hmac<sha2::Sha256>>(password, iterations, &salt[..], &mut salted_password);
+        println!("Salted Password {:?}", salted_password.map(|u| u as i8).as_slice());
+
+        self.gs2_header.extend_from_slice(cbdata.as_ref().map(|b| b.as_ref()).unwrap_or(&[]));
+        let gs2headerb64 = base64::encode(self.gs2_header);
+
+        let (client_proof, server_signature) = find_proofs::<
+            sha2::Sha256,
+            Hmac<sha2::Sha256>,
+            digest::consts::U32
+        >(
+            self.username.as_str(),
+            &self.client_nonce[..],
+            server_first,
+            &gs2headerb64,
+            nonce,
+            &salted_password[..],
+        );
+
+        let proof = base64::encode(client_proof.as_slice());
+
+        let b = ClientFinal::new(
+            gs2headerb64.as_bytes(),
+            nonce,
+            proof.as_bytes(),
+        ).to_ioslices();
+
+        let mut vecw = VectoredWriter::new(b);
+        *written = vecw.write_all_vectored(writer)?;
+
+        let mut server_sig = [0u8; 32];
+        server_sig.copy_from_slice(server_signature.as_ref());
+
+        Ok(WaitingServerFinal::new(server_sig))
+    }
+}
+
+// Waiting for final server msg
+struct WaitingServerFinal<const H: usize> {
+    // State <= server_hmac
+    server_sig: [u8; H],
+
+    // Input <= Server Final Message ( verifier | error )
+
+    // Validate: verifier == server_hmac
+    //           no error
+
+    // Output => Nothing
+    // State => Nothing
+}
+impl<const H: usize> WaitingServerFinal<H> {
+    pub fn new(server_sig: [u8; H]) -> Self {
+        Self { server_sig }
+    }
+
+    pub fn handle_server_final(self, server_final: &[u8]) -> Result<StateServerFinal, SCRAMError> {
+        match ServerFinal::parse(server_final)? {
+            ServerFinal::Verifier(verifier) if verifier == self.server_sig =>
+                Ok(StateServerFinal {}),
+            ServerFinal::Verifier(_) =>
+                Err(SCRAMError::Protocol(ProtocolError::ServerSignatureMismatch)),
+
+            ServerFinal::Error(e) => Err(SCRAMError::ServerError(e)),
+        }
+    }
+}
+
+struct StateServerFinal {
+
+}
+
+impl<const N: usize> Authentication for ScramClient<N> {
+    fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
+        use ScramClientState::*;
+        match self.state.take() {
+            Some(Initial(state)) => {
+                let (cbflag, cbdata) = if self.plus {
+                    let (name, value) = session.get_cb_data()
+                        // TODO: fix
+                        .expect("CB data required");
+                    (GS2CBindFlag::Used(name), Some(base64::encode(value)))
+                } else {
+                    (GS2CBindFlag::NotSupported, None)
+                };
+
+                let authzid = session.get_property_or_callback::<AuthzId>()?;
+                let authid = session.get_property_or_callback::<AuthId>()?
+                    .ok_or(SASLError::no_property::<AuthId>())?;
+                let username_escaped = SaslName::escape(&authid).unwrap();
+                let username = SaslName::from_boxed_str(username_escaped.into_owned().into_boxed_str())
+                    .expect("escaped SaslName contained invalid chars");
+
+                let mut rng = rand::thread_rng();
+                let mut written = 0;
+                let new_state = state.step(
+                    &mut rng,
+                    authzid.as_ref().map(|arc| arc.as_str()),
+                    username,
+                    writer,
+                    &mut written
+                )?;
+                self.state = Some(ClientFirst(new_state));
+
+                Ok(NeedsMore(Some(written)))
+            },
+            Some(ClientFirst(state)) => {
+                let server_first = input.ok_or(SASLError::MechanismParseError)?;
+
+                let password = session.get_property_or_callback::<Password>()?
+                    .ok_or(SASLError::no_property::<Password>())?;
+
+                let mut written = 0;
+                let new_state = state.step(
+                    &password,
+                    server_first,
+                    writer,
+                    &mut written)?;
+                self.state = Some(ServerFirst(new_state));
+
+                Ok(NeedsMore(Some(written)))
+            }
+            Some(ServerFirst(state)) => {
+                let server_final = input.ok_or(SASLError::MechanismParseError)?;
+                if state.step(server_final)? {
+                    Ok(Step::Done(None))
+                } else {
+                    Err(SASLError::AuthenticationFailure { reason: "" })
+                }
+            }
+            Some(Done(_)) => panic!("State machine polled after completion"),
+            None => panic!("State machine in invalid state"),
+        }
+    }
+}
+
+
+pub enum ProtocolError {
+    InvalidNonce,
+    IterationCountFormat,
+    IterationCountZero,
+    ServerSignatureMismatch,
+}
+
+pub enum SCRAMError {
+    Protocol(ProtocolError),
+    ParseError(super::parser::ParseError),
+    ServerError(ServerErrorValue),
+}
+
+impl From<super::parser::ParseError> for SCRAMError {
+    fn from(e: super::parser::ParseError) -> Self {
+        Self::ParseError(e)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Cursor;
+    use std::sync::Arc;
+    use crate::{Mechanism, Mechname, SASL, Side};
+    use super::*;
+
+    #[test]
+    fn scram_test_1() {
+        let mut sasl = SASL::new();
+        const M: Mechanism = Mechanism {
+            mechanism: Mechname::const_new_unchecked(b"SCRAM"),
+            priority: 0,
+            client: Some(|_sasl| Ok(Box::new(ScramClient::<18>::new()))),
+            server: None,
+            first: Side::Client
+        };
+        sasl.register(&M);
+        let mut session = sasl.client_start(Mechname::new(b"SCRAM").unwrap()).unwrap();
+        assert!(session.are_we_first());
+
+        session.set_property::<AuthId>(Arc::new("testuser".to_string()));
+
+        let mut out = Cursor::new(Vec::new());
+        let data: Option<&[u8]> = None;
+
+        let before = out.position() as usize;
+        let stepout = session.step(data, &mut out).unwrap();
+        let after = out.position() as usize;
+
+        let sdata = &out.get_ref()[before..after];
+
+        println!("({:?}): {}", stepout, std::str::from_utf8(sdata).unwrap());
+        assert_eq!(stepout, Step::NeedsMore(Some(after-before)));
+    }
+}
 
 extern "C" {
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char,
