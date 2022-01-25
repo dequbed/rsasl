@@ -1,18 +1,20 @@
 use std::any::Any;
 use std::collections::HashMap;
-use std::fmt::{Debug, Formatter};
+use std::fmt;
+use std::fmt::{Debug, Display, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 use base64::write::EncoderWriter;
 
 use crate::{Callback, Mechanism, Mechname, Property, SASLError};
 use crate::channel_bindings::{ChannelBindingData, ChannelBindingName};
+use crate::error::SessionError;
 use crate::gsasl::consts::{Gsasl_property, property_from_code};
 use crate::mechanism::Authentication;
 use crate::property::PropertyQ;
 use crate::validate::*;
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
     Client,
     Server,
@@ -53,6 +55,10 @@ impl Session {
 
     pub fn are_we_first(&self) -> bool {
         self.session_data.side == self.session_data.mechanism.first
+    }
+
+    pub fn has_security_layer(&self) -> bool {
+        todo!()
     }
 }
 
@@ -154,7 +160,7 @@ pub enum Step {
 //  *On top of that* a mechanism may error for non-authentication related errors, e.g. IO errors
 //  or missing properties in which case a mechanism has not written *valid* data and the
 //  connection, if any, should be reset.
-pub type StepResult = Result<Step, SASLError>;
+pub type StepResult = Result<Step, SessionError>;
 
 impl SessionData {
     pub(crate) fn new(
@@ -175,22 +181,24 @@ impl SessionData {
 }
 
 impl SessionData {
-    pub fn callback<P: PropertyQ>(&mut self) -> Result<(), SASLError> {
+    pub fn callback<P: PropertyQ>(&mut self) -> Result<(), SessionError> {
         let property = P::property();
         self.callback_property(property)
     }
 
-    pub fn validate(&mut self, validation: Validation) -> Result<(), SASLError> {
+    pub fn validate(&mut self, validation: Validation) -> Result<(), SessionError> {
         self.callback.clone()
             .map(|cb| cb.validate(self, validation, self.mechanism.mechanism))
-            .unwrap_or(Err(SASLError::NoValidate { validation }))
+            .unwrap_or(Err(SessionError::no_validate(validation)))
     }
 
-    pub fn get_property_or_callback<P: PropertyQ>(&mut self) -> Result<Option<Arc<P::Item>>, SASLError> {
+    pub fn get_property_or_callback<P: PropertyQ>(&mut self)
+        -> Result<Option<Arc<P::Item>>, SessionError>
+    {
         if !self.has_property::<P>() {
             match self.callback::<P>() {
                 Ok(()) => {},
-                Err(SASLError::NoCallback { .. }) => return Ok(None),
+                Err(SessionError::NoCallback { .. }) => return Ok(None),
                 Err(e) => return Err(e),
             }
         }
@@ -218,15 +226,15 @@ impl SessionData {
         self.property_cache.insert(property, data);
     }
 
-    pub(crate) fn callback_raw(&mut self, prop: Gsasl_property) -> Result<(), SASLError> {
+    pub(crate) fn callback_raw(&mut self, prop: Gsasl_property) -> Result<(), SessionError> {
         let property = property_from_code(prop).unwrap();
         self.callback_property(property)
     }
 
-    pub(crate) fn callback_property(&mut self, property: Property) -> Result<(), SASLError> {
+    pub(crate) fn callback_property(&mut self, property: Property) -> Result<(), SessionError> {
         self.callback.clone()
             .map(|cb| cb.provide_prop(self, property))
-            .unwrap_or(Err(SASLError::NoCallback { property }))
+            .unwrap_or(Err(SessionError::NoCallback { property }))
     }
 
     pub(crate) fn set_channel_binding_data(&mut self, name: &'static str, value: Box<[u8]>) {
@@ -254,7 +262,7 @@ mod tests {
         }
         impl Callback for CB {
             fn provide_prop(&self, session: &mut SessionData, _action: Property) ->
-            Result<(), SASLError> {
+            Result<(), SessionError> {
                 let _ = session.set_property::<AuthId>(Arc::new(format!("is {}", self.data)));
                 Ok(())
             }

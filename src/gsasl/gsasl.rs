@@ -3,8 +3,10 @@ use std::io::Write;
 use std::ptr::NonNull;
 use libc::{c_char, size_t};
 use crate::{SASLError, Shared};
+use crate::error::SessionError;
 use crate::gsasl::consts::{GSASL_NEEDS_MORE, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
 use crate::mechanism::Authentication;
+use crate::error::Gsasl;
 use crate::session::{SessionData, StepResult};
 use crate::session::Step::{Done, NeedsMore};
 
@@ -101,7 +103,7 @@ impl Authentication for CMechanismStateKeeper {
         -> StepResult
     {
         fn write_output(writer: &mut dyn Write, output: *mut c_char, outlen: size_t)
-            -> Result<Option<usize>, SASLError>
+            -> Result<Option<usize>, SessionError>
         {
             // Output == nullptr means send no data
             if output.is_null() {
@@ -130,11 +132,11 @@ impl Authentication for CMechanismStateKeeper {
                 } else if res == GSASL_NEEDS_MORE as libc::c_int {
                     Ok(NeedsMore(write_output(writer, output, outlen)?))
                 } else {
-                    Err(res.into())
+                    Err(Gsasl(res).into())
                 }
             }
         } else {
-            Err((GSASL_UNKNOWN_MECHANISM as i32).into())
+            Err(Gsasl(GSASL_UNKNOWN_MECHANISM as i32).into())
         }
     }
 }

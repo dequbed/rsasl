@@ -1,12 +1,13 @@
+use std::any::Any;
 use std::cmp::min;
-use std::fmt;
+use std::{fmt, io};
 use std::ffi::CStr;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display, Formatter, write};
 use base64::DecodeError;
 use stringprep::Error;
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 use crate::property::Property;
-use crate::{Mechname, PropertyQ};
+use crate::{Mechname, PropertyQ, Side};
 use crate::validate::Validation;
 
 pub type Result<T> = std::result::Result<T, SASLError>;
@@ -42,17 +43,62 @@ impl Display for MechanismArray {
     }
 }
 
-// Contain mostly fat pointers so 16 bytes. Try to not be (much) bigger than that
-pub enum SASLError {
+/// Different high-level kinds of errors that can happen in mechanisms
+pub enum MechanismErrorKind {
+    /// Parsing failed for the given reason (syntactical error)
+    Parse,
+
+    /// The messages where syntactically valid but a semantical error occurred during handling
+    Protocol,
+
+    /// While the exchange did complete correctly, the authentication itself failed for some
+    /// reason or another.
+    Outcome,
+}
+
+/// Errors specific to a certain mechanism
+pub trait MechanismError: Debug + Display {
+    fn kind(&self) -> MechanismErrorKind;
+}
+
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+pub struct Gsasl(pub i32);
+impl Debug for Gsasl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(rsasl_errname_to_str(self.0 as u32).unwrap_or("UNKNOWN_ERROR"))
+    }
+}
+impl Display for Gsasl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(rsasl_err_to_str(self.0).unwrap_or("an unknown error was encountered"))
+    }
+}
+impl MechanismError for Gsasl {
+    fn kind(&self) -> MechanismErrorKind {
+        // TODO: match self and return proper type
+        MechanismErrorKind::Protocol
+    }
+}
+
+#[derive(Debug)]
+pub enum SessionError {
     Io {
         source: std::io::Error,
     },
-    UnknownMechanism(MechanismArray),
-    Base64DecodeError {
+
+    #[cfg(feature = "provider_base64")]
+    Base64 {
         source: base64::DecodeError,
     },
-    MechanismNameError(MechanismNameError),
+
     NoSecurityLayer,
+
+    // Common Mechanism Errors:
+
+    /// Mechanism was called without input data when requiring some
+    InputDataRequired,
+
+    MechanismError(Box<dyn MechanismError>),
     NoCallback {
         property: Property,
     },
@@ -62,66 +108,92 @@ pub enum SASLError {
     NoProperty {
         property: Property,
     },
-    AuthenticationFailure {
-        reason: &'static str,
-    },
-    MechanismParseError,
-    NoSharedMechanism,
-    Gsasl(i32),
 }
-
-impl SASLError {
+impl SessionError {
     pub fn no_property<P: PropertyQ>() -> Self {
         Self::NoProperty {
             property: P::property(),
         }
     }
-    pub fn unknown_mechanism(name: &Mechname) -> Self {
-        Self::UnknownMechanism(MechanismArray::new(name))
+
+    pub fn no_validate(validation: Validation) -> Self {
+        Self::NoValidate { validation }
+    }
+
+    pub fn input_required() -> Self {
+        Self::InputDataRequired
+    }
+}
+impl Display for SessionError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Io { source }
+                => write!(f, "I/O error occured: {}", source),
+
+            #[cfg(feature = "provider_base64")]
+            Self::Base64 { source }
+                => write!(f, "failed to decode base64-encoded input: {}", source),
+
+            Self::NoSecurityLayer => f.write_str("no security layer is installed"),
+            Self::InputDataRequired => f.write_str("input data is required but None supplied"),
+
+            Self::MechanismError(source)
+                => Display::fmt(source, f),
+            Self::NoCallback { property } =>
+                write!(f,
+                       "callback could not provide the requested property {:?}",
+                       property),
+            Self::NoValidate { validation } =>
+                write!(f,
+                       "no validation callback for {} installed",
+                       validation),
+            Self::NoProperty { property } =>
+                write!(f,
+                       "required property {} is not set",
+                       property),
+        }
     }
 }
 
-impl PartialEq for SASLError {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            ( SASLError::UnknownMechanism(m1)
-            , SASLError::UnknownMechanism(m2)
-            ) => m1 == m2,
+impl From<io::Error> for SessionError {
+    fn from(source: io::Error) -> Self {
+        Self::Io { source }
+    }
+}
 
-            ( SASLError::Base64DecodeError { source: s1 }
-            , SASLError::Base64DecodeError { source: s2 }
-            ) => s1 == s2,
+#[cfg(feature = "provider_base64")]
+impl From<base64::DecodeError> for SessionError {
+    fn from(source: base64::DecodeError) -> Self {
+        Self::Base64 { source }
+    }
+}
 
-            ( SASLError::MechanismNameError(e1)
-            , SASLError::MechanismNameError(e2)
-            ) => e1 == e2,
+impl<T: MechanismError + 'static> From<T> for SessionError {
+    fn from(e: T) -> Self {
+        Self::MechanismError(Box::new(e))
+    }
+}
 
-            (SASLError::NoSecurityLayer, SASLError::NoSecurityLayer) => true,
+// Contain mostly fat pointers so 16 bytes. Try to not be (much) bigger than that
+pub enum SASLError {
+    // outside errors
+    Io {
+        source: std::io::Error,
+    },
+    Base64DecodeError {
+        source: base64::DecodeError,
+    },
 
-            ( SASLError::NoCallback { property: p1 }
-            , SASLError::NoCallback { property: p2 }
-            ) => p1 == p2,
+    // setup errors
+    UnknownMechanism(MechanismArray),
+    NoSharedMechanism,
+    MechanismNameError(MechanismNameError),
+    Gsasl(i32),
+}
 
-            ( SASLError::NoValidate { validation: v1 }
-            , SASLError::NoValidate { validation: v2 }
-            ) => v1 == v2,
-
-            ( SASLError::NoProperty { property: p1 }
-            , SASLError::NoProperty { property: p2 }
-            ) => p1 == p2,
-
-            ( SASLError::AuthenticationFailure { reason: r1 }
-            , SASLError::AuthenticationFailure { reason: r2 }
-            ) => r1 == r2,
-
-            (SASLError::MechanismParseError, SASLError::MechanismParseError) => true,
-
-            (SASLError::NoSharedMechanism, SASLError::NoSharedMechanism) => true,
-
-            (SASLError::Gsasl(c1), SASLError::Gsasl(c2)) => c1 == c2,
-
-            _ => false,
-        }
+impl SASLError {
+    pub fn unknown_mechanism(name: &Mechname) -> Self {
+        Self::UnknownMechanism(MechanismArray::new(name))
     }
 }
 
@@ -140,13 +212,6 @@ impl Debug for SASLError {
                 write!(f, "{}[{}]",
                        rsasl_errname_to_str(*n as u32).unwrap_or("UNKNOWN_ERROR"),
                        n),
-            SASLError::NoSecurityLayer => f.write_str("NoSecurityLayer"),
-            SASLError::NoValidate { validation } =>
-                write!(f, "NoValidate({:?})", validation),
-            SASLError::NoCallback { property } => write!(f, "NoCallback({:?})", property),
-            SASLError::NoProperty { property } => write!(f, "NoProperty({:?})", property),
-            SASLError::AuthenticationFailure { .. } => f.write_str("AuthenticationFailure"),
-            SASLError::MechanismParseError => f.write_str("MechanismParseError"),
             SASLError::NoSharedMechanism => f.write_str("NoSharedMechanism"),
         }
     }
@@ -171,25 +236,6 @@ impl Display for SASLError {
                 write!(f, "({}): {}",
                        rsasl_errname_to_str(*n as u32).unwrap_or("UNKNOWN_ERROR"),
                        gsasl_err_to_str_internal(*n)),
-            SASLError::NoSecurityLayer => f.write_str("no security layer is installed"),
-            SASLError::NoCallback { property } =>
-                write!(f,
-                       "callback could not provide the requested property {:?}",
-                       property),
-            SASLError::NoValidate { validation } =>
-                write!(f,
-                       "no validation callback for {} installed",
-                       validation),
-            SASLError::NoProperty { property } =>
-                write!(f,
-                       "required property {} is not set",
-                       property),
-            SASLError::AuthenticationFailure { reason } =>
-                write!(f,
-                       "authentication failed: {}",
-                       reason),
-            SASLError::MechanismParseError =>
-                f.write_str("mechanism encountered invalid input data"),
             SASLError::NoSharedMechanism =>
                 f.write_str("no shared mechanism found to use"),
         }
@@ -219,13 +265,6 @@ impl From<std::io::Error> for SASLError {
 impl From<i32> for SASLError {
     fn from(e: i32) -> Self {
         SASLError::Gsasl(e)
-    }
-}
-
-#[cfg(feature = "saslprep")]
-impl From<stringprep::Error> for SASLError {
-    fn from(_: Error) -> Self {
-        SASLError::MechanismParseError
     }
 }
 
@@ -338,6 +377,8 @@ pub fn gsasl_errname_to_str(err: libc::c_int) -> &'static str {
 #[cfg(test)]
 mod tests {
     use crate::gsasl::consts::*;
+    use crate::mechanisms::scram::client::SCRAMError;
+    use crate::mechanisms::scram::parser::ServerErrorValue;
     use super::*;
 
     #[test]
