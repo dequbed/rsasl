@@ -1,10 +1,25 @@
+use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 use crate::{Authentication, SASLError};
+use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::property::AnonymousToken;
 use crate::session::{SessionData, StepResult};
 use crate::session::Step::{Done, NeedsMore};
 use crate::validate::validations::ANONYMOUS;
+
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+pub struct ParseError;
+impl Display for ParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("the given anonymous token is invalid UTF-8 or longer than 255 chars")
+    }
+}
+impl MechanismError for ParseError {
+    fn kind(&self) -> MechanismErrorKind {
+        MechanismErrorKind::Parse
+    }
+}
 
 #[derive(Copy, Clone, Debug)]
 pub struct Anonymous;
@@ -25,7 +40,7 @@ impl Authentication for Anonymous {
              characters.   As the encoding of a characters uses a sequence of 1
              to 4 octets, a token may be long as 1020 octets. */
             if input.len() == 0 || input.len() > 255 {
-                return Err(SASLError::MechanismParseError);
+                return Err(ParseError.into());
             }
 
             session.set_property::<AnonymousToken>(Arc::new(input.to_string()));
@@ -33,7 +48,7 @@ impl Authentication for Anonymous {
 
             Ok(Done(None))
         } else {
-            Err(SASLError::MechanismParseError)
+            Err(ParseError.into())
         }
     }
 }

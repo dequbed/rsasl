@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::fmt::{Display, Formatter};
 use std::hash::Hash;
 use std::io::{IoSlice, Write};
 use std::marker::PhantomData;
@@ -32,6 +33,7 @@ use crate::mechanisms::scram::tokens::{scram_free_client_final, scram_free_clien
 use crate::mechanisms::scram::tools::{find_proofs, hash_password, set_saltedpassword};
 use crate::session::{SessionData, Step, StepResult};
 use crate::{Authentication, SASLError, Shared};
+use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::property::{AuthId, AuthzId, CBTlsUnique, Password};
 use crate::session::Step::NeedsMore;
 use crate::vectored_io::VectoredWriter;
@@ -52,12 +54,14 @@ impl<const N: usize> ScramClient<N> {
         }
     }
 }
+
 enum ScramClientState<const N: usize> {
     Initial(State<StateClientFirst<N>>),
     ClientFirst(State<WaitingServerFirst<N>>),
     ServerFirst(State<WaitingServerFinal<32>>),
     Done(State<StateServerFinal>),
 }
+
 struct State<S> {
     cbdata: Option<(&'static str, Box<[u8]>)>,
     state: S,
@@ -77,7 +81,7 @@ impl<const N: usize> State<StateClientFirst<N>> {
         username: Box<SaslName>,
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<State<WaitingServerFirst<N>>, SASLError> {
+    ) -> Result<State<WaitingServerFirst<N>>, SessionError> {
         let cbflag = if let Some((name, _)) = self.cbdata.as_ref() {
             GS2CBindFlag::Used(name)
         } else {
@@ -94,7 +98,7 @@ impl<const N: usize> State<WaitingServerFirst<N>> {
         server_first: &[u8],
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<State<WaitingServerFinal<32>>, SASLError> {
+    ) -> Result<State<WaitingServerFinal<32>>, SessionError> {
         let cbdata = self.cbdata.map(|(_,b)| b);
         let state = self.state.handle_server_first(password, cbdata, server_first, writer, written)?;
         Ok(State { state, cbdata: None })
@@ -104,16 +108,11 @@ impl<const N: usize> State<WaitingServerFinal<N>> {
     pub fn step(
         self,
         server_final: &[u8],
-    ) -> Result<bool, SASLError>
+    ) -> Result<(), SessionError>
     {
         match self.state.handle_server_final(server_final) {
-            Ok(StateServerFinal { .. }) => Ok(true),
-            // TODO: Proper error handling
-            Err(SCRAMError::ParseError(_)) => Err(SASLError::MechanismParseError),
-            Err(SCRAMError::ServerError(ServerErrorValue::InvalidProof)) => Ok(false),
-            Err(SCRAMError::ServerError(ServerErrorValue::UnknownUser)) => Ok(false),
-            Err(SCRAMError::Protocol(ProtocolError::ServerSignatureMismatch)) => Ok(false),
-            Err(_) => Err(SASLError::MechanismParseError),
+            Ok(StateServerFinal { .. }) => Ok(()),
+            Err(e) => Err(e.into()),
         }
     }
 }
@@ -148,7 +147,7 @@ impl<const N: usize> StateClientFirst<N> {
         username: Box<SaslName>,
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<WaitingServerFirst<N>, SASLError>
+    ) -> Result<WaitingServerFirst<N>, SessionError>
     {
         // The PRINTABLE slice is const not empty which is the only failure case we unwrap.
         let mut distribution = Slice::new(PRINTABLE).unwrap();
@@ -219,34 +218,23 @@ impl<const N: usize> WaitingServerFirst<N> {
         server_first: &[u8],
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<WaitingServerFinal<32>, SASLError>
+    ) -> Result<WaitingServerFinal<32>, SessionError>
     {
         let ServerFirst { nonce, salt, iteration_count } = ServerFirst::parse(server_first)
-            .map_err(|e| {
-                println!("{:?}", e);
-                SASLError::MechanismParseError
-            })?;
+            .map_err(SCRAMError::ParseError)?;
 
         if !(nonce.len() > self.client_nonce.len() && nonce.starts_with(&self.client_nonce[..]))
         {
-            todo!()
-            //return Err(SCRAMError::Protocol(ProtocolError::InvalidNonce));
+            return Err(SCRAMError::Protocol(ProtocolError::InvalidNonce).into());
         }
 
         let iterations: u32 = std::str::from_utf8(iteration_count)
-            // TODO: Error handling
-            .map_err(|_| super::parser::ParseError::BadUtf8).unwrap()
+            .map_err(|_| SCRAMError::ParseError(super::parser::ParseError::BadUtf8))?
             .parse()
-            // TODO: Error handling
-            .map_err(|e| {
-                println!("{:?}", e);
-                SASLError::MechanismParseError
-            })?;
-            //.map_err(|_| SCRAMError::Protocol(ProtocolError::IterationCountFormat))?;
+            .map_err(|_| SCRAMError::Protocol(ProtocolError::IterationCountFormat))?;
 
         if iterations == 0 {
-            todo!()
-            //return Err(SCRAMError::Protocol(ProtocolError::IterationCountZero));
+            return Err(SCRAMError::Protocol(ProtocolError::IterationCountZero).into());
         }
 
         let salt = base64::decode(salt).unwrap();
@@ -337,7 +325,7 @@ impl<const N: usize> Authentication for ScramClient<N> {
 
                 let authzid = session.get_property_or_callback::<AuthzId>()?;
                 let authid = session.get_property_or_callback::<AuthId>()?
-                    .ok_or(SASLError::no_property::<AuthId>())?;
+                    .ok_or(SessionError::no_property::<AuthId>())?;
                 let username_escaped = SaslName::escape(&authid).unwrap();
                 let username = SaslName::from_boxed_str(username_escaped.into_owned().into_boxed_str())
                     .expect("escaped SaslName contained invalid chars");
@@ -356,10 +344,10 @@ impl<const N: usize> Authentication for ScramClient<N> {
                 Ok(NeedsMore(Some(written)))
             },
             Some(ClientFirst(state)) => {
-                let server_first = input.ok_or(SASLError::MechanismParseError)?;
+                let server_first = input.ok_or(SessionError::InputDataRequired)?;
 
                 let password = session.get_property_or_callback::<Password>()?
-                    .ok_or(SASLError::no_property::<Password>())?;
+                    .ok_or(SessionError::no_property::<Password>())?;
 
                 let mut written = 0;
                 let new_state = state.step(
@@ -372,12 +360,9 @@ impl<const N: usize> Authentication for ScramClient<N> {
                 Ok(NeedsMore(Some(written)))
             }
             Some(ServerFirst(state)) => {
-                let server_final = input.ok_or(SASLError::MechanismParseError)?;
-                if state.step(server_final)? {
-                    Ok(Step::Done(None))
-                } else {
-                    Err(SASLError::AuthenticationFailure { reason: "" })
-                }
+                let server_final = input.ok_or(SessionError::InputDataRequired)?;
+                state.step(server_final)?;
+                Ok(Step::Done(None))
             }
             Some(Done(_)) => panic!("State machine polled after completion"),
             None => panic!("State machine in invalid state"),
@@ -386,6 +371,7 @@ impl<const N: usize> Authentication for ScramClient<N> {
 }
 
 
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
 pub enum ProtocolError {
     InvalidNonce,
     IterationCountFormat,
@@ -393,6 +379,18 @@ pub enum ProtocolError {
     ServerSignatureMismatch,
 }
 
+impl Display for ProtocolError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProtocolError::InvalidNonce => f.write_str("returned server nonce is invalid"),
+            ProtocolError::IterationCountFormat => f.write_str("iteration count must be decimal"),
+            ProtocolError::IterationCountZero => f.write_str("iteration count can't be zero"),
+            ProtocolError::ServerSignatureMismatch => f.write_str("Calculated server MAC and received server MAC do not match"),
+        }
+    }
+}
+
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
 pub enum SCRAMError {
     Protocol(ProtocolError),
     ParseError(super::parser::ParseError),
@@ -402,6 +400,26 @@ pub enum SCRAMError {
 impl From<super::parser::ParseError> for SCRAMError {
     fn from(e: super::parser::ParseError) -> Self {
         Self::ParseError(e)
+    }
+}
+
+impl Display for SCRAMError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SCRAMError::Protocol(e) => write!(f, "SCRAM protocol error, {}", e),
+            SCRAMError::ParseError(e) => write!(f, "SCRAM parse error, {}", e),
+            SCRAMError::ServerError(e) => write!(f, "SCRAM outcome error, {}", e),
+        }
+    }
+}
+
+impl MechanismError for SCRAMError {
+    fn kind(&self) -> MechanismErrorKind {
+        match self {
+            SCRAMError::Protocol(_) => MechanismErrorKind::Protocol,
+            SCRAMError::ParseError(_) => MechanismErrorKind::Parse,
+            SCRAMError::ServerError(_) => MechanismErrorKind::Outcome,
+        }
     }
 }
 

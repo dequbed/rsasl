@@ -1,6 +1,7 @@
 use crate::{Mechname, SASLError};
+use crate::error::SessionError;
 use crate::property::Property;
-use crate::SASLError::{NoCallback, NoValidate};
+use crate::error::SessionError::{NoCallback, NoValidate};
 use crate::session::SessionData;
 use crate::validate::Validation;
 
@@ -36,7 +37,7 @@ pub trait Callback {
     /// action is taken by the user instead of an explicit property being provided (e.g. to
     /// authenticate to their OIDC IdP using the system's web browser).
     fn provide_prop(&self, _session: &mut SessionData, property: Property)
-        -> Result<(), SASLError>
+        -> Result<(), SessionError>
     {
         return Err(NoCallback { property })
     }
@@ -56,7 +57,7 @@ pub trait Callback {
     /// See the [`validate module documentation`](crate::validate) for details on how to
     /// implement each validation.
     fn validate(&self, _session: &mut SessionData, validation: Validation, _mechanism: &Mechname)
-        -> Result<(), SASLError>
+        -> Result<(), SessionError>
     {
         return Err(NoValidate { validation })
     }

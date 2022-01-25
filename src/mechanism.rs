@@ -1,6 +1,7 @@
 use std::io::Write;
+use crate::error::SessionError;
+use crate::error::SessionError::NoSecurityLayer;
 use crate::SASLError;
-use crate::SASLError::NoSecurityLayer;
 use crate::session::{SessionData, StepResult};
 
 /// Trait implemented to be one party in an authentication exchange
@@ -50,10 +51,10 @@ pub trait Authentication {
     ) -> StepResult;
 
     // TODO: Document the problems with SASL security layers before release
-    fn encode(&mut self, _input: &[u8]) -> Result<Box<[u8]>, SASLError> {
+    fn encode(&mut self, _input: &[u8]) -> Result<Box<[u8]>, SessionError> {
         Err(NoSecurityLayer)
     }
-    fn decode(&mut self, _input: &[u8]) -> Result<Box<[u8]>, SASLError> {
+    fn decode(&mut self, _input: &[u8]) -> Result<Box<[u8]>, SessionError> {
         Err(NoSecurityLayer)
     }
 }

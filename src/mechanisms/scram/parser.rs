@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::fmt::{Display, Formatter};
 use std::io::IoSlice;
 use ::libc;
 use libc::{malloc, memchr, memcpy, size_t, strnlen};
@@ -102,6 +103,13 @@ pub enum ParseError {
     UnknownMandatoryExtensions,
     BadUtf8,
     BadNonce,
+}
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        // FIXME: Have proper error explanations
+        f.write_str("a parse error occured")
+    }
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
@@ -350,6 +358,27 @@ impl ServerErrorValue {
             Self::NoResources => b"no-resources",
             Self::OtherError => b"other-error",
         }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::InvalidEncoding => "invalid encoding",
+            Self::ExtensionsNotSupported => "extensions not supported",
+            Self::InvalidProof => "invalid proof",
+            Self::ChannelBindingsDontMatch => "channel bindings dont match",
+            Self::ServerDoesSupportChannelBinding => "server does support channel binding",
+            Self::ChannelBindingNotSupported => "channel binding not supported",
+            Self::UnsupportedChannelBindingType => "unsupported channel binding type",
+            Self::UnknownUser => "unknown user",
+            Self::InvalidUsernameEncoding => "invalid username encoding",
+            Self::NoResources => "no resources",
+            Self::OtherError => "other error",
+        }
+    }
+}
+impl Display for ServerErrorValue {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 

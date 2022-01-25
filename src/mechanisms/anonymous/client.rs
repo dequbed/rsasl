@@ -1,4 +1,5 @@
 use std::io::Write;
+use crate::error::SessionError;
 use crate::mechanism::Authentication;
 use crate::property::AnonymousToken;
 use crate::SASLError;
@@ -17,7 +18,7 @@ impl Authentication for Anonymous {
             writer.write_all(buf)?;
             Ok(Done(Some(buf.len())))
         } else {
-            Err(SASLError::no_property::<AnonymousToken>())
+            Err(SessionError::no_property::<AnonymousToken>())
         }
     }
 }

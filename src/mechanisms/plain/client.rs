@@ -1,7 +1,7 @@
 use std::io::{IoSlice, Write};
+use crate::error::SessionError;
 use crate::mechanism::Authentication;
 use crate::property::{AuthId, AuthzId, Password};
-use crate::SASLError;
 use crate::session::Step::Done;
 use crate::session::{SessionData, StepResult};
 use crate::vectored_io::VectoredWriter;
@@ -16,9 +16,9 @@ impl Authentication for Plain {
         let authzid = session.get_property_or_callback::<AuthzId>()?;
 
         let authid = session.get_property_or_callback::<AuthId>()?
-            .ok_or(SASLError::no_property::<AuthId>())?;
+            .ok_or(SessionError::no_property::<AuthId>())?;
         let password = session.get_property_or_callback::<Password>()?
-            .ok_or(SASLError::no_property::<Password>())?;
+            .ok_or(SessionError::no_property::<Password>())?;
 
         let authzidbuf = if let Some(authz) = &authzid {
             authz.as_bytes()

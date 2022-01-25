@@ -90,7 +90,8 @@ pub mod validations {
 mod tests {
     use std::ptr::null_mut;
     use crate::{Callback, Mechname, SASLError};
-    use crate::SASLError::NoValidate;
+    use crate::error::SessionError;
+    use crate::error::SessionError::NoValidate;
     use crate::session::SessionData;
     use crate::validate::validations::{OPENID20, SIMPLE};
     use super::*;
@@ -100,7 +101,7 @@ mod tests {
         struct TestCallback;
         impl Callback for TestCallback {
             fn validate(&self, session: &mut SessionData, validation: Validation, mechanism: &Mechname)
-                -> Result<(), SASLError>
+                -> Result<(), SessionError>
             {
                 match validation {
                     SIMPLE => {
