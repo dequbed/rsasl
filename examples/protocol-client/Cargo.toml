@@ -1,0 +1,14 @@
+[package]
+name = "protocol-client"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+protocol = { path =  "../protocol" }
+
+# The default way to depend on rsasl is without defining features. This makes all implemented mechanisms available
+# using automatic registration reducing the required setup to a minimum.
+rsasl = { path = "../.." }

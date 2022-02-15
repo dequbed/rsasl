@@ -30,15 +30,15 @@ pub fn find_proofs<D, HMAC, HL>(
     salted_password: &[u8],
 ) -> (GenericArray<u8, HL>, GenericArray<u8, HL>)
     where D: digest::Digest,
-          HMAC: digest::Mac + digest::OutputSizeUser + digest::OutputSizeUser<OutputSize=HL>,
+          HMAC: digest::Mac + digest::KeyInit + digest::OutputSizeUser + digest::OutputSizeUser<OutputSize=HL>,
           HL: ArrayLength<u8>,
 {
-    let mut salted_password_hmac = HMAC::new_from_slice(salted_password)
+    let mut salted_password_hmac = <HMAC as Mac>::new_from_slice(salted_password)
         .expect("HMAC can work with any key size");
     salted_password_hmac.update(b"Client Key");
     let mut client_key = salted_password_hmac.finalize().into_bytes();
 
-    let mut salted_password_hmac = HMAC::new_from_slice(salted_password)
+    let mut salted_password_hmac = <HMAC as Mac>::new_from_slice(salted_password)
         .expect("HMAC can work with any key size");
     salted_password_hmac.update(b"Server Key");
     let server_key = salted_password_hmac.finalize().into_bytes();
@@ -52,7 +52,7 @@ pub fn find_proofs<D, HMAC, HL>(
     ];
     let o: Vec<u8> = auth_message_parts.iter().map(|s| s.iter()).flatten().map(|b| *b).collect();
 
-    let mut stored_key_hmac = HMAC::new_from_slice(stored_key.as_ref())
+    let mut stored_key_hmac = <HMAC as Mac>::new_from_slice(stored_key.as_ref())
         .expect("HMAC can work with any key size");
     for part in auth_message_parts {
         stored_key_hmac.update(part);
@@ -65,7 +65,7 @@ pub fn find_proofs<D, HMAC, HL>(
         client_key_mut.iter_mut().zip(client_signature.iter()).for_each(|(a,b)| *a ^= b);
     }
 
-    let mut server_key_hmac = HMAC::new_from_slice(server_key.as_ref())
+    let mut server_key_hmac = <HMAC as Mac>::new_from_slice(server_key.as_ref())
         .expect("HMAC can work with any key size");
     for part in auth_message_parts {
         server_key_hmac.update(part);
