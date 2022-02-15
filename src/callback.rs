@@ -12,17 +12,17 @@ pub trait Callback {
     /// callback should then issue a call to [`SessionData::set_property`], so e.g.
     /// ```rust
     /// # use rsasl::callback::Callback;
-    /// # use rsasl::error::SASLError;
-    /// # use rsasl::error::SASLError::NoCallback;
+    /// # use rsasl::error::SessionError;
+    /// # use rsasl::error::SessionError::NoCallback;
     /// # use rsasl::Property;
     /// use rsasl::property::{properties, Password};
     /// # use rsasl::session::SessionData;
     /// # struct CB;
     /// # impl Callback for CB {
-    /// fn provide_prop(&self, session: &mut SessionData, property: Property) -> Result<(), SASLError> {
+    /// fn provide_prop(&self, session: &mut SessionData, property: Property) -> Result<(), SessionError> {
     ///     match property {
     ///         properties::PASSWORD => {
-    ///             session.set_property::<Password>(Box::new("secret".to_string()));
+    ///             session.set_property::<Password>(Arc::new("secret".to_string()));
     ///             Ok(())
     ///         }
     ///         _ => {
