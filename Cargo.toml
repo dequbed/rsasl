@@ -45,6 +45,8 @@ registry_dynamic = []
 
 saslprep = ["stringprep"]
 
+unstable_custom_mechanism = []
+
 [dependencies]
 libc = "0.2"
 

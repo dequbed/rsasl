@@ -38,9 +38,10 @@
 //! may lead to a situation where users can't use any mechanisms since they only depend on
 //! rsasl via a transient dependency that has no mechanism features enabled.
 //!
-// (TODO: How to handle EXTERNAL?)
-// Bonus minus points: sasl.wrap(data) and sasl.unwrap(data) for security layers. Prefer to not
-// and instead do TLS.
+//! TODO: How to handle EXTERNAL?
+//! TODO:
+//!     Bonus minus points: sasl.wrap(data) and sasl.unwrap(data) for security layers. Prefer to
+//!     not and instead do TLS. Needs better explanation I fear.
 //!
 //! ## Application Code
 //!
