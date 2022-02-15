@@ -93,18 +93,23 @@ pub enum SessionError {
 
     NoSecurityLayer,
 
-    // Common Mechanism Errors:
+    /// Authentication exchange as syntactically valid but failed. Returned e.g. if the provided
+    /// password didn't match the provided user.
+    AuthenticationFailure,
 
+    // Common Mechanism Errors:
     /// Mechanism was called without input data when requiring some
     InputDataRequired,
 
     MechanismError(Box<dyn MechanismError>),
+
     NoCallback {
         property: Property,
     },
     NoValidate {
         validation: Validation,
     },
+
     NoProperty {
         property: Property,
     },
@@ -151,6 +156,7 @@ impl Display for SessionError {
                 write!(f,
                        "required property {} is not set",
                        property),
+            SessionError::AuthenticationFailure => f.write_str("authentication failed"),
         }
     }
 }

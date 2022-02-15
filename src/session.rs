@@ -7,7 +7,6 @@ use std::sync::Arc;
 use base64::write::EncoderWriter;
 
 use crate::{Callback, Mechanism, Mechname, Property, SASLError};
-use crate::channel_bindings::{ChannelBindingData, ChannelBindingName};
 use crate::error::SessionError;
 use crate::gsasl::consts::{Gsasl_property, property_from_code};
 use crate::mechanism::Authentication;
@@ -23,6 +22,9 @@ pub enum Side {
 pub struct Session {
     mechanism: Box<dyn Authentication>,
     session_data: SessionData,
+    // TODO: Channel Binding data should probably be queried via a callback as well. That ways
+    //       protocol crates can easier provide that data on demand. That pattern can use static
+    //       generics too since the protocol crate is the one holding the Session.
 }
 
 impl Session {
@@ -127,6 +129,8 @@ impl Session {
 }
 
 pub struct SessionData {
+    // TODO: Move caching out of SessionData and into Callback. That makes no_std or situations
+    //       where caching makes no sense much more reasonable to implement.
     pub(crate) callback: Option<Arc<dyn Callback>>,
     property_cache: HashMap<Property, Arc<dyn Any + Send + Sync>>,
     global_properties: Arc<HashMap<Property, Arc<dyn Any + Send + Sync>>>,
@@ -161,6 +165,11 @@ pub enum Step {
 //  or missing properties in which case a mechanism has not written *valid* data and the
 //  connection, if any, should be reset.
 pub type StepResult = Result<Step, SessionError>;
+
+struct StepReturn {
+    // call to step failed for some reason. This indicates the end of the
+    result: Result<(), SessionError>,
+}
 
 impl SessionData {
     pub(crate) fn new(
