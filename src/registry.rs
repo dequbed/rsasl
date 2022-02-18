@@ -54,6 +54,7 @@
 //!     client: Some(|_sasl| Ok(Box::new(MyCoolMechanism))),
 //!     // In this case only the client side is implemented
 //!     server: None,
+//!     first: Side::Client,
 //! };
 //! ```
 //!
