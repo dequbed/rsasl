@@ -1,4 +1,4 @@
-use crate::{Mechname, SASLError};
+use crate::{Mechname, PropertyQ, SASLError};
 use crate::error::SessionError;
 use crate::property::Property;
 use crate::error::SessionError::{NoCallback, NoValidate};
