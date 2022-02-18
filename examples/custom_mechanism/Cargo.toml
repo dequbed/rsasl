@@ -7,4 +7,5 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rsasl = { path = "../..", features = ["unstable_custom_mechanism"] }
+linkme = "0.2.10"
+rsasl = { path = "../..", features = ["unstable_custom_mechanism", "registry_static"] }

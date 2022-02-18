@@ -1,0 +1,65 @@
+use std::io::Write;
+use std::mem;
+use rsasl::SASL;
+use rsasl::error::SASLError;
+use rsasl::mechanism::Authentication;
+use rsasl::mechname::Mechname;
+use rsasl::session::{SessionData, Side, StepResult};
+
+struct CustomMechanism {
+    client: bool,
+    step: Step
+}
+
+enum Step {
+    New,
+    First,
+    Second,
+    Done,
+}
+
+impl CustomMechanism {
+    pub fn new_client(_sasl: &SASL) -> Result<Box<dyn Authentication>, SASLError> {
+        Ok(Box::new(Self { step: Step::New, client: true }))
+    }
+
+    pub fn new_server(_sasl: &SASL) -> Result<Box<dyn Authentication>, SASLError> {
+        Ok(Box::new(Self { step: Step::New, client: false }))
+    }
+}
+
+impl Authentication for CustomMechanism {
+    fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
+        // Do your mechanism stuff here, updating state in *self as you go.
+        unimplemented!()
+        /*
+        match mem::replace(&mut self.step, Step::Done) {
+            Step::New => {
+
+            },
+            Step::First => {}
+            Step::Second => {}
+            Step::Done => panic!("step() called after completion!"),
+        }
+         */
+    }
+}
+
+use rsasl::registry::{Mechanism, MECHANISMS};
+
+#[linkme::distributed_slice(MECHANISMS)]
+pub static CUSTOMMECH: Mechanism = Mechanism {
+    mechanism: &Mechname::const_new_unchecked(b"X-CUSTOMMECH"),
+    priority: 300,
+    // In this situation there's one struct for both sides, however you can just as well use
+    // different types than then have different `impl Authentication` instead of checking a value
+    // in self.
+    client: Some(CustomMechanism::new_client),
+    server: Some(CustomMechanism::new_server),
+    first: Side::Client,
+};
+
+pub fn main() {
+    let mut rsasl = SASL::new();
+    rsasl.register(&CUSTOMMECH);
+}
