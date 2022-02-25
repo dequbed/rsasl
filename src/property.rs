@@ -8,7 +8,7 @@
 //!
 //! **Note: To enable custom mechanisms you have to enable the feature `unstable_custom_mechanism`**
 //! ```ignore
-//! use std::marker::PhantomData;
+//! #use std::marker::PhantomData;
 //! use rsasl::property::{Property, PropertyQ, PropertyDefinition};
 //! // All Property types must implement Debug.
 //! #[derive(Debug)]

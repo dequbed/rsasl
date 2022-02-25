@@ -1,7 +1,5 @@
-use crate::{init, registry, Callback, Mechanism, Property, MECHANISMS, SASL};
-use std::any::Any;
+use crate::{init, registry, Callback, Mechanism, MECHANISMS, SASL};
 use std::cmp::Ordering;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 impl SASL {
@@ -11,7 +9,6 @@ impl SASL {
 
     pub fn new() -> Self {
         Self {
-            global_data: Arc::new(HashMap::new()),
             callback: None,
 
             #[cfg(feature = "registry_dynamic")]
@@ -40,7 +37,6 @@ impl SASL {
 }
 
 pub struct Builder {
-    global_data: Option<Arc<HashMap<Property, Arc<dyn Any + Send + Sync>>>>,
     callback: Option<Arc<dyn Callback>>,
     dynamic_mechs: Option<Vec<&'static Mechanism>>,
     static_mechs: Option<&'static [Mechanism]>,
@@ -49,7 +45,6 @@ pub struct Builder {
 impl Builder {
     pub fn new() -> Self {
         Self {
-            global_data: None,
             callback: None,
             dynamic_mechs: None,
             static_mechs: None,
@@ -57,16 +52,12 @@ impl Builder {
         }
     }
     pub fn finish(self) -> SASL {
-        let global_data = self
-            .global_data
-            .unwrap_or_else(|| Arc::new(Default::default()));
         let callback = self.callback;
         let dynamic_mechs = self.dynamic_mechs.unwrap_or_else(Vec::new);
         let static_mechs = self.static_mechs.unwrap_or(&MECHANISMS);
         let sort_fn = self.sort_fn.unwrap_or(|a, b| a.priority.cmp(&b.priority));
 
         SASL {
-            global_data,
             callback,
             dynamic_mechs,
             static_mechs,

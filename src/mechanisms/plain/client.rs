@@ -53,13 +53,12 @@ mod test {
     use crate::session::SessionData;
     use crate::session::Step::NeedsMore;
     use crate::Side;
-    use std::collections::HashMap;
     use std::io::Cursor;
     use std::sync::Arc;
 
     #[test]
     fn simple() {
-        let mut session = SessionData::new(None, Arc::new(HashMap::new()), &PLAIN, Side::Client);
+        let mut session = SessionData::new(None, &PLAIN, Side::Client);
 
         let username = "testuser".to_string();
         assert_eq!(username.len(), 8);
@@ -94,7 +93,7 @@ mod test {
 
     #[test]
     fn split_writer() {
-        let mut session = SessionData::new(None, Arc::new(HashMap::new()), &PLAIN, Side::Client);
+        let mut session = SessionData::new(None, &PLAIN, Side::Client);
 
         let username = "testuser".to_string();
         assert_eq!(username.len(), 8);

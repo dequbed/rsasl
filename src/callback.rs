@@ -3,7 +3,7 @@ use crate::error::SessionError::{NoCallback, NoValidate};
 use crate::property::Property;
 use crate::session::SessionData;
 use crate::validate::Validation;
-use crate::Mechname;
+use crate::{Mechname};
 
 pub trait Callback {
     /// Query by a mechanism implementation to provide some information

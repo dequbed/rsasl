@@ -8,4 +8,4 @@ publish = false
 
 [dependencies]
 linkme = "0.2.10"
-rsasl = { path = "../..", features = ["unstable_custom_mechanism", "registry_static"] }
+rsasl = { path = "../.." }
