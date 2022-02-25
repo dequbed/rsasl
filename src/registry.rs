@@ -26,7 +26,7 @@
 //! ```rust
 //! # use std::io::Write;
 //! # use rsasl::mechanism::Authentication;
-//! # use rsasl::session::{SessionData, StepResult};
+//! use rsasl::session::{SessionData, StepResult, Side};
 //! # use rsasl::mechname::Mechname;
 //!
 //! // X-MYCOOLMECHANISM doesn't store any data between steps so it's an empty struct here

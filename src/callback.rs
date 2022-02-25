@@ -11,6 +11,7 @@ pub trait Callback {
     /// The parameter `property` defines the exact property that is requested. In most cases a
     /// callback should then issue a call to [`SessionData::set_property`], so e.g.
     /// ```rust
+    /// # use std::sync::Arc;
     /// # use rsasl::callback::Callback;
     /// # use rsasl::error::SessionError;
     /// # use rsasl::error::SessionError::NoCallback;
