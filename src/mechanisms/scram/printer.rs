@@ -101,9 +101,9 @@ pub unsafe fn scram_print_client_first(
     cf: *mut scram_client_first,
     out: *mut *mut libc::c_char,
 ) -> libc::c_int {
-    let mut username: *mut libc::c_char = 0 as *mut libc::c_char;
+    let username;
     let mut authzid: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut n: libc::c_int = 0;
+    let n;
     /* Below we assume fields are sensible, so first verify that to
     avoid crashes. */
     if !scram_valid_client_first(cf) {
@@ -161,7 +161,7 @@ pub unsafe fn scram_print_server_first(
     sf: *mut scram_server_first,
     out: *mut *mut libc::c_char,
 ) -> libc::c_int {
-    let mut n: libc::c_int = 0;
+    let n;
     /* Below we assume fields are sensible, so first verify that to
     avoid crashes. */
     if !scram_valid_server_first(sf) {
@@ -186,7 +186,7 @@ pub unsafe fn scram_print_client_final(
     cl: *mut scram_client_final,
     out: *mut *mut libc::c_char,
 ) -> libc::c_int {
-    let mut n: libc::c_int = 0;
+    let n;
     /* Below we assume fields are sensible, so first verify that to
     avoid crashes. */
     if !scram_valid_client_final(cl) {
@@ -211,7 +211,7 @@ pub unsafe fn scram_print_server_final(
     sl: *mut scram_server_final,
     out: *mut *mut libc::c_char,
 ) -> libc::c_int {
-    let mut n: libc::c_int = 0;
+    let n;
     /* Below we assume fields are sensible, so first verify that to
     avoid crashes. */
     if !scram_valid_server_final(sl) {

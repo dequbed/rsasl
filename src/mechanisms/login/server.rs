@@ -48,7 +48,7 @@ pub(crate) unsafe fn _gsasl_login_server_start(
     _sctx: &Shared,
     mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int {
-    let mut state: *mut _Gsasl_login_server_state = 0 as *mut _Gsasl_login_server_state;
+    let state;
     state = calloc(1, ::std::mem::size_of::<_Gsasl_login_server_state>())
         as *mut _Gsasl_login_server_state;
     if state.is_null() {
@@ -73,7 +73,7 @@ pub unsafe fn _gsasl_login_server_step(
     let input: *const libc::c_char = input.map(|i| i.as_ptr().cast()).unwrap_or(std::ptr::null());
 
     let mut state: *mut _Gsasl_login_server_state = mech_data as *mut _Gsasl_login_server_state;
-    let mut res: libc::c_int = 0;
+    let mut res;
     match (*state).step {
         0 => {
             *output = strdup(b"User Name\x00" as *const u8 as *const libc::c_char);
@@ -124,7 +124,7 @@ pub unsafe fn _gsasl_login_server_step(
             }
             res = gsasl_callback(0 as *mut Shared, sctx, GSASL_VALIDATE_SIMPLE);
             if res == GSASL_NO_CALLBACK as libc::c_int {
-                let mut key: *const libc::c_char = 0 as *const libc::c_char;
+                let key;
                 key = gsasl_property_get(sctx, GSASL_PASSWORD);
                 if !key.is_null()
                     && strlen((*state).password) == strlen(key)

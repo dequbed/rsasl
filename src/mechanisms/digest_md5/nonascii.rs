@@ -54,7 +54,7 @@ pub unsafe fn latin1toutf8(str: *const libc::c_char) -> *mut libc::c_char {
     let p: *mut libc::c_char =
         malloc((2 as size_t).wrapping_mul(strlen(str)).wrapping_add(1)) as *mut libc::c_char;
     if !p.is_null() {
-        let mut i: size_t = 0;
+        let mut i;
         let mut j: size_t = 0 as libc::c_int as size_t;
         i = 0 as libc::c_int as size_t;
         while *str.offset(i as isize) != 0 {
@@ -86,8 +86,8 @@ pub unsafe fn latin1toutf8(str: *const libc::c_char) -> *mut libc::c_char {
 }
 #[no_mangle]
 pub unsafe fn utf8tolatin1ifpossible(passwd: *const libc::c_char) -> *mut libc::c_char {
-    let mut p: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut i: size_t = 0;
+    let p;
+    let mut i;
     i = 0 as libc::c_int as size_t;
     while *passwd.offset(i as isize) != 0 {
         if to_uchar(*passwd.offset(i as isize)) as libc::c_int > 0x7f as libc::c_int {

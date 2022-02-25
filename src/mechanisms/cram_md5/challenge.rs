@@ -1,7 +1,7 @@
 use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::gc_gnulib::gc_nonce;
 use ::libc;
-use libc::{memcpy, size_t, strlen};
+use libc::{memcpy, strlen};
 
 extern "C" {
     fn __assert_fail(
@@ -19,8 +19,6 @@ and -1 on randomness problems.  */
 #[no_mangle]
 pub unsafe fn cram_md5_challenge(challenge: *mut libc::c_char) -> libc::c_int {
     let mut nonce: [libc::c_char; 10] = [0; 10];
-    let mut i: size_t = 0;
-    let mut rc: libc::c_int = 0;
     if strlen(b"<XXXXXXXXXXXXXXXXXXXX.0@localhost>\x00" as *const u8 as *const libc::c_char)
         == (35 - 1)
     {
@@ -42,14 +40,14 @@ pub unsafe fn cram_md5_challenge(challenge: *mut libc::c_char) -> libc::c_int {
             as *const libc::c_void,
         35,
     );
-    rc = gc_nonce(
+    let rc = gc_nonce(
         nonce.as_mut_ptr(),
         ::std::mem::size_of::<[libc::c_char; 10]>(),
     ) as libc::c_int;
     if rc != GC_OK as libc::c_int {
         return -(1 as libc::c_int);
     }
-    i = 0 as libc::c_int as size_t;
+    let mut i = 0;
     while i < ::std::mem::size_of::<[libc::c_char; 10]>() {
         *challenge.offset((1 as libc::c_int as libc::c_ulong).wrapping_add(i as u64) as isize) =
             if nonce[i as usize] as libc::c_int & 0xf as libc::c_int > 9 as libc::c_int {

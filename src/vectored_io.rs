@@ -15,10 +15,6 @@ impl<'io, const N: usize> VectoredWriter<'io, N> {
         Self { skip: 0, data }
     }
 
-    pub fn is_done(&self) -> bool {
-        self.skip >= N
-    }
-
     pub fn write_vectored_inner(
         &mut self,
         bufs: &mut [IoSlice<'io>; N],

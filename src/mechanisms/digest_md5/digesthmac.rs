@@ -100,11 +100,11 @@ pub unsafe fn digest_md5_hmac(
     let mut a1hexhash: [libc::c_char; 32] = [0; 32];
     let mut a2hexhash: [libc::c_char; 32] = [0; 32];
     let mut hash: [libc::c_char; 16] = [0; 16];
-    let mut tmp: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut p: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut tmplen: size_t = 0;
-    let mut rc: libc::c_int = 0;
-    let mut i: libc::c_int = 0;
+    let mut tmp;
+    let mut p;
+    let mut tmplen;
+    let mut rc;
+    let mut i;
     /* A1 */
     tmplen = 16usize
         .wrapping_add(strlen(b":\x00" as *const u8 as *const libc::c_char))
@@ -161,7 +161,6 @@ pub unsafe fn digest_md5_hmac(
             authzid as *const libc::c_void,
             strlen(authzid),
         );
-        p = p.offset(strlen(authzid) as isize)
     }
     rc = gc_md5(
         tmp as *const libc::c_void,
@@ -232,7 +231,7 @@ pub unsafe fn digest_md5_hmac(
     }
     if !kcc.is_null() {
         let mut hash2_1: [libc::c_char; 16] = [0; 16];
-        let mut n: libc::c_int = 0;
+        let n;
         let mut q_1: [libc::c_char; 75] = [0; 75];
         if cipher as libc::c_uint == DIGEST_MD5_CIPHER_RC4_40 as libc::c_int as libc::c_uint {
             n = 5 as libc::c_int
@@ -269,7 +268,7 @@ pub unsafe fn digest_md5_hmac(
     }
     if !kcs.is_null() {
         let mut hash2_2: [libc::c_char; 16] = [0; 16];
-        let mut n_0: libc::c_int = 0;
+        let n_0;
         let mut q_2: [libc::c_char; 75] = [0; 75];
         if cipher as libc::c_uint == DIGEST_MD5_CIPHER_RC4_40 as libc::c_int as libc::c_uint {
             n_0 = 5 as libc::c_int

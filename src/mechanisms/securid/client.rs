@@ -15,7 +15,7 @@ pub(crate) unsafe fn _gsasl_securid_client_start(
     mut _sctx: &Shared,
     mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int {
-    let mut step: *mut libc::c_int = 0 as *mut libc::c_int;
+    let step;
     step = malloc(::std::mem::size_of::<libc::c_int>()) as *mut libc::c_int;
     if step.is_null() {
         return GSASL_MALLOC_ERROR as libc::c_int;
@@ -40,13 +40,13 @@ pub unsafe fn _gsasl_securid_client_step(
     let input: *const libc::c_char = input.map(|i| i.as_ptr().cast()).unwrap_or(std::ptr::null());
 
     let step: *mut libc::c_int = mech_data as *mut libc::c_int;
-    let mut authzid: *const libc::c_char = 0 as *const libc::c_char;
-    let mut authid: *const libc::c_char = 0 as *const libc::c_char;
-    let mut passcode: *const libc::c_char = 0 as *const libc::c_char;
+    let authzid;
+    let authid;
+    let passcode;
     let mut pin: *const libc::c_char = 0 as *const libc::c_char;
-    let mut authzidlen: size_t = 0;
-    let mut authidlen: size_t = 0;
-    let mut passcodelen: size_t = 0;
+    let authzidlen;
+    let authidlen;
+    let passcodelen;
     let mut pinlen: size_t = 0 as libc::c_int as size_t;
     let mut do_pin: libc::c_int = 0 as libc::c_int;
     let mut res: libc::c_int = 0;

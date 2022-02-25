@@ -39,9 +39,9 @@ pub unsafe fn digest_md5_qopstr2qops(qopstr: *const libc::c_char) -> libc::c_int
         b"qop-conf\x00" as *const u8 as *const libc::c_char,
         0 as *const libc::c_char,
     ];
-    let mut subsubopts: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut subsubopts;
     let mut val: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut qopdup: *mut libc::c_char = 0 as *mut libc::c_char;
+    let qopdup;
     if qopstr.is_null() {
         return 0 as libc::c_int;
     }

@@ -68,7 +68,6 @@ enum ScramClientState<const N: usize> {
     Initial(State<StateClientFirst<N>>),
     ClientFirst(State<WaitingServerFirst<N>>),
     ServerFirst(State<WaitingServerFinal<32>>),
-    Done(State<StateServerFinal>),
 }
 
 struct State<S> {
@@ -381,7 +380,6 @@ impl<const N: usize> Authentication for ScramClient<N> {
                 state.step(server_final)?;
                 Ok(Step::Done(None))
             }
-            Some(Done(_)) => panic!("State machine polled after completion"),
             None => panic!("State machine in invalid state"),
         }
     }
@@ -563,9 +561,9 @@ unsafe fn scram_start(
     plus: bool,
     hash: Gsasl_hash,
 ) -> libc::c_int {
-    let mut state: *mut scram_client_state = 0 as *mut scram_client_state;
+    let mut state;
     let mut buf: [libc::c_char; 18] = [0; 18];
-    let mut rc: libc::c_int = 0;
+    let mut rc;
     state = calloc(::std::mem::size_of::<scram_client_state>(), 1) as *mut scram_client_state;
     if state.is_null() {
         return GSASL_MALLOC_ERROR as libc::c_int;
@@ -665,12 +663,12 @@ pub unsafe fn _gsasl_scram_client_step(
 
     let mut state: *mut scram_client_state = mech_data as *mut scram_client_state;
     let res: libc::c_int = GSASL_MECHANISM_CALLED_TOO_MANY_TIMES as libc::c_int;
-    let mut rc: libc::c_int = 0;
+    let mut rc;
     *output = 0 as *mut libc::c_char;
     *output_len = 0 as libc::c_int as size_t;
     match (*state).step {
         0 => {
-            let mut p: *const libc::c_char = 0 as *const libc::c_char;
+            let mut p;
             p = gsasl_property_get(sctx, GSASL_CB_TLS_UNIQUE);
             if (*state).plus as libc::c_int != 0 && p.is_null() {
                 return GSASL_NO_CB_TLS_UNIQUE as libc::c_int;
@@ -792,7 +790,7 @@ pub unsafe fn _gsasl_scram_client_step(
             /* Save salt/iter as properties, so that client callback can
             access them. */
             let mut str: *mut libc::c_char = 0 as *mut libc::c_char;
-            let mut n: libc::c_int = 0;
+            let n;
             n = asprintf(
                 &mut str as *mut *mut libc::c_char,
                 b"%zu\x00" as *const u8 as *const libc::c_char,
@@ -815,7 +813,7 @@ pub unsafe fn _gsasl_scram_client_step(
             let mut clientkey: [libc::c_char; 32] = [0; 32];
             let mut serverkey: [libc::c_char; 32] = [0; 32];
             let mut storedkey: [libc::c_char; 32] = [0; 32];
-            let mut p_0: *const libc::c_char = 0 as *const libc::c_char;
+            let mut p_0;
             /* Get SaltedPassword. */
             p_0 = gsasl_property_get(sctx, GSASL_SCRAM_SALTED_PASSWORD);
             if !p_0.is_null()
@@ -872,7 +870,7 @@ pub unsafe fn _gsasl_scram_client_step(
             }
             /* Get client-final-message-without-proof. */
             let mut cfmwp: *mut libc::c_char = 0 as *mut libc::c_char;
-            let mut n_0: libc::c_int = 0;
+            let n_0;
             (*state).cl.proof = strdup(b"p\x00" as *const u8 as *const libc::c_char);
             rc = scram_print_client_final(&mut (*state).cl, &mut cfmwp);
             if rc != 0 as libc::c_int {

@@ -97,9 +97,9 @@ unsafe fn scram_start(
     plus: bool,
     hash: Gsasl_hash,
 ) -> libc::c_int {
-    let mut state: *mut scram_server_state = 0 as *mut scram_server_state;
+    let mut state;
     let mut buf: [libc::c_char; 18] = [0; 18];
-    let mut rc: libc::c_int = 0;
+    let mut rc;
     state = calloc(::std::mem::size_of::<scram_server_state>(), 1) as *mut scram_server_state;
     if state.is_null() {
         return GSASL_MALLOC_ERROR as libc::c_int;
@@ -203,7 +203,7 @@ unsafe fn extract_serverkey(
 ) -> libc::c_int {
     let mut bin: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut binlen: size_t = 0;
-    let mut rc: libc::c_int = 0;
+    let rc;
     rc = gsasl_base64_from(b64, strlen(b64), &mut bin, &mut binlen);
     if rc != GSASL_OK as libc::c_int {
         return rc;
@@ -233,7 +233,7 @@ pub unsafe fn _gsasl_scram_server_step(
 
     let mut state: *mut scram_server_state = mech_data as *mut scram_server_state;
     let res: libc::c_int = GSASL_MECHANISM_CALLED_TOO_MANY_TIMES as libc::c_int;
-    let mut rc: libc::c_int = 0;
+    let mut rc;
     *output = 0 as *mut libc::c_char;
     *output_len = 0 as libc::c_int as size_t;
     match (*state).step {
@@ -241,7 +241,7 @@ pub unsafe fn _gsasl_scram_server_step(
             if input_len == 0 {
                 return GSASL_NEEDS_MORE as libc::c_int;
             }
-            let mut p: *const libc::c_char = 0 as *const libc::c_char;
+            let p;
             p = gsasl_property_get(sctx, GSASL_CB_TLS_UNIQUE);
             if (*state).plus as libc::c_int != 0 && p.is_null() {
                 return GSASL_NO_CB_TLS_UNIQUE as libc::c_int;
@@ -285,7 +285,7 @@ pub unsafe fn _gsasl_scram_server_step(
                 return GSASL_AUTHENTICATION_ERROR as libc::c_int;
             }
             gsasl_free(tmp as *mut libc::c_void);
-            let mut p_0: *const libc::c_char = 0 as *const libc::c_char;
+            let mut p_0;
             /* Save "gs2-header" and "message-bare" for next step. */
             p_0 =
                 memchr(input as *const libc::c_void, ',' as i32, input_len) as *const libc::c_char;
@@ -377,7 +377,7 @@ pub unsafe fn _gsasl_scram_server_step(
             /* Save salt/iter as properties, so that client callback can
             access them. */
             let mut str: *mut libc::c_char = 0 as *mut libc::c_char;
-            let mut n: libc::c_int = 0;
+            let n;
             n = asprintf(
                 &mut str as *mut *mut libc::c_char,
                 b"%zu\x00" as *const u8 as *const libc::c_char,
@@ -484,7 +484,7 @@ pub unsafe fn _gsasl_scram_server_step(
             if gsasl_hash_length((*state).hash) != len_0 {
                 return GSASL_MECHANISM_PARSE_ERROR as libc::c_int;
             }
-            let mut p_3: *const libc::c_char = 0 as *const libc::c_char;
+            let mut p_3;
             let mut q: *const libc::c_char = 0 as *const libc::c_char;
             /* Get StoredKey and ServerKey */
             p_3 = gsasl_property_get(sctx, GSASL_SCRAM_SERVERKEY);
@@ -569,8 +569,8 @@ pub unsafe fn _gsasl_scram_server_step(
                 }
             }
             /* Compute AuthMessage */
-            let mut len_1: size_t = 0;
-            let mut n_0: libc::c_int = 0;
+            let len_1;
+            let n_0;
             /* Get client-final-message-without-proof. */
             p_3 = memmem(
                 input as *const libc::c_void,

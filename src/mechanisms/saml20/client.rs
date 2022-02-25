@@ -49,7 +49,7 @@ pub(crate) unsafe fn _gsasl_saml20_client_start(
     _sctx: &Shared,
     mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int {
-    let mut state: *mut saml20_client_state = 0 as *mut saml20_client_state;
+    let state;
     state = calloc(::std::mem::size_of::<saml20_client_state>(), 1) as *mut saml20_client_state;
     if state.is_null() {
         return GSASL_MALLOC_ERROR as libc::c_int;

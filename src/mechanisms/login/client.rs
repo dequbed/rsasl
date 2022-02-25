@@ -42,7 +42,7 @@ pub(crate) unsafe fn _gsasl_login_client_start(
     _ctx: &crate::Shared,
     mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int {
-    let mut state: *mut _Gsasl_login_client_state = 0 as *mut _Gsasl_login_client_state;
+    let mut state;
     state = malloc(::std::mem::size_of::<_Gsasl_login_client_state>())
         as *mut _Gsasl_login_client_state;
     if state.is_null() {
@@ -65,8 +65,8 @@ pub unsafe fn _gsasl_login_client_step(
         .unwrap_or_else(std::ptr::null_mut);
 
     let mut state: *mut _Gsasl_login_client_state = mech_data as *mut _Gsasl_login_client_state;
-    let mut p: *const libc::c_char = 0 as *const libc::c_char;
-    let mut res: libc::c_int = 0;
+    let p;
+    let res;
     match (*state).step {
         0 => {
             p = gsasl_property_get(sctx, GSASL_AUTHID);

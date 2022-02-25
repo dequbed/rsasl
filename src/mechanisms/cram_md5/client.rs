@@ -65,10 +65,9 @@ pub unsafe fn _gsasl_cram_md5_client_step(
     let input: *const libc::c_char = input.map(|i| i.as_ptr().cast()).unwrap_or(std::ptr::null());
 
     let mut response: [libc::c_char; 32] = [0; 32];
-    let mut len: size_t = 0;
     let mut tmp: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut authid: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut rc: libc::c_int = 0;
+    let mut rc: libc::c_int;
     if input_len == 0 {
         *output_len = 0 as libc::c_int as size_t;
         *output = 0 as *mut libc::c_char;
@@ -113,7 +112,7 @@ pub unsafe fn _gsasl_cram_md5_client_step(
         response.as_mut_ptr(),
     );
     rpl_free(tmp as *mut libc::c_void);
-    len = strlen(authid) as size_t;
+    let mut len = strlen(authid) as size_t;
     *output_len = len
         .wrapping_add(strlen(b" \x00" as *const u8 as *const libc::c_char) as size_t)
         .wrapping_add(32);
