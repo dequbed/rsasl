@@ -3,7 +3,7 @@ use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
 use rsasl::callback::Callback;
-use rsasl::error::SASLError;
+use rsasl::error::{SASLError, SessionError};
 use rsasl::mechname::Mechname;
 use rsasl::property::{Property, AuthId, Password, properties, ScramSaltedPassword, ScramSalt, ScramIter, ScramStoredkey, ScramServerkey};
 use rsasl::SASL;
@@ -14,7 +14,7 @@ struct OurCallback;
 
 impl Callback for OurCallback {
     fn provide_prop(&self, session: &mut SessionData, property: Property)
-        -> Result<(), SASLError>
+        -> Result<(), SessionError>
     {
         match property {
             properties::PASSWORD => {
@@ -26,7 +26,7 @@ impl Callback for OurCallback {
 
                 Ok(())
             },
-            _ => Err(SASLError::NoProperty { property })
+            _ => Err(SessionError::NoProperty { property })
         }
     }
 }

@@ -128,6 +128,13 @@ impl SessionError {
     pub fn input_required() -> Self {
         Self::InputDataRequired
     }
+
+    pub fn is_mechanism_error(&self) -> bool {
+        match self {
+            Self::MechanismError(_) => true,
+            _ => false,
+        }
+    }
 }
 impl Display for SessionError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -157,6 +164,22 @@ impl Display for SessionError {
                        "required property {} is not set",
                        property),
             SessionError::AuthenticationFailure => f.write_str("authentication failed"),
+        }
+    }
+}
+
+impl PartialEq for SessionError {
+    fn eq(&self, other: &Self) -> bool {
+        use SessionError::*;
+        match (self, other) {
+            (Base64 { source: a }, Base64 { source: b}) => a == b,
+            (NoSecurityLayer, NoSecurityLayer) => true,
+            (AuthenticationFailure, AuthenticationFailure) => true,
+            (InputDataRequired, InputDataRequired) => true,
+            (NoCallback { property: a }, NoCallback { property: b }) => a == b,
+            (NoValidate { validation: a }, NoValidate { validation: b}) => a == b,
+            (NoProperty { property: a }, NoProperty { property: b}) => a == b,
+            _ => false,
         }
     }
 }

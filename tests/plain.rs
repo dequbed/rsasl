@@ -3,7 +3,7 @@ use std::io::Cursor;
 use std::sync::Arc;
 use libc::passwd;
 use rsasl::callback::Callback;
-use rsasl::error::SASLError;
+use rsasl::error::{SASLError, SessionError};
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, AuthzId, Password};
 use rsasl::SASL;
@@ -22,8 +22,8 @@ fn plain_client() {
     let password = "secret".to_string();
     assert_eq!(password.len(), 6);
 
-    session.set_property::<AuthId>(Box::new(username));
-    session.set_property::<Password>(Box::new(password));
+    session.set_property::<AuthId>(Arc::new(username));
+    session.set_property::<Password>(Arc::new(password));
 
     let mut out = Cursor::new(Vec::new());
 
@@ -53,20 +53,22 @@ fn plain_server() {
     struct CB;
     impl Callback for CB {
         fn validate(&self, session: &mut SessionData, validation: Validation, mechanism: &Mechname)
-            -> Result<(), SASLError>
+            -> Result<(), SessionError>
         {
             match validation {
                 validations::SIMPLE => {
-                    let username = session.get_property::<AuthId>()?;
-                    let password = session.get_property::<Password>()?;
+                    let username = session.get_property::<AuthId>()
+                        .ok_or_else(SessionError::no_property::<AuthId>)?;
+                    let password = session.get_property::<Password>()
+                        .ok_or_else(SessionError::no_property::<Password>)?;
 
                     if username.as_str() == "testuser" && password.as_str() == "secret" {
                         Ok(())
                     } else {
-                        Err(SASLError::AuthenticationFailure { reason: "bad username/password"})
+                        Err(SessionError::AuthenticationFailure)
                     }
                 },
-                _ => Err(SASLError::NoValidate { validation }),
+                _ => Err(SessionError::NoValidate { validation }),
             }
         }
     }
@@ -93,9 +95,9 @@ fn plain_server() {
 fn plain_client_edgecase_tests() {
     let sasl = SASL::new();
     fn l(sasl: &SASL,
-         authid: Box<String>,
-         authzid: Option<Box<String>>,
-         passwd: Box<String>,
+         authid: Arc<String>,
+         authzid: Option<Arc<String>>,
+         passwd: Arc<String>,
          expected: &StepResult,
          expected_output: &[u8]) {
         let mut client = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
@@ -118,9 +120,9 @@ fn plain_client_edgecase_tests() {
 
     for (authid, authzid, passwd, expected, output) in data.into_iter() {
         l(&sasl,
-          Box::new(authid.to_string()),
-          authzid.map(|s: &str| Box::new(s.to_string())),
-          Box::new(passwd.to_string()),
+          Arc::new(authid.to_string()),
+          authzid.map(|s: &str| Arc::new(s.to_string())),
+          Arc::new(passwd.to_string()),
           expected,
           *output);
     }

@@ -3,10 +3,9 @@ use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
 use rsasl::callback::Callback;
-use rsasl::error::SASLError;
-use rsasl::error::SASLError::NoCallback;
 use rsasl::mechname::Mechname;
 use rsasl::{Property, SASL};
+use rsasl::error::SessionError;
 use rsasl::property::{AuthId, Password, properties};
 use rsasl::session::SessionData;
 use rsasl::session::Step::{Done, NeedsMore};
@@ -16,18 +15,18 @@ struct OurCallback;
 
 impl Callback for OurCallback {
     fn provide_prop(&self, session: &mut SessionData, property: Property)
-        -> Result<(), SASLError>
+        -> Result<(), SessionError>
     {
         match property {
             properties::PASSWORD => {
                 // Access the authentication id, i.e. the username to check the password for
                 let _authcid = session.get_property_or_callback::<AuthId>()?;
 
-                session.set_property::<Password>(Box::new("secret".to_string()));
+                session.set_property::<Password>(Arc::new("secret".to_string()));
 
                 Ok(())
             },
-            _ => Err(NoCallback { property })
+            _ => Err(SessionError::NoCallback { property })
         }
     }
 }

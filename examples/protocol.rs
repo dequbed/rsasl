@@ -18,6 +18,6 @@ fn main() {
     ];
 
     let suggested = sasl.client_start_suggested(presented.iter().map(|m| *m)).unwrap();
-    println!("Suggested: {}", suggested.get_mechanism());
-    assert_eq!(suggested.get_mechanism().as_str(), "SCRAM-SHA-256");
+    println!("Suggested: {}", suggested.get_mechname());
+    assert_eq!(suggested.get_mechname().as_str(), "SCRAM-SHA-256");
 }
