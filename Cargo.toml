@@ -68,3 +68,6 @@ linkme = { version = "0.2", optional = true }
 
 [package.metadata.cargo-all-features]
 skip_optional_dependencies = true
+
+[workspace]
+members = ["examples/custom_mechanism", "examples/protocol*"]

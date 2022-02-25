@@ -45,11 +45,13 @@ impl Authentication for CustomMechanism {
     }
 }
 
+const MECHNAME: &'static Mechname = &Mechname::const_new_unchecked(b"X-CUSTOMMECH");
+
 use rsasl::registry::{Mechanism, MECHANISMS};
 
 #[linkme::distributed_slice(MECHANISMS)]
 pub static CUSTOMMECH: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unchecked(b"X-CUSTOMMECH"),
+    mechanism: MECHNAME,
     priority: 300,
     // In this situation there's one struct for both sides, however you can just as well use
     // different types than then have different `impl Authentication` instead of checking a value
@@ -62,4 +64,13 @@ pub static CUSTOMMECH: Mechanism = Mechanism {
 pub fn main() {
     let mut rsasl = SASL::new();
     rsasl.register(&CUSTOMMECH);
+    let available_mechanisms: Vec<&'static Mechanism> = rsasl
+        .client_mech_list()
+        .into_iter()
+        .chain(rsasl.server_mech_list().into_iter())
+        .collect();
+    println!("{:#?}", available_mechanisms);
+
+    let _client_session = rsasl.client_start(MECHNAME).unwrap();
+    let _server_session = rsasl.server_start(MECHNAME).unwrap();
 }
