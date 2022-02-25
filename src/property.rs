@@ -6,9 +6,10 @@
 //! 1. A type indicating your property
 //! 2. A `const Property` that is used to query this property
 //!
-//! ```no_run
+//! **Note: To enable custom mechanisms you have to enable the feature `unstable_custom_mechanism`**
+//! ```ignore
 //! use std::marker::PhantomData;
-//! use rsasl::{Property, PropertyQ};
+//! use rsasl::property::{Property, PropertyQ, PropertyDefinition};
 //! // All Property types must implement Debug.
 //! #[derive(Debug)]
 //! // The `PhantomData` in the constructor is only used so external crates can't construct this type.
@@ -48,6 +49,9 @@ mod construct {
         }
     }
 }
+#[cfg(feature = "unstable_custom_mechanism")]
+pub use construct::*;
+#[cfg(not(feature = "unstable_custom_mechanism"))]
 use construct::*;
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
