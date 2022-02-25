@@ -1,15 +1,16 @@
-use std::mem::ManuallyDrop;
-use base64::{CharacterSet, Config};
 use crate::gsasl::consts::*;
+use base64::{CharacterSet, Config};
 use libc::size_t;
+use std::mem::ManuallyDrop;
 
 const CONFIG: Config = Config::new(CharacterSet::Standard, true);
 
-pub unsafe fn gsasl_base64_to(mut in_0: *const libc::c_char,
-                                         mut inlen: size_t,
-                                         mut out: *mut *mut libc::c_char,
-                                         mut outlen: *mut size_t)
- -> libc::c_int {
+pub unsafe fn gsasl_base64_to(
+    mut in_0: *const libc::c_char,
+    mut inlen: size_t,
+    mut out: *mut *mut libc::c_char,
+    mut outlen: *mut size_t,
+) -> libc::c_int {
     if in_0.is_null() || inlen == 0 || out.is_null() {
         if !out.is_null() {
             *out = std::ptr::null_mut();
@@ -40,11 +41,12 @@ pub unsafe fn gsasl_base64_to(mut in_0: *const libc::c_char,
     return GSASL_OK as libc::c_int;
 }
 
-pub unsafe fn gsasl_base64_from(mut in_0: *const libc::c_char,
-                                mut inlen: size_t,
-                                mut out: *mut *mut libc::c_char,
-                                mut outlen: *mut size_t)
- -> libc::c_int {
+pub unsafe fn gsasl_base64_from(
+    mut in_0: *const libc::c_char,
+    mut inlen: size_t,
+    mut out: *mut *mut libc::c_char,
+    mut outlen: *mut size_t,
+) -> libc::c_int {
     if in_0.is_null() || inlen == 0 || out.is_null() {
         if !out.is_null() {
             *out = std::ptr::null_mut();
@@ -74,14 +76,13 @@ pub unsafe fn gsasl_base64_from(mut in_0: *const libc::c_char,
         GSASL_OK as libc::c_int
     } else {
         GSASL_BASE64_ERROR as libc::c_int
-    }
+    };
 }
-
 
 #[cfg(test)]
 mod tests {
-    use crate::error::rsasl_err_to_str;
     use super::*;
+    use crate::error::rsasl_err_to_str;
 
     #[test]
     fn base64_is_self_compatible() {
@@ -95,9 +96,7 @@ mod tests {
         let mut res;
 
         unsafe {
-            res = gsasl_base64_to(
-                orig.as_ptr().cast(), 18,
-                &mut out, &mut outlen);
+            res = gsasl_base64_to(orig.as_ptr().cast(), 18, &mut out, &mut outlen);
             assert_eq!(GSASL_OK as libc::c_int, res);
             assert_ne!(outlen, 0);
             println!("{}", outlen);
@@ -106,8 +105,7 @@ mod tests {
             let outslice = std::slice::from_raw_parts(out as *mut u8, outlen);
             println!("Encoded: {}", std::str::from_utf8_unchecked(outslice));
 
-            res = gsasl_base64_from(out, outlen,
-                                    &mut after, &mut afterlen);
+            res = gsasl_base64_from(out, outlen, &mut after, &mut afterlen);
             if res != GSASL_OK as libc::c_int {
                 println!("{}", rsasl_err_to_str(res).unwrap());
             }

@@ -6,8 +6,7 @@ use md5::Md5;
 use sha1::Sha1;
 use sha2::Sha256;
 
-use crate::gsasl::gc::{GC_INVALID_HASH, GC_OK, GC_RANDOM_ERROR,
-                 Gc_rc};
+use crate::gsasl::gc::{Gc_rc, GC_INVALID_HASH, GC_OK, GC_RANDOM_ERROR};
 
 /* gc.h --- Header file for implementation agnostic crypto wrapper API.
  * Copyright (C) 2002-2005, 2007-2008, 2011-2021 Free Software Foundation, Inc.
@@ -60,16 +59,9 @@ pub const GC_CBC: Gc_cipher_mode = 1;
 pub const GC_ECB: Gc_cipher_mode = 0;
 pub type gc_cipher_handle = *mut libc::c_void;
 /* Memory allocation (avoid). */
-pub type gc_malloc_t
-    =
-    Option<unsafe fn(_: size_t) -> *mut libc::c_void>;
-pub type gc_secure_check_t
-    =
-    Option<unsafe fn(_: *const libc::c_void) -> libc::c_int>;
-pub type gc_realloc_t
-    =
-    Option<unsafe fn(_: *mut libc::c_void, _: size_t)
-               -> *mut libc::c_void>;
+pub type gc_malloc_t = Option<unsafe fn(_: size_t) -> *mut libc::c_void>;
+pub type gc_secure_check_t = Option<unsafe fn(_: *const libc::c_void) -> libc::c_int>;
+pub type gc_realloc_t = Option<unsafe fn(_: *mut libc::c_void, _: size_t) -> *mut libc::c_void>;
 pub type gc_free_t = Option<unsafe fn(_: *mut libc::c_void) -> ()>;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -97,53 +89,60 @@ pub struct _gc_cipher_ctx {
 *
  */
 
-
 /* Overwrite BUFFER with random data, under the control of getrandom
-   FLAGS.  BUFFER contains LENGTH bytes.  Inspired by getentropy,
-   however LENGTH is not restricted to 256.  Return 0 on success, -1
-   (setting errno) on failure.  */
-unsafe fn randomize(mut buffer: *mut libc::c_void,
-                               mut length: size_t, mut flags: libc::c_uint)
- -> libc::c_int {
+FLAGS.  BUFFER contains LENGTH bytes.  Inspired by getentropy,
+however LENGTH is not restricted to 256.  Return 0 on success, -1
+(setting errno) on failure.  */
+unsafe fn randomize(
+    mut buffer: *mut libc::c_void,
+    mut length: size_t,
+    mut flags: libc::c_uint,
+) -> libc::c_int {
     let mut buf: *mut libc::c_char = buffer as *mut libc::c_char;
-    loop  {
+    loop {
         let mut bytes: ssize_t = 0;
         if length == 0 {
-            return GC_OK as libc::c_int
+            return GC_OK as libc::c_int;
         }
-        loop  {
+        loop {
             bytes = getrandom(buf as *mut libc::c_void, length, flags);
-            if !(bytes < 0) { break ; }
+            if !(bytes < 0) {
+                break;
+            }
             if *__errno_location() != 4 as libc::c_int {
-                return GC_RANDOM_ERROR as libc::c_int
+                return GC_RANDOM_ERROR as libc::c_int;
             }
         }
-        if bytes == 0 { break ; }
+        if bytes == 0 {
+            break;
+        }
         buf = buf.offset(bytes as isize);
-        length =
-            (length as libc::c_ulong).wrapping_sub(bytes as libc::c_ulong) as
-                size_t as size_t
+        length = (length as libc::c_ulong).wrapping_sub(bytes as libc::c_ulong) as size_t as size_t
     }
     return GC_RANDOM_ERROR as libc::c_int;
 }
 /* Randomness. */
-pub unsafe fn gc_nonce(mut data: *mut libc::c_char,
-                                  mut datalen: size_t) -> Gc_rc {
-    return randomize(data as *mut libc::c_void, datalen,
-                     0 as libc::c_int as libc::c_uint) as Gc_rc;
+pub unsafe fn gc_nonce(mut data: *mut libc::c_char, mut datalen: size_t) -> Gc_rc {
+    return randomize(
+        data as *mut libc::c_void,
+        datalen,
+        0 as libc::c_int as libc::c_uint,
+    ) as Gc_rc;
 }
 
-pub unsafe fn gc_random(mut data: *mut libc::c_char,
-                        mut datalen: size_t) -> Gc_rc {
-    return randomize(data as *mut libc::c_void, datalen,
-                     0x2 as libc::c_int as libc::c_uint) as Gc_rc;
+pub unsafe fn gc_random(mut data: *mut libc::c_char, mut datalen: size_t) -> Gc_rc {
+    return randomize(
+        data as *mut libc::c_void,
+        datalen,
+        0x2 as libc::c_int as libc::c_uint,
+    ) as Gc_rc;
 }
 
-pub unsafe fn gc_md5(mut in_0: *const libc::c_void,
-                     mut inlen: size_t,
-                     mut resbuf: *mut libc::c_void
-) -> Gc_rc
-{
+pub unsafe fn gc_md5(
+    mut in_0: *const libc::c_void,
+    mut inlen: size_t,
+    mut resbuf: *mut libc::c_void,
+) -> Gc_rc {
     let mut hasher = Md5::default();
     let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
     hasher.update(input);
@@ -154,11 +153,11 @@ pub unsafe fn gc_md5(mut in_0: *const libc::c_void,
     return GC_OK;
 }
 
-pub unsafe fn gc_sha1(mut in_0: *const libc::c_void,
-                      mut inlen: size_t,
-                      mut resbuf: *mut libc::c_void
-) -> Gc_rc
-{
+pub unsafe fn gc_sha1(
+    mut in_0: *const libc::c_void,
+    mut inlen: size_t,
+    mut resbuf: *mut libc::c_void,
+) -> Gc_rc {
     let mut hasher = Sha1::default();
     let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
     hasher.update(input);
@@ -169,11 +168,11 @@ pub unsafe fn gc_sha1(mut in_0: *const libc::c_void,
     return GC_OK;
 }
 
-pub unsafe fn gc_sha256(mut in_0: *const libc::c_void,
-                        mut inlen: size_t,
-                        mut resbuf: *mut libc::c_void
-) -> Gc_rc
-{
+pub unsafe fn gc_sha256(
+    mut in_0: *const libc::c_void,
+    mut inlen: size_t,
+    mut resbuf: *mut libc::c_void,
+) -> Gc_rc {
     let mut hasher = Sha256::default();
     let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
     hasher.update(input);
@@ -184,13 +183,13 @@ pub unsafe fn gc_sha256(mut in_0: *const libc::c_void,
     return GC_OK;
 }
 
-pub unsafe fn gc_hmac_md5(mut key: *const libc::c_void,
-                          mut keylen: size_t,
-                          mut in_0: *const libc::c_void,
-                          mut inlen: size_t,
-                          mut resbuf: *mut libc::c_char
-) -> Gc_rc
-{
+pub unsafe fn gc_hmac_md5(
+    mut key: *const libc::c_void,
+    mut keylen: size_t,
+    mut in_0: *const libc::c_void,
+    mut inlen: size_t,
+    mut resbuf: *mut libc::c_char,
+) -> Gc_rc {
     type HmacMd5 = Hmac<Md5>;
     let key = std::slice::from_raw_parts(key as *const u8, keylen);
 
@@ -206,12 +205,13 @@ pub unsafe fn gc_hmac_md5(mut key: *const libc::c_void,
     }
 }
 
-pub unsafe fn gc_hmac_sha1(mut key: *const libc::c_void,
-                                      mut keylen: size_t,
-                                      mut in_0: *const libc::c_void,
-                                      mut inlen: size_t,
-                                      mut resbuf: *mut libc::c_char)
- -> Gc_rc {
+pub unsafe fn gc_hmac_sha1(
+    mut key: *const libc::c_void,
+    mut keylen: size_t,
+    mut in_0: *const libc::c_void,
+    mut inlen: size_t,
+    mut resbuf: *mut libc::c_char,
+) -> Gc_rc {
     type HmacSha1 = Hmac<Sha1>;
     let key = std::slice::from_raw_parts(key as *const u8, keylen);
 
@@ -227,12 +227,13 @@ pub unsafe fn gc_hmac_sha1(mut key: *const libc::c_void,
     }
 }
 
-pub unsafe fn gc_hmac_sha256(mut key: *const libc::c_void,
-                                        mut keylen: size_t,
-                                        mut in_0: *const libc::c_void,
-                                        mut inlen: size_t,
-                                        mut resbuf: *mut libc::c_char)
- -> Gc_rc {
+pub unsafe fn gc_hmac_sha256(
+    mut key: *const libc::c_void,
+    mut keylen: size_t,
+    mut in_0: *const libc::c_void,
+    mut inlen: size_t,
+    mut resbuf: *mut libc::c_char,
+) -> Gc_rc {
     type HmacSha256 = Hmac<Sha256>;
     let key = std::slice::from_raw_parts(key as *const u8, keylen);
 

@@ -1,20 +1,24 @@
-use std::ffi::CString;
-use std::io::Cursor;
-use std::sync::Arc;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
+use rsasl::session::{Step};
 use rsasl::SASL;
-use rsasl::session::{Step, StepResult};
+
+use std::io::Cursor;
+use std::sync::Arc;
 
 #[test]
 pub fn test_scram_sha() {
-    let mut client_sasl = SASL::new();
-    let mut server_sasl = SASL::new();
+    let client_sasl = SASL::new();
+    let server_sasl = SASL::new();
 
     for i in 0..2 {
         let mut client_starts = i == 0;
-        let mut client_session = client_sasl.client_start(Mechname::new(b"SCRAM-SHA-256").unwrap()).unwrap();
-        let mut server_session = server_sasl.server_start(Mechname::new(b"SCRAM-SHA-256").unwrap()).unwrap();
+        let mut client_session = client_sasl
+            .client_start(Mechname::new(b"SCRAM-SHA-256").unwrap())
+            .unwrap();
+        let mut server_session = server_sasl
+            .server_start(Mechname::new(b"SCRAM-SHA-256").unwrap())
+            .unwrap();
 
         let authid = Arc::new("testuser".to_string());
         let password = Arc::new("secret".to_string());
@@ -23,7 +27,6 @@ pub fn test_scram_sha() {
         client_session.set_property::<Password>(password.clone());
         server_session.set_property::<AuthId>(authid);
         server_session.set_property::<Password>(password);
-
 
         if client_starts {
             println!("Running a round client-first");
@@ -42,7 +45,10 @@ pub fn test_scram_sha() {
             if client_starts && !client_done {
                 let mut out = Cursor::new(Vec::new());
                 println!("[CLIENT] >>> Step {} (Has Data: {})", step, data.is_some());
-                match client_session.step(data.take(), &mut out).expect("client side step failed") {
+                match client_session
+                    .step(data.take(), &mut out)
+                    .expect("client side step failed")
+                {
                     Step::Done(Some(len)) => {
                         let buffer = out.into_inner();
                         let str = std::str::from_utf8(&buffer).unwrap();
@@ -72,7 +78,10 @@ pub fn test_scram_sha() {
             if !server_done {
                 let mut out = Cursor::new(Vec::new());
                 println!("[SERVER] <<< Step {} (Has Data: {})", step, data.is_some());
-                match server_session.step(data.take(), &mut out).expect("server side step failed") {
+                match server_session
+                    .step(data.take(), &mut out)
+                    .expect("server side step failed")
+                {
                     Step::Done(Some(len)) => {
                         let buffer = out.into_inner();
                         let str = std::str::from_utf8(&buffer).unwrap();

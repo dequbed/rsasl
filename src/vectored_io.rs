@@ -12,19 +12,18 @@ pub struct VectoredWriter<'io, const N: usize> {
 
 impl<'io, const N: usize> VectoredWriter<'io, N> {
     pub fn new(data: [&'io [u8]; N]) -> Self {
-        Self {
-            skip: 0,
-            data,
-        }
+        Self { skip: 0, data }
     }
 
     pub fn is_done(&self) -> bool {
         self.skip >= N
     }
 
-    pub fn write_vectored_inner(&mut self, bufs: &mut [IoSlice<'io>; N], writer: &mut impl Write)
-        -> io::Result<usize>
-    {
+    pub fn write_vectored_inner(
+        &mut self,
+        bufs: &mut [IoSlice<'io>; N],
+        writer: &mut impl Write,
+    ) -> io::Result<usize> {
         if self.skip >= N {
             return Ok(0);
         }
@@ -69,11 +68,10 @@ impl<'io, const N: usize> VectoredWriter<'io, N> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
     use super::*;
+    use std::io::Cursor;
 
     #[test]
     fn test_with_split_writer() {
@@ -104,12 +102,7 @@ mod tests {
             }
         }
 
-        let data: [&[u8]; 4] = [
-            b"dead",
-            b"beef",
-            b"cafe",
-            b"babe",
-        ];
+        let data: [&[u8]; 4] = [b"dead", b"beef", b"cafe", b"babe"];
 
         let mut out = SplitWriter {
             data: Cursor::new(Vec::with_capacity(16)),

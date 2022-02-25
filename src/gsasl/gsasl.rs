@@ -1,14 +1,14 @@
-use std::fmt::{Debug, Formatter};
-use std::io::Write;
-use std::ptr::NonNull;
-use libc::{c_char, size_t};
-use crate::{SASLError, Shared};
+use crate::error::Gsasl;
 use crate::error::SessionError;
 use crate::gsasl::consts::{GSASL_NEEDS_MORE, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
 use crate::mechanism::Authentication;
-use crate::error::Gsasl;
-use crate::session::{SessionData, StepResult};
 use crate::session::Step::{Done, NeedsMore};
+use crate::session::{SessionData, StepResult};
+use crate::{SASLError, Shared};
+use libc::{c_char, size_t};
+use std::fmt::{Debug, Formatter};
+use std::io::Write;
+use std::ptr::NonNull;
 
 #[derive(Copy, Clone)]
 pub struct Gsasl_mechanism {
@@ -47,7 +47,6 @@ pub(crate) struct MechanismVTable {
 
     /// Should be Drop in Rust
     pub finish: Gsasl_finish_function,
-
 
     /// Security layer stuff
     pub encode: Gsasl_code_function,
@@ -91,20 +90,22 @@ impl CMechanismStateKeeper {
             }
         }
 
-        Ok(Box::new(CMechanismStateKeeper {
-            mech_data,
-            vtable,
-        }))
+        Ok(Box::new(CMechanismStateKeeper { mech_data, vtable }))
     }
 }
 
 impl Authentication for CMechanismStateKeeper {
-    fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write)
-        -> StepResult
-    {
-        fn write_output(writer: &mut dyn Write, output: *mut c_char, outlen: size_t)
-            -> Result<Option<usize>, SessionError>
-        {
+    fn step(
+        &mut self,
+        session: &mut SessionData,
+        input: Option<&[u8]>,
+        writer: &mut dyn Write,
+    ) -> StepResult {
+        fn write_output(
+            writer: &mut dyn Write,
+            output: *mut c_char,
+            outlen: size_t,
+        ) -> Result<Option<usize>, SessionError> {
             // Output == nullptr means send no data
             if output.is_null() {
                 Ok(None)
@@ -126,7 +127,13 @@ impl Authentication for CMechanismStateKeeper {
             let mut outlen: size_t = 0;
 
             unsafe {
-                let res = step(session, self.mech_data.clone(), input, &mut output, &mut outlen);
+                let res = step(
+                    session,
+                    self.mech_data.clone(),
+                    input,
+                    &mut output,
+                    &mut outlen,
+                );
                 if res == GSASL_OK as libc::c_int {
                     Ok(Done(write_output(writer, output, outlen)?))
                 } else if res == GSASL_NEEDS_MORE as libc::c_int {
@@ -149,29 +156,31 @@ impl Drop for CMechanismStateKeeper {
     }
 }
 
-pub(crate) type Gsasl_code_function = Option<unsafe fn(
-    _: &mut SessionData,
-    _: Option<NonNull<()>>,
-    _: *const libc::c_char, _: size_t,
-    _: *mut *mut libc::c_char, _: *mut size_t
-) -> libc::c_int>;
+pub(crate) type Gsasl_code_function = Option<
+    unsafe fn(
+        _: &mut SessionData,
+        _: Option<NonNull<()>>,
+        _: *const libc::c_char,
+        _: size_t,
+        _: *mut *mut libc::c_char,
+        _: *mut size_t,
+    ) -> libc::c_int,
+>;
 
-pub(crate) type Gsasl_start_function = Option<unsafe fn(
-    _: &Shared,
-    _: &mut Option<NonNull<()>>
-) -> libc::c_int>;
+pub(crate) type Gsasl_start_function =
+    Option<unsafe fn(_: &Shared, _: &mut Option<NonNull<()>>) -> libc::c_int>;
 
+pub(crate) type Gsasl_step_function = Option<
+    unsafe fn(
+        _: &mut SessionData,
+        _: Option<NonNull<()>>,
+        _: Option<&[u8]>,
+        _: *mut *mut libc::c_char,
+        _: *mut size_t,
+    ) -> libc::c_int,
+>;
 
-pub(crate) type Gsasl_step_function = Option<unsafe fn(
-    _: &mut SessionData,
-    _: Option<NonNull<()>>,
-    _: Option<&[u8]>,
-    _: *mut *mut libc::c_char, _: *mut size_t
-) -> libc::c_int>;
-
-pub(crate) type Gsasl_finish_function = Option<unsafe fn(
-    _: Option<NonNull<()>>,
-) -> ()>;
+pub(crate) type Gsasl_finish_function = Option<unsafe fn(_: Option<NonNull<()>>) -> ()>;
 
 pub(crate) type Gsasl_init_function = Option<unsafe fn() -> libc::c_int>;
 pub(crate) type Gsasl_done_function = Option<unsafe fn() -> ()>;

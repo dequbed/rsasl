@@ -21,8 +21,7 @@ pub mod callback;
 pub mod crypto;
 pub mod error;
 pub mod free;
+pub mod gc;
 pub mod mechtools;
 pub mod property;
 pub mod saslprep;
-pub mod gc;
-

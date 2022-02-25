@@ -1,10 +1,13 @@
-use ::libc;
-use libc::{memset, realloc, size_t, strcmp, strcpy, strdup, strlen, strndup, strtoul};
 use crate::gsasl::gl::free::rpl_free;
 use crate::mechanisms::digest_md5::getsubopt::digest_md5_getsubopt;
-use crate::mechanisms::digest_md5::qop::{digest_md5_qop, DIGEST_MD5_QOP_AUTH, DIGEST_MD5_QOP_AUTH_CONF, DIGEST_MD5_QOP_AUTH_INT};
-use crate::mechanisms::digest_md5::validate::{digest_md5_validate_challenge, digest_md5_validate_finish, digest_md5_validate_response};
-
+use crate::mechanisms::digest_md5::qop::{
+    digest_md5_qop, DIGEST_MD5_QOP_AUTH, DIGEST_MD5_QOP_AUTH_CONF, DIGEST_MD5_QOP_AUTH_INT,
+};
+use crate::mechanisms::digest_md5::validate::{
+    digest_md5_validate_challenge, digest_md5_validate_finish, digest_md5_validate_response,
+};
+use ::libc;
+use libc::{memset, realloc, size_t, strcmp, strcpy, strdup, strlen, strndup, strtoul};
 
 pub type digest_md5_cipher = libc::c_uint;
 pub const DIGEST_MD5_CIPHER_AES_CBC: digest_md5_cipher = 32;
@@ -177,473 +180,527 @@ pub type C2RustUnnamed_0 = libc::c_uint;
 pub type C2RustUnnamed_1 = libc::c_uint;
 pub type C2RustUnnamed_2 = libc::c_uint;
 pub type C2RustUnnamed_3 = libc::c_uint;
-static mut digest_challenge_opts: [*const libc::c_char; 9] =
-    [b"realm\x00" as *const u8 as *const libc::c_char,
-     b"nonce\x00" as *const u8 as *const libc::c_char,
-     b"qop\x00" as *const u8 as *const libc::c_char,
-     b"stale\x00" as *const u8 as *const libc::c_char,
-     b"maxbuf\x00" as *const u8 as *const libc::c_char,
-     b"charset\x00" as *const u8 as *const libc::c_char,
-     b"algorithm\x00" as *const u8 as *const libc::c_char,
-     b"cipher\x00" as *const u8 as *const libc::c_char,
-     0 as *const libc::c_char];
-static mut qop_opts: [*const libc::c_char; 4] =
-    [b"auth\x00" as *const u8 as *const libc::c_char,
-     b"auth-int\x00" as *const u8 as *const libc::c_char,
-     b"auth-conf\x00" as *const u8 as *const libc::c_char,
-     0 as *const libc::c_char];
-static mut cipher_opts: [*const libc::c_char; 7] =
-    [b"des\x00" as *const u8 as *const libc::c_char,
-     b"3des\x00" as *const u8 as *const libc::c_char,
-     b"rc4\x00" as *const u8 as *const libc::c_char,
-     b"rc4-40\x00" as *const u8 as *const libc::c_char,
-     b"rc4-56\x00" as *const u8 as *const libc::c_char,
-     b"aes-cbc\x00" as *const u8 as *const libc::c_char,
-     0 as *const libc::c_char];
-unsafe fn parse_challenge(mut challenge: *mut libc::c_char,
-                                     mut out: *mut digest_md5_challenge)
- -> libc::c_int {
+static mut digest_challenge_opts: [*const libc::c_char; 9] = [
+    b"realm\x00" as *const u8 as *const libc::c_char,
+    b"nonce\x00" as *const u8 as *const libc::c_char,
+    b"qop\x00" as *const u8 as *const libc::c_char,
+    b"stale\x00" as *const u8 as *const libc::c_char,
+    b"maxbuf\x00" as *const u8 as *const libc::c_char,
+    b"charset\x00" as *const u8 as *const libc::c_char,
+    b"algorithm\x00" as *const u8 as *const libc::c_char,
+    b"cipher\x00" as *const u8 as *const libc::c_char,
+    0 as *const libc::c_char,
+];
+static mut qop_opts: [*const libc::c_char; 4] = [
+    b"auth\x00" as *const u8 as *const libc::c_char,
+    b"auth-int\x00" as *const u8 as *const libc::c_char,
+    b"auth-conf\x00" as *const u8 as *const libc::c_char,
+    0 as *const libc::c_char,
+];
+static mut cipher_opts: [*const libc::c_char; 7] = [
+    b"des\x00" as *const u8 as *const libc::c_char,
+    b"3des\x00" as *const u8 as *const libc::c_char,
+    b"rc4\x00" as *const u8 as *const libc::c_char,
+    b"rc4-40\x00" as *const u8 as *const libc::c_char,
+    b"rc4-56\x00" as *const u8 as *const libc::c_char,
+    b"aes-cbc\x00" as *const u8 as *const libc::c_char,
+    0 as *const libc::c_char,
+];
+unsafe fn parse_challenge(
+    mut challenge: *mut libc::c_char,
+    mut out: *mut digest_md5_challenge,
+) -> libc::c_int {
     let mut done_algorithm: libc::c_int = 0 as libc::c_int;
     let mut disable_qop_auth_conf: libc::c_int = 0 as libc::c_int;
     let mut value: *mut libc::c_char = 0 as *mut libc::c_char;
-    memset(out as *mut libc::c_void, 0, ::std::mem::size_of::<digest_md5_challenge>());
+    memset(
+        out as *mut libc::c_void,
+        0,
+        ::std::mem::size_of::<digest_md5_challenge>(),
+    );
     /* The size of a digest-challenge MUST be less than 2048 bytes. */
     if strlen(challenge) >= 2048 {
-        return -(1 as libc::c_int)
+        return -(1 as libc::c_int);
     }
     while *challenge as libc::c_int != '\u{0}' as i32 {
-        match digest_md5_getsubopt(&mut challenge,
-                                   digest_challenge_opts.as_ptr(), &mut value)
-            {
+        match digest_md5_getsubopt(&mut challenge, digest_challenge_opts.as_ptr(), &mut value) {
             0 => {
-                let mut tmp: *mut *mut libc::c_char =
-                    0 as *mut *mut libc::c_char;
+                let mut tmp: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
                 (*out).nrealms = (*out).nrealms.wrapping_add(1);
-                tmp =
-                    realloc((*out).realms as *mut libc::c_void,
-                            (*out).nrealms.wrapping_mul(::std::mem::size_of::<*mut libc::c_char>()))
-                        as *mut *mut libc::c_char;
-                if tmp.is_null() { return -(1 as libc::c_int) }
+                tmp = realloc(
+                    (*out).realms as *mut libc::c_void,
+                    (*out)
+                        .nrealms
+                        .wrapping_mul(::std::mem::size_of::<*mut libc::c_char>()),
+                ) as *mut *mut libc::c_char;
+                if tmp.is_null() {
+                    return -(1 as libc::c_int);
+                }
                 (*out).realms = tmp;
-                let ref mut fresh0 =
-                    *(*out).realms.offset((*out).nrealms.wrapping_sub(1) as isize);
+                let ref mut fresh0 = *(*out)
+                    .realms
+                    .offset((*out).nrealms.wrapping_sub(1) as isize);
                 *fresh0 = strdup(value);
-                if (*(*out).realms.offset((*out).nrealms.wrapping_sub(1) as isize)).is_null() {
-                    return -(1 as libc::c_int)
+                if (*(*out)
+                    .realms
+                    .offset((*out).nrealms.wrapping_sub(1) as isize))
+                .is_null()
+                {
+                    return -(1 as libc::c_int);
                 }
             }
             1 => {
                 /* This directive is required and MUST appear exactly once; if
-	   not present, or if multiple instances are present, the
-	   client should abort the authentication exchange. */
-                if !(*out).nonce.is_null() { return -(1 as libc::c_int) }
+                not present, or if multiple instances are present, the
+                client should abort the authentication exchange. */
+                if !(*out).nonce.is_null() {
+                    return -(1 as libc::c_int);
+                }
                 (*out).nonce = strdup(value);
-                if (*out).nonce.is_null() { return -(1 as libc::c_int) }
+                if (*out).nonce.is_null() {
+                    return -(1 as libc::c_int);
+                }
             }
             2 => {
                 /* <<What if this directive is present multiple times? Error,
-	   or take the union of all values?>> */
-                if (*out).qops != 0 { return -(1 as libc::c_int) }
-                let mut subsubopts: *mut libc::c_char =
-                    0 as *mut libc::c_char;
+                or take the union of all values?>> */
+                if (*out).qops != 0 {
+                    return -(1 as libc::c_int);
+                }
+                let mut subsubopts: *mut libc::c_char = 0 as *mut libc::c_char;
                 let mut val: *mut libc::c_char = 0 as *mut libc::c_char;
                 subsubopts = value;
                 while *subsubopts as libc::c_int != '\u{0}' as i32 {
-                    match digest_md5_getsubopt(&mut subsubopts,
-                                               qop_opts.as_ptr(), &mut val) {
-                        0 => {
-                            (*out).qops |= DIGEST_MD5_QOP_AUTH as libc::c_int
-                        }
-                        1 => {
-                            (*out).qops |=
-                                DIGEST_MD5_QOP_AUTH_INT as libc::c_int
-                        }
-                        2 => {
-                            (*out).qops |=
-                                DIGEST_MD5_QOP_AUTH_CONF as libc::c_int
-                        }
-                        _ => { }
+                    match digest_md5_getsubopt(&mut subsubopts, qop_opts.as_ptr(), &mut val) {
+                        0 => (*out).qops |= DIGEST_MD5_QOP_AUTH as libc::c_int,
+                        1 => (*out).qops |= DIGEST_MD5_QOP_AUTH_INT as libc::c_int,
+                        2 => (*out).qops |= DIGEST_MD5_QOP_AUTH_CONF as libc::c_int,
+                        _ => {}
                     }
                 }
                 /* if the client recognizes no cipher, it MUST behave as if
-	   "auth-conf" qop option wasn't provided by the server. */
+                "auth-conf" qop option wasn't provided by the server. */
                 if disable_qop_auth_conf != 0 {
                     (*out).qops &= !(DIGEST_MD5_QOP_AUTH_CONF as libc::c_int)
                 }
                 /* if the client recognizes no option, it MUST abort the
-	   authentication exchange. */
-                if (*out).qops == 0 { return -(1 as libc::c_int) }
+                authentication exchange. */
+                if (*out).qops == 0 {
+                    return -(1 as libc::c_int);
+                }
             }
             3 => {
                 /* This directive may appear at most once; if multiple
-	   instances are present, the client MUST abort the
-	   authentication exchange. */
-                if (*out).stale != 0 { return -(1 as libc::c_int) }
+                instances are present, the client MUST abort the
+                authentication exchange. */
+                if (*out).stale != 0 {
+                    return -(1 as libc::c_int);
+                }
                 (*out).stale = 1 as libc::c_int
             }
             4 => {
                 /* This directive may appear at most once; if multiple
-	   instances are present, or the value is out of range the
-	   client MUST abort the authentication exchange. */
-                if (*out).servermaxbuf != 0 { return -(1 as libc::c_int) }
-                (*out).servermaxbuf =
-                    strtoul(value, 0 as *mut *mut libc::c_char, 10) as usize;
+                instances are present, or the value is out of range the
+                client MUST abort the authentication exchange. */
+                if (*out).servermaxbuf != 0 {
+                    return -(1 as libc::c_int);
+                }
+                (*out).servermaxbuf = strtoul(value, 0 as *mut *mut libc::c_char, 10) as usize;
                 /* FIXME: error handling. */
-	/* The value MUST be bigger than 16 (32 for Confidentiality
-	   protection with the "aes-cbc" cipher) and smaller or equal
-	   to 16777215 (i.e. 2**24-1). */
+                /* The value MUST be bigger than 16 (32 for Confidentiality
+                protection with the "aes-cbc" cipher) and smaller or equal
+                to 16777215 (i.e. 2**24-1). */
                 if (*out).servermaxbuf <= 16 || (*out).servermaxbuf > 16777215 {
-                    return -(1 as libc::c_int)
+                    return -(1 as libc::c_int);
                 }
             }
             5 => {
                 /* This directive may appear at most once; if multiple
-	   instances are present, the client MUST abort the
-	   authentication exchange. */
-                if (*out).utf8 != 0 { return -(1 as libc::c_int) }
-                if strcmp(b"utf-8\x00" as *const u8 as *const libc::c_char,
-                          value) != 0 as libc::c_int {
-                    return -(1 as libc::c_int)
+                instances are present, the client MUST abort the
+                authentication exchange. */
+                if (*out).utf8 != 0 {
+                    return -(1 as libc::c_int);
+                }
+                if strcmp(b"utf-8\x00" as *const u8 as *const libc::c_char, value)
+                    != 0 as libc::c_int
+                {
+                    return -(1 as libc::c_int);
                 }
                 (*out).utf8 = 1 as libc::c_int
             }
             6 => {
                 /* This directive is required and MUST appear exactly once; if
-	   not present, or if multiple instances are present, the
-	   client SHOULD abort the authentication exchange. */
-                if done_algorithm != 0 { return -(1 as libc::c_int) }
-                if strcmp(b"md5-sess\x00" as *const u8 as *const libc::c_char,
-                          value) != 0 as libc::c_int {
-                    return -(1 as libc::c_int)
+                not present, or if multiple instances are present, the
+                client SHOULD abort the authentication exchange. */
+                if done_algorithm != 0 {
+                    return -(1 as libc::c_int);
+                }
+                if strcmp(b"md5-sess\x00" as *const u8 as *const libc::c_char, value)
+                    != 0 as libc::c_int
+                {
+                    return -(1 as libc::c_int);
                 }
                 done_algorithm = 1 as libc::c_int
             }
             7 => {
                 /* This directive must be present exactly once if "auth-conf"
-	   is offered in the "qop-options" directive */
-                if (*out).ciphers != 0 { return -(1 as libc::c_int) }
-                let mut subsubopts_0: *mut libc::c_char =
-                    0 as *mut libc::c_char;
+                is offered in the "qop-options" directive */
+                if (*out).ciphers != 0 {
+                    return -(1 as libc::c_int);
+                }
+                let mut subsubopts_0: *mut libc::c_char = 0 as *mut libc::c_char;
                 let mut val_0: *mut libc::c_char = 0 as *mut libc::c_char;
                 subsubopts_0 = value;
                 while *subsubopts_0 as libc::c_int != '\u{0}' as i32 {
-                    match digest_md5_getsubopt(&mut subsubopts_0,
-                                               cipher_opts.as_ptr(),
-                                               &mut val_0) {
-                        0 => {
-                            (*out).ciphers |=
-                                DIGEST_MD5_CIPHER_DES as libc::c_int
-                        }
-                        1 => {
-                            (*out).ciphers |=
-                                DIGEST_MD5_CIPHER_3DES as libc::c_int
-                        }
-                        2 => {
-                            (*out).ciphers |=
-                                DIGEST_MD5_CIPHER_RC4 as libc::c_int
-                        }
-                        3 => {
-                            (*out).ciphers |=
-                                DIGEST_MD5_CIPHER_RC4_40 as libc::c_int
-                        }
-                        4 => {
-                            (*out).ciphers |=
-                                DIGEST_MD5_CIPHER_RC4_56 as libc::c_int
-                        }
-                        5 => {
-                            (*out).ciphers |=
-                                DIGEST_MD5_CIPHER_AES_CBC as libc::c_int
-                        }
-                        _ => { }
+                    match digest_md5_getsubopt(&mut subsubopts_0, cipher_opts.as_ptr(), &mut val_0)
+                    {
+                        0 => (*out).ciphers |= DIGEST_MD5_CIPHER_DES as libc::c_int,
+                        1 => (*out).ciphers |= DIGEST_MD5_CIPHER_3DES as libc::c_int,
+                        2 => (*out).ciphers |= DIGEST_MD5_CIPHER_RC4 as libc::c_int,
+                        3 => (*out).ciphers |= DIGEST_MD5_CIPHER_RC4_40 as libc::c_int,
+                        4 => (*out).ciphers |= DIGEST_MD5_CIPHER_RC4_56 as libc::c_int,
+                        5 => (*out).ciphers |= DIGEST_MD5_CIPHER_AES_CBC as libc::c_int,
+                        _ => {}
                     }
                 }
                 /* if the client recognizes no cipher, it MUST behave as if
-	   "auth-conf" qop option wasn't provided by the server. */
+                "auth-conf" qop option wasn't provided by the server. */
                 if (*out).ciphers == 0 {
                     disable_qop_auth_conf = 1 as libc::c_int;
                     if (*out).qops != 0 {
                         /* if the client recognizes no option, it MUST abort the
-		   authentication exchange. */
-                        (*out).qops &=
-                            !(DIGEST_MD5_QOP_AUTH_CONF as libc::c_int);
-                        if (*out).qops == 0 { return -(1 as libc::c_int) }
+                        authentication exchange. */
+                        (*out).qops &= !(DIGEST_MD5_QOP_AUTH_CONF as libc::c_int);
+                        if (*out).qops == 0 {
+                            return -(1 as libc::c_int);
+                        }
                     }
                 }
             }
-            _ => { }
+            _ => {}
         }
     }
     /* This directive is required and MUST appear exactly once; if
-     not present, or if multiple instances are present, the
-     client SHOULD abort the authentication exchange. */
-    if done_algorithm == 0 { return -(1 as libc::c_int) }
+    not present, or if multiple instances are present, the
+    client SHOULD abort the authentication exchange. */
+    if done_algorithm == 0 {
+        return -(1 as libc::c_int);
+    }
     /* Validate that we have the mandatory fields. */
     if digest_md5_validate_challenge(out) != 0 as libc::c_int {
-        return -(1 as libc::c_int)
+        return -(1 as libc::c_int);
     }
     return 0 as libc::c_int;
 }
-static mut digest_response_opts: [*const libc::c_char; 13] =
-    [b"username\x00" as *const u8 as *const libc::c_char,
-     b"realm\x00" as *const u8 as *const libc::c_char,
-     b"nonce\x00" as *const u8 as *const libc::c_char,
-     b"cnonce\x00" as *const u8 as *const libc::c_char,
-     b"nc\x00" as *const u8 as *const libc::c_char,
-     b"qop\x00" as *const u8 as *const libc::c_char,
-     b"digest-uri\x00" as *const u8 as *const libc::c_char,
-     b"response\x00" as *const u8 as *const libc::c_char,
-     b"maxbuf\x00" as *const u8 as *const libc::c_char,
-     b"charset\x00" as *const u8 as *const libc::c_char,
-     b"cipher\x00" as *const u8 as *const libc::c_char,
-     b"authzid\x00" as *const u8 as *const libc::c_char,
-     0 as *const libc::c_char];
-unsafe fn parse_response(mut response: *mut libc::c_char,
-                                    mut out: *mut digest_md5_response)
- -> libc::c_int {
+static mut digest_response_opts: [*const libc::c_char; 13] = [
+    b"username\x00" as *const u8 as *const libc::c_char,
+    b"realm\x00" as *const u8 as *const libc::c_char,
+    b"nonce\x00" as *const u8 as *const libc::c_char,
+    b"cnonce\x00" as *const u8 as *const libc::c_char,
+    b"nc\x00" as *const u8 as *const libc::c_char,
+    b"qop\x00" as *const u8 as *const libc::c_char,
+    b"digest-uri\x00" as *const u8 as *const libc::c_char,
+    b"response\x00" as *const u8 as *const libc::c_char,
+    b"maxbuf\x00" as *const u8 as *const libc::c_char,
+    b"charset\x00" as *const u8 as *const libc::c_char,
+    b"cipher\x00" as *const u8 as *const libc::c_char,
+    b"authzid\x00" as *const u8 as *const libc::c_char,
+    0 as *const libc::c_char,
+];
+unsafe fn parse_response(
+    mut response: *mut libc::c_char,
+    mut out: *mut digest_md5_response,
+) -> libc::c_int {
     let mut value: *mut libc::c_char = 0 as *mut libc::c_char;
-    memset(out as *mut libc::c_void, 0, ::std::mem::size_of::<digest_md5_response>());
+    memset(
+        out as *mut libc::c_void,
+        0,
+        ::std::mem::size_of::<digest_md5_response>(),
+    );
     /* The size of a digest-response MUST be less than 4096 bytes. */
     if strlen(response) >= 4096 {
-        return -(1 as libc::c_int)
+        return -(1 as libc::c_int);
     }
     while *response as libc::c_int != '\u{0}' as i32 {
-        match digest_md5_getsubopt(&mut response,
-                                   digest_response_opts.as_ptr(), &mut value)
-            {
+        match digest_md5_getsubopt(&mut response, digest_response_opts.as_ptr(), &mut value) {
             0 => {
                 /* This directive is required and MUST be present exactly
-	   once; otherwise, authentication fails. */
-                if !(*out).username.is_null() { return -(1 as libc::c_int) }
+                once; otherwise, authentication fails. */
+                if !(*out).username.is_null() {
+                    return -(1 as libc::c_int);
+                }
                 (*out).username = strdup(value);
-                if (*out).username.is_null() { return -(1 as libc::c_int) }
+                if (*out).username.is_null() {
+                    return -(1 as libc::c_int);
+                }
             }
             1 => {
                 /* This directive is required if the server provided any
-	   realms in the "digest-challenge", in which case it may
-	   appear exactly once and its value SHOULD be one of those
-	   realms. */
-                if !(*out).realm.is_null() { return -(1 as libc::c_int) }
+                realms in the "digest-challenge", in which case it may
+                appear exactly once and its value SHOULD be one of those
+                realms. */
+                if !(*out).realm.is_null() {
+                    return -(1 as libc::c_int);
+                }
                 (*out).realm = strdup(value);
-                if (*out).realm.is_null() { return -(1 as libc::c_int) }
+                if (*out).realm.is_null() {
+                    return -(1 as libc::c_int);
+                }
             }
             2 => {
                 /* This directive is required and MUST be present exactly
-	   once; otherwise, authentication fails. */
-                if !(*out).nonce.is_null() { return -(1 as libc::c_int) }
+                once; otherwise, authentication fails. */
+                if !(*out).nonce.is_null() {
+                    return -(1 as libc::c_int);
+                }
                 (*out).nonce = strdup(value);
-                if (*out).nonce.is_null() { return -(1 as libc::c_int) }
+                if (*out).nonce.is_null() {
+                    return -(1 as libc::c_int);
+                }
             }
             3 => {
                 /* This directive is required and MUST be present exactly once;
-	   otherwise, authentication fails. */
-                if !(*out).cnonce.is_null() { return -(1 as libc::c_int) }
+                otherwise, authentication fails. */
+                if !(*out).cnonce.is_null() {
+                    return -(1 as libc::c_int);
+                }
                 (*out).cnonce = strdup(value);
-                if (*out).cnonce.is_null() { return -(1 as libc::c_int) }
+                if (*out).cnonce.is_null() {
+                    return -(1 as libc::c_int);
+                }
             }
             4 => {
                 /* This directive is required and MUST be present exactly
-	   once; otherwise, authentication fails. */
-                if (*out).nc != 0 { return -(1 as libc::c_int) }
+                once; otherwise, authentication fails. */
+                if (*out).nc != 0 {
+                    return -(1 as libc::c_int);
+                }
                 /* nc-value = 8LHEX */
                 if strlen(value) != 8 {
-                    return -(1 as libc::c_int)
+                    return -(1 as libc::c_int);
                 }
-                (*out).nc =
-                    strtoul(value, 0 as *mut *mut libc::c_char, 16 as libc::c_int) as usize
+                (*out).nc = strtoul(value, 0 as *mut *mut libc::c_char, 16 as libc::c_int) as usize
             }
             5 => {
                 /* If present, it may appear exactly once and its value MUST
-	   be one of the alternatives in qop-options.  */
-                if (*out).qop as u64 != 0 { return -(1 as libc::c_int) }
-                if strcmp(value,
-                          b"auth\x00" as *const u8 as *const libc::c_char) ==
-                       0 as libc::c_int {
+                be one of the alternatives in qop-options.  */
+                if (*out).qop as u64 != 0 {
+                    return -(1 as libc::c_int);
+                }
+                if strcmp(value, b"auth\x00" as *const u8 as *const libc::c_char)
+                    == 0 as libc::c_int
+                {
                     (*out).qop = DIGEST_MD5_QOP_AUTH
-                } else if strcmp(value,
-                                 b"auth-int\x00" as *const u8 as
-                                     *const libc::c_char) == 0 as libc::c_int
-                 {
+                } else if strcmp(value, b"auth-int\x00" as *const u8 as *const libc::c_char)
+                    == 0 as libc::c_int
+                {
                     (*out).qop = DIGEST_MD5_QOP_AUTH_INT
-                } else if strcmp(value,
-                                 b"auth-conf\x00" as *const u8 as
-                                     *const libc::c_char) == 0 as libc::c_int
-                 {
+                } else if strcmp(value, b"auth-conf\x00" as *const u8 as *const libc::c_char)
+                    == 0 as libc::c_int
+                {
                     (*out).qop = DIGEST_MD5_QOP_AUTH_CONF
-                } else { return -(1 as libc::c_int) }
+                } else {
+                    return -(1 as libc::c_int);
+                }
             }
             6 => {
                 /* This directive is required and MUST be present exactly
-	   once; if multiple instances are present, the client MUST
-	   abort the authentication exchange. */
-                if !(*out).digesturi.is_null() { return -(1 as libc::c_int) }
+                once; if multiple instances are present, the client MUST
+                abort the authentication exchange. */
+                if !(*out).digesturi.is_null() {
+                    return -(1 as libc::c_int);
+                }
                 /* FIXME: sub-parse. */
                 (*out).digesturi = strdup(value);
-                if (*out).digesturi.is_null() { return -(1 as libc::c_int) }
+                if (*out).digesturi.is_null() {
+                    return -(1 as libc::c_int);
+                }
             }
             7 => {
                 /* This directive is required and MUST be present exactly
-	   once; otherwise, authentication fails. */
+                once; otherwise, authentication fails. */
                 if *(*out).response.as_mut_ptr() != 0 {
-                    return -(1 as libc::c_int)
+                    return -(1 as libc::c_int);
                 }
                 /* A string of 32 hex digits */
                 if strlen(value) != 32 {
-                    return -(1 as libc::c_int)
+                    return -(1 as libc::c_int);
                 }
                 strcpy((*out).response.as_mut_ptr(), value);
             }
             8 => {
                 /* This directive may appear at most once; if multiple
-	   instances are present, the server MUST abort the
-	   authentication exchange. */
-                if (*out).clientmaxbuf != 0 { return -(1 as libc::c_int) }
-                (*out).clientmaxbuf =
-                    strtoul(value, 0 as *mut *mut libc::c_char, 10) as usize;
+                instances are present, the server MUST abort the
+                authentication exchange. */
+                if (*out).clientmaxbuf != 0 {
+                    return -(1 as libc::c_int);
+                }
+                (*out).clientmaxbuf = strtoul(value, 0 as *mut *mut libc::c_char, 10) as usize;
                 /* FIXME: error handling. */
-	/* If the value is less or equal to 16 (<<32 for aes-cbc>>) or
-	   bigger than 16777215 (i.e. 2**24-1), the server MUST abort
-	   the authentication exchange. */
+                /* If the value is less or equal to 16 (<<32 for aes-cbc>>) or
+                bigger than 16777215 (i.e. 2**24-1), the server MUST abort
+                the authentication exchange. */
                 if (*out).clientmaxbuf <= 16 || (*out).clientmaxbuf > 16777215 {
-                    return -(1 as libc::c_int)
+                    return -(1 as libc::c_int);
                 }
             }
             9 => {
-                if strcmp(b"utf-8\x00" as *const u8 as *const libc::c_char,
-                          value) != 0 as libc::c_int {
-                    return -(1 as libc::c_int)
+                if strcmp(b"utf-8\x00" as *const u8 as *const libc::c_char, value)
+                    != 0 as libc::c_int
+                {
+                    return -(1 as libc::c_int);
                 }
                 (*out).utf8 = 1 as libc::c_int
             }
             10 => {
-                if (*out).cipher as u64 != 0 { return -(1 as libc::c_int) }
-                if strcmp(value,
-                          b"3des\x00" as *const u8 as *const libc::c_char) ==
-                       0 as libc::c_int {
+                if (*out).cipher as u64 != 0 {
+                    return -(1 as libc::c_int);
+                }
+                if strcmp(value, b"3des\x00" as *const u8 as *const libc::c_char)
+                    == 0 as libc::c_int
+                {
                     (*out).cipher = DIGEST_MD5_CIPHER_3DES
-                } else if strcmp(value,
-                                 b"des\x00" as *const u8 as
-                                     *const libc::c_char) == 0 as libc::c_int
-                 {
+                } else if strcmp(value, b"des\x00" as *const u8 as *const libc::c_char)
+                    == 0 as libc::c_int
+                {
                     (*out).cipher = DIGEST_MD5_CIPHER_DES
-                } else if strcmp(value,
-                                 b"rc4-40\x00" as *const u8 as
-                                     *const libc::c_char) == 0 as libc::c_int
-                 {
+                } else if strcmp(value, b"rc4-40\x00" as *const u8 as *const libc::c_char)
+                    == 0 as libc::c_int
+                {
                     (*out).cipher = DIGEST_MD5_CIPHER_RC4_40
-                } else if strcmp(value,
-                                 b"rc4\x00" as *const u8 as
-                                     *const libc::c_char) == 0 as libc::c_int
-                 {
+                } else if strcmp(value, b"rc4\x00" as *const u8 as *const libc::c_char)
+                    == 0 as libc::c_int
+                {
                     (*out).cipher = DIGEST_MD5_CIPHER_RC4
-                } else if strcmp(value,
-                                 b"rc4-56\x00" as *const u8 as
-                                     *const libc::c_char) == 0 as libc::c_int
-                 {
+                } else if strcmp(value, b"rc4-56\x00" as *const u8 as *const libc::c_char)
+                    == 0 as libc::c_int
+                {
                     (*out).cipher = DIGEST_MD5_CIPHER_RC4_56
-                } else if strcmp(value,
-                                 b"aes-cbc\x00" as *const u8 as
-                                     *const libc::c_char) == 0 as libc::c_int
-                 {
+                } else if strcmp(value, b"aes-cbc\x00" as *const u8 as *const libc::c_char)
+                    == 0 as libc::c_int
+                {
                     (*out).cipher = DIGEST_MD5_CIPHER_AES_CBC
-                } else { return -(1 as libc::c_int) }
+                } else {
+                    return -(1 as libc::c_int);
+                }
             }
             11 => {
                 /* This directive may appear at most once; if multiple
-	   instances are present, the server MUST abort the
-	   authentication exchange.  <<FIXME NOT IN DRAFT>> */
-                if !(*out).authzid.is_null() { return -(1 as libc::c_int) }
+                instances are present, the server MUST abort the
+                authentication exchange.  <<FIXME NOT IN DRAFT>> */
+                if !(*out).authzid.is_null() {
+                    return -(1 as libc::c_int);
+                }
                 /*  The authzid MUST NOT be an empty string. */
                 if *value as libc::c_int == '\u{0}' as i32 {
-                    return -(1 as libc::c_int)
+                    return -(1 as libc::c_int);
                 }
                 (*out).authzid = strdup(value);
-                if (*out).authzid.is_null() { return -(1 as libc::c_int) }
+                if (*out).authzid.is_null() {
+                    return -(1 as libc::c_int);
+                }
             }
-            _ => { }
+            _ => {}
         }
     }
     /* Validate that we have the mandatory fields. */
     if digest_md5_validate_response(out) != 0 as libc::c_int {
-        return -(1 as libc::c_int)
+        return -(1 as libc::c_int);
     }
     return 0 as libc::c_int;
 }
-static mut digest_responseauth_opts: [*const libc::c_char; 2] =
-    [b"rspauth\x00" as *const u8 as *const libc::c_char,
-     0 as *const libc::c_char];
-unsafe fn parse_finish(mut finish: *mut libc::c_char,
-                                  mut out: *mut digest_md5_finish)
- -> libc::c_int {
+static mut digest_responseauth_opts: [*const libc::c_char; 2] = [
+    b"rspauth\x00" as *const u8 as *const libc::c_char,
+    0 as *const libc::c_char,
+];
+unsafe fn parse_finish(
+    mut finish: *mut libc::c_char,
+    out: *mut digest_md5_finish,
+) -> libc::c_int {
     let mut value: *mut libc::c_char = 0 as *mut libc::c_char;
-    memset(out as *mut libc::c_void, 0, ::std::mem::size_of::<digest_md5_finish>());
+    memset(
+        out as *mut libc::c_void,
+        0,
+        ::std::mem::size_of::<digest_md5_finish>(),
+    );
     /* The size of a response-auth MUST be less than 2048 bytes. */
     if strlen(finish) >= 2048 {
-        return -(1 as libc::c_int)
+        return -(1 as libc::c_int);
     }
     while *finish as libc::c_int != '\u{0}' as i32 {
-        match digest_md5_getsubopt(&mut finish,
-                                   digest_responseauth_opts.as_ptr(),
-                                   &mut value) {
+        match digest_md5_getsubopt(&mut finish, digest_responseauth_opts.as_ptr(), &mut value) {
             0 => {
                 if *(*out).rspauth.as_mut_ptr() != 0 {
-                    return -(1 as libc::c_int)
+                    return -(1 as libc::c_int);
                 }
                 /* A string of 32 hex digits */
                 if strlen(value) != 32 {
-                    return -(1 as libc::c_int)
+                    return -(1 as libc::c_int);
                 }
                 strcpy((*out).rspauth.as_mut_ptr(), value);
             }
-            _ => { }
+            _ => {}
         }
     }
     /* Validate that we have the mandatory fields. */
     if digest_md5_validate_finish(out) != 0 as libc::c_int {
-        return -(1 as libc::c_int)
+        return -(1 as libc::c_int);
     }
     return 0 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe fn digest_md5_parse_challenge(mut challenge:
-                                                        *const libc::c_char,
-                                                    mut len: size_t,
-                                                    mut out:
-                                                        *mut digest_md5_challenge)
- -> libc::c_int {
-    let mut subopts: *mut libc::c_char =
-        if len != 0 { strndup(challenge, len) } else { strdup(challenge) };
+pub unsafe fn digest_md5_parse_challenge(
+    challenge: *const libc::c_char,
+    len: size_t,
+    out: *mut digest_md5_challenge,
+) -> libc::c_int {
+    let subopts: *mut libc::c_char = if len != 0 {
+        strndup(challenge, len)
+    } else {
+        strdup(challenge)
+    };
     let mut rc: libc::c_int = 0;
-    if subopts.is_null() { return -(1 as libc::c_int) }
+    if subopts.is_null() {
+        return -(1 as libc::c_int);
+    }
     rc = parse_challenge(subopts, out);
     rpl_free(subopts as *mut libc::c_void);
     return rc;
 }
 #[no_mangle]
-pub unsafe fn digest_md5_parse_response(mut response:
-                                                       *const libc::c_char,
-                                                   mut len: size_t,
-                                                   mut out:
-                                                       *mut digest_md5_response)
- -> libc::c_int {
-    let mut subopts: *mut libc::c_char =
-        if len != 0 { strndup(response, len) } else { strdup(response) };
+pub unsafe fn digest_md5_parse_response(
+    response: *const libc::c_char,
+    len: size_t,
+    out: *mut digest_md5_response,
+) -> libc::c_int {
+    let subopts: *mut libc::c_char = if len != 0 {
+        strndup(response, len)
+    } else {
+        strdup(response)
+    };
     let mut rc: libc::c_int = 0;
-    if subopts.is_null() { return -(1 as libc::c_int) }
+    if subopts.is_null() {
+        return -(1 as libc::c_int);
+    }
     rc = parse_response(subopts, out);
     rpl_free(subopts as *mut libc::c_void);
     return rc;
 }
 #[no_mangle]
-pub unsafe fn digest_md5_parse_finish(mut finish:
-                                                     *const libc::c_char,
-                                                 mut len: size_t,
-                                                 mut out:
-                                                     *mut digest_md5_finish)
- -> libc::c_int {
-    let mut subopts: *mut libc::c_char =
-        if len != 0 { strndup(finish, len) } else { strdup(finish) };
+pub unsafe fn digest_md5_parse_finish(
+    finish: *const libc::c_char,
+    len: size_t,
+    out: *mut digest_md5_finish,
+) -> libc::c_int {
+    let subopts: *mut libc::c_char = if len != 0 {
+        strndup(finish, len)
+    } else {
+        strdup(finish)
+    };
     let mut rc: libc::c_int = 0;
-    if subopts.is_null() { return -(1 as libc::c_int) }
+    if subopts.is_null() {
+        return -(1 as libc::c_int);
+    }
     rc = parse_finish(subopts, out);
     rpl_free(subopts as *mut libc::c_void);
     return rc;

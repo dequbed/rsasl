@@ -1,22 +1,24 @@
-use std::ffi::CString;
+use rsasl::callback::Callback;
+use rsasl::error::SessionError;
+use rsasl::mechname::Mechname;
+use rsasl::property::{properties, AuthId, Password};
+use rsasl::session::SessionData;
+use rsasl::session::Step::{Done, NeedsMore};
+use rsasl::{Property, SASL};
+
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
-use rsasl::callback::Callback;
-use rsasl::mechname::Mechname;
-use rsasl::{Property, SASL};
-use rsasl::error::SessionError;
-use rsasl::property::{AuthId, Password, properties};
-use rsasl::session::SessionData;
-use rsasl::session::Step::{Done, NeedsMore};
 
 // Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
 
 impl Callback for OurCallback {
-    fn provide_prop(&self, session: &mut SessionData, property: Property)
-        -> Result<(), SessionError>
-    {
+    fn provide_prop(
+        &self,
+        session: &mut SessionData,
+        property: Property,
+    ) -> Result<(), SessionError> {
         match property {
             properties::PASSWORD => {
                 // Access the authentication id, i.e. the username to check the password for
@@ -25,8 +27,8 @@ impl Callback for OurCallback {
                 session.set_property::<Password>(Arc::new("secret".to_string()));
 
                 Ok(())
-            },
-            _ => Err(SessionError::NoCallback { property })
+            }
+            _ => Err(SessionError::NoCallback { property }),
         }
     }
 }
@@ -36,7 +38,9 @@ pub fn main() {
 
     sasl.install_callback(Arc::new(OurCallback));
 
-    let mut session = sasl.server_start(Mechname::new(b"SCRAM-SHA-1").unwrap()).unwrap();
+    let mut session = sasl
+        .server_start(Mechname::new(b"SCRAM-SHA-1").unwrap())
+        .unwrap();
 
     loop {
         // Read data from STDIN
@@ -56,10 +60,9 @@ pub fn main() {
             Ok(Done(buffer)) => {
                 println!("Done: {:?}", buffer.as_ref());
                 break;
-            },
+            }
             Ok(NeedsMore(buffer)) => {
                 println!("Data to send: {:?}", buffer.as_ref());
-
             }
             Err(e) => println!("{}", e),
         }

@@ -1,21 +1,25 @@
-use std::ffi::CString;
+use rsasl::callback::Callback;
+use rsasl::error::{SessionError};
+use rsasl::mechname::Mechname;
+use rsasl::property::{
+    properties, AuthId, Password, Property,
+};
+use rsasl::session::SessionData;
+use rsasl::session::Step::{Done, NeedsMore};
+use rsasl::SASL;
+
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
-use rsasl::callback::Callback;
-use rsasl::error::{SASLError, SessionError};
-use rsasl::mechname::Mechname;
-use rsasl::property::{Property, AuthId, Password, properties, ScramSaltedPassword, ScramSalt, ScramIter, ScramStoredkey, ScramServerkey};
-use rsasl::SASL;
-use rsasl::session::SessionData;
-use rsasl::session::Step::{Done, NeedsMore};
 
 struct OurCallback;
 
 impl Callback for OurCallback {
-    fn provide_prop(&self, session: &mut SessionData, property: Property)
-        -> Result<(), SessionError>
-    {
+    fn provide_prop(
+        &self,
+        session: &mut SessionData,
+        property: Property,
+    ) -> Result<(), SessionError> {
         match property {
             properties::PASSWORD => {
                 // Access the authentication id, i.e. the username to check the password for
@@ -25,8 +29,8 @@ impl Callback for OurCallback {
                 session.set_property::<Password>(Arc::new("secret".to_string()));
 
                 Ok(())
-            },
-            _ => Err(SessionError::NoProperty { property })
+            }
+            _ => Err(SessionError::NoProperty { property }),
         }
     }
 }
@@ -36,7 +40,9 @@ pub fn main() {
 
     sasl.install_callback(Arc::new(OurCallback));
 
-    let mut session = sasl.server_start(Mechname::new(b"SCRAM-SHA-256").unwrap()).unwrap();
+    let mut session = sasl
+        .server_start(Mechname::new(b"SCRAM-SHA-256").unwrap())
+        .unwrap();
 
     loop {
         // Read data from STDIN
@@ -58,7 +64,7 @@ pub fn main() {
                 let output = std::str::from_utf8(buffer.as_ref()).unwrap();
                 println!("Done: {:?}", output);
                 break;
-            },
+            }
             Ok(Done(None)) => {
                 println!("Done, but mechanism wants to send no data to other party");
                 break;
@@ -77,7 +83,7 @@ pub fn main() {
                 let output = std::str::from_utf8(buffer.as_ref()).unwrap();
                 println!("{} || {}", e, output);
                 break;
-            },
+            }
         }
     }
 }

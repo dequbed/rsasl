@@ -1,23 +1,28 @@
-use std::io::{IoSlice, Write};
 use crate::error::SessionError;
 use crate::mechanism::Authentication;
 use crate::property::{AuthId, AuthzId, Password};
 use crate::session::Step::Done;
 use crate::session::{SessionData, StepResult};
 use crate::vectored_io::VectoredWriter;
+use std::io::Write;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Plain;
 
 impl Authentication for Plain {
-    fn step(&mut self, session: &mut SessionData, _input: Option<&[u8]>, writer: &mut dyn Write)
-        -> StepResult
-    {
+    fn step(
+        &mut self,
+        session: &mut SessionData,
+        _input: Option<&[u8]>,
+        writer: &mut dyn Write,
+    ) -> StepResult {
         let authzid = session.get_property_or_callback::<AuthzId>()?;
 
-        let authid = session.get_property_or_callback::<AuthId>()?
+        let authid = session
+            .get_property_or_callback::<AuthId>()?
             .ok_or(SessionError::no_property::<AuthId>())?;
-        let password = session.get_property_or_callback::<Password>()?
+        let password = session
+            .get_property_or_callback::<Password>()?
             .ok_or(SessionError::no_property::<Password>())?;
 
         let authzidbuf = if let Some(authz) = &authzid {
@@ -43,14 +48,14 @@ impl Authentication for Plain {
 
 #[cfg(test)]
 mod test {
+    use super::*;
+    use crate::mechanisms::plain::mechinfo::PLAIN;
+    use crate::session::SessionData;
+    use crate::session::Step::NeedsMore;
+    use crate::Side;
     use std::collections::HashMap;
     use std::io::Cursor;
     use std::sync::Arc;
-    use crate::mechanisms::plain::mechinfo::PLAIN;
-    use crate::{Mechname, Side};
-    use crate::session::SessionData;
-    use crate::session::Step::NeedsMore;
-    use super::*;
 
     #[test]
     fn simple() {
@@ -81,7 +86,7 @@ mod test {
                 assert_eq!(pass[0], 0);
                 assert_eq!(pass, b"\0secret");
                 return;
-            },
+            }
             Done(None) => panic!("PLAIN exchange produced no output"),
             NeedsMore(_) => panic!("PLAIN exchange took more than one step"),
         }
@@ -141,7 +146,7 @@ mod test {
                 assert_eq!(pass[0], 0);
                 assert_eq!(pass, b"\0secret");
                 return;
-            },
+            }
             Done(None) => panic!("PLAIN exchange produced no output"),
             NeedsMore(_) => panic!("PLAIN exchange took more than one step"),
         }

@@ -18,9 +18,7 @@ pub struct Validation {
 }
 impl Debug for Validation {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("Validation")
-         .field(&self.name)
-         .finish()
+        f.debug_tuple("Validation").field(&self.name).finish()
     }
 }
 impl Display for Validation {
@@ -30,7 +28,10 @@ impl Display for Validation {
 }
 impl Validation {
     pub const fn new(definition: &'static ValidationDefinition) -> Self {
-        Self { name: definition.name, display: definition.display }
+        Self {
+            name: definition.name,
+            display: definition.display,
+        }
     }
 }
 
@@ -44,19 +45,23 @@ pub mod validations {
     /// implemented) or if the given user is allowed to authorize as the given authorization id (if
     /// handling is implemented).
     pub const SIMPLE: Validation = Validation::new(&ValidationDefinition::new(
-        "simple", "username/password based authentication"
+        "simple",
+        "username/password based authentication",
     ));
 
     pub const OPENID20: Validation = Validation::new(&ValidationDefinition::new(
-        "openid20", "validate the users oidc token"
+        "openid20",
+        "validate the users oidc token",
     ));
 
     pub const SAML20: Validation = Validation::new(&ValidationDefinition::new(
-        "saml20", "validate the users saml token"
+        "saml20",
+        "validate the users saml token",
     ));
 
     pub const SECURID: Validation = Validation::new(&ValidationDefinition::new(
-        "securid", "validate the user using SecurID"
+        "securid",
+        "validate the user using SecurID",
     ));
 
     /// GSSAPI validation
@@ -65,7 +70,8 @@ pub mod validations {
     /// on the exact GSSAPI mechanism but with Kerberos V5 (the ubiquitous default) [`Authzid`] and
     /// [`GssapiDisplayName`] should be checked containing the authZid and principal name respectively.
     pub const GSSAPI: Validation = Validation::new(&ValidationDefinition::new(
-        "gssapi", "validate the users gssapi authentication"
+        "gssapi",
+        "validate the users gssapi authentication",
     ));
 
     /// Anonymous validation
@@ -73,7 +79,8 @@ pub mod validations {
     /// The anonymous authentication allows clients to specify a "token" of 0-255 utf-8 code points
     /// to be provided to the server. This token can be accessed using the [`AnonymousToken`] property.
     pub const ANONYMOUS: Validation = Validation::new(&ValidationDefinition::new(
-        "anonymous", "validate the provided anonymous token"
+        "anonymous",
+        "validate the provided anonymous token",
     ));
 
     /// External validation
@@ -82,37 +89,41 @@ pub mod validations {
     /// TLS client certificates, originating UID/GID of an UNIX socket connection, or source IP. No
     /// properties are provided.
     pub const EXTERNAL: Validation = Validation::new(&ValidationDefinition::new(
-        "external", "validate the connection using External information"
+        "external",
+        "validate the connection using External information",
     ));
 }
 
 #[cfg(test)]
 mod tests {
-    use std::ptr::null_mut;
-    use crate::{Callback, Mechname, SASLError};
+    use super::*;
     use crate::error::SessionError;
     use crate::error::SessionError::NoValidate;
     use crate::session::SessionData;
     use crate::validate::validations::{OPENID20, SIMPLE};
-    use super::*;
+    use crate::{Callback, Mechname};
+    use std::ptr::null_mut;
 
     #[test]
     fn test_validation_callback() {
         struct TestCallback;
         impl Callback for TestCallback {
-            fn validate(&self, session: &mut SessionData, validation: Validation, mechanism: &Mechname)
-                -> Result<(), SessionError>
-            {
+            fn validate(
+                &self,
+                _session: &mut SessionData,
+                validation: Validation,
+                mechanism: &Mechname,
+            ) -> Result<(), SessionError> {
                 match validation {
                     SIMPLE => {
                         println!("Hey I know how to validate simple!");
                         Ok(())
                     }
                     _ => {
-                        println!("Huh, I don't know how to validate {} ({:?}) for mech {}",
-                                 validation,
-                                 validation,
-                                 mechanism);
+                        println!(
+                            "Huh, I don't know how to validate {} ({:?}) for mech {}",
+                            validation, validation, mechanism
+                        );
                         Err(NoValidate { validation })
                     }
                 }
@@ -144,9 +155,15 @@ mod tests {
         const FOOC: &'static dyn Foo = &FooI;
         const FOOD: &'static dyn Foo = &FooJ;
         const FOOE: &'static dyn Foo = &FooK;
-        const FOOI: MatchTest = MatchTest { inner: FOOC as *const dyn Foo };
-        const FOOJ: MatchTest = MatchTest { inner: FOOD as *const dyn Foo };
-        const FOOK: MatchTest = MatchTest { inner: FOOE as *const dyn Foo };
+        const FOOI: MatchTest = MatchTest {
+            inner: FOOC as *const dyn Foo,
+        };
+        const FOOJ: MatchTest = MatchTest {
+            inner: FOOD as *const dyn Foo,
+        };
+        const FOOK: MatchTest = MatchTest {
+            inner: FOOE as *const dyn Foo,
+        };
 
         fn t(t: MatchTest) {
             match t {

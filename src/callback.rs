@@ -1,9 +1,9 @@
-use crate::{Mechname, PropertyQ, SASLError};
 use crate::error::SessionError;
-use crate::property::Property;
 use crate::error::SessionError::{NoCallback, NoValidate};
+use crate::property::Property;
 use crate::session::SessionData;
 use crate::validate::Validation;
+use crate::Mechname;
 
 pub trait Callback {
     /// Query by a mechanism implementation to provide some information
@@ -37,10 +37,12 @@ pub trait Callback {
     /// In some cases (e.g. [`OpenID20AuthenticateInBrowser`] the mechanism expects that a certain
     /// action is taken by the user instead of an explicit property being provided (e.g. to
     /// authenticate to their OIDC IdP using the system's web browser).
-    fn provide_prop(&self, _session: &mut SessionData, property: Property)
-        -> Result<(), SessionError>
-    {
-        return Err(NoCallback { property })
+    fn provide_prop(
+        &self,
+        _session: &mut SessionData,
+        property: Property,
+    ) -> Result<(), SessionError> {
+        return Err(NoCallback { property });
     }
 
     /// Validate an authentication exchange
@@ -57,9 +59,12 @@ pub trait Callback {
     ///
     /// See the [`validate module documentation`](crate::validate) for details on how to
     /// implement each validation.
-    fn validate(&self, _session: &mut SessionData, validation: Validation, _mechanism: &Mechname)
-        -> Result<(), SessionError>
-    {
-        return Err(NoValidate { validation })
+    fn validate(
+        &self,
+        _session: &mut SessionData,
+        validation: Validation,
+        _mechanism: &Mechname,
+    ) -> Result<(), SessionError> {
+        return Err(NoValidate { validation });
     }
 }

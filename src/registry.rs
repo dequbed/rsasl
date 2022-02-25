@@ -62,16 +62,16 @@
 //! for your Mechanism MUST be marked `pub` and be reachable by dependent crates, otherwise they
 //! may be silently dropped by the compiler.
 
-use std::fmt::{Debug, Display, Formatter};
-use crate::{SASL, SASLError, Side};
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
+use crate::{SASLError, Side, SASL};
+use std::fmt::{Debug, Display, Formatter};
 
 #[cfg(feature = "registry_static")]
 pub use registry_static::*;
 
-pub type MatchFn = fn (name: &Mechname) -> bool;
-pub type StartFn = fn (sasl: &SASL) -> Result<Box<dyn Authentication>, SASLError>;
+pub type MatchFn = fn(name: &Mechname) -> bool;
+pub type StartFn = fn(sasl: &SASL) -> Result<Box<dyn Authentication>, SASLError>;
 
 #[derive(Copy, Clone)]
 /// Mechanism Implementation
@@ -110,7 +110,7 @@ pub struct MechanismSecurityFactors {
 
 impl Mechanism {
     pub fn client(&self, sasl: &SASL) -> Option<Result<Box<dyn Authentication>, SASLError>> {
-       self.client.map(|f| f(sasl))
+        self.client.map(|f| f(sasl))
     }
 
     pub fn server(&self, sasl: &SASL) -> Option<Result<Box<dyn Authentication>, SASLError>> {
@@ -136,8 +136,8 @@ impl Display for Mechanism {
 
 #[cfg(feature = "registry_static")]
 mod registry_static {
-    pub use linkme::distributed_slice;
     use super::Mechanism;
+    pub use linkme::distributed_slice;
 
     #[distributed_slice]
     pub static MECHANISMS: [Mechanism] = [..];

@@ -1,17 +1,20 @@
-use std::ffi::CString;
-use std::io::Write;
 use rsasl::mechanism::Authentication;
-use rsasl::mechanisms::securid::mechinfo::SECURID;
+
 use rsasl::mechname::Mechname;
 use rsasl::registry::Mechanism;
-use rsasl::SASL;
 use rsasl::session::{SessionData, Side, StepResult};
+use rsasl::SASL;
+
+use std::io::Write;
 
 struct Test;
 impl Authentication for Test {
-    fn step(&mut self, _session: &mut SessionData, _input: Option<&[u8]>, _writer: &mut dyn Write)
-        -> StepResult
-    {
+    fn step(
+        &mut self,
+        _session: &mut SessionData,
+        _input: Option<&[u8]>,
+        _writer: &mut dyn Write,
+    ) -> StepResult {
         unimplemented!()
     }
 }
@@ -48,8 +51,17 @@ pub fn main() {
     }
 
     println!("\n\nLet's check if we support specific mechanisms:");
-    println!("PLAIN client support: {}", sasl.client_supports(Mechname::new(b"PLAIN").unwrap()));
-    println!("PLAIN server support: {}", sasl.server_supports(Mechname::new(b"PLAIN").unwrap()));
+    println!(
+        "PLAIN client support: {}",
+        sasl.client_supports(Mechname::new(b"PLAIN").unwrap())
+    );
+    println!(
+        "PLAIN server support: {}",
+        sasl.server_supports(Mechname::new(b"PLAIN").unwrap())
+    );
 
-    println!("DEADBEEF client support: {}", sasl.client_supports(Mechname::new(b"DEADBEEF").unwrap()));
+    println!(
+        "DEADBEEF client support: {}",
+        sasl.client_supports(Mechname::new(b"DEADBEEF").unwrap())
+    );
 }

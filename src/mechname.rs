@@ -1,8 +1,8 @@
+use crate::error::MechanismNameError;
+use crate::error::MechanismNameError::{InvalidChars, TooLong, TooShort};
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
-use crate::error::MechanismNameError;
-use crate::error::MechanismNameError::{InvalidChars, TooLong, TooShort};
 
 #[repr(transparent)]
 #[derive(Ord, PartialOrd, Eq, PartialEq)]
@@ -28,7 +28,8 @@ impl Mechname {
     ///
     /// Uses transmute due to [rustc issue #51911](https://github.com/rust-lang/rust/issues/51911)
     pub const fn const_new_unchecked<const LEN: usize>(s: &'static [u8; LEN]) -> &Mechname
-        where CheckLen<LEN>: IsOk
+    where
+        CheckLen<LEN>: IsOk,
     {
         let r: &'static [u8] = s;
         unsafe { std::mem::transmute(r) }
@@ -176,8 +177,7 @@ mod tests {
 
         for m in valids {
             println!("Checking {}", m);
-            let res = Mechname::new(m.as_bytes())
-                .map(|m| m.as_bytes());
+            let res = Mechname::new(m.as_bytes()).map(|m| m.as_bytes());
             assert_eq!(res, Ok(m.as_bytes()));
         }
         for m in toolong {
