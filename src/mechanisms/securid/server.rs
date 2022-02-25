@@ -41,13 +41,13 @@ pub unsafe fn _gsasl_securid_server_step(
     let input_len = input.map(|i| i.len()).unwrap_or(0);
     let input: *const libc::c_char = input.map(|i| i.as_ptr().cast()).unwrap_or(std::ptr::null());
 
-    let mut authorization_id: *const libc::c_char = 0 as *const libc::c_char;
-    let mut authentication_id: *const libc::c_char = 0 as *const libc::c_char;
+    let authorization_id;
+    let mut authentication_id;
     let mut passcode: *const libc::c_char = 0 as *const libc::c_char;
-    let mut suggestedpin: *const libc::c_char = 0 as *const libc::c_char;
+    let suggestedpin;
     let mut pin: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut res: libc::c_int = 0;
-    let mut len: size_t = 0;
+    let mut res;
+    let len;
     if input_len == 0 {
         *output_len = 0 as libc::c_int as size_t;
         *output = 0 as *mut libc::c_char;

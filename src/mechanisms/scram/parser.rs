@@ -631,7 +631,7 @@ pub unsafe fn scram_parse_client_first(
     str = str.offset(1);
     len = len.wrapping_sub(1);
     if (*cf).cbflag as libc::c_int == 'p' as i32 {
-        let mut p: *const libc::c_char = 0 as *const libc::c_char;
+        let p;
         if len == 0 || *str as libc::c_int != '=' as i32 {
             return -(1 as libc::c_int);
         }
@@ -667,8 +667,8 @@ pub unsafe fn scram_parse_client_first(
         return -(1 as libc::c_int);
     }
     if *str as libc::c_int == 'a' as i32 {
-        let mut p_0: *const libc::c_char = 0 as *const libc::c_char;
-        let mut l: size_t = 0;
+        let p_0;
+        let l;
         str = str.offset(1);
         len = len.wrapping_sub(1);
         if len == 0 || *str as libc::c_int != '=' as i32 {
@@ -706,8 +706,8 @@ pub unsafe fn scram_parse_client_first(
     }
     str = str.offset(1);
     len = len.wrapping_sub(1);
-    let mut p_1: *const libc::c_char = 0 as *const libc::c_char;
-    let mut l_0: size_t = 0;
+    let p_1;
+    let l_0;
     p_1 = memchr(str as *const libc::c_void, ',' as i32, len) as *const libc::c_char;
     if p_1.is_null() {
         return -(1 as libc::c_int);
@@ -737,8 +737,8 @@ pub unsafe fn scram_parse_client_first(
     }
     str = str.offset(1);
     len = len.wrapping_sub(1);
-    let mut p_2: *const libc::c_char = 0 as *const libc::c_char;
-    let mut l_1: size_t = 0;
+    let mut p_2;
+    let l_1;
     p_2 = memchr(str as *const libc::c_void, ',' as i32, len) as *const libc::c_char;
     if p_2.is_null() {
         p_2 = str.offset(len as isize)
@@ -760,8 +760,6 @@ pub unsafe fn scram_parse_client_first(
         l_1,
     );
     *(*cf).client_nonce.offset(l_1 as isize) = '\u{0}' as i32 as libc::c_char;
-    str = p_2;
-    len = len.wrapping_sub(l_1);
     /* FIXME check that any extension fields follow valid syntax. */
     if !scram_valid_client_first(cf) {
         return -(1 as libc::c_int);
@@ -788,8 +786,8 @@ pub unsafe fn scram_parse_server_first(
     }
     str = str.offset(1);
     len = len.wrapping_sub(1);
-    let mut p: *const libc::c_char = 0 as *const libc::c_char;
-    let mut l: size_t = 0;
+    let p;
+    let l;
     p = memchr(str as *const libc::c_void, ',' as i32, len) as *const libc::c_char;
     if p.is_null() {
         return -(1 as libc::c_int);
@@ -825,8 +823,8 @@ pub unsafe fn scram_parse_server_first(
     }
     str = str.offset(1);
     len = len.wrapping_sub(1);
-    let mut p_0: *const libc::c_char = 0 as *const libc::c_char;
-    let mut l_0: size_t = 0;
+    let p_0;
+    let l_0;
     p_0 = memchr(str as *const libc::c_void, ',' as i32, len) as *const libc::c_char;
     if p_0.is_null() {
         return -(1 as libc::c_int);
@@ -926,8 +924,8 @@ pub unsafe fn scram_parse_client_final(
     }
     str = str.offset(1);
     len = len.wrapping_sub(1);
-    let mut p: *const libc::c_char = 0 as *const libc::c_char;
-    let mut l: size_t = 0;
+    let p;
+    let l;
     p = memchr(str as *const libc::c_void, ',' as i32, len) as *const libc::c_char;
     if p.is_null() {
         return -(1 as libc::c_int);
@@ -963,8 +961,8 @@ pub unsafe fn scram_parse_client_final(
     }
     str = str.offset(1);
     len = len.wrapping_sub(1);
-    let mut p_0: *const libc::c_char = 0 as *const libc::c_char;
-    let mut l_0: size_t = 0;
+    let p_0;
+    let l_0;
     p_0 = memchr(str as *const libc::c_void, ',' as i32, len) as *const libc::c_char;
     if p_0.is_null() {
         return -(1 as libc::c_int);
@@ -995,8 +993,8 @@ pub unsafe fn scram_parse_client_final(
         && c_isalpha(*str as libc::c_int) as libc::c_int != 0
         && *str as libc::c_int != 'p' as i32
     {
-        let mut p_1: *const libc::c_char = 0 as *const libc::c_char;
-        let mut l_1: size_t = 0;
+        let mut p_1;
+        let l_1;
         str = str.offset(1);
         len = len.wrapping_sub(1);
         if len == 0 || *str as libc::c_int != '=' as i32 {

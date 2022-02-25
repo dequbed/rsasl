@@ -119,11 +119,11 @@ pub fn try_parse_mechanism_lenient(input: &[u8]) -> Result<&Mechname, MechanismN
 
 pub fn is_invalid(byte: &u8) -> bool {
     let byte = *byte;
-    let isLet = byte.is_ascii_uppercase();
+    let is_let = byte.is_ascii_uppercase();
     let is_num = byte.is_ascii_digit();
     let is_sym = byte == b'-' || byte == b'_';
 
-    !(isLet || is_num || is_sym)
+    !(is_let || is_num || is_sym)
 }
 
 pub trait IsOk {}

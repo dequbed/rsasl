@@ -73,10 +73,10 @@ pub(crate) unsafe fn _gsasl_digest_md5_client_start(
     _sctx: &Shared,
     mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int {
-    let mut state: *mut _Gsasl_digest_md5_client_state = 0 as *mut _Gsasl_digest_md5_client_state;
+    let mut state;
     let mut nonce: [libc::c_char; 16] = [0; 16];
     let mut p: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut rc: libc::c_int = 0;
+    let mut rc;
     rc = gsasl_nonce(nonce.as_mut_ptr(), 16 as libc::c_int as size_t);
     if rc != GSASL_OK as libc::c_int {
         return rc;
@@ -118,8 +118,8 @@ pub unsafe fn _gsasl_digest_md5_client_step(
 
     let mut state: *mut _Gsasl_digest_md5_client_state =
         mech_data as *mut _Gsasl_digest_md5_client_state;
-    let mut rc: libc::c_int = 0;
-    let mut res: libc::c_int = 0;
+    let mut rc;
+    let mut res;
     *output = 0 as *mut libc::c_char;
     *output_len = 0 as libc::c_int as size_t;
     if (*state).step == 0 as libc::c_int {
@@ -205,7 +205,7 @@ pub unsafe fn _gsasl_digest_md5_client_step(
             }
 
             let mut tmp: *mut libc::c_char = 0 as *mut libc::c_char;
-            let mut tmp2: *mut libc::c_char = 0 as *mut libc::c_char;
+            let tmp2;
 
             if let Ok(Some(authid)) = sctx.get_property_or_callback::<AuthId>() {
                 let cauthid =
@@ -360,7 +360,7 @@ pub unsafe fn _gsasl_digest_md5_client_encode(
 
     let mut state: *mut _Gsasl_digest_md5_client_state =
         mech_data as *mut _Gsasl_digest_md5_client_state;
-    let mut res: libc::c_int = 0;
+    let res;
     res = digest_md5_encode(
         input,
         input_len,
@@ -398,7 +398,7 @@ pub unsafe fn _gsasl_digest_md5_client_decode(
 
     let mut state: *mut _Gsasl_digest_md5_client_state =
         mech_data as *mut _Gsasl_digest_md5_client_state;
-    let mut res: libc::c_int = 0;
+    let res;
     res = digest_md5_decode(
         input,
         input_len,

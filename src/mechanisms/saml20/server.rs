@@ -48,7 +48,7 @@ pub(crate) unsafe fn _gsasl_saml20_server_start(
     _sctx: &Shared,
     mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int {
-    let mut state: *mut saml20_server_state = 0 as *mut saml20_server_state;
+    let state;
     state = calloc(::std::mem::size_of::<saml20_server_state>(), 1) as *mut saml20_server_state;
     if state.is_null() {
         return GSASL_MALLOC_ERROR as libc::c_int;
@@ -78,7 +78,7 @@ pub unsafe fn _gsasl_saml20_server_step(
     *output = 0 as *mut libc::c_char;
     match (*state).step {
         0 => {
-            let mut p: *const libc::c_char = 0 as *const libc::c_char;
+            let p;
             let mut authzid: *mut libc::c_char = 0 as *mut libc::c_char;
             let mut headerlen: size_t = 0;
             if input_len == 0 {

@@ -19,8 +19,8 @@ pub(crate) unsafe fn _gsasl_cram_md5_server_start(
     _ctx: &Shared,
     mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int {
-    let mut challenge: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut rc: libc::c_int = 0;
+    let challenge;
+    let rc;
     challenge = malloc(35) as *mut libc::c_char;
     if challenge.is_null() {
         return GSASL_MALLOC_ERROR as libc::c_int;
@@ -49,8 +49,8 @@ pub unsafe fn _gsasl_cram_md5_server_step(
 
     let challenge: *mut libc::c_char = mech_data as *mut libc::c_char;
     let mut hash: [libc::c_char; 32] = [0; 32];
-    let mut username: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut res: libc::c_int = GSASL_OK as libc::c_int;
+    let username;
+    let mut res;
     let mut normkey: *mut libc::c_char = 0 as *mut libc::c_char;
     if input_len == 0 {
         *output_len = strlen(challenge) as usize;

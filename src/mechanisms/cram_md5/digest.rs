@@ -56,7 +56,6 @@ pub unsafe fn cram_md5_digest(
     mut response: *mut libc::c_char,
 ) {
     let mut hash: [libc::c_char; 16] = [0; 16];
-    let mut i: size_t = 0;
     gc_hmac_md5(
         secret as *const libc::c_void,
         if secretlen != 0 {
@@ -72,7 +71,7 @@ pub unsafe fn cram_md5_digest(
         },
         hash.as_mut_ptr(),
     );
-    i = 0 as libc::c_int as size_t;
+    let mut i = 0i32;
     while i < 16 {
         let fresh0 = response;
         response = response.offset(1);

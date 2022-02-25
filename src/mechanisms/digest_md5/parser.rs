@@ -225,7 +225,7 @@ unsafe fn parse_challenge(
     while *challenge as libc::c_int != '\u{0}' as i32 {
         match digest_md5_getsubopt(&mut challenge, digest_challenge_opts.as_ptr(), &mut value) {
             0 => {
-                let mut tmp: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
+                let tmp;
                 (*out).nrealms = (*out).nrealms.wrapping_add(1);
                 tmp = realloc(
                     (*out).realms as *mut libc::c_void,
@@ -267,7 +267,7 @@ unsafe fn parse_challenge(
                 if (*out).qops != 0 {
                     return -(1 as libc::c_int);
                 }
-                let mut subsubopts: *mut libc::c_char = 0 as *mut libc::c_char;
+                let mut subsubopts;
                 let mut val: *mut libc::c_char = 0 as *mut libc::c_char;
                 subsubopts = value;
                 while *subsubopts as libc::c_int != '\u{0}' as i32 {
@@ -348,7 +348,7 @@ unsafe fn parse_challenge(
                 if (*out).ciphers != 0 {
                     return -(1 as libc::c_int);
                 }
-                let mut subsubopts_0: *mut libc::c_char = 0 as *mut libc::c_char;
+                let mut subsubopts_0;
                 let mut val_0: *mut libc::c_char = 0 as *mut libc::c_char;
                 subsubopts_0 = value;
                 while *subsubopts_0 as libc::c_int != '\u{0}' as i32 {
@@ -659,7 +659,7 @@ pub unsafe fn digest_md5_parse_challenge(
     } else {
         strdup(challenge)
     };
-    let mut rc: libc::c_int = 0;
+    let rc;
     if subopts.is_null() {
         return -(1 as libc::c_int);
     }
@@ -678,7 +678,7 @@ pub unsafe fn digest_md5_parse_response(
     } else {
         strdup(response)
     };
-    let mut rc: libc::c_int = 0;
+    let rc;
     if subopts.is_null() {
         return -(1 as libc::c_int);
     }
@@ -697,7 +697,7 @@ pub unsafe fn digest_md5_parse_finish(
     } else {
         strdup(finish)
     };
-    let mut rc: libc::c_int = 0;
+    let rc;
     if subopts.is_null() {
         return -(1 as libc::c_int);
     }

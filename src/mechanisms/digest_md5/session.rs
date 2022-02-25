@@ -15,14 +15,14 @@ pub unsafe fn digest_md5_encode(
     sendseqnum: size_t,
     key: *mut libc::c_char,
 ) -> libc::c_int {
-    let mut res: libc::c_int = 0;
+    let res;
     if qop as libc::c_uint & DIGEST_MD5_QOP_AUTH_CONF as libc::c_int as libc::c_uint != 0 {
         return -(1 as libc::c_int);
     } else {
         if qop as libc::c_uint & DIGEST_MD5_QOP_AUTH_INT as libc::c_int as libc::c_uint != 0 {
-            let mut seqnumin: *mut libc::c_char = 0 as *mut libc::c_char;
+            let seqnumin;
             let mut hash: [libc::c_char; 16] = [0; 16];
-            let mut len: size_t = 0;
+            let mut len;
             seqnumin = malloc(input_len.wrapping_add(4)) as *mut libc::c_char;
             if seqnumin.is_null() {
                 return -(1 as libc::c_int);
@@ -127,11 +127,11 @@ pub unsafe fn digest_md5_decode(
         return -(1 as libc::c_int);
     } else {
         if qop as libc::c_uint & DIGEST_MD5_QOP_AUTH_INT as libc::c_int as libc::c_uint != 0 {
-            let mut seqnumin: *mut libc::c_char = 0 as *mut libc::c_char;
+            let seqnumin;
             let mut hash: [libc::c_char; 16] = [0; 16];
-            let mut len: size_t = 0;
+            let mut len;
             let mut tmpbuf: [libc::c_char; 4] = [0; 4];
-            let mut res: libc::c_int = 0;
+            let res;
             if input_len < 4 {
                 return -(2 as libc::c_int);
             }

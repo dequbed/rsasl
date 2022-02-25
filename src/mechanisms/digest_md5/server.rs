@@ -54,10 +54,10 @@ pub(crate) unsafe fn _gsasl_digest_md5_server_start(
     _sctx: &Shared,
     mech_data: &mut Option<NonNull<()>>,
 ) -> libc::c_int {
-    let mut state: *mut _Gsasl_digest_md5_server_state = 0 as *mut _Gsasl_digest_md5_server_state;
+    let mut state;
     let mut nonce: [libc::c_char; 16] = [0; 16];
     let mut p: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut rc: libc::c_int = 0;
+    let mut rc;
     rc = gsasl_nonce(nonce.as_mut_ptr(), 16);
     if rc != GSASL_OK as libc::c_int {
         return rc;
@@ -100,8 +100,8 @@ unsafe fn _gsasl_digest_md5_set_hashed_secret(
     hex_secret: *const libc::c_char,
 ) -> libc::c_int {
     /* Convert the hex string containing the secret to a byte array */
-    let mut p: *const libc::c_char = 0 as *const libc::c_char;
-    let mut s: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut p;
+    let mut s;
     if hex_secret.is_null() {
         return GSASL_AUTHENTICATION_ERROR as libc::c_int;
     }
@@ -134,14 +134,14 @@ pub unsafe fn _gsasl_digest_md5_server_step(
 
     let mut state: *mut _Gsasl_digest_md5_server_state =
         mech_data as *mut _Gsasl_digest_md5_server_state;
-    let mut rc: libc::c_int = 0;
-    let mut res: libc::c_int = 0;
+    let mut rc;
+    let mut res;
     *output = 0 as *mut libc::c_char;
     *output_len = 0 as libc::c_int as size_t;
     match (*state).step {
         0 => {
             /* Set realm. */
-            let mut c: *const libc::c_char = 0 as *const libc::c_char;
+            let c;
             c = gsasl_property_get(sctx, GSASL_REALM);
             if !c.is_null() {
                 (*state).challenge.nrealms = 1 as libc::c_int as size_t;
@@ -206,7 +206,7 @@ pub unsafe fn _gsasl_digest_md5_server_step(
             } else {
                 /* Client provided username/realm in ISO-8859-1 form,
                 convert it to UTF-8 since the library is all-UTF-8. */
-                let mut tmp: *mut libc::c_char = 0 as *mut libc::c_char;
+                let mut tmp;
                 tmp = latin1toutf8((*state).response.username);
                 if tmp.is_null() {
                     return GSASL_MALLOC_ERROR as libc::c_int;
@@ -232,8 +232,8 @@ pub unsafe fn _gsasl_digest_md5_server_step(
             }
             /* FIXME: cipher, maxbuf.  */
             /* Compute secret. */
-            let mut passwd: *const libc::c_char = 0 as *const libc::c_char;
-            let mut hashed_passwd: *const libc::c_char = 0 as *const libc::c_char;
+            let passwd;
+            let hashed_passwd;
             hashed_passwd = gsasl_property_get(sctx, GSASL_DIGEST_MD5_HASHED_PASSWORD);
             if !hashed_passwd.is_null() {
                 if strlen(hashed_passwd) != (16 * 2) {
@@ -250,7 +250,7 @@ pub unsafe fn _gsasl_digest_md5_server_step(
                 passwd = gsasl_property_get(sctx, GSASL_PASSWORD);
                 if !passwd.is_null() {
                     let mut tmp_0: *mut libc::c_char = 0 as *mut libc::c_char;
-                    let mut tmp2: *mut libc::c_char = 0 as *mut libc::c_char;
+                    let tmp2;
                     tmp2 = utf8tolatin1ifpossible(passwd);
                     rc = asprintf(
                         &mut tmp_0 as *mut *mut libc::c_char,
@@ -368,7 +368,7 @@ pub unsafe fn _gsasl_digest_md5_server_encode(
 
     let mut state: *mut _Gsasl_digest_md5_server_state =
         mech_data as *mut _Gsasl_digest_md5_server_state;
-    let mut res: libc::c_int = 0;
+    let res;
     res = digest_md5_encode(
         input,
         input_len,
@@ -427,7 +427,7 @@ pub unsafe fn _gsasl_digest_md5_server_decode(
 
     let mut state: *mut _Gsasl_digest_md5_server_state =
         mech_data as *mut _Gsasl_digest_md5_server_state;
-    let mut res: libc::c_int = 0;
+    let res;
     res = digest_md5_decode(
         input,
         input_len,

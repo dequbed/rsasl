@@ -42,9 +42,9 @@ pub unsafe fn digest_md5_getsubopt(
     tokens: *const *const libc::c_char,
     valuep: *mut *mut libc::c_char,
 ) -> libc::c_int {
-    let mut endp: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut vstart: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut cnt: libc::c_int = 0;
+    let mut endp;
+    let mut vstart;
+    let mut cnt;
     let mut inside_quote: libc::c_int = 0 as libc::c_int;
     if **optionp as libc::c_int == '\u{0}' as i32 {
         return -(1 as libc::c_int);

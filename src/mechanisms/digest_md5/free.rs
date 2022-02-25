@@ -53,7 +53,7 @@ use libc::{memset, size_t};
 /* Get memset. */
 #[no_mangle]
 pub unsafe fn digest_md5_free_challenge(c: *mut digest_md5_challenge) {
-    let mut i: size_t = 0;
+    let mut i;
     i = 0 as libc::c_int as size_t;
     while i < (*c).nrealms {
         rpl_free(*(*c).realms.offset(i as isize) as *mut libc::c_void);
