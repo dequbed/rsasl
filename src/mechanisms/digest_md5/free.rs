@@ -1,8 +1,9 @@
+use crate::gsasl::gl::free::rpl_free;
+use crate::mechanisms::digest_md5::parser::{
+    digest_md5_challenge, digest_md5_finish, digest_md5_response,
+};
 use ::libc;
 use libc::{memset, size_t};
-use crate::gsasl::gl::free::rpl_free;
-use crate::mechanisms::digest_md5::parser::{digest_md5_challenge, digest_md5_finish,
-                                       digest_md5_response};
 
 /* free.h --- Free allocated data in DIGEST-MD5 token structures.
  * Copyright (C) 2004-2021 Simon Josefsson
@@ -51,7 +52,7 @@ use crate::mechanisms::digest_md5::parser::{digest_md5_challenge, digest_md5_fin
 /* Get free. */
 /* Get memset. */
 #[no_mangle]
-pub unsafe fn digest_md5_free_challenge(mut c: *mut digest_md5_challenge) {
+pub unsafe fn digest_md5_free_challenge(c: *mut digest_md5_challenge) {
     let mut i: size_t = 0;
     i = 0 as libc::c_int as size_t;
     while i < (*c).nrealms {
@@ -60,19 +61,31 @@ pub unsafe fn digest_md5_free_challenge(mut c: *mut digest_md5_challenge) {
     }
     rpl_free((*c).realms as *mut libc::c_void);
     rpl_free((*c).nonce as *mut libc::c_void);
-    memset(c as *mut libc::c_void, 0, ::std::mem::size_of::<digest_md5_challenge>());
+    memset(
+        c as *mut libc::c_void,
+        0,
+        ::std::mem::size_of::<digest_md5_challenge>(),
+    );
 }
 #[no_mangle]
-pub unsafe fn digest_md5_free_response(mut r: *mut digest_md5_response) {
+pub unsafe fn digest_md5_free_response(r: *mut digest_md5_response) {
     rpl_free((*r).username as *mut libc::c_void);
     rpl_free((*r).realm as *mut libc::c_void);
     rpl_free((*r).nonce as *mut libc::c_void);
     rpl_free((*r).cnonce as *mut libc::c_void);
     rpl_free((*r).digesturi as *mut libc::c_void);
     rpl_free((*r).authzid as *mut libc::c_void);
-    memset(r as *mut libc::c_void, 0, ::std::mem::size_of::<digest_md5_response>());
+    memset(
+        r as *mut libc::c_void,
+        0,
+        ::std::mem::size_of::<digest_md5_response>(),
+    );
 }
 #[no_mangle]
-pub unsafe fn digest_md5_free_finish(mut f: *mut digest_md5_finish) {
-    memset(f as *mut libc::c_void, 0, ::std::mem::size_of::<digest_md5_finish>());
+pub unsafe fn digest_md5_free_finish(f: *mut digest_md5_finish) {
+    memset(
+        f as *mut libc::c_void,
+        0,
+        ::std::mem::size_of::<digest_md5_finish>(),
+    );
 }

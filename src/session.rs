@@ -1,18 +1,16 @@
+use base64::write::EncoderWriter;
 use std::any::Any;
 use std::collections::HashMap;
-use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
-use base64::write::EncoderWriter;
 
-use crate::{Callback, Mechanism, Mechname, Property, SASLError};
-use crate::channel_bindings::ChannelBindingCallback;
 use crate::error::SessionError;
-use crate::gsasl::consts::{Gsasl_property, property_from_code};
+use crate::gsasl::consts::{property_from_code, Gsasl_property};
 use crate::mechanism::Authentication;
 use crate::property::PropertyQ;
 use crate::validate::*;
+use crate::{Callback, Mechanism, Mechname, Property};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -35,8 +33,7 @@ impl Session {
         mechdesc: &'static Mechanism,
         mechanism: Box<dyn Authentication>,
         side: Side,
-    ) -> Self
-    {
+    ) -> Self {
         Self {
             mechanism,
             session_data: SessionData::new(callback, global_properties, mechdesc, side),
@@ -44,8 +41,10 @@ impl Session {
     }
 
     pub fn set_property<P: PropertyQ>(&mut self, item: Arc<P::Item>) -> Option<Arc<P::Item>> {
-        self.session_data.set_property::<P>(item)
-            .map(|old| old.downcast().expect("old session data value was of bad type"))
+        self.session_data.set_property::<P>(item).map(|old| {
+            old.downcast()
+                .expect("old session data value was of bad type")
+        })
     }
 
     pub fn get_property<P: PropertyQ>(&mut self) -> Option<Arc<P::Item>> {
@@ -90,7 +89,8 @@ impl Session {
     /// containing `Some(0)`) and no data to send (a `Step` containing `None`).
     pub fn step(&mut self, input: Option<impl AsRef<[u8]>>, writer: &mut impl Write) -> StepResult {
         if let Some(input) = input {
-            self.mechanism.step(&mut self.session_data, Some(input.as_ref()), writer)
+            self.mechanism
+                .step(&mut self.session_data, Some(input.as_ref()), writer)
         } else {
             self.mechanism.step(&mut self.session_data, None, writer)
         }
@@ -120,7 +120,11 @@ impl Session {
     /// Requiring base64-encoded SASL data is common in line-based or textual formats, such as
     /// SMTP, IMAP, XMPP and IRCv3.
     /// Refer to your protocol documentation if SASL data needs to be base64 encoded.
-    pub fn step64(&mut self, input: Option<impl AsRef<[u8]>>, writer: &mut impl Write) -> StepResult {
+    pub fn step64(
+        &mut self,
+        input: Option<impl AsRef<[u8]>>,
+        writer: &mut impl Write,
+    ) -> StepResult {
         let input = input
             .map(|inp| base64::decode_config(inp.as_ref(), base64::STANDARD))
             .transpose()?;
@@ -143,10 +147,10 @@ pub struct SessionData {
 impl Debug for SessionData {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SessionData")
-         .field("has callback", &self.callback.is_some())
-         .field("property cache", &self.property_cache)
-         .field("global properties", &self.global_properties)
-         .finish()
+            .field("has callback", &self.callback.is_some())
+            .field("property cache", &self.property_cache)
+            .field("global properties", &self.global_properties)
+            .finish()
     }
 }
 
@@ -166,11 +170,6 @@ pub enum Step {
 //  or missing properties in which case a mechanism has not written *valid* data and the
 //  connection, if any, should be reset.
 pub type StepResult = Result<Step, SessionError>;
-
-struct StepReturn {
-    // call to step failed for some reason. This indicates the end of the
-    result: Result<(), SessionError>,
-}
 
 impl SessionData {
     pub(crate) fn new(
@@ -197,17 +196,18 @@ impl SessionData {
     }
 
     pub fn validate(&mut self, validation: Validation) -> Result<(), SessionError> {
-        self.callback.clone()
+        self.callback
+            .clone()
             .map(|cb| cb.validate(self, validation, self.mechanism.mechanism))
             .unwrap_or(Err(SessionError::no_validate(validation)))
     }
 
-    pub fn get_property_or_callback<P: PropertyQ>(&mut self)
-        -> Result<Option<Arc<P::Item>>, SessionError>
-    {
+    pub fn get_property_or_callback<P: PropertyQ>(
+        &mut self,
+    ) -> Result<Option<Arc<P::Item>>, SessionError> {
         if !self.has_property::<P>() {
             match self.callback::<P>() {
-                Ok(()) => {},
+                Ok(()) => {}
                 Err(SessionError::NoCallback { .. }) => return Ok(None),
                 Err(e) => return Err(e),
             }
@@ -220,14 +220,16 @@ impl SessionData {
     }
 
     pub fn get_property<P: PropertyQ>(&self) -> Option<Arc<P::Item>> {
-        self.property_cache.get(&P::property())
+        self.property_cache
+            .get(&P::property())
             .or_else(|| self.global_properties.get(&P::property()))
             .and_then(|prop| prop.clone().downcast::<P::Item>().ok())
     }
 
-    pub fn set_property<P: PropertyQ>(&mut self, item: Arc<P::Item>)
-        -> Option<Arc<dyn Any + Send + Sync>>
-    {
+    pub fn set_property<P: PropertyQ>(
+        &mut self,
+        item: Arc<P::Item>,
+    ) -> Option<Arc<dyn Any + Send + Sync>> {
         self.property_cache.insert(P::property(), item)
     }
 
@@ -242,7 +244,8 @@ impl SessionData {
     }
 
     pub(crate) fn callback_property(&mut self, property: Property) -> Result<(), SessionError> {
-        self.callback.clone()
+        self.callback
+            .clone()
             .map(|cb| cb.provide_prop(self, property))
             .unwrap_or(Err(SessionError::NoCallback { property }))
     }
@@ -252,17 +255,19 @@ impl SessionData {
     }
 
     pub(crate) fn get_cb_data(&self) -> Option<(&'static str, &[u8])> {
-        self.channel_binding_data.as_ref().map(|(name, value)| (*name, value.as_ref()))
+        self.channel_binding_data
+            .as_ref()
+            .map(|(name, value)| (*name, value.as_ref()))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Mechname, Property, SASL};
+    use super::*;
     use crate::gsasl::consts::{GSASL_AUTHID, GSASL_PASSWORD};
     use crate::mechanisms::plain::mechinfo::PLAIN;
     use crate::property::{AuthId, Password};
-    use super::*;
+    use crate::{Mechname, Property, SASL};
 
     #[test]
     fn callback_test() {
@@ -271,37 +276,49 @@ mod tests {
             data: usize,
         }
         impl Callback for CB {
-            fn provide_prop(&self, session: &mut SessionData, _action: Property) ->
-            Result<(), SessionError> {
+            fn provide_prop(
+                &self,
+                session: &mut SessionData,
+                _action: Property,
+            ) -> Result<(), SessionError> {
                 let _ = session.set_property::<AuthId>(Arc::new(format!("is {}", self.data)));
                 Ok(())
             }
         }
 
         let cbox = CB { data: 0 };
-        let mechname = Mechname::new_unchecked("X-TEST");
         let mut session = SessionData::new(
             Some(Arc::new(cbox)),
             Arc::new(HashMap::new()),
-                &PLAIN,
+            &PLAIN,
             Side::Client,
         );
 
         assert!(session.get_property::<AuthId>().is_none());
-        assert_eq!(session.get_property_or_callback::<AuthId>().unwrap().unwrap().as_str(), "is 0");
+        assert_eq!(
+            session
+                .get_property_or_callback::<AuthId>()
+                .unwrap()
+                .unwrap()
+                .as_str(),
+            "is 0"
+        );
     }
 
     #[test]
     fn property_set_get() {
         let sasl = SASL::new();
-        let mut sess = sasl.client_start(Mechname::new(b"PLAIN").unwrap())
-            .unwrap();
+        let mut sess = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
 
         assert!(sess.get_property::<AuthId>().is_none());
         assert!(sess.session_data.property_cache.is_empty());
 
-        assert!(sess.set_property::<AuthId>(Arc::new("test".to_string())).is_none());
-        assert!(sess.set_property::<Password>(Arc::new("secret".to_string())).is_none());
+        assert!(sess
+            .set_property::<AuthId>(Arc::new("test".to_string()))
+            .is_none());
+        assert!(sess
+            .set_property::<Password>(Arc::new("secret".to_string()))
+            .is_none());
 
         assert_eq!(sess.get_property::<AuthId>().unwrap().as_str(), "test");
         assert_eq!(sess.get_property::<Password>().unwrap().as_str(), "secret");
@@ -313,17 +330,17 @@ mod tests {
         let sasl = SASL::new();
         let mut sess = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
 
-
         assert!(sess.get_property::<AuthId>().is_none());
         assert!(sess.session_data.property_cache.is_empty());
 
         unsafe {
-            sess.session_data.set_property_raw(GSASL_AUTHID, Arc::new("test".to_string()));
-            sess.session_data.set_property_raw(GSASL_PASSWORD, Arc::new("secret".to_string()));
+            sess.session_data
+                .set_property_raw(GSASL_AUTHID, Arc::new("test".to_string()));
+            sess.session_data
+                .set_property_raw(GSASL_PASSWORD, Arc::new("secret".to_string()));
         }
 
         assert_eq!(sess.get_property::<AuthId>().unwrap().as_str(), "test");
         assert_eq!(sess.get_property::<Password>().unwrap().as_str(), "secret");
     }
-
 }

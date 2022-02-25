@@ -1,16 +1,15 @@
+use rsasl::mechname::Mechname;
+use rsasl::property::{AuthId, Password};
+use rsasl::session::Step::{Done, NeedsMore};
+use rsasl::SASL;
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
-use rsasl::mechname::Mechname;
-use rsasl::property::{AuthId, Password};
-use rsasl::SASL;
-use rsasl::session::Step::{Done, NeedsMore};
-
 
 pub fn main() {
     // Create an untyped SASL because we won't store/retrieve information in the context since
     // we don't use callbacks.
-    let mut sasl = SASL::new();
+    let sasl = SASL::new();
 
     // Usually you would first agree on a mechanism with the server, for demostration purposes
     // we directly start a PLAIN "exchange"
@@ -39,7 +38,6 @@ pub fn main() {
     // Now set the password that will be used in the PLAIN authentication
     session.set_property::<Password>(Arc::new(password));
 
-
     // Do an authentication step. In a PLAIN exchange there is only one step, with no data.
     let mut out = Cursor::new(Vec::new());
     let data: Option<&[u8]> = None;
@@ -50,7 +48,7 @@ pub fn main() {
             let buffer = out.into_inner();
             println!("Encoded bytes: {:?}", buffer);
             println!("As string: {:?}", std::str::from_utf8(&buffer.as_ref()));
-        },
+        }
         Done(None) => {
             panic!("PLAIN exchange produced no output")
         }

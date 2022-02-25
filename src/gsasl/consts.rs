@@ -1,5 +1,5 @@
-use crate::Property;
 use crate::property::properties::*;
+use crate::Property;
 
 pub type RsaslError = libc::c_uint;
 pub const GSASL_IO_ERROR: libc::c_uint = 65;
@@ -134,7 +134,10 @@ mod tests {
             (GSASL_SCRAM_ITER, ScramIter::property()),
             (GSASL_QOP, Qop::property()),
             (GSASL_QOPS, Qops::property()),
-            (GSASL_DIGEST_MD5_HASHED_PASSWORD, DigestMD5HashedPassword::property()),
+            (
+                GSASL_DIGEST_MD5_HASHED_PASSWORD,
+                DigestMD5HashedPassword::property(),
+            ),
             (GSASL_REALM, Realm::property()),
             (GSASL_PIN, Pin::property()),
             (GSASL_SUGGESTED_PIN, SuggestedPin::property()),
@@ -153,8 +156,8 @@ mod tests {
             println!("{:?} == {:?}", prop, should);
             assert_eq!(&prop, should);
             let before = &data[0..idx];
-            let after = &data[(idx+1)..];
-            for (code, should) in before.iter().chain(after.iter()) {
+            let after = &data[(idx + 1)..];
+            for (_code, should) in before.iter().chain(after.iter()) {
                 println!("{} != {}", prop.name(), should.name());
                 assert_ne!(&prop, should);
             }

@@ -1,21 +1,20 @@
-use std::io;
-use std::io::Cursor;
-use std::sync::Arc;
-use libc::passwd;
+
 use rsasl::callback::Callback;
-use rsasl::error::{SASLError, SessionError};
+use rsasl::error::{SessionError};
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, AuthzId, Password};
-use rsasl::SASL;
-use rsasl::session::{SessionData, StepResult};
 use rsasl::session::Step::{Done, NeedsMore};
-use rsasl::validate::{Validation, validations};
+use rsasl::session::{SessionData, StepResult};
+use rsasl::validate::{validations, Validation};
+use rsasl::SASL;
+
+use std::io::Cursor;
+use std::sync::Arc;
 
 #[test]
 fn plain_client() {
     let sasl = SASL::new();
-    let mut session = sasl.client_start(Mechname::new(b"PLAIN").unwrap())
-        .unwrap();
+    let mut session = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
 
     let username = "testuser".to_string();
     assert_eq!(username.len(), 8);
@@ -42,7 +41,7 @@ fn plain_client() {
             assert_eq!(pass[0], 0);
             assert_eq!(pass, b"\0secret");
             return;
-        },
+        }
         Done(None) => panic!("PLAIN exchange produced no output"),
         NeedsMore(_) => panic!("PLAIN exchange took more than one step"),
     }
@@ -52,14 +51,19 @@ fn plain_client() {
 fn plain_server() {
     struct CB;
     impl Callback for CB {
-        fn validate(&self, session: &mut SessionData, validation: Validation, mechanism: &Mechname)
-            -> Result<(), SessionError>
-        {
+        fn validate(
+            &self,
+            session: &mut SessionData,
+            validation: Validation,
+            _mechanism: &Mechname,
+        ) -> Result<(), SessionError> {
             match validation {
                 validations::SIMPLE => {
-                    let username = session.get_property::<AuthId>()
+                    let username = session
+                        .get_property::<AuthId>()
                         .ok_or_else(SessionError::no_property::<AuthId>)?;
-                    let password = session.get_property::<Password>()
+                    let password = session
+                        .get_property::<Password>()
                         .ok_or_else(SessionError::no_property::<Password>)?;
 
                     if username.as_str() == "testuser" && password.as_str() == "secret" {
@@ -67,7 +71,7 @@ fn plain_server() {
                     } else {
                         Err(SessionError::AuthenticationFailure)
                     }
-                },
+                }
                 _ => Err(SessionError::NoValidate { validation }),
             }
         }
@@ -81,25 +85,32 @@ fn plain_server() {
 
     match session.step(Some(b"\0testuser\0secret"), &mut out).unwrap() {
         Done(Some(_)) => {
-            panic!("PLAIN mechanism wants to return data: {:?}", &out.into_inner()[..]);
+            panic!(
+                "PLAIN mechanism wants to return data: {:?}",
+                &out.into_inner()[..]
+            );
         }
         Done(None) => {}
         NeedsMore(_) => panic!("PLAIN exchange took more than one step"),
     }
 
     let mut session = prov.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
-    session.step(Some(b"\0testuser\0badpass"), &mut out).unwrap_err();
+    session
+        .step(Some(b"\0testuser\0badpass"), &mut out)
+        .unwrap_err();
 }
 
 #[test]
 fn plain_client_edgecase_tests() {
     let sasl = SASL::new();
-    fn l(sasl: &SASL,
-         authid: Arc<String>,
-         authzid: Option<Arc<String>>,
-         passwd: Arc<String>,
-         expected: &StepResult,
-         expected_output: &[u8]) {
+    fn l(
+        sasl: &SASL,
+        authid: Arc<String>,
+        authzid: Option<Arc<String>>,
+        passwd: Arc<String>,
+        expected: &StepResult,
+        expected_output: &[u8],
+    ) {
         let mut client = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
         client.set_property::<AuthId>(authid);
         if let Some(authzid) = authzid {
@@ -119,11 +130,13 @@ fn plain_client_edgecase_tests() {
     ];
 
     for (authid, authzid, passwd, expected, output) in data.into_iter() {
-        l(&sasl,
-          Arc::new(authid.to_string()),
-          authzid.map(|s: &str| Arc::new(s.to_string())),
-          Arc::new(passwd.to_string()),
-          expected,
-          *output);
+        l(
+            &sasl,
+            Arc::new(authid.to_string()),
+            authzid.map(|s: &str| Arc::new(s.to_string())),
+            Arc::new(passwd.to_string()),
+            expected,
+            *output,
+        );
     }
 }

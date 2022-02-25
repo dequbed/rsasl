@@ -1,12 +1,12 @@
+use crate::error::{MechanismError, MechanismErrorKind};
+use crate::property::AnonymousToken;
+use crate::session::Step::{Done, NeedsMore};
+use crate::session::{SessionData, StepResult};
+use crate::validate::validations::ANONYMOUS;
+use crate::Authentication;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::sync::Arc;
-use crate::{Authentication, SASLError};
-use crate::error::{MechanismError, MechanismErrorKind, SessionError};
-use crate::property::AnonymousToken;
-use crate::session::{SessionData, StepResult};
-use crate::session::Step::{Done, NeedsMore};
-use crate::validate::validations::ANONYMOUS;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct ParseError;
@@ -25,9 +25,12 @@ impl MechanismError for ParseError {
 pub struct Anonymous;
 
 impl Authentication for Anonymous {
-    fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, _writer: &mut dyn Write)
-        -> StepResult
-    {
+    fn step(
+        &mut self,
+        session: &mut SessionData,
+        input: Option<&[u8]>,
+        _writer: &mut dyn Write,
+    ) -> StepResult {
         let input = if let Some(buf) = input {
             buf
         } else {
@@ -36,9 +39,9 @@ impl Authentication for Anonymous {
 
         if let Ok(input) = std::str::from_utf8(input) {
             /* token       = 1*255TCHAR
-             The <token> production is restricted to 255 UTF-8 encoded Unicode
-             characters.   As the encoding of a characters uses a sequence of 1
-             to 4 octets, a token may be long as 1020 octets. */
+            The <token> production is restricted to 255 UTF-8 encoded Unicode
+            characters.   As the encoding of a characters uses a sequence of 1
+            to 4 octets, a token may be long as 1020 octets. */
             if input.len() == 0 || input.len() > 255 {
                 return Err(ParseError.into());
             }

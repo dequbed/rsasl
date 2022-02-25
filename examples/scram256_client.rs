@@ -1,14 +1,14 @@
-use std::io;
-use std::ffi::CString;
-use std::io::Cursor;
-use std::sync::Arc;
 use rsasl::mechanisms::scram::client::ScramClient;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
 use rsasl::registry::Mechanism;
-use rsasl::SASL;
 use rsasl::session::Side;
 use rsasl::session::Step::{Done, NeedsMore};
+use rsasl::SASL;
+
+use std::io;
+use std::io::Cursor;
+use std::sync::Arc;
 
 pub fn main() {
     let mut sasl = SASL::new();
@@ -17,7 +17,7 @@ pub fn main() {
         priority: 0,
         client: Some(|_sasl| Ok(Box::new(ScramClient::<18>::new()))),
         server: None,
-        first: Side::Client
+        first: Side::Client,
     };
     sasl.register(&M);
 
@@ -33,7 +33,6 @@ pub fn main() {
         return;
     }
     username.pop(); // Remove the newline char at the end of the string
-
 
     // Read the "password" from stdin
     println!("\nEnter password to encode for SCRAM-SHA-1 auth:");
@@ -51,7 +50,6 @@ pub fn main() {
     // Now set the password that will be used in the SCRAM-SHA-1 authentication
     session.set_property::<Password>(Arc::new(password));
 
-
     let mut data: Option<Box<[u8]>> = None;
 
     loop {
@@ -65,9 +63,11 @@ pub fn main() {
                 let output = std::str::from_utf8(buffer.as_ref()).unwrap();
                 println!("Done: {:?}", output);
                 break;
-            },
+            }
             Ok(Done(None)) => {
-                println!("Done, but the mechanism wants to send no further data to the other party");
+                println!(
+                    "Done, but the mechanism wants to send no further data to the other party"
+                );
                 break;
             }
             Ok(NeedsMore(Some(_))) => {
@@ -83,7 +83,6 @@ pub fn main() {
                 in_data.pop(); // Remove the newline char at the end of the string
 
                 data = Some(in_data.into_boxed_str().into_boxed_bytes());
-
             }
             Ok(NeedsMore(None)) => {
                 println!("Need more data, the mechanism can not provide any data to the other party at the moment");
@@ -92,7 +91,7 @@ pub fn main() {
             Err(e) => {
                 println!("{}", e);
                 break;
-            },
+            }
         }
     }
 }

@@ -94,35 +94,31 @@ use std::sync::Arc;
 
 pub use libc;
 
+pub mod callback;
+pub mod error;
 pub mod sasl;
 pub mod session;
-pub mod error;
-pub mod callback;
 
 mod gsasl;
-pub mod mechanisms;
+pub mod init;
 pub mod mechanism;
+pub mod mechanisms;
 pub mod mechname;
 pub mod registry;
-pub mod init;
 
-pub mod validate;
-pub mod property;
 pub mod channel_bindings;
+pub mod property;
+pub mod validate;
 
 mod vectored_io;
 
-pub use property::{
-    Property,
-    PropertyQ,
-};
 use crate::callback::Callback;
 use crate::error::SASLError;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 use crate::registry::{Mechanism, MECHANISMS};
 use crate::session::{Session, Side};
-
+pub use property::{Property, PropertyQ};
 
 /// SASL Provider context
 ///
@@ -146,18 +142,18 @@ pub struct SASL {
     #[cfg(feature = "registry_static")]
     static_mechs: &'static [Mechanism],
 
-    sort_fn: fn (a: &&Mechanism, b: &&Mechanism) -> Ordering,
+    sort_fn: fn(a: &&Mechanism, b: &&Mechanism) -> Ordering,
 }
 
 impl Debug for SASL {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut s = f.debug_struct("SASL");
         s.field("global data", &self.global_data)
-         .field("has callback", &self.callback.is_some());
+            .field("has callback", &self.callback.is_some());
         #[cfg(feature = "registry_dynamic")]
-            s.field("registered mechanisms", &self.dynamic_mechs);
+        s.field("registered mechanisms", &self.dynamic_mechs);
         #[cfg(feature = "registry_static")]
-            s.field("collected mechanisms", &self.static_mechs);
+        s.field("collected mechanisms", &self.static_mechs);
         s.finish()
     }
 }
@@ -174,23 +170,29 @@ impl SASL {
     ///
     /// An interactive client "logging in" to some server application would use this method. The
     /// server application would use [`SASL::server_mech_list()`].
-    pub fn client_mech_list(&self) -> impl IntoIterator<Item=&'static Mechanism> + '_
-    {
-        #[cfg(feature = "registry_static")] {
-            #[cfg(feature = "registry_dynamic")] {
-                MECHANISMS.into_iter()
-                          .chain(self.dynamic_mechs.iter().map(|m| *m))
-                          .filter(|mechanism| mechanism.client.is_some())
+    pub fn client_mech_list(&self) -> impl IntoIterator<Item = &'static Mechanism> + '_ {
+        #[cfg(feature = "registry_static")]
+        {
+            #[cfg(feature = "registry_dynamic")]
+            {
+                MECHANISMS
+                    .into_iter()
+                    .chain(self.dynamic_mechs.iter().map(|m| *m))
+                    .filter(|mechanism| mechanism.client.is_some())
             }
-            #[cfg(not(feature = "registry_dynamic"))] {
-                MECHANISMS.into_iter()
-                          .filter(|mechanism| mechanism.client.is_some())
+            #[cfg(not(feature = "registry_dynamic"))]
+            {
+                MECHANISMS
+                    .into_iter()
+                    .filter(|mechanism| mechanism.client.is_some())
             }
         }
-        #[cfg(all(not(feature = "registry_static"), feature = "registry_dynamic"))] {
+        #[cfg(all(not(feature = "registry_static"), feature = "registry_dynamic"))]
+        {
             self.dynamic_mechs.iter().map(|m| *m)
         }
-        #[cfg(not(any(feature = "registry_static", feature = "registry_dynamic")))] {
+        #[cfg(not(any(feature = "registry_static", feature = "registry_dynamic")))]
+        {
             []
         }
     }
@@ -199,64 +201,75 @@ impl SASL {
     ///
     /// An server allowing client software to "log in" would use this method. A client
     /// application would use [`SASL::client_mech_list()`].
-    pub fn server_mech_list(&self) -> impl IntoIterator<Item=&'static Mechanism> + '_
-    {
+    pub fn server_mech_list(&self) -> impl IntoIterator<Item = &'static Mechanism> + '_ {
         let statics = {
-            #[cfg(feature = "registry_static")] {
+            #[cfg(feature = "registry_static")]
+            {
                 MECHANISMS.into_iter()
             }
-            #[cfg(not(feature = "registry_static"))] {
+            #[cfg(not(feature = "registry_static"))]
+            {
                 [].into_iter()
             }
         };
         let dynamics = {
-            #[cfg(feature = "registry_dynamic")] {
+            #[cfg(feature = "registry_dynamic")]
+            {
                 self.dynamic_mechs.iter().map(|m| *m)
             }
-            #[cfg(not(feature = "registry_dynamic"))] {
+            #[cfg(not(feature = "registry_dynamic"))]
+            {
                 (&[]).iter()
             }
         };
-        statics.chain(dynamics).filter(|mechanism| mechanism.server.is_some())
+        statics
+            .chain(dynamics)
+            .filter(|mechanism| mechanism.server.is_some())
     }
 
-    pub fn client_start_suggested<'a>(&self, mechs: impl IntoIterator<Item=&'a Mechname>)
-        -> Result<Session, SASLError>
-    {
-        mechs.into_iter()
-             .filter_map(|name| {
-                 self.client_mech_list().into_iter().find_map(
-                     |mech| if mech.mechanism == name {
-                         mech.client(&self)
-                             // Option<Result<Session, SASLError>> -> Option<(&Mechanism, Session)>
-                             .map(|res| res.ok().map(|auth| (mech, auth)))
-                             .flatten()
-                     } else {
-                         None
-                     })
-             })
-             .max_by(|(a, _), (b, _)| (self.sort_fn)(a, b))
-             .map(|(m, auth)| self.new_session(m, auth, Side::Client))
-             .ok_or(SASLError::NoSharedMechanism)
+    pub fn client_start_suggested<'a>(
+        &self,
+        mechs: impl IntoIterator<Item = &'a Mechname>,
+    ) -> Result<Session, SASLError> {
+        mechs
+            .into_iter()
+            .filter_map(|name| {
+                self.client_mech_list().into_iter().find_map(|mech| {
+                    if mech.mechanism == name {
+                        mech.client(&self)
+                            // Option<Result<Session, SASLError>> -> Option<(&Mechanism, Session)>
+                            .map(|res| res.ok().map(|auth| (mech, auth)))
+                            .flatten()
+                    } else {
+                        None
+                    }
+                })
+            })
+            .max_by(|(a, _), (b, _)| (self.sort_fn)(a, b))
+            .map(|(m, auth)| self.new_session(m, auth, Side::Client))
+            .ok_or(SASLError::NoSharedMechanism)
     }
 
-    pub fn server_start_suggested<'a>(&self, mechs: impl IntoIterator<Item=&'a Mechname>)
-        -> Result<Session, SASLError>
-    {
-        mechs.into_iter()
-             .filter_map(|name| {
-                 self.server_mech_list().into_iter().find_map(
-                     |mech| if mech.mechanism == name {
-                         mech.server(&self)
-                             .map(|res| res.ok().map(|auth| (mech, auth)))
-                             .flatten()
-                     } else {
-                         None
-                     })
-             })
-             .max_by(|(a, _), (b, _)| (self.sort_fn)(a, b))
-             .map(|(m, auth)| self.new_session(m, auth, Side::Server))
-             .ok_or(SASLError::NoSharedMechanism)
+    pub fn server_start_suggested<'a>(
+        &self,
+        mechs: impl IntoIterator<Item = &'a Mechname>,
+    ) -> Result<Session, SASLError> {
+        mechs
+            .into_iter()
+            .filter_map(|name| {
+                self.server_mech_list().into_iter().find_map(|mech| {
+                    if mech.mechanism == name {
+                        mech.server(&self)
+                            .map(|res| res.ok().map(|auth| (mech, auth)))
+                            .flatten()
+                    } else {
+                        None
+                    }
+                })
+            })
+            .max_by(|(a, _), (b, _)| (self.sort_fn)(a, b))
+            .map(|(m, auth)| self.new_session(m, auth, Side::Server))
+            .ok_or(SASLError::NoSharedMechanism)
     }
 
     /// Returns whether there is client-side support for the given mechanism.
@@ -281,13 +294,12 @@ impl SASL {
     ///
     /// This function should rarely be necessary, see [`SASL::client_start`] and
     /// [`SASL::server_start`] for more ergonomic alternatives.
-    pub fn new_session(&self,
-                       mechdesc: &'static Mechanism,
-                       mechanism: Box<dyn Authentication>,
-                       side: Side,
-    )
-        -> Session
-    {
+    pub fn new_session(
+        &self,
+        mechdesc: &'static Mechanism,
+        mechanism: Box<dyn Authentication>,
+        side: Side,
+    ) -> Session {
         Session::new(
             self.callback.clone(),
             self.global_data.clone(),
@@ -302,38 +314,31 @@ impl SASL {
     fn start_inner<'a>(
         &self,
         mech: &Mechname,
-        mech_list: impl IntoIterator<Item=&'static Mechanism>,
+        mech_list: impl IntoIterator<Item = &'static Mechanism>,
         start: impl Fn(&Mechanism) -> Option<Result<Box<dyn Authentication>, SASLError>>,
         side: Side,
-    )
-        -> Result<Session, SASLError>
-    {
+    ) -> Result<Session, SASLError> {
         // Using an inverted result to shortcircuit out of `try_fold`: We want to stop looking
         // for mechanisms as soon as we found the first matching one. try_fold stop running as
         // soon as the first `ControlFlow::Break` is found, which for the implementation of `Try` on
         // `Result` is the first `Result::Err`.
         // If no break is encountered the `try_fold` will return `Ok(())` which we can then
         // interpret as this mechanism not being supported.
-        let foldout = mech_list.into_iter()
-                               .try_fold((), move |(), supported| {
-                                   let opt = if supported.mechanism == mech {
-                                       start(supported).map(|res|
-                                           res.map(|auth| (supported, auth)))
-                                   } else {
-                                       None
-                                   };
-                                   match opt {
-                                       Some(res) => Err(res),
-                                       None => Ok(()),
-                                   }
-                               });
+        let foldout = mech_list.into_iter().try_fold((), move |(), supported| {
+            let opt = if supported.mechanism == mech {
+                start(supported).map(|res| res.map(|auth| (supported, auth)))
+            } else {
+                None
+            };
+            match opt {
+                Some(res) => Err(res),
+                None => Ok(()),
+            }
+        });
 
         match foldout {
-            Err(res) => Result::map(res, |(name, auth)|
-                self.new_session(name, auth, side)),
-            Ok(()) => {
-                Err(SASLError::unknown_mechanism(mech))
-            }
+            Err(res) => Result::map(res, |(name, auth)| self.new_session(name, auth, side)),
+            Ok(()) => Err(SASLError::unknown_mechanism(mech)),
         }
     }
 
@@ -344,10 +349,12 @@ impl SASL {
     /// has to either call `set_property` before running the step that requires the data, or
     /// install a callback.
     pub fn client_start(&self, mech: &mechname::Mechname) -> Result<Session, SASLError> {
-        self.start_inner(mech,
-                         self.client_mech_list(),
-                         |mechanism| mechanism.client(&self),
-                         Side::Client)
+        self.start_inner(
+            mech,
+            self.client_mech_list(),
+            |mechanism| mechanism.client(&self),
+            Side::Client,
+        )
     }
 
     /// Starts a authentication exchange as the server role
@@ -357,10 +364,12 @@ impl SASL {
     ///
     /// See [Callback](Callback) on how to implement callbacks.
     pub fn server_start(&self, mech: &mechname::Mechname) -> Result<Session, SASLError> {
-        self.start_inner(mech,
-                         self.server_mech_list(),
-                         |mechanism| mechanism.server(&self),
-                         Side::Server)
+        self.start_inner(
+            mech,
+            self.server_mech_list(),
+            |mechanism| mechanism.server(&self),
+            Side::Server,
+        )
     }
 }
 

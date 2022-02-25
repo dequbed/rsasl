@@ -1,28 +1,34 @@
-use std::ffi::CString;
-use std::sync::Arc;
-use libc::{size_t, strlen};
 use crate::gsasl::consts::*;
-use crate::gsasl::consts::{GSASL_OK, Gsasl_property};
+use crate::gsasl::consts::{Gsasl_property, GSASL_OK};
 use crate::property::*;
 use crate::session::SessionData;
+use libc::{size_t, strlen};
+use std::ffi::CString;
+use std::sync::Arc;
 
-pub unsafe fn gsasl_property_set(mut sctx: &mut SessionData,
-                                 mut prop: Gsasl_property,
-                                 mut data: *const libc::c_char)
- -> libc::c_int {
-    return gsasl_property_set_raw(sctx, prop, data,
-                                  if !data.is_null() {
-                                      strlen(data) as usize
-                                  } else {
-                                      0
-                                  });
+pub unsafe fn gsasl_property_set(
+    mut sctx: &mut SessionData,
+    mut prop: Gsasl_property,
+    mut data: *const libc::c_char,
+) -> libc::c_int {
+    return gsasl_property_set_raw(
+        sctx,
+        prop,
+        data,
+        if !data.is_null() {
+            strlen(data) as usize
+        } else {
+            0
+        },
+    );
 }
 
-pub unsafe fn gsasl_property_set_raw(mut sctx: &mut SessionData,
-                                     mut prop: Gsasl_property,
-                                     mut data: *const libc::c_char,
-                                     mut len: size_t)
- -> libc::c_int {
+pub unsafe fn gsasl_property_set_raw(
+    mut sctx: &mut SessionData,
+    mut prop: Gsasl_property,
+    mut data: *const libc::c_char,
+    mut len: size_t,
+) -> libc::c_int {
     let bytes = std::slice::from_raw_parts(data as *const u8, len);
     let mut vec = Vec::with_capacity(len);
     vec.extend_from_slice(bytes);
@@ -53,10 +59,7 @@ pub unsafe fn gsasl_property_set_raw(mut sctx: &mut SessionData,
  *
  * Since: 0.2.0
  **/
-unsafe fn gsasl_property_fast(sctx: &mut SessionData,
-                              prop: Gsasl_property)
- -> *const libc::c_char {
-
+unsafe fn gsasl_property_fast(sctx: &mut SessionData, prop: Gsasl_property) -> *const libc::c_char {
     if GSASL_OPENID20_OUTCOME_DATA == prop {
         if let Some(prop) = sctx.get_property::<OpenID20OutcomeData>() {
             prop.as_ptr()
@@ -212,10 +215,10 @@ unsafe fn gsasl_property_fast(sctx: &mut SessionData,
     }
 }
 
-pub unsafe fn gsasl_property_get(sctx: &mut SessionData,
-                                 prop: Gsasl_property
-) -> *const libc::c_char
-{
+pub unsafe fn gsasl_property_get(
+    sctx: &mut SessionData,
+    prop: Gsasl_property,
+) -> *const libc::c_char {
     let mut ptr = gsasl_property_fast(sctx, prop);
     if ptr.is_null() {
         let _ = sctx.callback_raw(prop);
@@ -226,12 +229,12 @@ pub unsafe fn gsasl_property_get(sctx: &mut SessionData,
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::mechanisms::plain::mechinfo::PLAIN;
+    use crate::Side;
     use std::collections::HashMap;
     use std::ffi::CStr;
     use std::sync::Arc;
-    use crate::mechanisms::plain::mechinfo::PLAIN;
-    use crate::{Mechname, Side};
-    use super::*;
 
     #[test]
     fn property_get_set() {

@@ -1,11 +1,11 @@
-use std::io;
-use std::ffi::CString;
-use std::io::Cursor;
-use std::sync::Arc;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
-use rsasl::SASL;
 use rsasl::session::Step::{Done, NeedsMore};
+use rsasl::SASL;
+
+use std::io;
+use std::io::Cursor;
+use std::sync::Arc;
 
 // A SCRAM-SHA-1 authentication exchange.
 //
@@ -14,11 +14,13 @@ use rsasl::session::Step::{Done, NeedsMore};
 pub fn main() {
     // Create an untyped SASL because we won't store/retrieve information in the context since
     // we don't use callbacks.
-    let mut sasl = SASL::new();
+    let sasl = SASL::new();
 
     // Usually you would first agree on a mechanism with the server, for demostration purposes
     // we directly start a SCRAM-SHA-1 "exchange"
-    let mut session = sasl.client_start(Mechname::new(b"SCRAM-SHA-1").unwrap()).unwrap();
+    let mut session = sasl
+        .client_start(Mechname::new(b"SCRAM-SHA-1").unwrap())
+        .unwrap();
 
     // Read the "authcid" from stdin
     let mut username = String::new();
@@ -28,7 +30,6 @@ pub fn main() {
         return;
     }
     username.pop(); // Remove the newline char at the end of the string
-
 
     // Read the "password" from stdin
     println!("\nEnter password to encode for SCRAM-SHA-1 auth:");
@@ -46,7 +47,6 @@ pub fn main() {
     // Now set the password that will be used in the SCRAM-SHA-1 authentication
     session.set_property::<Password>(Arc::new(password));
 
-
     let mut data: Option<Box<[u8]>> = None;
     loop {
         let mut out = Cursor::new(Vec::new());
@@ -54,16 +54,16 @@ pub fn main() {
         let step_result = session.step64(data.as_ref(), &mut out);
 
         match step_result {
-            Ok(Done(Some(len))) => {
+            Ok(Done(Some(_len))) => {
                 let buffer = out.into_inner();
                 let s = std::str::from_utf8(&buffer);
                 println!("Done: {:?}", s);
                 break;
-            },
+            }
             Ok(Done(None)) => {
                 println!("Done, but mechanism wants to send no further data to the other party");
             }
-            Ok(NeedsMore(Some(len))) => {
+            Ok(NeedsMore(Some(_len))) => {
                 let buffer = out.into_inner();
                 let s = std::str::from_utf8(&buffer);
                 println!("Data to send: {:?}", s.as_ref());
@@ -76,7 +76,6 @@ pub fn main() {
                 in_data.pop(); // Remove the newline char at the end of the string
 
                 data = Some(in_data.into_boxed_str().into_boxed_bytes());
-
             }
             Ok(NeedsMore(None)) => {
                 println!("Needs more data, but mechanism wants to send no further data to the other party");
@@ -84,7 +83,7 @@ pub fn main() {
             Err(e) => {
                 println!("{}", e);
                 return;
-            },
+            }
         }
     }
 }

@@ -1,11 +1,14 @@
-use std::ptr::NonNull;
-use ::libc;
-use libc::{malloc, memchr, memcpy, size_t, strdup, strlen};
 use crate::gsasl::callback::gsasl_callback;
-use crate::gsasl::consts::{GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE, GSASL_OK, GSASL_PASSCODE, GSASL_PIN, GSASL_SUGGESTED_PIN, GSASL_VALIDATE_SECURID};
+use crate::gsasl::consts::{
+    GSASL_AUTHID, GSASL_AUTHZID, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_NEEDS_MORE,
+    GSASL_OK, GSASL_PASSCODE, GSASL_PIN, GSASL_SUGGESTED_PIN, GSASL_VALIDATE_SECURID,
+};
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
 use crate::session::SessionData;
 use crate::Shared;
+use ::libc;
+use libc::{malloc, memchr, memcpy, size_t, strdup, strlen};
+use std::ptr::NonNull;
 
 /* securid.h --- Prototypes for SASL mechanism SECURID as defined in RFC 2808.
  * Copyright (C) 2002-2021 Simon Josefsson
@@ -28,13 +31,13 @@ use crate::Shared;
  * Boston, MA 02110-1301, USA.
  *
  */
-pub unsafe fn _gsasl_securid_server_step(sctx: &mut SessionData,
-                                         _mech_data: Option<NonNull<()>>,
-                                         input: Option<&[u8]>,
-                                         output: *mut *mut libc::c_char,
-                                         output_len: *mut size_t,
-) -> libc::c_int
-{
+pub unsafe fn _gsasl_securid_server_step(
+    sctx: &mut SessionData,
+    _mech_data: Option<NonNull<()>>,
+    input: Option<&[u8]>,
+    output: *mut *mut libc::c_char,
+    output_len: *mut size_t,
+) -> libc::c_int {
     let input_len = input.map(|i| i.len()).unwrap_or(0);
     let input: *const libc::c_char = input.map(|i| i.as_ptr().cast()).unwrap_or(std::ptr::null());
 
@@ -48,30 +51,36 @@ pub unsafe fn _gsasl_securid_server_step(sctx: &mut SessionData,
     if input_len == 0 {
         *output_len = 0 as libc::c_int as size_t;
         *output = 0 as *mut libc::c_char;
-        return GSASL_NEEDS_MORE as libc::c_int
+        return GSASL_NEEDS_MORE as libc::c_int;
     }
     authorization_id = input;
-    authentication_id =
-        memchr(input as *const libc::c_void, '\u{0}' as i32,
-               input_len.wrapping_sub(1)) as *const libc::c_char;
+    authentication_id = memchr(
+        input as *const libc::c_void,
+        '\u{0}' as i32,
+        input_len.wrapping_sub(1),
+    ) as *const libc::c_char;
     if !authentication_id.is_null() {
         authentication_id = authentication_id.offset(1);
-        passcode =
-            memchr(authentication_id as *const libc::c_void, '\u{0}' as i32,
-                   input_len.wrapping_sub(strlen(authorization_id))
-                            .wrapping_sub(1)
-                            .wrapping_sub(1))
-                as *const libc::c_char;
+        passcode = memchr(
+            authentication_id as *const libc::c_void,
+            '\u{0}' as i32,
+            input_len
+                .wrapping_sub(strlen(authorization_id))
+                .wrapping_sub(1)
+                .wrapping_sub(1),
+        ) as *const libc::c_char;
         if !passcode.is_null() {
             passcode = passcode.offset(1);
-            pin =
-                memchr(passcode as *const libc::c_void, '\u{0}' as i32,
-                       input_len.wrapping_sub(strlen(authorization_id))
-                           .wrapping_sub(1)
-                           .wrapping_sub(strlen(authentication_id))
-                           .wrapping_sub(1)
-                           .wrapping_sub(1))
-                    as *mut libc::c_char;
+            pin = memchr(
+                passcode as *const libc::c_void,
+                '\u{0}' as i32,
+                input_len
+                    .wrapping_sub(strlen(authorization_id))
+                    .wrapping_sub(1)
+                    .wrapping_sub(strlen(authentication_id))
+                    .wrapping_sub(1)
+                    .wrapping_sub(1),
+            ) as *mut libc::c_char;
             if !pin.is_null() {
                 pin = pin.offset(1);
                 if !pin.is_null() && *pin == 0 {
@@ -81,53 +90,63 @@ pub unsafe fn _gsasl_securid_server_step(sctx: &mut SessionData,
         }
     }
     if passcode.is_null() {
-        return GSASL_MECHANISM_PARSE_ERROR as libc::c_int
+        return GSASL_MECHANISM_PARSE_ERROR as libc::c_int;
     }
     res = gsasl_property_set(sctx, GSASL_AUTHID, authentication_id);
-    if res != GSASL_OK as libc::c_int { return res }
+    if res != GSASL_OK as libc::c_int {
+        return res;
+    }
     res = gsasl_property_set(sctx, GSASL_AUTHZID, authorization_id);
-    if res != GSASL_OK as libc::c_int { return res }
+    if res != GSASL_OK as libc::c_int {
+        return res;
+    }
     res = gsasl_property_set(sctx, GSASL_PASSCODE, passcode);
-    if res != GSASL_OK as libc::c_int { return res }
+    if res != GSASL_OK as libc::c_int {
+        return res;
+    }
     if !pin.is_null() {
         res = gsasl_property_set(sctx, GSASL_PIN, pin)
     } else {
         res = gsasl_property_set(sctx, GSASL_PIN, 0 as *const libc::c_char)
     }
-    if res != GSASL_OK as libc::c_int { return res }
+    if res != GSASL_OK as libc::c_int {
+        return res;
+    }
     res = gsasl_callback(0 as *mut Shared, sctx, GSASL_VALIDATE_SECURID);
     match res {
         48 => {
-            *output =
-                strdup(b"passcode\x00" as *const u8 as *const libc::c_char);
+            *output = strdup(b"passcode\x00" as *const u8 as *const libc::c_char);
             if (*output).is_null() {
-                return GSASL_MALLOC_ERROR as libc::c_int
+                return GSASL_MALLOC_ERROR as libc::c_int;
             }
-            *output_len =
-                strlen(b"passcode\x00" as *const u8 as *const libc::c_char);
+            *output_len = strlen(b"passcode\x00" as *const u8 as *const libc::c_char);
             res = GSASL_NEEDS_MORE as libc::c_int
         }
         49 => {
             suggestedpin = gsasl_property_get(sctx, GSASL_SUGGESTED_PIN);
             if !suggestedpin.is_null() {
                 len = strlen(suggestedpin)
-            } else { len = 0 as libc::c_int as size_t }
-            *output_len =
-                strlen(b"pin\x00" as *const u8 as
-                           *const libc::c_char).wrapping_add(len);
+            } else {
+                len = 0 as libc::c_int as size_t
+            }
+            *output_len = strlen(b"pin\x00" as *const u8 as *const libc::c_char).wrapping_add(len);
             *output = malloc(*output_len) as *mut libc::c_char;
             if (*output).is_null() {
-                return GSASL_MALLOC_ERROR as libc::c_int
+                return GSASL_MALLOC_ERROR as libc::c_int;
             }
-            memcpy(*output as *mut libc::c_void,
-                   b"pin\x00" as *const u8 as *const libc::c_char as
-                       *const libc::c_void,
-                   strlen(b"pin\x00" as *const u8 as *const libc::c_char));
+            memcpy(
+                *output as *mut libc::c_void,
+                b"pin\x00" as *const u8 as *const libc::c_char as *const libc::c_void,
+                strlen(b"pin\x00" as *const u8 as *const libc::c_char),
+            );
             if !suggestedpin.is_null() {
-                memcpy((*output).offset(strlen(b"pin\x00" as *const u8 as
-                                                   *const libc::c_char) as
-                                            isize) as *mut libc::c_void,
-                       suggestedpin as *const libc::c_void, len);
+                memcpy(
+                    (*output)
+                        .offset(strlen(b"pin\x00" as *const u8 as *const libc::c_char) as isize)
+                        as *mut libc::c_void,
+                    suggestedpin as *const libc::c_void,
+                    len,
+                );
             }
             res = GSASL_NEEDS_MORE as libc::c_int
         }

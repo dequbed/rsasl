@@ -25,7 +25,7 @@ use libc::{malloc, size_t, strdup, strlen};
 /* Get specification. */
 /* C89 compliant way to cast 'char' to 'unsigned char'. */
 #[inline]
-unsafe fn to_uchar(mut ch: libc::c_char) -> libc::c_uchar {
+unsafe fn to_uchar(ch: libc::c_char) -> libc::c_uchar {
     return ch as libc::c_uchar;
 }
 /* nonascii.h --- Prototypes for UTF-8 vs Latin-1 conversion for DIGEST-MD5
@@ -50,39 +50,33 @@ unsafe fn to_uchar(mut ch: libc::c_char) -> libc::c_uchar {
  *
  */
 #[no_mangle]
-pub unsafe fn latin1toutf8(mut str: *const libc::c_char)
- -> *mut libc::c_char {
-    let mut p: *mut libc::c_char = malloc((2 as size_t).wrapping_mul(strlen(str)).wrapping_add(1))
-            as *mut libc::c_char;
+pub unsafe fn latin1toutf8(str: *const libc::c_char) -> *mut libc::c_char {
+    let p: *mut libc::c_char =
+        malloc((2 as size_t).wrapping_mul(strlen(str)).wrapping_add(1)) as *mut libc::c_char;
     if !p.is_null() {
         let mut i: size_t = 0;
         let mut j: size_t = 0 as libc::c_int as size_t;
         i = 0 as libc::c_int as size_t;
         while *str.offset(i as isize) != 0 {
-            if (to_uchar(*str.offset(i as isize)) as libc::c_int) <
-                   0x80 as libc::c_int {
+            if (to_uchar(*str.offset(i as isize)) as libc::c_int) < 0x80 as libc::c_int {
                 let fresh0 = j;
                 j = j.wrapping_add(1);
                 *p.offset(fresh0 as isize) = *str.offset(i as isize)
-            } else if (to_uchar(*str.offset(i as isize)) as libc::c_int) <
-                          0xc0 as libc::c_int {
+            } else if (to_uchar(*str.offset(i as isize)) as libc::c_int) < 0xc0 as libc::c_int {
                 let fresh1 = j;
                 j = j.wrapping_add(1);
-                *p.offset(fresh1 as isize) =
-                    0xc2 as libc::c_int as libc::c_uchar as libc::c_char;
+                *p.offset(fresh1 as isize) = 0xc2 as libc::c_int as libc::c_uchar as libc::c_char;
                 let fresh2 = j;
                 j = j.wrapping_add(1);
                 *p.offset(fresh2 as isize) = *str.offset(i as isize)
             } else {
                 let fresh3 = j;
                 j = j.wrapping_add(1);
-                *p.offset(fresh3 as isize) =
-                    0xc3 as libc::c_int as libc::c_uchar as libc::c_char;
+                *p.offset(fresh3 as isize) = 0xc3 as libc::c_int as libc::c_uchar as libc::c_char;
                 let fresh4 = j;
                 j = j.wrapping_add(1);
                 *p.offset(fresh4 as isize) =
-                    (*str.offset(i as isize) as libc::c_int -
-                         64 as libc::c_int) as libc::c_char
+                    (*str.offset(i as isize) as libc::c_int - 64 as libc::c_int) as libc::c_char
             }
             i = i.wrapping_add(1)
         }
@@ -91,47 +85,40 @@ pub unsafe fn latin1toutf8(mut str: *const libc::c_char)
     return p;
 }
 #[no_mangle]
-pub unsafe fn utf8tolatin1ifpossible(passwd: *const libc::c_char)
- -> *mut libc::c_char {
+pub unsafe fn utf8tolatin1ifpossible(passwd: *const libc::c_char) -> *mut libc::c_char {
     let mut p: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut i: size_t = 0;
     i = 0 as libc::c_int as size_t;
     while *passwd.offset(i as isize) != 0 {
-        if to_uchar(*passwd.offset(i as isize)) as libc::c_int >
-               0x7f as libc::c_int {
-            if (to_uchar(*passwd.offset(i as isize)) as libc::c_int) <
-                   0xc0 as libc::c_int ||
-                   to_uchar(*passwd.offset(i as isize)) as libc::c_int >
-                       0xc3 as libc::c_int {
-                return strdup(passwd)
+        if to_uchar(*passwd.offset(i as isize)) as libc::c_int > 0x7f as libc::c_int {
+            if (to_uchar(*passwd.offset(i as isize)) as libc::c_int) < 0xc0 as libc::c_int
+                || to_uchar(*passwd.offset(i as isize)) as libc::c_int > 0xc3 as libc::c_int
+            {
+                return strdup(passwd);
             }
             i = i.wrapping_add(1);
-            if (to_uchar(*passwd.offset(i as isize)) as libc::c_int) <
-                   0x80 as libc::c_int ||
-                   to_uchar(*passwd.offset(i as isize)) as libc::c_int >
-                       0xbf as libc::c_int {
-                return strdup(passwd)
+            if (to_uchar(*passwd.offset(i as isize)) as libc::c_int) < 0x80 as libc::c_int
+                || to_uchar(*passwd.offset(i as isize)) as libc::c_int > 0xbf as libc::c_int
+            {
+                return strdup(passwd);
             }
         }
         i = i.wrapping_add(1)
     }
-    p = malloc(strlen(passwd).wrapping_add(1))
-            as *mut libc::c_char;
+    p = malloc(strlen(passwd).wrapping_add(1)) as *mut libc::c_char;
     if !p.is_null() {
         let mut j: size_t = 0 as libc::c_int as size_t;
         i = 0 as libc::c_int as size_t;
         while *passwd.offset(i as isize) != 0 {
-            if to_uchar(*passwd.offset(i as isize)) as libc::c_int >
-                   0x7f as libc::c_int {
+            if to_uchar(*passwd.offset(i as isize)) as libc::c_int > 0x7f as libc::c_int {
                 /* p[i+1] can't be zero here */
                 let fresh5 = j;
                 j = j.wrapping_add(1);
                 *p.offset(fresh5 as isize) =
-                    ((to_uchar(*passwd.offset(i as isize)) as libc::c_int &
-                          0x3 as libc::c_int) << 6 as libc::c_int |
-                         to_uchar(*passwd.offset(i.wrapping_add(1)
-                                                     as isize)) as libc::c_int
-                             & 0x3f as libc::c_int) as libc::c_char;
+                    ((to_uchar(*passwd.offset(i as isize)) as libc::c_int & 0x3 as libc::c_int)
+                        << 6 as libc::c_int
+                        | to_uchar(*passwd.offset(i.wrapping_add(1) as isize)) as libc::c_int
+                            & 0x3f as libc::c_int) as libc::c_char;
                 i = i.wrapping_add(1)
             } else {
                 let fresh6 = j;

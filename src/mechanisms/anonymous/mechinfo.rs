@@ -1,7 +1,6 @@
-use crate::{Mechanism, Mechname};
 use crate::mechanisms::anonymous::{client, server};
 use crate::Side;
-
+use crate::{Mechanism, Mechname};
 
 #[cfg(feature = "registry_static")]
 use crate::registry::{distributed_slice, MECHANISMS};

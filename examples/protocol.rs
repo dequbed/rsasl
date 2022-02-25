@@ -1,14 +1,11 @@
-use rsasl::{SASL};
-use rsasl::error::SASLError;
+
 use rsasl::mechname::Mechname;
-use rsasl::session::Session;
+
+use rsasl::SASL;
 
 fn main() {
     let sasl = SASL::new();
 
-    let a = "LOGIN PLAIN GSSAPI".split_whitespace()
-        .map(|s| Mechname::new(s.as_bytes()))
-        .filter_map(|s| s.ok());
     let presented = &[
         Mechname::const_new_unchecked(b"LOGIN"),
         Mechname::const_new_unchecked(b"PLAIN"),
@@ -17,7 +14,9 @@ fn main() {
         Mechname::const_new_unchecked(b"SCRAM-SHA-256"),
     ];
 
-    let suggested = sasl.client_start_suggested(presented.iter().map(|m| *m)).unwrap();
+    let suggested = sasl
+        .client_start_suggested(presented.iter().map(|m| *m))
+        .unwrap();
     println!("Suggested: {}", suggested.get_mechname());
     assert_eq!(suggested.get_mechname().as_str(), "SCRAM-SHA-256");
 }

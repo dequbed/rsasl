@@ -1,12 +1,12 @@
-use std::fmt::{Display, Formatter};
-use std::io::Write;
-use std::sync::Arc;
 use crate::error::{MechanismError, MechanismErrorKind};
 use crate::mechanism::Authentication;
 use crate::property::AuthId;
+use crate::session::Step::Done;
 use crate::session::{SessionData, StepResult};
 use crate::validate::validations::EXTERNAL;
-use crate::session::Step::Done;
+use std::fmt::{Display, Formatter};
+use std::io::Write;
+use std::sync::Arc;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct ParseError;
@@ -25,9 +25,12 @@ impl MechanismError for ParseError {
 pub struct External;
 
 impl Authentication for External {
-    fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, _writer: &mut dyn Write)
-        -> StepResult
-    {
+    fn step(
+        &mut self,
+        session: &mut SessionData,
+        input: Option<&[u8]>,
+        _writer: &mut dyn Write,
+    ) -> StepResult {
         if let Some(input) = input {
             if let Ok(authid) = std::str::from_utf8(input) {
                 session.set_property::<AuthId>(Arc::new(authid.to_string()));

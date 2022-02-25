@@ -1,16 +1,16 @@
-use ::libc;
 use crate::gsasl::consts::Gsasl_property;
 use crate::gsasl::consts::*;
 use crate::property::properties::*;
 use crate::session::SessionData;
-use crate::Shared;
 use crate::validate::validations::*;
+use crate::Shared;
+use ::libc;
 
-pub(crate) unsafe fn gsasl_callback(_ctx: *mut Shared,
-                             sctx: &mut SessionData,
-                             prop: Gsasl_property)
- -> libc::c_int {
-
+pub(crate) unsafe fn gsasl_callback(
+    _ctx: *mut Shared,
+    sctx: &mut SessionData,
+    prop: Gsasl_property,
+) -> libc::c_int {
     if let Some(cb) = sctx.callback.clone() {
         let res = match prop {
             GSASL_VALIDATE_SIMPLE => sctx.validate(SIMPLE),
@@ -21,8 +21,12 @@ pub(crate) unsafe fn gsasl_callback(_ctx: *mut Shared,
             GSASL_VALIDATE_ANONYMOUS => sctx.validate(ANONYMOUS),
             GSASL_VALIDATE_EXTERNAL => sctx.validate(EXTERNAL),
 
-            GSASL_OPENID20_AUTHENTICATE_IN_BROWSER => cb.provide_prop(sctx, OPENID20_AUTHENTICATE_IN_BROWSER),
-            GSASL_SAML20_AUTHENTICATE_IN_BROWSER => cb.provide_prop(sctx, SAML20_AUTHENTICATE_IN_BROWSER),
+            GSASL_OPENID20_AUTHENTICATE_IN_BROWSER => {
+                cb.provide_prop(sctx, OPENID20_AUTHENTICATE_IN_BROWSER)
+            }
+            GSASL_SAML20_AUTHENTICATE_IN_BROWSER => {
+                cb.provide_prop(sctx, SAML20_AUTHENTICATE_IN_BROWSER)
+            }
             GSASL_OPENID20_OUTCOME_DATA => cb.provide_prop(sctx, OPENID20_OUTCOME_DATA),
             GSASL_OPENID20_REDIRECT_URL => cb.provide_prop(sctx, OPENID20_REDIRECT_URL),
             GSASL_SAML20_REDIRECT_URL => cb.provide_prop(sctx, SAML20_REDIRECT_URL),
