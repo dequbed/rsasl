@@ -1,5 +1,6 @@
 use std::ffi::CString;
 use std::io::Cursor;
+use std::sync::Arc;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
 use rsasl::SASL;
@@ -15,8 +16,8 @@ pub fn test_scram_sha() {
         let mut client_session = client_sasl.client_start(Mechname::new(b"SCRAM-SHA-256").unwrap()).unwrap();
         let mut server_session = server_sasl.server_start(Mechname::new(b"SCRAM-SHA-256").unwrap()).unwrap();
 
-        let authid = Box::new("testuser".to_string());
-        let password = Box::new("secret".to_string());
+        let authid = Arc::new("testuser".to_string());
+        let password = Arc::new("secret".to_string());
 
         client_session.set_property::<AuthId>(authid.clone());
         client_session.set_property::<Password>(password.clone());

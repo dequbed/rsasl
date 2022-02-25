@@ -7,6 +7,7 @@ use std::sync::Arc;
 use base64::write::EncoderWriter;
 
 use crate::{Callback, Mechanism, Mechname, Property, SASLError};
+use crate::channel_bindings::ChannelBindingCallback;
 use crate::error::SessionError;
 use crate::gsasl::consts::{Gsasl_property, property_from_code};
 use crate::mechanism::Authentication;

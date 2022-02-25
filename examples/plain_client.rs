@@ -1,5 +1,6 @@
 use std::io;
 use std::io::Cursor;
+use std::sync::Arc;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
 use rsasl::SASL;
@@ -33,10 +34,10 @@ pub fn main() {
     print!("\n");
 
     // Set the username that will be used in the PLAIN authentication
-    session.set_property::<AuthId>(Box::new(username));
+    session.set_property::<AuthId>(Arc::new(username));
 
     // Now set the password that will be used in the PLAIN authentication
-    session.set_property::<Password>(Box::new(password));
+    session.set_property::<Password>(Arc::new(password));
 
 
     // Do an authentication step. In a PLAIN exchange there is only one step, with no data.

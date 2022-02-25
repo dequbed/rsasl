@@ -1,7 +1,7 @@
 use std::io::Cursor;
 use std::sync::Arc;
 use rsasl::callback::Callback;
-use rsasl::error::SASLError;
+use rsasl::error::SessionError;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
 use rsasl::SASL;
@@ -14,27 +14,29 @@ struct OurCallback;
 
 impl Callback for OurCallback {
     fn validate(&self, session: &mut SessionData, validation: Validation, mechanism: &Mechname)
-        -> Result<(), SASLError>
+        -> Result<(), SessionError>
     {
         println!("Asked to validate mech: {} w/ {}", mechanism, validation);
         match validation {
             validations::SIMPLE => {
                 // Access the authentication id, i.e. the username to check the password for
-                let authcid = session.get_property::<AuthId>()?;
+                let authcid = session.get_property::<AuthId>()
+                    .ok_or_else(SessionError::no_property::<AuthId>)?;
 
                 // Access the password itself
-                let password = session.get_property::<Password>()?;
+                let password = session.get_property::<Password>()
+                    .ok_or_else(SessionError::no_property::<Password>)?;
 
                 // For brevity sake we use hard-coded credentials here.
-                if authcid == "username"
-                    && password == "secret"
+                if authcid.as_str() == "username"
+                    && password.as_str() == "secret"
                 {
                     Ok(())
                 } else {
-                    Err(SASLError::AuthenticationFailure { reason: "bad username or password" })
+                    Err(SessionError::AuthenticationFailure)
                 }
             },
-            _ => Err(SASLError::NoValidate { validation })
+            _ => Err(SessionError::NoValidate { validation })
         }
     }
 }
@@ -50,8 +52,8 @@ pub fn main() {
         print!("Authenticating to server with correct password:\n   ");
         let mut session = sasl.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
         let step_result = session.step(Some(b"\0username\0secret"), &mut out);
-        assert_eq!(step_result, Ok(Done(None)));
-        print_outcome(step_result, out.into_inner());
+        print_outcome(&step_result, out.into_inner());
+        assert_eq!(step_result.unwrap(), Done(None));
     }
     // Authentication exchange 2
     {
@@ -59,8 +61,8 @@ pub fn main() {
         print!("Authenticating to server with wrong password:\n   ");
         let mut session = sasl.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
         let step_result = session.step(Some(b"\0username\0badpass"), &mut out);
-        assert_eq!(step_result, Err(SASLError::AuthenticationFailure { reason: "bad username or password" }));
-        print_outcome(step_result, out.into_inner());
+        print_outcome(&step_result, out.into_inner());
+        assert_eq!(step_result.unwrap_err(), SessionError::AuthenticationFailure);
     }
     // Authentication exchange 2
     {
@@ -68,12 +70,12 @@ pub fn main() {
         print!("Authenticating to server with malformed data:\n   ");
         let mut session = sasl.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
         let step_result = session.step(Some(b"\0username badpass"), &mut out);
-        assert_eq!(step_result, Err(SASLError::MechanismParseError));
-        print_outcome(step_result, out.into_inner());
+        print_outcome(&step_result, out.into_inner());
+        assert!(step_result.unwrap_err().is_mechanism_error());
     }
 }
 
-fn print_outcome(step_result: StepResult, buffer: Vec<u8>) {
+fn print_outcome(step_result: &StepResult, buffer: Vec<u8>) {
     match step_result {
         Ok(Step::Done(Some(_))) => {
             println!("Authentication successful, bytes to return to client: {:?}", buffer);
@@ -82,7 +84,7 @@ fn print_outcome(step_result: StepResult, buffer: Vec<u8>) {
             println!("Authentication successful, no data to return");
         }
         Ok(Step::NeedsMore(_)) => assert!(false, "PLAIN exchange took more than one step"),
-        Err(SASLError::Gsasl(GSASL_AUTHENTICATION_ERROR))
+        Err(SessionError::AuthenticationFailure)
             => println!("Authentication failed, bad username or password"),
         Err(e) => println!("Authentication errored: {}", e),
     }
