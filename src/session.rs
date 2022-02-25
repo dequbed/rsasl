@@ -29,14 +29,13 @@ pub struct Session {
 impl Session {
     pub(crate) fn new(
         callback: Option<Arc<dyn Callback>>,
-        global_properties: Arc<HashMap<Property, Arc<dyn Any + Send + Sync>>>,
         mechdesc: &'static Mechanism,
         mechanism: Box<dyn Authentication>,
         side: Side,
     ) -> Self {
         Self {
             mechanism,
-            session_data: SessionData::new(callback, global_properties, mechdesc, side),
+            session_data: SessionData::new(callback, mechdesc, side),
         }
     }
 
@@ -138,7 +137,6 @@ pub struct SessionData {
     //       where caching makes no sense much more reasonable to implement.
     pub(crate) callback: Option<Arc<dyn Callback>>,
     property_cache: HashMap<Property, Arc<dyn Any + Send + Sync>>,
-    global_properties: Arc<HashMap<Property, Arc<dyn Any + Send + Sync>>>,
     mechanism: &'static Mechanism,
     side: Side,
     channel_binding_data: Option<(&'static str, Box<[u8]>)>,
@@ -149,7 +147,6 @@ impl Debug for SessionData {
         f.debug_struct("SessionData")
             .field("has callback", &self.callback.is_some())
             .field("property cache", &self.property_cache)
-            .field("global properties", &self.global_properties)
             .finish()
     }
 }
@@ -174,14 +171,12 @@ pub type StepResult = Result<Step, SessionError>;
 impl SessionData {
     pub(crate) fn new(
         callback: Option<Arc<dyn Callback>>,
-        global_properties: Arc<HashMap<Property, Arc<dyn Any + Send + Sync>>>,
         mechanism: &'static Mechanism,
         side: Side,
     ) -> Self {
         Self {
             callback,
             property_cache: HashMap::new(),
-            global_properties,
             mechanism,
             side,
             channel_binding_data: None,
@@ -222,7 +217,6 @@ impl SessionData {
     pub fn get_property<P: PropertyQ>(&self) -> Option<Arc<P::Item>> {
         self.property_cache
             .get(&P::property())
-            .or_else(|| self.global_properties.get(&P::property()))
             .and_then(|prop| prop.clone().downcast::<P::Item>().ok())
     }
 
@@ -289,7 +283,6 @@ mod tests {
         let cbox = CB { data: 0 };
         let mut session = SessionData::new(
             Some(Arc::new(cbox)),
-            Arc::new(HashMap::new()),
             &PLAIN,
             Side::Client,
         );

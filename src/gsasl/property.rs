@@ -232,13 +232,12 @@ mod tests {
     use super::*;
     use crate::mechanisms::plain::mechinfo::PLAIN;
     use crate::Side;
-    use std::collections::HashMap;
     use std::ffi::CStr;
     use std::sync::Arc;
 
     #[test]
     fn property_get_set() {
-        let mut session = SessionData::new(None, Arc::new(HashMap::new()), &PLAIN, Side::Client);
+        let mut session = SessionData::new(None, &PLAIN, Side::Client);
 
         unsafe {
             let ptr = gsasl_property_fast(&mut session, GSASL_QOP);

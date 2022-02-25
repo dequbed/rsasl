@@ -86,9 +86,7 @@
 //      state (containing how much you've written too!)
 // 4. encode()/decode() security layer stuff. Please don't.
 
-use std::any::Any;
 use std::cmp::Ordering;
-use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
@@ -130,11 +128,6 @@ pub use property::{Property, PropertyQ};
 /// parallel, e.g. in a server context, you can wrap it in an [`std::sync::Arc`] to add cheap
 /// cloning.
 pub struct SASL {
-    /// Global data that is valid irrespective of context, such as e.g. a OAuth2 callback url or
-    /// a GSSAPI realm.
-    /// Can also be used to store properties such as username and password
-    pub global_data: Arc<HashMap<Property, Arc<dyn Any + Send + Sync>>>,
-
     pub callback: Option<Arc<dyn Callback>>,
 
     #[cfg(feature = "registry_dynamic")]
@@ -148,8 +141,7 @@ pub struct SASL {
 impl Debug for SASL {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut s = f.debug_struct("SASL");
-        s.field("global data", &self.global_data)
-            .field("has callback", &self.callback.is_some());
+        s.field("has callback", &self.callback.is_some());
         #[cfg(feature = "registry_dynamic")]
         s.field("registered mechanisms", &self.dynamic_mechs);
         #[cfg(feature = "registry_static")]
@@ -302,7 +294,6 @@ impl SASL {
     ) -> Session {
         Session::new(
             self.callback.clone(),
-            self.global_data.clone(),
             mechdesc,
             mechanism,
             side,
