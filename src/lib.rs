@@ -128,7 +128,7 @@ pub use property::{Property, PropertyQ};
 /// parallel, e.g. in a server context, you can wrap it in an [`std::sync::Arc`] to add cheap
 /// cloning.
 pub struct SASL {
-    pub callback: Option<Arc<dyn Callback>>,
+    pub callback: Option<Arc<dyn Callback + Send + Sync>>,
 
     #[cfg(feature = "registry_dynamic")]
     dynamic_mechs: Vec<&'static Mechanism>,

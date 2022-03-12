@@ -28,7 +28,7 @@ pub struct Session {
 
 impl Session {
     pub(crate) fn new(
-        callback: Option<Arc<dyn Callback>>,
+        callback: Option<Arc<dyn Callback + Send + Sync>>,
         mechdesc: &'static Mechanism,
         mechanism: Box<dyn Authentication>,
         side: Side,
@@ -135,7 +135,7 @@ impl Session {
 pub struct SessionData {
     // TODO: Move caching out of SessionData and into Callback. That makes no_std or situations
     //       where caching makes no sense much more reasonable to implement.
-    pub(crate) callback: Option<Arc<dyn Callback>>,
+    pub(crate) callback: Option<Arc<dyn Callback + Send + Sync>>,
     property_cache: HashMap<Property, Arc<dyn Any + Send + Sync>>,
     mechanism: &'static Mechanism,
     side: Side,
@@ -170,7 +170,7 @@ pub type StepResult = Result<Step, SessionError>;
 
 impl SessionData {
     pub(crate) fn new(
-        callback: Option<Arc<dyn Callback>>,
+        callback: Option<Arc<dyn Callback + Send + Sync>>,
         mechanism: &'static Mechanism,
         side: Side,
     ) -> Self {
