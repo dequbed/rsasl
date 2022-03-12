@@ -31,13 +31,13 @@ impl SASL {
         init::register_builtin(self);
     }
 
-    pub fn install_callback(&mut self, callback: Arc<dyn Callback>) {
+    pub fn install_callback(&mut self, callback: Arc<dyn Callback + Send + Sync>) {
         self.callback = Some(callback);
     }
 }
 
 pub struct Builder {
-    callback: Option<Arc<dyn Callback>>,
+    callback: Option<Arc<dyn Callback + Send + Sync>>,
     dynamic_mechs: Option<Vec<&'static Mechanism>>,
     static_mechs: Option<&'static [Mechanism]>,
     sort_fn: Option<fn(a: &&Mechanism, b: &&Mechanism) -> Ordering>,
