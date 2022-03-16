@@ -2,7 +2,6 @@ use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 use crate::property::Property;
 use crate::validate::Validation;
 use crate::{Mechname, PropertyQ};
-use base64::DecodeError;
 use std::cmp::min;
 use std::ffi::CStr;
 use std::fmt::{Debug, Display, Formatter};
@@ -166,6 +165,7 @@ impl PartialEq for SessionError {
     fn eq(&self, other: &Self) -> bool {
         use SessionError::*;
         match (self, other) {
+            #[cfg(feature = "base64")]
             (Base64 { source: a }, Base64 { source: b }) => a == b,
             (NoSecurityLayer, NoSecurityLayer) => true,
             (AuthenticationFailure, AuthenticationFailure) => true,
@@ -184,7 +184,7 @@ impl From<io::Error> for SessionError {
     }
 }
 
-#[cfg(feature = "provider_base64")]
+#[cfg(feature = "base64")]
 impl From<base64::DecodeError> for SessionError {
     fn from(source: base64::DecodeError) -> Self {
         Self::Base64 { source }
@@ -201,6 +201,8 @@ impl<T: MechanismError + 'static> From<T> for SessionError {
 pub enum SASLError {
     // outside errors
     Io { source: std::io::Error },
+
+    #[cfg(feature = "base64")]
     Base64DecodeError { source: base64::DecodeError },
 
     // setup errors
@@ -223,6 +225,7 @@ impl Debug for SASLError {
             SASLError::UnknownMechanism(mecharray) => {
                 write!(f, "UnknownMechanism(\"{}\")", mecharray)
             }
+            #[cfg(feature = "base64")]
             SASLError::Base64DecodeError { source } => Debug::fmt(source, f),
             SASLError::MechanismNameError(e) => Debug::fmt(e, f),
             SASLError::Gsasl(n) => write!(
@@ -243,6 +246,7 @@ impl Display for SASLError {
             SASLError::UnknownMechanism(mecharray) => {
                 write!(f, "mechanism {} is not implemented", mecharray)
             }
+            #[cfg(feature = "base64")]
             SASLError::Base64DecodeError { source } => Display::fmt(source, f),
             SASLError::MechanismNameError(e) => Display::fmt(e, f),
             SASLError::Gsasl(n) => write!(
@@ -264,8 +268,9 @@ impl From<MechanismNameError> for SASLError {
     }
 }
 
+#[cfg(feature = "base64")]
 impl From<base64::DecodeError> for SASLError {
-    fn from(source: DecodeError) -> Self {
+    fn from(source: base64::DecodeError) -> Self {
         SASLError::Base64DecodeError { source }
     }
 }

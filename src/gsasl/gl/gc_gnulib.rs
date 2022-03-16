@@ -1,10 +1,6 @@
 use ::libc;
-use digest::DynDigest;
-use hmac::{Hmac, Mac};
+use digest::{Digest, DynDigest};
 use libc::{__errno_location, getrandom, size_t, ssize_t};
-use md5::Md5;
-use sha1::Sha1;
-use sha2::Sha256;
 
 use crate::gsasl::gc::{Gc_rc, GC_INVALID_HASH, GC_OK, GC_RANDOM_ERROR};
 
@@ -143,7 +139,7 @@ pub unsafe fn gc_md5(
     mut inlen: size_t,
     mut resbuf: *mut libc::c_void,
 ) -> Gc_rc {
-    let mut hasher = Md5::default();
+    let mut hasher = md5::Md5::default();
     let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
     hasher.update(input);
     let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, hasher.output_size());
@@ -158,7 +154,7 @@ pub unsafe fn gc_sha1(
     mut inlen: size_t,
     mut resbuf: *mut libc::c_void,
 ) -> Gc_rc {
-    let mut hasher = Sha1::default();
+    let mut hasher = sha1::Sha1::default();
     let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
     hasher.update(input);
     let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, hasher.output_size());
@@ -173,7 +169,7 @@ pub unsafe fn gc_sha256(
     mut inlen: size_t,
     mut resbuf: *mut libc::c_void,
 ) -> Gc_rc {
-    let mut hasher = Sha256::default();
+    let mut hasher = sha2::Sha256::default();
     let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
     hasher.update(input);
     let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, hasher.output_size());
@@ -190,7 +186,7 @@ pub unsafe fn gc_hmac_md5(
     mut inlen: size_t,
     mut resbuf: *mut libc::c_char,
 ) -> Gc_rc {
-    type HmacMd5 = Hmac<Md5>;
+    type HmacMd5 = hmac::Hmac<md5::Md5>;
     let key = std::slice::from_raw_parts(key as *const u8, keylen);
 
     if let Ok(mut hasher) = HmacMd5::new_from_slice(key) {
@@ -212,7 +208,7 @@ pub unsafe fn gc_hmac_sha1(
     mut inlen: size_t,
     mut resbuf: *mut libc::c_char,
 ) -> Gc_rc {
-    type HmacSha1 = Hmac<Sha1>;
+    type HmacSha1 = hmac::Hmac<sha1::Sha1>;
     let key = std::slice::from_raw_parts(key as *const u8, keylen);
 
     if let Ok(mut hasher) = HmacSha1::new_from_slice(key) {
@@ -234,7 +230,7 @@ pub unsafe fn gc_hmac_sha256(
     mut inlen: size_t,
     mut resbuf: *mut libc::c_char,
 ) -> Gc_rc {
-    type HmacSha256 = Hmac<Sha256>;
+    type HmacSha256 = hmac::Hmac<sha2::Sha256>;
     let key = std::slice::from_raw_parts(key as *const u8, keylen);
 
     if let Ok(mut hasher) = HmacSha256::new_from_slice(key) {
