@@ -1,4 +1,3 @@
-use base64::write::EncoderWriter;
 use std::any::Any;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
@@ -124,6 +123,8 @@ impl Session {
         input: Option<impl AsRef<[u8]>>,
         writer: &mut impl Write,
     ) -> StepResult {
+        use base64::write::EncoderWriter;
+
         let input = input
             .map(|inp| base64::decode_config(inp.as_ref(), base64::STANDARD))
             .transpose()?;

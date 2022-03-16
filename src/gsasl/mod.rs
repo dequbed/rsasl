@@ -11,17 +11,26 @@ pub mod gsasl;
 
 pub mod gl {
     pub mod free;
+    #[cfg(feature = "digest")]
     pub mod gc_gnulib;
+    #[cfg(feature = "digest")]
     pub mod gc_pbkdf2;
     pub mod memxor;
 }
 
+#[cfg(feature = "base64")]
 pub mod base64;
 pub mod callback;
+
+#[cfg(feature = "digest")]
 pub mod crypto;
+
 pub mod error;
 pub mod free;
 pub mod gc;
+#[cfg(feature = "digest")]
 pub mod mechtools;
 pub mod property;
+
+#[cfg(feature = "saslprep")]
 pub mod saslprep;

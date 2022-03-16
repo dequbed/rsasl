@@ -1,4 +1,4 @@
-use crate::{init, registry, Callback, Mechanism, MECHANISMS, SASL};
+use crate::{init, registry, Callback, Mechanism, SASL};
 use std::cmp::Ordering;
 use std::sync::Arc;
 
@@ -38,33 +38,49 @@ impl SASL {
 
 pub struct Builder {
     callback: Option<Arc<dyn Callback + Send + Sync>>,
+
+    #[cfg(feature = "registry_dynamic")]
     dynamic_mechs: Option<Vec<&'static Mechanism>>,
+
+    #[cfg(feature = "registry_static")]
     static_mechs: Option<&'static [Mechanism]>,
+
     sort_fn: Option<fn(a: &&Mechanism, b: &&Mechanism) -> Ordering>,
 }
 impl Builder {
     pub fn new() -> Self {
         Self {
             callback: None,
+            #[cfg(feature = "registry_dynamic")]
             dynamic_mechs: None,
+            #[cfg(feature = "registry_static")]
             static_mechs: None,
             sort_fn: None,
         }
     }
     pub fn finish(self) -> SASL {
         let callback = self.callback;
+
+        #[cfg(feature = "registry_dynamic")]
         let dynamic_mechs = self.dynamic_mechs.unwrap_or_else(Vec::new);
-        let static_mechs = self.static_mechs.unwrap_or(&MECHANISMS);
+        #[cfg(feature = "registry_static")]
+        let static_mechs = self.static_mechs.unwrap_or(&registry::MECHANISMS);
+
         let sort_fn = self.sort_fn.unwrap_or(|a, b| a.priority.cmp(&b.priority));
 
         SASL {
             callback,
-            dynamic_mechs,
-            static_mechs,
             sort_fn,
+
+            #[cfg(feature = "registry_dynamic")]
+            dynamic_mechs,
+
+            #[cfg(feature = "registry_static")]
+            static_mechs,
         }
     }
 
+    #[cfg(feature = "registry_static")]
     pub fn with_static_mechs(mut self, static_mechs: &'static [Mechanism]) -> Self {
         self.static_mechs = Some(static_mechs);
         self

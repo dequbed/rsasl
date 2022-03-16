@@ -114,7 +114,7 @@ use crate::callback::Callback;
 use crate::error::SASLError;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
-use crate::registry::{Mechanism, MECHANISMS};
+use crate::registry::Mechanism;
 use crate::session::{Session, Side};
 pub use property::{Property, PropertyQ};
 
@@ -167,14 +167,14 @@ impl SASL {
         {
             #[cfg(feature = "registry_dynamic")]
             {
-                MECHANISMS
+                registry::MECHANISMS
                     .into_iter()
                     .chain(self.dynamic_mechs.iter().map(|m| *m))
                     .filter(|mechanism| mechanism.client.is_some())
             }
             #[cfg(not(feature = "registry_dynamic"))]
             {
-                MECHANISMS
+                registry::MECHANISMS
                     .into_iter()
                     .filter(|mechanism| mechanism.client.is_some())
             }
@@ -197,11 +197,11 @@ impl SASL {
         let statics = {
             #[cfg(feature = "registry_static")]
             {
-                MECHANISMS.into_iter()
+                IntoIterator::into_iter(registry::MECHANISMS)
             }
             #[cfg(not(feature = "registry_static"))]
             {
-                [].into_iter()
+                IntoIterator::into_iter([])
             }
         };
         let dynamics = {
@@ -216,7 +216,7 @@ impl SASL {
         };
         statics
             .chain(dynamics)
-            .filter(|mechanism| mechanism.server.is_some())
+            .filter(|mechanism: &&Mechanism| mechanism.server.is_some())
     }
 
     pub fn client_start_suggested<'a>(
