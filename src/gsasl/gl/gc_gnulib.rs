@@ -1,6 +1,10 @@
 use ::libc;
-use digest::{Digest, DynDigest};
+use digest::{Digest, KeyInit, Mac};
+use digest::generic_array::GenericArray;
 use libc::{__errno_location, getrandom, size_t, ssize_t};
+use md5::Md5;
+use sha1::Sha1;
+use sha2::Sha256;
 
 use crate::gsasl::gc::{Gc_rc, GC_INVALID_HASH, GC_OK, GC_RANDOM_ERROR};
 
@@ -142,10 +146,9 @@ pub unsafe fn gc_md5(
     let mut hasher = md5::Md5::default();
     let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
     hasher.update(input);
-    let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, hasher.output_size());
-    if let Err(_) = hasher.finalize_into(output) {
-        return GC_RANDOM_ERROR;
-    }
+    let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, Md5::output_size());
+    let output = GenericArray::from_mut_slice(output);
+    hasher.finalize_into(output);
     return GC_OK;
 }
 
@@ -157,10 +160,9 @@ pub unsafe fn gc_sha1(
     let mut hasher = sha1::Sha1::default();
     let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
     hasher.update(input);
-    let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, hasher.output_size());
-    if let Err(_) = hasher.finalize_into(output) {
-        return GC_RANDOM_ERROR;
-    }
+    let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, Sha1::output_size());
+    let output = GenericArray::from_mut_slice(output);
+    hasher.finalize_into(output);
     return GC_OK;
 }
 
@@ -172,10 +174,9 @@ pub unsafe fn gc_sha256(
     let mut hasher = sha2::Sha256::default();
     let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
     hasher.update(input);
-    let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, hasher.output_size());
-    if let Err(_) = hasher.finalize_into(output) {
-        return GC_RANDOM_ERROR;
-    }
+    let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, Sha256::output_size());
+    let output = GenericArray::from_mut_slice(output);
+    hasher.finalize_into(output);
     return GC_OK;
 }
 
@@ -189,7 +190,7 @@ pub unsafe fn gc_hmac_md5(
     type HmacMd5 = hmac::Hmac<md5::Md5>;
     let key = std::slice::from_raw_parts(key as *const u8, keylen);
 
-    if let Ok(mut hasher) = HmacMd5::new_from_slice(key) {
+    if let Ok(mut hasher) = <HmacMd5 as Mac>::new_from_slice(key) {
         let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
         hasher.update(input);
         let hash = hasher.finalize().into_bytes();
@@ -211,7 +212,7 @@ pub unsafe fn gc_hmac_sha1(
     type HmacSha1 = hmac::Hmac<sha1::Sha1>;
     let key = std::slice::from_raw_parts(key as *const u8, keylen);
 
-    if let Ok(mut hasher) = HmacSha1::new_from_slice(key) {
+    if let Ok(mut hasher) = <HmacSha1 as Mac>::new_from_slice(key) {
         let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
         hasher.update(input);
         let hash = hasher.finalize().into_bytes();
@@ -233,7 +234,7 @@ pub unsafe fn gc_hmac_sha256(
     type HmacSha256 = hmac::Hmac<sha2::Sha256>;
     let key = std::slice::from_raw_parts(key as *const u8, keylen);
 
-    if let Ok(mut hasher) = HmacSha256::new_from_slice(key) {
+    if let Ok(mut hasher) = <HmacSha256 as Mac>::new_from_slice(key) {
         let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
         hasher.update(input);
         let hash = hasher.finalize().into_bytes();
