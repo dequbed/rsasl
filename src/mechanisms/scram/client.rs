@@ -2,9 +2,12 @@ use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::marker::PhantomData;
 use std::ptr::NonNull;
+use std::sync::Arc;
 
 use ::libc;
-use hmac::Hmac;
+use digest::crypto_common::BlockSizeUser;
+use digest::Digest;
+use digest::generic_array::GenericArray;
 use libc::{calloc, malloc, memcmp, memcpy, size_t, strchr, strcmp, strdup, strlen};
 use rand::distributions::{Distribution, Slice};
 use rand::Rng;
@@ -39,7 +42,7 @@ use crate::mechanisms::scram::tokens::{
     scram_free_client_final, scram_free_client_first, scram_free_server_final,
     scram_free_server_first,
 };
-use crate::mechanisms::scram::tools::{find_proofs, hash_password, set_saltedpassword};
+use crate::mechanisms::scram::tools::{find_proofs, hash_password, set_saltedpassword, DOutput};
 use crate::property::{AuthId, AuthzId, Password};
 use crate::session::Step::NeedsMore;
 use crate::session::{SessionData, Step, StepResult};
@@ -50,12 +53,16 @@ use crate::{Authentication, Shared};
 const PRINTABLE: &'static [u8] =
     b"!\"#$%&'()*+-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxy";
 
-pub struct ScramClient<const N: usize> {
+pub type ScramSha256Client<const N: usize> = ScramClient<sha2::Sha256, N>;
+pub type ScramSha512Client<const N: usize> = ScramClient<sha2::Sha512, N>;
+pub type ScramSha1Client<const N: usize> = ScramClient<sha1::Sha1, N>;
+
+pub struct ScramClient<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> {
     plus: bool,
-    state: Option<ScramClientState<N>>,
+    state: Option<ScramClientState<D, N>>,
 }
 
-impl<const N: usize> ScramClient<N> {
+impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> ScramClient<D, N> {
     pub fn new() -> Self {
         Self {
             plus: false,
@@ -64,10 +71,10 @@ impl<const N: usize> ScramClient<N> {
     }
 }
 
-enum ScramClientState<const N: usize> {
+enum ScramClientState<D: Digest + BlockSizeUser, const N: usize> {
     Initial(State<StateClientFirst<N>>),
-    ClientFirst(State<WaitingServerFirst<N>>),
-    ServerFirst(State<WaitingServerFinal<32>>),
+    ClientFirst(State<WaitingServerFirst<D, N>>),
+    ServerFirst(State<WaitingServerFinal<D>>),
 }
 
 struct State<S> {
@@ -83,14 +90,14 @@ impl<const N: usize> State<StateClientFirst<N>> {
         }
     }
 
-    pub fn step(
+    pub fn step<D: Digest + BlockSizeUser + Clone + Sync>(
         self,
         rng: &mut impl Rng,
         authzid: Option<&str>,
-        username: Box<SaslName>,
+        username: Arc<String>,
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<State<WaitingServerFirst<N>>, SessionError> {
+    ) -> Result<State<WaitingServerFirst<D, N>>, SessionError> {
         let cbflag = if let Some((name, _)) = self.cbdata.as_ref() {
             GS2CBindFlag::Used(name)
         } else {
@@ -106,14 +113,14 @@ impl<const N: usize> State<StateClientFirst<N>> {
     }
 }
 
-impl<const N: usize> State<WaitingServerFirst<N>> {
+impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> State<WaitingServerFirst<D, N>> {
     pub fn step(
         self,
         password: &str,
         server_first: &[u8],
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<State<WaitingServerFinal<32>>, SessionError> {
+    ) -> Result<State<WaitingServerFinal<D>>, SessionError> {
         let cbdata = self.cbdata.map(|(_, b)| b);
         let state =
             self.state
@@ -125,7 +132,7 @@ impl<const N: usize> State<WaitingServerFirst<N>> {
     }
 }
 
-impl<const N: usize> State<WaitingServerFinal<N>> {
+impl<D: Digest + BlockSizeUser> State<WaitingServerFinal<D>> {
     pub fn step(self, server_final: &[u8]) -> Result<(), SessionError> {
         match self.state.handle_server_final(server_final) {
             Ok(StateServerFinal { .. }) => Ok(()),
@@ -157,15 +164,15 @@ impl<const N: usize> StateClientFirst<N> {
         Self { nonce: PhantomData }
     }
 
-    pub fn send_client_first(
+    pub fn send_client_first<D: Digest + BlockSizeUser + Clone + Sync>(
         self,
         rng: &mut impl Rng,
         cbflag: GS2CBindFlag<'_>,
         authzid: Option<&str>,
-        username: Box<SaslName>,
+        username: Arc<String>,
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<WaitingServerFirst<N>, SessionError> {
+    ) -> Result<WaitingServerFirst<D, N>, SessionError> {
         // The PRINTABLE slice is const not empty which is the only failure case we unwrap.
         let distribution = Slice::new(PRINTABLE).unwrap();
         let client_nonce: [u8; N] = [0u8; N].map(|_| *distribution.sample(rng));
@@ -195,7 +202,7 @@ impl<const N: usize> StateClientFirst<N> {
 }
 
 // Waiting for first server msg
-struct WaitingServerFirst<const N: usize> {
+struct WaitingServerFirst<D: Digest + BlockSizeUser, const N: usize> {
     // Provided user password to be hashed with salt & iteration count from Server First Message
     //password: &'static str,
     //cbdata: Option<&[u8]>
@@ -205,7 +212,7 @@ struct WaitingServerFirst<const N: usize> {
     // Need to compare combined_nonce to be valid
     client_nonce: [u8; N],
 
-    username: Box<SaslName>,
+    username: Arc<String>,
     // Input <= Server First Message { combined_nonce, salt, iteration_count }
 
     // Validate: len combined_nonce > len client_nonce
@@ -216,14 +223,16 @@ struct WaitingServerFirst<const N: usize> {
 
     // Output => ClientFinalMessage c=channel_binding,r=combined_nonce,p=proof
     // State => server_hmac
+    digest: PhantomData<D>,
 }
 
-impl<const N: usize> WaitingServerFirst<N> {
-    pub fn new(gs2_header: Vec<u8>, client_nonce: [u8; N], username: Box<SaslName>) -> Self {
+impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirst<D, N> {
+    pub fn new(gs2_header: Vec<u8>, client_nonce: [u8; N], username: Arc<String>) -> Self {
         Self {
             gs2_header,
             client_nonce,
             username,
+            digest: PhantomData,
         }
     }
 
@@ -234,7 +243,7 @@ impl<const N: usize> WaitingServerFirst<N> {
         server_first: &[u8],
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<WaitingServerFinal<32>, SessionError> {
+    ) -> Result<WaitingServerFinal<D>, SessionError> {
         let ServerFirst {
             nonce,
             salt,
@@ -255,21 +264,21 @@ impl<const N: usize> WaitingServerFirst<N> {
         }
 
         let salt = base64::decode(salt).unwrap();
-        let mut salted_password = [0u8; 32];
-        hash_password::<Hmac<sha2::Sha256>>(password, iterations, &salt[..], &mut salted_password);
+        let mut salted_password = GenericArray::default();
+        hash_password::<D>(password, iterations, &salt[..], &mut salted_password);
 
         self.gs2_header
             .extend_from_slice(cbdata.as_ref().map(|b| b.as_ref()).unwrap_or(&[]));
         let gs2headerb64 = base64::encode(self.gs2_header);
 
         let (client_proof, server_signature) =
-            find_proofs::<sha2::Sha256, Hmac<sha2::Sha256>, digest::consts::U32>(
+            find_proofs::<D>(
                 self.username.as_str(),
                 &self.client_nonce[..],
                 server_first,
                 &gs2headerb64,
                 nonce,
-                &salted_password[..],
+                &salted_password,
             );
 
         let proof = base64::encode(client_proof.as_slice());
@@ -279,17 +288,14 @@ impl<const N: usize> WaitingServerFirst<N> {
         let mut vecw = VectoredWriter::new(b);
         *written = vecw.write_all_vectored(writer)?;
 
-        let mut server_sig = [0u8; 32];
-        server_sig.copy_from_slice(server_signature.as_ref());
-
-        Ok(WaitingServerFinal::new(server_sig))
+        Ok(WaitingServerFinal::new(server_signature))
     }
 }
 
 // Waiting for final server msg
-struct WaitingServerFinal<const H: usize> {
+struct WaitingServerFinal<D: Digest + BlockSizeUser> {
     // State <= server_hmac
-    server_sig: [u8; H],
+    server_sig: DOutput<D>,
     // Input <= Server Final Message ( verifier | error )
 
     // Validate: verifier == server_hmac
@@ -299,14 +305,14 @@ struct WaitingServerFinal<const H: usize> {
     // State => Nothing
 }
 
-impl<const H: usize> WaitingServerFinal<H> {
-    pub fn new(server_sig: [u8; H]) -> Self {
+impl<D: Digest + BlockSizeUser> WaitingServerFinal<D> {
+    pub fn new(server_sig: DOutput<D>) -> Self {
         Self { server_sig }
     }
 
     pub fn handle_server_final(self, server_final: &[u8]) -> Result<StateServerFinal, SCRAMError> {
         match ServerFinal::parse(server_final)? {
-            ServerFinal::Verifier(verifier) if verifier == self.server_sig => {
+            ServerFinal::Verifier(verifier) if verifier == self.server_sig.as_slice() => {
                 Ok(StateServerFinal {})
             }
             ServerFinal::Verifier(_) => {
@@ -320,7 +326,7 @@ impl<const H: usize> WaitingServerFinal<H> {
 
 struct StateServerFinal {}
 
-impl<const N: usize> Authentication for ScramClient<N> {
+impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication for ScramClient<D, N> {
     fn step(
         &mut self,
         session: &mut SessionData,
@@ -344,10 +350,7 @@ impl<const N: usize> Authentication for ScramClient<N> {
                 let authid = session
                     .get_property_or_callback::<AuthId>()?
                     .ok_or(SessionError::no_property::<AuthId>())?;
-                let username_escaped = SaslName::escape(&authid).unwrap();
-                let username =
-                    SaslName::from_boxed_str(username_escaped.into_owned().into_boxed_str())
-                        .expect("escaped SaslName contained invalid chars");
+                let username = SaslName::escape(authid).unwrap();
 
                 let mut rng = rand::thread_rng();
                 let mut written = 0;

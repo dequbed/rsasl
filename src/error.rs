@@ -6,6 +6,7 @@ use std::cmp::min;
 use std::ffi::CStr;
 use std::fmt::{Debug, Display, Formatter};
 use std::{fmt, io};
+use crate::mechname::MechanismNameError;
 
 pub type Result<T> = std::result::Result<T, SASLError>;
 
@@ -54,12 +55,12 @@ pub enum MechanismErrorKind {
 }
 
 /// Errors specific to a certain mechanism
-pub trait MechanismError: Debug + Display {
+pub trait MechanismError: Debug + Display + Send + Sync {
     fn kind(&self) -> MechanismErrorKind;
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Gsasl(pub i32);
+pub struct Gsasl(pub libc::c_uint);
 impl Debug for Gsasl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str(rsasl_errname_to_str(self.0 as u32).unwrap_or("UNKNOWN_ERROR"))
@@ -111,6 +112,8 @@ pub enum SessionError {
         property: Property,
     },
 }
+static_assertions::assert_impl_all!(SessionError: Send, Sync);
+
 impl SessionError {
     pub fn no_property<P: PropertyQ>() -> Self {
         Self::NoProperty {
@@ -209,7 +212,7 @@ pub enum SASLError {
     UnknownMechanism(MechanismArray),
     NoSharedMechanism,
     MechanismNameError(MechanismNameError),
-    Gsasl(i32),
+    Gsasl(libc::c_uint),
 }
 
 impl SASLError {
@@ -231,7 +234,7 @@ impl Debug for SASLError {
             SASLError::Gsasl(n) => write!(
                 f,
                 "{}[{}]",
-                rsasl_errname_to_str(*n as u32).unwrap_or("UNKNOWN_ERROR"),
+                rsasl_errname_to_str(*n).unwrap_or("UNKNOWN_ERROR"),
                 n
             ),
             SASLError::NoSharedMechanism => f.write_str("NoSharedMechanism"),
@@ -252,7 +255,7 @@ impl Display for SASLError {
             SASLError::Gsasl(n) => write!(
                 f,
                 "({}): {}",
-                rsasl_errname_to_str(*n as u32).unwrap_or("UNKNOWN_ERROR"),
+                rsasl_errname_to_str(*n).unwrap_or("UNKNOWN_ERROR"),
                 gsasl_err_to_str_internal(*n)
             ),
             SASLError::NoSharedMechanism => f.write_str("no shared mechanism found to use"),
@@ -281,47 +284,14 @@ impl From<std::io::Error> for SASLError {
     }
 }
 
-impl From<i32> for SASLError {
-    fn from(e: i32) -> Self {
+impl From<libc::c_uint> for SASLError {
+    fn from(e: libc::c_uint) -> Self {
         SASLError::Gsasl(e)
     }
 }
 
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
-pub enum MechanismNameError {
-    /// Mechanism name longer than 20 characters
-    TooLong,
-
-    /// Mechanism name shorter than 1 character
-    TooShort,
-
-    /// Mechanism name contained a character outside of [A-Z0-9-_]
-    InvalidChars(u8),
-}
-
-impl Display for MechanismNameError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            MechanismNameError::TooLong => {
-                f.write_str("a mechanism name longer than 20 characters was provided")
-            }
-            MechanismNameError::TooShort => f.write_str("mechanism name can't be an empty string"),
-            MechanismNameError::InvalidChars(byte)
-                if !byte.is_ascii() || byte.is_ascii_whitespace() || byte.is_ascii_control() =>
-            {
-                write!(f, "mechanism name contains invalid character {:#x}", byte)
-            }
-            MechanismNameError::InvalidChars(byte) => write!(
-                f,
-                "mechanism name contains invalid character '{char}'",
-                char = char::from_u32(*byte as u32).unwrap()
-            ),
-        }
-    }
-}
-
 /// Convert an error code to a human readable description of that error
-pub fn rsasl_err_to_str(err: libc::c_int) -> Option<&'static str> {
+pub fn rsasl_err_to_str(err: libc::c_uint) -> Option<&'static str> {
     // gsasl returns the normal zero-terminated string
     let cstr = unsafe {
         let ptr = gsasl_strerror(err as libc::c_int);
@@ -341,14 +311,14 @@ pub fn rsasl_err_to_str(err: libc::c_int) -> Option<&'static str> {
 
 /// Convert an error code to a human readable description of that error
 #[deprecated(since = "1.1.0", note = "Use rsasl_err_to_str as replacement")]
-pub fn gsasl_err_to_str(err: libc::c_int) -> &'static str {
+pub fn gsasl_err_to_str(err: libc::c_uint) -> &'static str {
     gsasl_err_to_str_internal(err)
 }
 
-fn gsasl_err_to_str_internal(err: libc::c_int) -> &'static str {
+fn gsasl_err_to_str_internal(err: libc::c_uint) -> &'static str {
     // gsasl returns the normal zero-terminated string
     let cstr = unsafe {
-        let ptr = gsasl_strerror(err);
+        let ptr = gsasl_strerror(err as libc::c_int);
         if ptr.is_null() {
             return UNKNOWN_ERROR;
         }
@@ -385,10 +355,10 @@ pub fn rsasl_errname_to_str(err: libc::c_uint) -> Option<&'static str> {
 /// Convert an error code to the human readable name of that error.
 /// i.e. gsasl_errname_to_str(GSASL_OK) -> "GSASL_OK"
 #[deprecated]
-pub fn gsasl_errname_to_str(err: libc::c_int) -> &'static str {
+pub fn gsasl_errname_to_str(err: libc::c_uint) -> &'static str {
     // gsasl returns the normal zero-terminated string
     let cstr = unsafe {
-        let ptr = gsasl_strerror_name(err);
+        let ptr = gsasl_strerror_name(err as libc::c_int);
         if ptr.is_null() {
             return UNKNOWN_ERROR;
         }
