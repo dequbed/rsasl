@@ -86,7 +86,7 @@ impl CMechanismStateKeeper {
         if let Some(start) = vtable.start {
             let rc = unsafe { start(&Shared, &mut mech_data) };
             if rc != GSASL_OK as i32 {
-                return Err(SASLError::Gsasl(rc));
+                return Err(SASLError::Gsasl(rc as libc::c_uint));
             }
         }
 
@@ -139,11 +139,11 @@ impl Authentication for CMechanismStateKeeper {
                 } else if res == GSASL_NEEDS_MORE as libc::c_int {
                     Ok(NeedsMore(write_output(writer, output, outlen)?))
                 } else {
-                    Err(Gsasl(res).into())
+                    Err(Gsasl(res as libc::c_uint).into())
                 }
             }
         } else {
-            Err(Gsasl(GSASL_UNKNOWN_MECHANISM as i32).into())
+            Err(Gsasl(GSASL_UNKNOWN_MECHANISM as libc::c_uint).into())
         }
     }
 }

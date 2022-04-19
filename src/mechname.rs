@@ -1,8 +1,8 @@
-use crate::error::MechanismNameError;
-use crate::error::MechanismNameError::{InvalidChars, TooLong, TooShort};
 use std::convert::TryFrom;
+use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
+use crate::mechname::MechanismNameError::InvalidChar;
 
 #[repr(transparent)]
 #[derive(Ord, PartialOrd, Eq, PartialEq)]
@@ -14,20 +14,29 @@ use std::ops::Deref;
 ///
 /// The main way to construct a `&Mechanism` is by calling [`Mechanism::new`]. This type
 /// implements `Deref<Target=str>` so it can be used anywhere where `&str` is expected.
+///
+/// Alternatively the methods [`Mechname::as_str`] and [`Mechname::as_bytes`] can be used to
+/// manually extract a `&str` and `&[u8]` respectively.
+///
+/// Note: While RFC 2222 Section 3 explicitly limits Mechanism name to 20 characters or less you
+/// **SHOULD NOT** rely on this behaviour as there are currently-used mechanisms that break this
+/// rule, e.g. `ECDSA-NIST256P-CHALLENGE` (25 chars) used by some IRCv3 implementations.
 pub struct Mechname {
     inner: [u8],
 }
 
 impl Mechname {
-    /// `const` capable conversion from `&'a str` to `&'a Mechname`. This is safe from a memory
-    /// protection standpoint since `&Mechname` and `&str` have the exact same representation but
-    /// it can be used to break the contract of `Mechname` which may result in undefined behaviour.
+    /// `const` capable conversion from `&'a str` to `&'a Mechname`.
+    ///
+    /// This is safe from a memory protection standpoint since `&Mechname` and `&str` have the
+    /// exact same representation but it can be used to break the contract of `Mechname` which may
+    /// result in undefined behaviour.
     /// This function uses const parameters to check the length of the passed Mechanism and will
     /// fail to compile (with a rather cryptic message) when passed a `const [u8]` that's shorter
     /// than 1 char or longer than 20.
     ///
     /// Uses transmute due to [rustc issue #51911](https://github.com/rust-lang/rust/issues/51911)
-    pub const fn const_new_unchecked<const LEN: usize>(s: &'static [u8; LEN]) -> &Mechname
+    pub const fn const_new_unchecked<const LEN: usize>(s: &'static [u8; LEN]) -> &'static Mechname
     where
         CheckLen<LEN>: IsOk,
     {
@@ -35,21 +44,34 @@ impl Mechname {
         unsafe { std::mem::transmute(r) }
     }
 
-    pub(crate) fn new_unchecked<S: AsRef<[u8]> + ?Sized>(s: &S) -> &Mechname {
+    /// Convert a byte slice into an `&Mechname` without checking validity.
+    ///
+    /// Like [`Mechname::const_new_unchecked`] this is not marked `unsafe` because it is save
+    /// from a Memory protection POV, just potentially may result in (memory-safe!) bugs if the
+    /// given slice is invalid.
+    pub fn new_unchecked<'a, S: AsRef<[u8]> + 'a>(s: S) -> &'a Mechname {
         unsafe { &*(s.as_ref() as *const [u8] as *const Mechname) }
     }
 
+    /// Convert a byte slice into a `&Mechname` after checking it for validity.
+    ///
+    ///
     pub fn new(input: &[u8]) -> Result<&Mechname, MechanismNameError> {
         if input.len() < 1 {
-            Err(TooShort)
+            Err(MechanismNameError::TooShort)
         } else if input.len() > 20 {
-            Err(TooLong)
+            Err(MechanismNameError::TooLong)
         } else {
-            if let Some(byte) = input.iter().find(|byte| is_invalid(*byte)) {
-                Err(InvalidChars(*byte))
+            let len = input.iter().try_fold(0usize, |index, value| if is_invalid(*value) {
+                Err(InvalidChar { index, value: *value })
             } else {
-                Ok(Mechname::new_unchecked(input))
-            }
+                Ok(index + 1)
+            })?;
+            // The above fold should have run for *all* bytes in input and thus the index should
+            // be equivalent to the length of the input
+            debug_assert_eq!(len, input.len());
+
+            Ok(Mechname::new_unchecked(input))
         }
     }
 
@@ -105,26 +127,61 @@ impl Deref for Mechname {
     }
 }
 
-pub fn try_parse_mechanism_lenient(input: &[u8]) -> Result<&Mechname, MechanismNameError> {
-    if input.len() < 1 {
-        Err(TooShort)
-    } else {
-        if let Some(subslice) = input.split(is_invalid).next() {
-            Mechname::new(subslice)
-        } else {
-            Err(InvalidChars(input[0]))
+#[inline(always)]
+pub fn is_invalid(byte: u8) -> bool {
+    !(is_valid(byte))
+}
+
+#[inline(always)]
+pub fn is_valid(byte: u8) -> bool {
+    // VALID characters are one of A-Z, 0-9 or - or _
+    byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'-' || byte == b'_'
+}
+
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+pub enum MechanismNameError {
+    /// Mechanism name longer than 20 characters
+    TooLong,
+
+    /// Mechanism name shorter than 1 character
+    TooShort,
+
+    /// Mechanism name contained a character outside of [A-Z0-9-_] at `index`
+    ///
+    ///
+    InvalidChar {
+        /// Index of the invalid character byte
+        index: usize,
+        /// Value of the invalid character byte
+        value: u8,
+    },
+}
+
+impl Display for MechanismNameError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            MechanismNameError::TooLong => {
+                f.write_str("a mechanism name longer than 20 characters was provided")
+            }
+            MechanismNameError::TooShort => f.write_str("mechanism name can't be an empty string"),
+            MechanismNameError::InvalidChar { index, value }
+            if value.is_ascii_alphanumeric() => write!(
+                f,
+                "mechanism name contains invalid character '{char}' at index {}",
+                index,
+                char = unsafe {
+                    // SAFETY: Pattern guard guarantees this is a valid ASCII char so also a valid
+                    // UTF-8 Unicode Scalar Value
+                    char::from_u32_unchecked(*value as u32)
+                },
+            ),
+            MechanismNameError::InvalidChar { index, value } => {
+                write!(f, "mechanism name contains invalid byte {:#x} at index {}", value, index)
+            }
         }
     }
 }
 
-pub fn is_invalid(byte: &u8) -> bool {
-    let byte = *byte;
-    let is_let = byte.is_ascii_uppercase();
-    let is_num = byte.is_ascii_digit();
-    let is_sym = byte == b'-' || byte == b'_';
-
-    !(is_let || is_num || is_sym)
-}
 
 pub trait IsOk {}
 pub struct CheckLen<const N: usize>;

@@ -1,5 +1,5 @@
 use ::libc;
-use digest::{Digest, KeyInit, Mac};
+use digest::{Digest, Mac};
 use digest::generic_array::GenericArray;
 use libc::{__errno_location, getrandom, size_t, ssize_t};
 use md5::Md5;

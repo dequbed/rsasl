@@ -1,6 +1,6 @@
 use crate::gsasl::consts::GSASL_OK;
 use crate::gsasl::gl::free::rpl_free;
-use crate::gsasl::gl::gc_gnulib::{gc_nonce, gc_random};
+use crate::gsasl::gl::gc_gnulib::{gc_nonce};
 use crate::gsasl::mechtools::{
     Gsasl_hash, _gsasl_hash, _gsasl_hmac, _gsasl_pbkdf2, GSASL_HASH_SHA1_SIZE,
     GSASL_HASH_SHA256_SIZE,

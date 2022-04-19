@@ -1,7 +1,6 @@
 use crate::property::properties::*;
 use crate::Property;
 
-pub type RsaslError = libc::c_uint;
 pub const GSASL_IO_ERROR: libc::c_uint = 65;
 pub const GSASL_GSSAPI_RELEASE_OID_SET_ERROR: libc::c_uint = 64;
 pub const GSASL_GSSAPI_TEST_OID_SET_MEMBER_ERROR: libc::c_uint = 63;

@@ -4,39 +4,38 @@ use crate::gsasl::mechtools::{Gsasl_hash, _gsasl_hex_encode};
 use crate::gsasl::property::gsasl_property_set;
 use crate::session::SessionData;
 use ::libc;
-use digest::generic_array::{ArrayLength, GenericArray};
-use digest::Mac;
+use digest::crypto_common::BlockSizeUser;
+use digest::generic_array::GenericArray;
+use digest::{Digest, Mac, OutputSizeUser};
+use hmac::SimpleHmac;
 
-pub fn hash_password<PRF>(password: &str, iterations: u32, salt: &[u8], out: &mut [u8])
+pub(super) type DOutput<D> = GenericArray<u8, <SimpleHmac<D> as OutputSizeUser>::OutputSize>;
+
+pub fn hash_password<D>(password: &str, iterations: u32, salt: &[u8], out: &mut DOutput<D>)
 where
-    PRF: digest::Update + digest::FixedOutput + digest::KeyInit + Clone + Sync,
+    D: Digest + BlockSizeUser + Clone + Sync
 {
-    pbkdf2::pbkdf2::<PRF>(password.as_bytes(), salt, iterations, out);
+    pbkdf2::pbkdf2::<SimpleHmac<D>>(password.as_bytes(), salt, iterations, out.as_mut_slice());
 }
 
-pub fn find_proofs<D, HMAC, HL>(
+pub fn find_proofs<D>(
     username: &str,
     client_nonce: &[u8],
     server_first: &[u8],
     gs2headerb64: &str,
     combined_nonce: &[u8],
-    salted_password: &[u8],
-) -> (GenericArray<u8, HL>, GenericArray<u8, HL>)
-where
-    D: digest::Digest,
-    HMAC: digest::Mac
-        + digest::KeyInit
-        + digest::OutputSizeUser
-        + digest::OutputSizeUser<OutputSize = HL>,
-    HL: ArrayLength<u8>,
+    salted_password: &DOutput<D>
+) -> (DOutput<D>, DOutput<D>)
+where D: Digest + BlockSizeUser,
 {
     let mut salted_password_hmac =
-        <HMAC as Mac>::new_from_slice(salted_password).expect("HMAC can work with any key size");
+        <SimpleHmac<D>>::new_from_slice(salted_password.as_slice())
+            .expect("HMAC can work with any key size");
     salted_password_hmac.update(b"Client Key");
     let mut client_key = salted_password_hmac.finalize().into_bytes();
 
     let mut salted_password_hmac =
-        <HMAC as Mac>::new_from_slice(salted_password).expect("HMAC can work with any key size");
+        <SimpleHmac<D>>::new_from_slice(salted_password).expect("HMAC can work with any key size");
     salted_password_hmac.update(b"Server Key");
     let server_key = salted_password_hmac.finalize().into_bytes();
 
@@ -61,7 +60,7 @@ where
         .map(|b| *b)
         .collect();
 
-    let mut stored_key_hmac = <HMAC as Mac>::new_from_slice(stored_key.as_ref())
+    let mut stored_key_hmac = <SimpleHmac<D>>::new_from_slice(stored_key.as_ref())
         .expect("HMAC can work with any key size");
     for part in auth_message_parts {
         stored_key_hmac.update(part);
@@ -77,7 +76,7 @@ where
             .for_each(|(a, b)| *a ^= b);
     }
 
-    let mut server_key_hmac = <HMAC as Mac>::new_from_slice(server_key.as_ref())
+    let mut server_key_hmac = <SimpleHmac<D>>::new_from_slice(server_key.as_ref())
         .expect("HMAC can work with any key size");
     for part in auth_message_parts {
         server_key_hmac.update(part);

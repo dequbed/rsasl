@@ -8,6 +8,8 @@ use ::libc;
 use libc::{malloc, memchr, memcpy, size_t, strnlen};
 use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
+use std::ops::Deref;
+use std::sync::Arc;
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub enum SaslNameError {
@@ -17,80 +19,135 @@ pub enum SaslNameError {
     InvalidEscape,
 }
 
+#[derive(Copy, Clone)]
+enum SaslEscapeState {
+    Done,
+    Char(char),
+    Comma,
+    Comma1,
+    Equals,
+    Equals1
+}
+
+impl SaslEscapeState {
+    pub fn escape(c: char) -> Self {
+        match c {
+            ',' => Self::Comma,
+            '=' => Self::Equals,
+            _ => Self::Char(c),
+        }
+    }
+}
+
+impl Iterator for SaslEscapeState {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match *self {
+            Self::Done => None,
+            Self::Char(c) => {
+                *self = Self::Done;
+                Some(c)
+            }
+            Self::Comma => {
+                *self = Self::Comma1;
+                Some('=')
+            },
+            Self::Comma1 => {
+                *self = Self::Char('C');
+                Some('2')
+            },
+            Self::Equals => {
+                *self = Self::Equals1;
+                Some('=')
+            }
+            Self::Equals1 => {
+                *self = Self::Char('D');
+                Some('3')
+            }
+        }
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let n = self.len();
+        (n, Some(n))
+    }
+}
+
+impl ExactSizeIterator for SaslEscapeState {
+    fn len(&self) -> usize {
+        match self {
+            SaslEscapeState::Done => 0,
+            SaslEscapeState::Char(_) => 1,
+            SaslEscapeState::Comma => 3,
+            SaslEscapeState::Comma1 => 2,
+            SaslEscapeState::Equals => 3,
+            SaslEscapeState::Equals1 => 2,
+        }
+    }
+}
+
 #[repr(transparent)]
 /// Escaped saslname type
-pub struct SaslName(str);
-impl SaslName {
-    /// Construct a new saslname from a given str
+pub struct SaslName<'a>(Cow<'a, str>);
+impl<'a> SaslName<'a> {
+    /// Convert a Rust-side string into the representation required by SCRAM
     ///
-    /// This function will *fail* if the given name is not a valid saslname. To escape an
-    /// arbitratry string into a valid saslname use [`SaslName::escape`].
-    pub fn from_str(input: &str) -> Result<&Self, SaslNameError> {
-        if let Some(b) = input.find(&['\0', ',', '=']) {
-            Err(SaslNameError::InvalidChar(b as u8))
-        } else {
-            let this = unsafe { &*(input as *const str as *const SaslName) };
-            Ok(this)
-        }
-    }
-
-    pub fn from_boxed_str(input: Box<str>) -> Result<Box<Self>, SaslNameError> {
-        if let Some(b) = input.find(&['\0', ',', '=']) {
-            Err(SaslNameError::InvalidChar(b as u8))
-        } else {
-            let this = unsafe { Box::from_raw(Box::into_raw(input) as *mut SaslName) };
-            Ok(this)
-        }
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-
-    pub fn escape(input: &str) -> Result<Cow<'_, str>, SaslNameError> {
+    /// This will clone the given string if characters need escaping
+    pub fn escape(input: Arc<String>) -> Result<Arc<String>, SaslNameError> {
         if input.contains('\0') {
             return Err(SaslNameError::InvalidChar(0));
         }
 
         if input.contains(&[',', '=']) {
-            Ok(input.replace(',', "=2C").replace('=', "=3D").into())
+            let escaped: String = input.chars().flat_map(SaslEscapeState::escape).collect();
+            Ok(Arc::new(escaped))
         } else {
-            Ok(input.into())
+            Ok(input)
         }
     }
 
-    pub fn unescape(&self) -> Result<Cow<'_, str>, SaslNameError> {
-        let v = &self.0;
-        if v.is_empty() {
+    /// Convert a SCRAM-side string into the representation expected by Rust
+    ///
+    /// This will clone the given string if characters need unescaping
+    pub fn unescape(input: &'a str) -> Result<Self, SaslNameError> {
+        if input.is_empty() {
             return Err(SaslNameError::Empty);
         }
-        if let Some(c) = v.find(&['\0', ',']) {
+
+        if let Some(c) = input.find(&['\0', ',']) {
             return Err(SaslNameError::InvalidChar(c as u8));
         }
-        if let Some(bad) = v.bytes().position(|b| matches!(b, b'=')) {
-            let mut out = String::with_capacity(v.len());
-            let good = std::str::from_utf8(&v.as_bytes()[..bad])
+
+        if let Some(bad) = input.bytes().position(|b| matches!(b, b'=')) {
+            let mut out = String::with_capacity(input.len());
+            let good = std::str::from_utf8(&input.as_bytes()[..bad])
                 .map_err(|_| SaslNameError::InvalidUtf8)?;
             out.push_str(good);
-            let mut v = &v[bad..];
+            let mut input = &input[bad..];
 
-            while let Some(bad) = v.bytes().position(|b| matches!(b, b'=')) {
-                let good = std::str::from_utf8(&v.as_bytes()[..bad])
+            while let Some(bad) = input.bytes().position(|b| matches!(b, b'=')) {
+                let good = std::str::from_utf8(&input.as_bytes()[..bad])
                     .map_err(|_| SaslNameError::InvalidUtf8)?;
                 out.push_str(good);
-                let c = match &v.as_bytes()[bad + 1..bad + 3] {
+                let c = match &input.as_bytes()[bad + 1..bad + 3] {
                     b"2C" => ',',
                     b"3D" => '=',
                     _ => return Err(SaslNameError::InvalidEscape),
                 };
                 out.push(c);
-                v = &v[bad..];
+                input = &input[bad..];
             }
 
-            Ok(Cow::Owned(out))
+            Ok(Self(out.into()))
         } else {
-            Ok(Cow::Borrowed(&self.0))
+            Ok(Self(Cow::Borrowed(input)))
         }
+    }
+
+    pub fn as_str(&self) -> &str {
+        self.0.deref()
     }
 }
 
@@ -163,13 +220,13 @@ impl<'scram> ClientFirstMessage<'scram> {
     pub fn new(
         cbflag: GS2CBindFlag<'scram>,
         authzid: Option<&'scram str>,
-        username: &'scram SaslName,
+        username: &'scram str,
         nonce: &'scram [u8],
     ) -> Self {
         Self {
             cbflag,
             authzid,
-            username: username.as_str(),
+            username,
             nonce,
         }
     }
