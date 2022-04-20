@@ -3,23 +3,23 @@ use crate::error::SessionError::{NoCallback, NoValidate};
 use crate::property::Property;
 use crate::session::SessionData;
 use crate::validate::Validation;
-use crate::Mechname;
+use crate::{Mechname, PropertyQ};
 
-pub trait Callback {
+pub trait DynCallback {
     /// Query by a mechanism implementation to provide some information
     ///
     /// The parameter `property` defines the exact property that is requested. In most cases a
     /// callback should then issue a call to [`SessionData::set_property`], so e.g.
     /// ```rust
     /// # use std::sync::Arc;
-    /// # use rsasl::callback::Callback;
+    /// # use rsasl::callback::DynCallback;
     /// # use rsasl::error::SessionError;
     /// # use rsasl::error::SessionError::NoCallback;
     /// # use rsasl::Property;
     /// use rsasl::property::{properties, Password};
     /// # use rsasl::session::SessionData;
     /// # struct CB;
-    /// # impl Callback for CB {
+    /// # impl DynCallback for CB {
     /// fn provide_prop(&self, session: &mut SessionData, property: Property) -> Result<(), SessionError> {
     ///     match property {
     ///         properties::PASSWORD => {
@@ -69,3 +69,17 @@ pub trait Callback {
     }
 }
 
+trait GenericCallback {
+    type Error: std::error::Error;
+
+    /// Provide the requested property
+    fn provide_prop<P: PropertyQ>(&self) -> Result<P::Item, Self::Error>;
+}
+
+trait GenericValidator {
+    type Error: std::error::Error;
+
+    /// Validate an authentication exchange
+    fn validate(&self, session: &mut SessionData, validation: Validation, mechanism: &Mechname)
+        -> Result<(), Self::Error>;
+}

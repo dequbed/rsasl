@@ -110,7 +110,7 @@ pub mod validate;
 
 mod vectored_io;
 
-use crate::callback::Callback;
+use crate::callback::DynCallback;
 use crate::error::SASLError;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
@@ -128,7 +128,7 @@ pub use property::{Property, PropertyQ};
 /// authentication exchanges in parallel, e.g. in a server context, you can wrap it in an
 /// [`std::sync::Arc`] to add cheap cloning, or initialize it as a global value.
 pub struct SASL {
-    pub callback: Option<Arc<dyn Callback + Send + Sync>>,
+    pub callback: Option<Arc<dyn DynCallback + Send + Sync>>,
 
     #[cfg(feature = "registry_dynamic")]
     dynamic_mechs: Vec<&'static Mechanism>,
