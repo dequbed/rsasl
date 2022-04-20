@@ -106,6 +106,22 @@ pub struct MechanismSecurityFactors {
     /// This mechanism supports mutual authentication, i.e. if the authentication exchange
     /// succeeds then both the client and server have verified the identity of the other.
     pub mutual: bool,
+
+    /// This mechanism can support channel bindings, i.e. cryptographically bind the
+    /// authentication to the (encrypted) transport layer, usually TLS or IPsec.
+    /// Using channel bindings can guard against some forms of man-in-the-middle attacks as the
+    /// authentication will not succeed if both sides are not seeing the same cryptographic
+    /// channel.
+    ///
+    /// Example: The TLS connection is being actively intercepted by an attacker that managed to
+    /// get a trusted certificate deemed valid for the connection. Channel binding data for
+    /// standard TLS cb mechanism includes either the public certificate that was used by the
+    /// server or data derived from the (TLS) session secrets, both of which would show the
+    /// MITM-attack in the above scenario.
+    ///
+    /// Channel binding *DOES NOT* guard against an attacker that has access to the channel secrets
+    /// and can decrypt the channel passively.
+    pub channel_binding: bool,
 }
 
 impl Mechanism {
