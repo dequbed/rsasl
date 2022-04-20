@@ -10,6 +10,7 @@ use crate::mechanism::Authentication;
 use crate::property::PropertyQ;
 use crate::validate::*;
 use crate::{Callback, Mechanism, Mechname, Property};
+use crate::channel_bindings::ChannelBindingCallback;
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -17,15 +18,32 @@ pub enum Side {
     Server,
 }
 
-pub struct Session {
-    mechanism: Box<dyn Authentication>,
+pub type SessionT = Session<Box<dyn Authentication>, (), ()>;
+pub struct Session<A, CB, CBCB> {
+    mechanism: A,
+
+    callback: CB,
+    channel_binding_cb: CBCB,
+
     session_data: SessionData,
+
     // TODO: Channel Binding data should probably be queried via a callback as well. That ways
     //       protocol crates can easier provide that data on demand. That pattern can use static
     //       generics too since the protocol crate is the one holding the Session.
+
+    // Callback types:
+    // - provide property / do action (e.g. provide username/password, start OIDC auth)
+    //      ⇒ CLIENT + SERVER
+    //      ⇒ provided by end-user
+    // - validate authentication (e.g. check username/password against a DB)
+    //      ⇒ SERVER
+    //      ⇒ provided by end-user
+    // - provide channel-binding data
+    //      ⇒ CLIENT + SERVER
+    //      ⇒ provided by either end-user or protocol impl
 }
 
-impl Session {
+impl Session<Box<dyn Authentication>, (), ()> {
     pub(crate) fn new(
         callback: Option<Arc<dyn Callback + Send + Sync>>,
         mechdesc: &'static Mechanism,
@@ -34,6 +52,10 @@ impl Session {
     ) -> Self {
         Self {
             mechanism,
+
+            callback: (),
+            channel_binding_cb: (),
+
             session_data: SessionData::new(callback, mechdesc, side),
         }
     }
@@ -63,7 +85,7 @@ impl Session {
 }
 
 #[cfg(feature = "provider")]
-impl Session {
+impl SessionT {
     /// Perform one step of SASL authentication.
     ///
     /// *requires feature `provider`*
@@ -101,12 +123,13 @@ impl Session {
     /// To allow this behaviour the channel binding data needs to be made available with a call to
     /// this method.
     pub fn set_channel_binding_data(&mut self, name: &'static str, value: Box<[u8]>) {
-        self.session_data.set_channel_binding_data(name, value);
+        unimplemented!()
+        //self.session_data.set_channel_binding_data(name, value);
     }
 }
 
 #[cfg(feature = "provider_base64")]
-impl Session {
+impl SessionT {
     /// Perform one step of SASL authentication, base64 encoded.
     ///
     /// *requires feature `provider_base64`*
@@ -140,7 +163,6 @@ pub struct SessionData {
     property_cache: HashMap<Property, Arc<dyn Any + Send + Sync>>,
     mechanism: &'static Mechanism,
     side: Side,
-    channel_binding_data: Option<(&'static str, Box<[u8]>)>,
 }
 
 impl Debug for SessionData {
@@ -180,7 +202,6 @@ impl SessionData {
             property_cache: HashMap::new(),
             mechanism,
             side,
-            channel_binding_data: None,
         }
     }
 }
@@ -243,16 +264,6 @@ impl SessionData {
             .clone()
             .map(|cb| cb.provide_prop(self, property))
             .unwrap_or(Err(SessionError::NoCallback { property }))
-    }
-
-    pub(crate) fn set_channel_binding_data(&mut self, name: &'static str, value: Box<[u8]>) {
-        self.channel_binding_data.replace((name, value));
-    }
-
-    pub(crate) fn get_cb_data(&self) -> Option<(&'static str, &[u8])> {
-        self.channel_binding_data
-            .as_ref()
-            .map(|(name, value)| (*name, value.as_ref()))
     }
 }
 

@@ -29,13 +29,14 @@ pub fn find_proofs<D>(
 where D: Digest + BlockSizeUser,
 {
     let mut salted_password_hmac =
-        <SimpleHmac<D>>::new_from_slice(salted_password.as_slice())
+        <SimpleHmac<D>>::new_from_slice(salted_password)
             .expect("HMAC can work with any key size");
     salted_password_hmac.update(b"Client Key");
     let mut client_key = salted_password_hmac.finalize().into_bytes();
 
     let mut salted_password_hmac =
-        <SimpleHmac<D>>::new_from_slice(salted_password).expect("HMAC can work with any key size");
+        <SimpleHmac<D>>::new_from_slice(salted_password)
+            .expect("HMAC can work with any key size");
     salted_password_hmac.update(b"Server Key");
     let server_key = salted_password_hmac.finalize().into_bytes();
 

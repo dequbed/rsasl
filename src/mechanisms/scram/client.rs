@@ -336,6 +336,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication fo
         use ScramClientState::*;
         match self.state.take() {
             Some(Initial(state)) => {
+                /*
                 let (_cbflag, _cbdata) = if self.plus {
                     let (name, value) = session
                         .get_cb_data()
@@ -345,6 +346,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication fo
                 } else {
                     (GS2CBindFlag::NotSupported, None)
                 };
+                 */
 
                 let authzid = session.get_property_or_callback::<AuthzId>()?;
                 let authid = session
