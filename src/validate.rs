@@ -101,13 +101,13 @@ mod tests {
     use crate::error::SessionError::NoValidate;
     use crate::session::SessionData;
     use crate::validate::validations::{OPENID20, SIMPLE};
-    use crate::{Callback, Mechname};
+    use crate::{DynCallback, Mechname};
     use std::ptr::{NonNull};
 
     #[test]
     fn test_validation_callback() {
         struct TestCallback;
-        impl Callback for TestCallback {
+        impl DynCallback for TestCallback {
             fn validate(
                 &self,
                 _session: &mut SessionData,

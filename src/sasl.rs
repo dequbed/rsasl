@@ -1,4 +1,4 @@
-use crate::{init, registry, Callback, Mechanism, SASL};
+use crate::{init, registry, DynCallback, Mechanism, SASL};
 use std::cmp::Ordering;
 use std::sync::Arc;
 
@@ -31,13 +31,13 @@ impl SASL {
         init::register_builtin(self);
     }
 
-    pub fn install_callback(&mut self, callback: Arc<dyn Callback + Send + Sync>) {
+    pub fn install_callback(&mut self, callback: Arc<dyn DynCallback + Send + Sync>) {
         self.callback = Some(callback);
     }
 }
 
 pub struct Builder {
-    callback: Option<Arc<dyn Callback + Send + Sync>>,
+    callback: Option<Arc<dyn DynCallback + Send + Sync>>,
 
     #[cfg(feature = "registry_dynamic")]
     dynamic_mechs: Option<Vec<&'static Mechanism>>,

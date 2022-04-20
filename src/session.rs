@@ -9,7 +9,7 @@ use crate::gsasl::consts::{property_from_code, Gsasl_property};
 use crate::mechanism::Authentication;
 use crate::property::PropertyQ;
 use crate::validate::*;
-use crate::{Callback, Mechanism, Mechname, Property};
+use crate::{DynCallback, Mechanism, Mechname, Property};
 use crate::channel_bindings::ChannelBindingCallback;
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
@@ -20,9 +20,12 @@ pub enum Side {
 
 pub type SessionT = Session<Box<dyn Authentication>, (), ()>;
 pub struct Session<A, CB, CBCB> {
+    //
     mechanism: A,
-
     callback: CB,
+
+    // (Usually) Provided by protocol impl, which is also the code having to keep this struct
+    // around. Thus the type of this is usually statically known.
     channel_binding_cb: CBCB,
 
     session_data: SessionData,
@@ -43,9 +46,20 @@ pub struct Session<A, CB, CBCB> {
     //      ⇒ provided by either end-user or protocol impl
 }
 
+impl<A, CB, CBCB> Session<A, CB, CBCB> {
+    pub fn build(
+        mechanism: A,
+        callback: CB,
+        channel_binding_cb: CBCB,
+        session_data: SessionData
+    ) -> Self {
+        Self { mechanism, callback, channel_binding_cb, session_data }
+    }
+}
+
 impl Session<Box<dyn Authentication>, (), ()> {
     pub(crate) fn new(
-        callback: Option<Arc<dyn Callback + Send + Sync>>,
+        callback: Option<Arc<dyn DynCallback + Send + Sync>>,
         mechdesc: &'static Mechanism,
         mechanism: Box<dyn Authentication>,
         side: Side,
@@ -159,7 +173,7 @@ impl SessionT {
 pub struct SessionData {
     // TODO: Move caching out of SessionData and into Callback. That makes no_std or situations
     //       where caching makes no sense much more reasonable to implement.
-    pub(crate) callback: Option<Arc<dyn Callback + Send + Sync>>,
+    pub(crate) callback: Option<Arc<dyn DynCallback + Send + Sync>>,
     property_cache: HashMap<Property, Arc<dyn Any + Send + Sync>>,
     mechanism: &'static Mechanism,
     side: Side,
@@ -193,7 +207,7 @@ pub type StepResult = Result<Step, SessionError>;
 
 impl SessionData {
     pub(crate) fn new(
-        callback: Option<Arc<dyn Callback + Send + Sync>>,
+        callback: Option<Arc<dyn DynCallback + Send + Sync>>,
         mechanism: &'static Mechanism,
         side: Side,
     ) -> Self {
@@ -281,7 +295,7 @@ mod tests {
         struct CB {
             data: usize,
         }
-        impl Callback for CB {
+        impl DynCallback for CB {
             fn provide_prop(
                 &self,
                 session: &mut SessionData,

@@ -1,4 +1,4 @@
-use rsasl::callback::Callback;
+use rsasl::callback::DynCallback;
 use rsasl::error::SessionError;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
@@ -12,7 +12,7 @@ use std::sync::Arc;
 // Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
 
-impl Callback for OurCallback {
+impl DynCallback for OurCallback {
     fn validate(
         &self,
         session: &mut SessionData,
