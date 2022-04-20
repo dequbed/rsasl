@@ -115,7 +115,7 @@ use crate::error::SASLError;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 use crate::registry::Mechanism;
-use crate::session::{Session, Side};
+use crate::session::{Session, SessionT, Side};
 pub use property::{Property, PropertyQ};
 
 /// SASL Provider context
@@ -123,10 +123,10 @@ pub use property::{Property, PropertyQ};
 /// This is the central type required to use SASL both for protocol implementations requiring the
 /// use of SASL and for users wanting to provide SASL authentication to such implementations.
 ///
-/// This struct is not `Clone` or `Copy`, but all functions required for authentication exchanges
-/// only need a non-mutable reference to it. If you want to do several authentication exchanges in
-/// parallel, e.g. in a server context, you can wrap it in an [`std::sync::Arc`] to add cheap
-/// cloning.
+/// This struct is neither `Clone` nor `Copy`, but all functions required for authentication
+/// exchanges only need a non-mutable reference to it. If you want to be able to do several
+/// authentication exchanges in parallel, e.g. in a server context, you can wrap it in an
+/// [`std::sync::Arc`] to add cheap cloning, or initialize it as a global value.
 pub struct SASL {
     pub callback: Option<Arc<dyn Callback + Send + Sync>>,
 
@@ -222,7 +222,7 @@ impl SASL {
     pub fn client_start_suggested<'a>(
         &self,
         mechs: impl IntoIterator<Item = &'a Mechname>,
-    ) -> Result<Session, SASLError> {
+    ) -> Result<SessionT, SASLError> {
         mechs
             .into_iter()
             .filter_map(|name| {
@@ -245,7 +245,7 @@ impl SASL {
     pub fn server_start_suggested<'a>(
         &self,
         mechs: impl IntoIterator<Item = &'a Mechname>,
-    ) -> Result<Session, SASLError> {
+    ) -> Result<SessionT, SASLError> {
         mechs
             .into_iter()
             .filter_map(|name| {
@@ -291,7 +291,7 @@ impl SASL {
         mechdesc: &'static Mechanism,
         mechanism: Box<dyn Authentication>,
         side: Side,
-    ) -> Session {
+    ) -> SessionT {
         Session::new(
             self.callback.clone(),
             mechdesc,
@@ -308,7 +308,7 @@ impl SASL {
         mech_list: impl IntoIterator<Item = &'static Mechanism>,
         start: impl Fn(&Mechanism) -> Option<Result<Box<dyn Authentication>, SASLError>>,
         side: Side,
-    ) -> Result<Session, SASLError> {
+    ) -> Result<SessionT, SASLError> {
         // Using an inverted result to shortcircuit out of `try_fold`: We want to stop looking
         // for mechanisms as soon as we found the first matching one. try_fold stop running as
         // soon as the first `ControlFlow::Break` is found, which for the implementation of `Try` on
@@ -339,7 +339,7 @@ impl SASL {
     /// an authcid, optional authzid and password for PLAIN. To provide that data an application
     /// has to either call `set_property` before running the step that requires the data, or
     /// install a callback.
-    pub fn client_start(&self, mech: &mechname::Mechname) -> Result<Session, SASLError> {
+    pub fn client_start(&self, mech: &mechname::Mechname) -> Result<SessionT, SASLError> {
         self.start_inner(
             mech,
             self.client_mech_list(),
@@ -354,7 +354,7 @@ impl SASL {
     /// authentication data provided by the user.
     ///
     /// See [Callback](Callback) on how to implement callbacks.
-    pub fn server_start(&self, mech: &mechname::Mechname) -> Result<Session, SASLError> {
+    pub fn server_start(&self, mech: &mechname::Mechname) -> Result<SessionT, SASLError> {
         self.start_inner(
             mech,
             self.server_mech_list(),

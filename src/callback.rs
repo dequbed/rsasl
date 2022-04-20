@@ -68,3 +68,4 @@ pub trait Callback {
         return Err(NoValidate { validation });
     }
 }
+
