@@ -10,7 +10,9 @@
 
 use std::any::{Any, TypeId};
 use std::error::Error;
+use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
+use std::sync::Arc;
 use crate::error::SessionError;
 use crate::error::SessionError::{NoCallback, NoValidate};
 use crate::property::{CallbackQ, Property};
@@ -62,6 +64,15 @@ pub enum CallbackError {
     NoAnswer,
     Boxed(Box<dyn Error + Send + Sync>),
 }
+impl Display for CallbackError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CallbackError::NoCallback => f.write_str("Callback does not handle that query type"),
+            CallbackError::NoAnswer => f.write_str("Callback failed to provide an answer"),
+            CallbackError::Boxed(e) => Display::fmt(e, f),
+        }
+    }
+}
 impl<E: 'static + Error + Send + Sync> From<E> for CallbackError {
     #[inline(always)]
     fn from(e: E) -> Self {
@@ -70,7 +81,7 @@ impl<E: 'static + Error + Send + Sync> From<E> for CallbackError {
 }
 
 pub trait SessionCallback {
-    fn callback(&mut self, _session_data: &SessionData, _query: &mut dyn Query)
+    fn callback(&self, _session_data: &SessionData, _query: &mut dyn Query)
         -> Result<(), CallbackError>
     {
         Err(CallbackError::NoCallback)
@@ -94,7 +105,7 @@ fn cb_test() {
     }
     struct CB;
     impl SessionCallback for CB {
-        fn callback(&mut self, _s: &SessionData, query: &mut dyn Query) -> Result<(),
+        fn callback(&self, _s: &SessionData, query: &mut dyn Query) -> Result<(),
             CallbackError> {
             if let Some(q) = Q::downcast_mut(query) {
                 Ok(q.respond(42))
@@ -104,7 +115,7 @@ fn cb_test() {
         }
     }
     let cb = CB;
-    let mut md = MechanismData::new(Box::new(cb), None, PLAIN.clone(), Side::Client);
+    let mut md = MechanismData::new(Arc::new(cb), None, PLAIN.clone(), Side::Client);
     let mut q = Q { p: 0 };
     let o = md.callback::<Q>(&mut q);
     println!("{:?}: {:?}", o, q);
