@@ -6,6 +6,7 @@ use std::cmp::min;
 use std::ffi::CStr;
 use std::fmt::{Debug, Display, Formatter};
 use std::{fmt, io};
+use crate::callback::CallbackError;
 use crate::mechname::MechanismNameError;
 
 pub type Result<T> = std::result::Result<T, SASLError>;
@@ -111,6 +112,8 @@ pub enum SessionError {
     NoProperty {
         property: Property,
     },
+
+    CallbackError(CallbackError),
 }
 static_assertions::assert_impl_all!(SessionError: Send, Sync);
 
@@ -160,6 +163,7 @@ impl Display for SessionError {
             }
             Self::NoProperty { property } => write!(f, "required property {} is not set", property),
             SessionError::AuthenticationFailure => f.write_str("authentication failed"),
+            Self::CallbackError(e) => write!(f, "Error occured during callback: {}", e),
         }
     }
 }
@@ -191,6 +195,12 @@ impl From<io::Error> for SessionError {
 impl From<base64::DecodeError> for SessionError {
     fn from(source: base64::DecodeError) -> Self {
         Self::Base64 { source }
+    }
+}
+
+impl From<CallbackError> for SessionError {
+    fn from(e: CallbackError) -> Self {
+        Self::CallbackError(e)
     }
 }
 

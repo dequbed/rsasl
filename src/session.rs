@@ -20,14 +20,14 @@ pub enum Side {
 }
 
 pub struct SessionBuilder {
-    callback: Box<dyn SessionCallback>,
+    callback: Arc<dyn SessionCallback>,
     mechanism: Box<dyn Authentication>,
     mechanism_desc: Mechanism,
     side: Side,
 }
 impl SessionBuilder {
     pub fn new(
-        callback: Box<dyn SessionCallback>,
+        callback: Arc<dyn SessionCallback>,
         mechanism: Box<dyn Authentication>,
         mechanism_desc: Mechanism,
         side: Side,
@@ -100,7 +100,7 @@ pub struct Session {
 
 impl Session {
     pub(crate) fn new(
-        callback: Box<dyn SessionCallback>,
+        callback: Arc<dyn SessionCallback>,
         mechanism: Box<dyn Authentication>,
         mechanism_desc: Mechanism,
         side: Side,
@@ -181,14 +181,14 @@ impl Session {
 }
 
 pub struct MechanismData {
-    callback: Box<dyn SessionCallback>,
+    callback: Arc<dyn SessionCallback>,
     channel_binding_cb: Option<Box<dyn ChannelBindingCallback>>,
     session_data: SessionData,
 }
 
 impl MechanismData {
     pub(crate) fn new(
-        callback: Box<dyn SessionCallback>,
+        callback: Arc<dyn SessionCallback>,
         channel_binding_cb: Option<Box<dyn ChannelBindingCallback>>,
         mechanism_desc: Mechanism,
         side: Side
@@ -200,10 +200,12 @@ impl MechanismData {
         }
     }
 
-    pub fn callback<Q: Query>(&mut self, query: &mut Q) -> Result<(), CallbackError> {
+    pub fn callback<Q: Query>(&self, query: &mut Q) -> Result<(), CallbackError> {
         self.callback.callback(&self.session_data, query)
     }
-    pub fn need<P: AnsQuery>(&mut self, params: P::Params)
+
+    /// Retrieve values from the user-provided callback
+    pub fn need<P: AnsQuery>(&self, params: P::Params)
         -> Result<P::Answer, CallbackError>
     {
         let mut query = P::build(params);

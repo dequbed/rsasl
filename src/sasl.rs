@@ -1,10 +1,10 @@
 use std::any::Any;
-use crate::{init, registry, Callback, Mechanism, SASL};
+use crate::{init, registry, Callback, Mechanism, SASL, SessionCallback};
 use std::cmp::Ordering;
 use std::sync::Arc;
 
 impl SASL {
-    pub fn new(callback: Arc<dyn Callback>) -> Self {
+    pub fn new(callback: Arc<dyn SessionCallback>) -> Self {
         Self {
             callback,
 
