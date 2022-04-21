@@ -26,7 +26,7 @@ use crate::mechanisms::digest_md5::qop::{
 };
 use crate::mechanisms::digest_md5::session::{digest_md5_decode, digest_md5_encode};
 use crate::property::{AuthId, AuthzId, Hostname, Password, Qop, Realm, Service};
-use crate::session::SessionData;
+use crate::session::MechanismData;
 use crate::Shared;
 use ::libc;
 use libc::{calloc, size_t, strcmp, strdup, strlen};
@@ -103,7 +103,7 @@ pub(crate) unsafe fn _gsasl_digest_md5_client_start(
 }
 
 pub unsafe fn _gsasl_digest_md5_client_step(
-    sctx: &mut SessionData,
+    sctx: &mut MechanismData,
     mech_data: Option<NonNull<()>>,
     input: Option<&[u8]>,
     output: *mut *mut libc::c_char,
@@ -347,7 +347,7 @@ pub unsafe fn _gsasl_digest_md5_client_finish(mech_data: Option<NonNull<()>>) {
     rpl_free(state as *mut libc::c_void);
 }
 pub unsafe fn _gsasl_digest_md5_client_encode(
-    mut _sctx: &mut SessionData,
+    mut _sctx: &mut MechanismData,
     mech_data: Option<NonNull<()>>,
     input: *const libc::c_char,
     input_len: size_t,
@@ -385,7 +385,7 @@ pub unsafe fn _gsasl_digest_md5_client_encode(
     return GSASL_OK as libc::c_int;
 }
 pub unsafe fn _gsasl_digest_md5_client_decode(
-    mut _sctx: &mut SessionData,
+    mut _sctx: &mut MechanismData,
     mech_data: Option<NonNull<()>>,
     input: *const libc::c_char,
     input_len: size_t,

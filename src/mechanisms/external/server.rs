@@ -2,7 +2,7 @@ use crate::error::{MechanismError, MechanismErrorKind};
 use crate::mechanism::Authentication;
 use crate::property::AuthId;
 use crate::session::Step::Done;
-use crate::session::{SessionData, StepResult};
+use crate::session::{MechanismData, StepResult};
 use crate::validate::validations::EXTERNAL;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
@@ -27,7 +27,7 @@ pub struct External;
 impl Authentication for External {
     fn step(
         &mut self,
-        session: &mut SessionData,
+        session: &mut MechanismData,
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
     ) -> StepResult {
@@ -39,7 +39,7 @@ impl Authentication for External {
             }
         }
 
-        session.validate(EXTERNAL)?;
+        session.validate(&EXTERNAL)?;
         Ok(Done(None))
     }
 }

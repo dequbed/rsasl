@@ -79,7 +79,7 @@ pub unsafe fn gsasl_base64_from(
     };
 }
 
-#[cfg(test)]
+#[cfg(testn)]
 mod tests {
     use super::*;
     use crate::error::rsasl_err_to_str;

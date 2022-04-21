@@ -2,7 +2,7 @@ use rsasl::mechanism::Authentication;
 
 use rsasl::mechname::Mechname;
 use rsasl::registry::Mechanism;
-use rsasl::session::{SessionData, Side, StepResult};
+use rsasl::session::{MechanismData, Side, StepResult};
 use rsasl::SASL;
 
 use std::io::Write;
@@ -11,7 +11,7 @@ struct Test;
 impl Authentication for Test {
     fn step(
         &mut self,
-        _session: &mut SessionData,
+        _session: &mut MechanismData,
         _input: Option<&[u8]>,
         _writer: &mut dyn Write,
     ) -> StepResult {

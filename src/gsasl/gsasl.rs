@@ -3,7 +3,7 @@ use crate::error::SessionError;
 use crate::gsasl::consts::{GSASL_NEEDS_MORE, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
 use crate::mechanism::Authentication;
 use crate::session::Step::{Done, NeedsMore};
-use crate::session::{SessionData, StepResult};
+use crate::session::{MechanismData, StepResult};
 use crate::{SASLError, Shared};
 use libc::{c_char, size_t};
 use std::fmt::{Debug, Formatter};
@@ -97,7 +97,7 @@ impl CMechanismStateKeeper {
 impl Authentication for CMechanismStateKeeper {
     fn step(
         &mut self,
-        session: &mut SessionData,
+        session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
     ) -> StepResult {
@@ -158,7 +158,7 @@ impl Drop for CMechanismStateKeeper {
 
 pub(crate) type Gsasl_code_function = Option<
     unsafe fn(
-        _: &mut SessionData,
+        _: &mut MechanismData,
         _: Option<NonNull<()>>,
         _: *const libc::c_char,
         _: size_t,
@@ -172,7 +172,7 @@ pub(crate) type Gsasl_start_function =
 
 pub(crate) type Gsasl_step_function = Option<
     unsafe fn(
-        _: &mut SessionData,
+        _: &mut MechanismData,
         _: Option<NonNull<()>>,
         _: Option<&[u8]>,
         _: *mut *mut libc::c_char,

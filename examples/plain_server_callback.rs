@@ -1,9 +1,9 @@
-use rsasl::callback::DynCallback;
+use rsasl::callback::Callback;
 use rsasl::error::SessionError;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
 use rsasl::session::Step::Done;
-use rsasl::session::{SessionData, Step, StepResult};
+use rsasl::session::{MechanismData, Step, StepResult};
 use rsasl::validate::{validations, Validation};
 use rsasl::SASL;
 use std::io::Cursor;
@@ -12,10 +12,10 @@ use std::sync::Arc;
 // Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
 
-impl DynCallback for OurCallback {
+impl Callback for OurCallback {
     fn validate(
         &self,
-        session: &mut SessionData,
+        session: &mut MechanismData,
         validation: Validation,
         mechanism: &Mechname,
     ) -> Result<(), SessionError> {

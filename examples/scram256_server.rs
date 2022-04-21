@@ -1,10 +1,10 @@
-use rsasl::callback::DynCallback;
+use rsasl::callback::Callback;
 use rsasl::error::{SessionError};
 use rsasl::mechname::Mechname;
 use rsasl::property::{
     properties, AuthId, Password, Property,
 };
-use rsasl::session::SessionData;
+use rsasl::session::MechanismData;
 use rsasl::session::Step::{Done, NeedsMore};
 use rsasl::SASL;
 
@@ -14,10 +14,10 @@ use std::sync::Arc;
 
 struct OurCallback;
 
-impl DynCallback for OurCallback {
-    fn provide_prop(
+impl Callback for OurCallback {
+    fn callback(
         &self,
-        session: &mut SessionData,
+        session: &mut MechanismData,
         property: Property,
     ) -> Result<(), SessionError> {
         match property {

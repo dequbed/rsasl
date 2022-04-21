@@ -32,6 +32,7 @@
 //!     "a cool property you should definitely set!"
 //! ));
 //! ```
+use std::any::{Any, TypeId};
 use std::ffi::CString;
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
@@ -85,6 +86,7 @@ impl Property {
     }
 }
 
+
 /// Property Query marker
 ///
 /// This trait is used to associate a type to this property so that [`get_property`] and
@@ -92,6 +94,70 @@ impl Property {
 pub trait PropertyQ: 'static + Debug {
     type Item: 'static + Send + Sync;
     fn property() -> Property;
+    fn type_id() -> TypeId where Self: Any {
+        TypeId::of::<Self>()
+    }
+}
+
+/// (Trait) Object safe version of [`PropertyQ`]
+pub trait CallbackQ {
+    fn type_id(&self) -> TypeId;
+    fn property(&self) -> Property;
+    fn as_any(&self) -> &dyn Any;
+}
+impl<T: Any + PropertyQ> CallbackQ for T {
+    fn type_id(&self) -> TypeId {
+        <T as PropertyQ>::type_id()
+    }
+    fn property(&self) -> Property {
+        <T as PropertyQ>::property()
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+pub trait CallbackA: Any + Clone {
+    fn as_any(&self) -> &dyn Any;
+}
+impl<T: Any + Clone> CallbackA for T {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+#[derive(Debug)]
+pub struct Credentials {
+    pub authid: String,
+    pub authzid: Option<String>,
+    pub password: String,
+}
+pub struct PlainCredentials(Option<Credentials>);
+impl Question for PlainCredentials {
+    type Params = ();
+
+    fn build(_: Self::Params) -> Self {
+        Self(None)
+    }
+}
+impl Answerable for PlainCredentials {
+    type Answer = Credentials;
+
+    fn respond(&mut self, resp: Self::Answer) {
+        self.0 = Some(resp);
+    }
+
+    fn into_answer(self) -> Option<Self::Answer> {
+        self.0
+    }
+}
+pub struct ValidateSimple(Credentials);
+impl Question for ValidateSimple {
+    type Params = Credentials;
+
+    fn build(params: Self::Params) -> Self {
+        Self(params)
+    }
 }
 
 #[derive(Debug)]
@@ -114,6 +180,12 @@ impl PropertyQ for AuthzId {
 
 #[derive(Debug)]
 pub struct OpenID20AuthenticateInBrowser(PhantomData<()>);
+impl PropertyQ for OpenID20AuthenticateInBrowser {
+    type Item = ();
+    fn property() -> Property {
+        OPENID20_AUTHENTICATE_IN_BROWSER
+    }
+}
 
 #[derive(Debug)]
 pub struct Saml20AuthenticateInBrowser(PhantomData<()>);
@@ -384,6 +456,7 @@ pub mod properties {
     pub const PASSWORD: Property = Property::new(&PropertyDefinition::new("password", ""));
 }
 use properties::*;
+use crate::callback::{Answerable, Question};
 
 #[cfg(test)]
 mod tests {

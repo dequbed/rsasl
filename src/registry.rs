@@ -26,13 +26,13 @@
 //! ```rust
 //! # use std::io::Write;
 //! # use rsasl::mechanism::Authentication;
-//! use rsasl::session::{SessionData, StepResult, Side};
+//! use rsasl::session::{MechanismData, StepResult, Side};
 //! # use rsasl::mechname::Mechname;
 //!
 //! // X-MYCOOLMECHANISM doesn't store any data between steps so it's an empty struct here
 //! pub struct MyCoolMechanism;
 //! impl Authentication for MyCoolMechanism {
-//! # fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
+//! # fn step(&mut self, session: &mut MechanismData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
 //! #     unimplemented!()
 //! # }
 //! }

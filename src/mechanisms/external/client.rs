@@ -1,7 +1,7 @@
 use crate::mechanism::Authentication;
 use crate::property::AuthId;
 use crate::session::Step::Done;
-use crate::session::{SessionData, StepResult};
+use crate::session::{MechanismData, StepResult};
 use std::io::Write;
 
 #[derive(Copy, Clone, Debug)]
@@ -10,7 +10,7 @@ pub struct External;
 impl Authentication for External {
     fn step(
         &mut self,
-        session: &mut SessionData,
+        session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
     ) -> StepResult {

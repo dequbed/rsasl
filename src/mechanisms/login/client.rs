@@ -54,7 +54,7 @@ pub(crate) unsafe fn _gsasl_login_client_start(
 }
 
 pub unsafe fn _gsasl_login_client_step(
-    sctx: &mut crate::session::SessionData,
+    sctx: &mut crate::session::MechanismData,
     mech_data: Option<NonNull<()>>,
     _input: Option<&[u8]>,
     output: *mut *mut libc::c_char,

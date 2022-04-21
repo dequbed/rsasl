@@ -1,7 +1,7 @@
 use crate::error::{MechanismError, MechanismErrorKind};
 use crate::property::AnonymousToken;
 use crate::session::Step::{Done, NeedsMore};
-use crate::session::{SessionData, StepResult};
+use crate::session::{MechanismData, StepResult};
 use crate::validate::validations::ANONYMOUS;
 use crate::Authentication;
 use std::fmt::{Display, Formatter};
@@ -27,7 +27,7 @@ pub struct Anonymous;
 impl Authentication for Anonymous {
     fn step(
         &mut self,
-        session: &mut SessionData,
+        session: &mut MechanismData,
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
     ) -> StepResult {
@@ -47,7 +47,7 @@ impl Authentication for Anonymous {
             }
 
             session.set_property::<AnonymousToken>(Arc::new(input.to_string()));
-            session.validate(ANONYMOUS)?;
+            session.validate(&ANONYMOUS)?;
 
             Ok(Done(None))
         } else {
