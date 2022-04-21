@@ -45,7 +45,7 @@ use crate::mechanisms::scram::tokens::{
 use crate::mechanisms::scram::tools::{find_proofs, hash_password, set_saltedpassword, DOutput};
 use crate::property::{AuthId, AuthzId, Password};
 use crate::session::Step::NeedsMore;
-use crate::session::{SessionData, Step, StepResult};
+use crate::session::{MechanismData, Step, StepResult};
 use crate::vectored_io::VectoredWriter;
 use crate::{Authentication, Shared};
 
@@ -329,7 +329,7 @@ struct StateServerFinal {}
 impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication for ScramClient<D, N> {
     fn step(
         &mut self,
-        session: &mut SessionData,
+        session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
     ) -> StepResult {
@@ -444,7 +444,7 @@ impl MechanismError for SCRAMError {
     }
 }
 
-#[cfg(test)]
+#[cfg(testn)]
 mod tests {
     use std::io::Cursor;
     use std::sync::Arc;
@@ -655,7 +655,7 @@ pub(crate) unsafe fn _gsasl_scram_sha256_plus_client_start(
 }
 
 pub unsafe fn _gsasl_scram_client_step(
-    sctx: &mut SessionData,
+    sctx: &mut MechanismData,
     mech_data: Option<NonNull<()>>,
     input: Option<&[u8]>,
     output: *mut *mut libc::c_char,

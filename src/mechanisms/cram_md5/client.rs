@@ -3,7 +3,7 @@ use crate::gsasl::gl::free::rpl_free;
 use crate::gsasl::saslprep::{gsasl_saslprep, GSASL_ALLOW_UNASSIGNED};
 use crate::mechanisms::cram_md5::digest::cram_md5_digest;
 use crate::property::{AuthId, Password};
-use crate::session::SessionData;
+use crate::session::MechanismData;
 use libc::{malloc, memcpy, size_t, strlen};
 use std::ffi::CString;
 use std::ptr::NonNull;
@@ -55,7 +55,7 @@ use std::ptr::NonNull;
 /* Get memcpy, strlen. */
 /* Get cram_md5_digest. */
 pub unsafe fn _gsasl_cram_md5_client_step(
-    sctx: &mut SessionData,
+    sctx: &mut MechanismData,
     _mech_data: Option<NonNull<()>>,
     input: Option<&[u8]>,
     output: *mut *mut libc::c_char,

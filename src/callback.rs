@@ -1,26 +1,137 @@
+//! User-provided callbacks
+//!
+//! Make very generic data go from user to mechanism and vice versa through the protocol impl
+//! that should not need to care about the shape of this data.
+//! Yeah, *all* the runtime reflection.
+//!
+//! ## Why not just return the requested value from a callback?
+//! Because that would devolve to basically `fn callback(query: Box<dyn Any>) -> Box<dyn Any>`
+//! with exactly zero protection against accidentally not providing some required data.
+
+use std::any::{Any, TypeId};
+use std::error::Error;
+use std::marker::PhantomData;
 use crate::error::SessionError;
 use crate::error::SessionError::{NoCallback, NoValidate};
-use crate::property::Property;
-use crate::session::SessionData;
-use crate::validate::Validation;
-use crate::{Mechname, PropertyQ};
+use crate::property::{CallbackQ, Property};
+use crate::session::{MechanismData, SessionData};
+use crate::validate::{ValidateQ, Validation};
+use crate::{Mechanism, Mechname, PropertyQ, Side};
+use crate::mechanisms::plain::mechinfo::PLAIN;
 
-pub trait DynCallback {
-    /// Query by a mechanism implementation to provide some information
+mod sealed {
+    use std::any::Any;
+
+    pub trait Sealed {
+        fn as_any_mut(&mut self) -> &mut dyn Any;
+    }
+    impl<T: Any> Sealed for T {
+        fn as_any_mut(&mut self) -> &mut dyn Any {
+            self
+        }
+    }
+}
+
+/// Really just `dyn Any` with a sprinkle of syntactic sugar.
+pub trait Query: 'static + sealed::Sealed {
+    #[inline(always)]
+    fn downcast_mut(d: &mut dyn Query) -> Option<&mut Self> where Self: Sized {
+        d.as_any_mut().downcast_mut::<Self>()
+    }
+}
+impl<T: 'static> Query for T {}
+
+/// Query type that expects an answer
+pub trait Answerable: Query {
+    type Answer;
+
+    // callbacks in callbacks yay
+    fn respond(&mut self, resp: Self::Answer);
+    fn into_answer(self) -> Option<Self::Answer>;
+}
+pub trait Question {
+    type Params;
+    fn build(params: Self::Params) -> Self;
+}
+pub trait AnsQuery: Question + Answerable {}
+impl<T: Question + Answerable> AnsQuery for T {}
+
+#[derive(Debug)]
+pub enum CallbackError {
+    NoCallback,
+    NoAnswer,
+    Boxed(Box<dyn Error + Send + Sync>),
+}
+impl<E: 'static + Error + Send + Sync> From<E> for CallbackError {
+    #[inline(always)]
+    fn from(e: E) -> Self {
+        Self::Boxed(Box::new(e))
+    }
+}
+
+pub trait SessionCallback {
+    fn callback(&mut self, _session_data: &SessionData, _query: &mut dyn Query)
+        -> Result<(), CallbackError>
+    {
+        Err(CallbackError::NoCallback)
+    }
+}
+
+#[test]
+fn cb_test() {
+    #[derive(Debug)]
+    struct Q { p: u64 };
+    impl Answerable for Q {
+        type Answer = u64;
+
+        fn respond(&mut self, resp: Self::Answer) {
+            self.p = resp;
+        }
+
+        fn into_answer(self) -> Option<Self::Answer> {
+            Some(self.p)
+        }
+    }
+    struct CB;
+    impl SessionCallback for CB {
+        fn callback(&mut self, _s: &SessionData, query: &mut dyn Query) -> Result<(),
+            CallbackError> {
+            if let Some(q) = Q::downcast_mut(query) {
+                Ok(q.respond(42))
+            } else {
+                Err(CallbackError::NoCallback)
+            }
+        }
+    }
+    let cb = CB;
+    let mut md = MechanismData::new(Box::new(cb), None, PLAIN.clone(), Side::Client);
+    let mut q = Q { p: 0 };
+    let o = md.callback::<Q>(&mut q);
+    println!("{:?}: {:?}", o, q);
+}
+
+pub trait Callback: Sync + Send {
+    /// Query by a mechanism implementation to provide some information or do some action
     ///
-    /// The parameter `property` defines the exact property that is requested. In most cases a
+    /// The parameter `query` defines the exact property that is requested. Query is a request for
+    /// either some information ("property"), or to perform some outside action (e.g. authenticate
+    /// with the users IdP).
+    ///
+    /// In most cases a
     /// callback should then issue a call to [`SessionData::set_property`], so e.g.
+    /// TODO: UPDATE!
     /// ```rust
     /// # use std::sync::Arc;
-    /// # use rsasl::callback::DynCallback;
+    /// # use rsasl::callback::Callback;
     /// # use rsasl::error::SessionError;
     /// # use rsasl::error::SessionError::NoCallback;
     /// # use rsasl::Property;
-    /// use rsasl::property::{properties, Password};
+    /// use rsasl::property::{properties, Password, CallbackQ};
     /// # use rsasl::session::SessionData;
     /// # struct CB;
-    /// # impl DynCallback for CB {
-    /// fn provide_prop(&self, session: &mut SessionData, property: Property) -> Result<(), SessionError> {
+    /// # impl Callback for CB {
+    /// fn callback(&self, session: &mut SessionData, query: &dyn CallbackQ) -> Result<(), SessionError> {
+    ///     let property = query.property();
     ///     match property {
     ///         properties::PASSWORD => {
     ///             session.set_property::<Password>(Arc::new("secret".to_string()));
@@ -37,12 +148,12 @@ pub trait DynCallback {
     /// In some cases (e.g. [`OpenID20AuthenticateInBrowser`] the mechanism expects that a certain
     /// action is taken by the user instead of an explicit property being provided (e.g. to
     /// authenticate to their OIDC IdP using the system's web browser).
-    fn provide_prop(
+    fn callback(
         &self,
         _session: &mut SessionData,
-        property: Property,
+        query: &dyn CallbackQ,
     ) -> Result<(), SessionError> {
-        return Err(NoCallback { property });
+        return Err(NoCallback { property: query.property() });
     }
 
     /// Validate an authentication exchange
@@ -62,24 +173,36 @@ pub trait DynCallback {
     fn validate(
         &self,
         _session: &mut SessionData,
-        validation: Validation,
-        _mechanism: &Mechname,
+        query: &dyn ValidateQ,
     ) -> Result<(), SessionError> {
-        return Err(NoValidate { validation });
+        return Err(NoValidate { validation: query.validation() });
     }
 }
 
-trait GenericCallback {
-    type Error: std::error::Error;
+#[cfg(test)]
+mod tests {
+    use std::ptr::NonNull;
+    use crate::mechanisms::plain::server::PlainValidation;
+    use super::*;
 
-    /// Provide the requested property
-    fn provide_prop<P: PropertyQ>(&self) -> Result<P::Item, Self::Error>;
-}
+    #[test]
+    fn test_validateq() {
+        struct CB;
+        impl Callback for CB {
+            fn validate(&self, session: &mut SessionData, query: &dyn ValidateQ) -> Result<(), SessionError> {
+                if let Some(p) = PlainValidation::downcast(query) {
+                    println!("YAY! {:?}", p);
+                } else if let Some(p) = PlainValidation::downcast(query) {
+                    println!("BOOP!");
+                }
 
-trait GenericValidator {
-    type Error: std::error::Error;
+                Ok(())
+            }
+        }
 
-    /// Validate an authentication exchange
-    fn validate(&self, session: &mut SessionData, validation: Validation, mechanism: &Mechname)
-        -> Result<(), Self::Error>;
+        let vquery = PlainValidation { authzid: Some("zid".into()), authcid: "cid".into(), password: "pass".into() };
+        let sd = unsafe { NonNull::dangling().as_mut() };
+        let r = CB.validate(sd, &vquery);
+        println!("{:?}", r);
+    }
 }

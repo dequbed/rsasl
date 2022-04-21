@@ -1,4 +1,30 @@
+use std::any::{Any, TypeId};
 use std::fmt::{Debug, Display, Formatter};
+
+
+
+pub trait ValidateQ {
+    fn type_id(&self) -> TypeId;
+    fn validation(&self) -> Validation;
+    fn as_any(&self) -> &dyn Any;
+    fn downcast(query: &dyn ValidateQ) -> Option<&Self> where Self: Sized;
+}
+impl<T: Any> ValidateQ for T {
+    fn type_id(&self) -> TypeId {
+        TypeId::of::<Validation>()
+    }
+
+    fn validation(&self) -> Validation {
+        unimplemented!()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn downcast(query: &dyn ValidateQ) -> Option<&Self> where Self: Sized {
+        query.as_any().downcast_ref::<Self>()
+    }
+}
 
 #[derive(Debug)]
 pub struct ValidationDefinition {
@@ -94,25 +120,24 @@ pub mod validations {
     ));
 }
 
-#[cfg(test)]
+#[cfg(testn)]
 mod tests {
     use super::*;
     use crate::error::SessionError;
     use crate::error::SessionError::NoValidate;
     use crate::session::SessionData;
     use crate::validate::validations::{OPENID20, SIMPLE};
-    use crate::{DynCallback, Mechname};
+    use crate::{Callback, Mechname};
     use std::ptr::{NonNull};
 
     #[test]
     fn test_validation_callback() {
         struct TestCallback;
-        impl DynCallback for TestCallback {
+        impl Callback for TestCallback {
             fn validate(
                 &self,
                 _session: &mut SessionData,
                 validation: Validation,
-                mechanism: &Mechname,
             ) -> Result<(), SessionError> {
                 match validation {
                     SIMPLE => {
@@ -121,8 +146,8 @@ mod tests {
                     }
                     _ => {
                         println!(
-                            "Huh, I don't know how to validate {} ({:?}) for mech {}",
-                            validation, validation, mechanism
+                            "Huh, I don't know how to validate {} ({:?})",
+                            validation, validation
                         );
                         Err(NoValidate { validation })
                     }

@@ -113,7 +113,7 @@ pub fn property_from_code(code: Gsasl_property) -> Option<Property> {
     }
 }
 
-#[cfg(test)]
+#[cfg(testn)]
 mod tests {
     use super::*;
     use crate::property::*;

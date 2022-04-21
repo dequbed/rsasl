@@ -4,13 +4,14 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 
+use crate::channel_bindings::ChannelBindingCallback;
 use crate::error::SessionError;
 use crate::gsasl::consts::{property_from_code, Gsasl_property};
 use crate::mechanism::Authentication;
 use crate::property::PropertyQ;
 use crate::validate::*;
-use crate::{DynCallback, Mechanism, Mechname, Property};
-use crate::channel_bindings::ChannelBindingCallback;
+use crate::{Callback, Mechanism, Mechname, Property};
+use crate::callback::{Answerable, AnsQuery, CallbackError, Query, SessionCallback};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -18,21 +19,70 @@ pub enum Side {
     Server,
 }
 
-pub type SessionT = Session<Box<dyn Authentication>, (), ()>;
-pub struct Session<A, CB, CBCB> {
-    //
-    mechanism: A,
-    callback: CB,
+pub struct SessionBuilder {
+    callback: Box<dyn SessionCallback>,
+    mechanism: Box<dyn Authentication>,
+    mechanism_desc: Mechanism,
+    side: Side,
+}
+impl SessionBuilder {
+    pub fn new(
+        callback: Box<dyn SessionCallback>,
+        mechanism: Box<dyn Authentication>,
+        mechanism_desc: Mechanism,
+        side: Side,
+    ) -> Self {
+        Self {
+            callback,
+            mechanism,
+            mechanism_desc,
+            side,
+        }
+    }
 
-    // (Usually) Provided by protocol impl, which is also the code having to keep this struct
-    // around. Thus the type of this is usually statically known.
-    channel_binding_cb: CBCB,
+    pub fn with_channel_binding(
+        self,
+        channel_binding_cb: Box<dyn ChannelBindingCallback>,
+    ) -> Session {
+        Session::new(
+            self.callback,
+            self.mechanism,
+            self.mechanism_desc,
+            self.side,
+            Some(channel_binding_cb),
+        )
+    }
 
-    session_data: SessionData,
+    pub fn without_channel_binding(self) -> Session {
+        Session::new(
+            self.callback,
+            self.mechanism,
+            self.mechanism_desc,
+            self.side,
+            None,
+        )
+    }
+}
 
-    // TODO: Channel Binding data should probably be queried via a callback as well. That ways
-    //       protocol crates can easier provide that data on demand. That pattern can use static
-    //       generics too since the protocol crate is the one holding the Session.
+/// TODO: Things that need doing
+/// - Give the Mechanism access to required (user-provided) data ⇒ user callback
+/// - Let the Mechanism tell the user to do an action ⇒ user callback
+/// - Give the Mechanism access to channel binding data ⇒ channel binding callback
+/// - Let the Mechanism tell the user to verify an authentication ⇒ user callback
+/// - Give the user access to global & context data.
+/// - Type safety: Users should have a hard time misusing the framework.
+///     * props are generic but callbacks should type-check? => requires(?) prop cache
+///         * Alternative: Provide takes a future because yay async yay.
+///             * Doesn't change caching does it?
+///         * Actual alternative: Return values using the trait object passed in.
+///     * Validations are trait objects but you can get access to values w/ downcast
+///
+/// Typecheck idea: Validate on construction, use unsafe internally and be really careful. We're
+/// pretty required unsafe anyway? (I think?)
+
+pub struct Session {
+    mechanism: Box<dyn Authentication>,
+    mechanism_data: MechanismData,
 
     // Callback types:
     // - provide property / do action (e.g. provide username/password, start OIDC auth)
@@ -41,65 +91,35 @@ pub struct Session<A, CB, CBCB> {
     // - validate authentication (e.g. check username/password against a DB)
     //      ⇒ SERVER
     //      ⇒ provided by end-user
+    // ^ Those two are very similar, basically a "do this thing please" callback
+    //
     // - provide channel-binding data
     //      ⇒ CLIENT + SERVER
     //      ⇒ provided by either end-user or protocol impl
 }
 
-impl<A, CB, CBCB> Session<A, CB, CBCB> {
-    pub fn build(
-        mechanism: A,
-        callback: CB,
-        channel_binding_cb: CBCB,
-        session_data: SessionData
-    ) -> Self {
-        Self { mechanism, callback, channel_binding_cb, session_data }
-    }
-}
-
-impl Session<Box<dyn Authentication>, (), ()> {
+impl Session {
     pub(crate) fn new(
-        callback: Option<Arc<dyn DynCallback + Send + Sync>>,
-        mechdesc: &'static Mechanism,
+        callback: Box<dyn SessionCallback>,
         mechanism: Box<dyn Authentication>,
+        mechanism_desc: Mechanism,
         side: Side,
+        channel_binding_cb: Option<Box<dyn ChannelBindingCallback>>,
     ) -> Self {
         Self {
             mechanism,
-
-            callback: (),
-            channel_binding_cb: (),
-
-            session_data: SessionData::new(callback, mechdesc, side),
+            mechanism_data: MechanismData::new(callback, channel_binding_cb, mechanism_desc, side),
         }
     }
 
-    pub fn set_property<P: PropertyQ>(&mut self, item: Arc<P::Item>) -> Option<Arc<P::Item>> {
-        self.session_data.set_property::<P>(item).map(|old| {
-            old.downcast()
-                .expect("old session data value was of bad type")
-        })
-    }
-
-    pub fn get_property<P: PropertyQ>(&mut self) -> Option<Arc<P::Item>> {
-        self.session_data.get_property::<P>()
-    }
-
-    pub fn get_mechname(&self) -> &'static Mechname {
-        self.session_data.mechanism.mechanism
-    }
-
+    #[inline(always)]
     pub fn are_we_first(&self) -> bool {
-        self.session_data.side == self.session_data.mechanism.first
-    }
-
-    pub fn has_security_layer(&self) -> bool {
-        todo!()
+        self.mechanism_data.session_data.side == self.mechanism_data.session_data.mechanism_desc.first
     }
 }
 
 #[cfg(feature = "provider")]
-impl SessionT {
+impl Session {
     /// Perform one step of SASL authentication.
     ///
     /// *requires feature `provider`*
@@ -121,29 +141,17 @@ impl SessionT {
     ///
     /// Keep in mind that SASL makes a distinction between zero-sized data to send (a Step
     /// containing `Some(0)`) and no data to send (a `Step` containing `None`).
-    pub fn step(&mut self, input: Option<impl AsRef<[u8]>>, writer: &mut impl Write) -> StepResult {
+    pub fn step(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult {
         if let Some(input) = input {
-            self.mechanism
-                .step(&mut self.session_data, Some(input.as_ref()), writer)
+            self.mechanism.step(&mut self.mechanism_data, Some(input.as_ref()), writer)
         } else {
-            self.mechanism.step(&mut self.session_data, None, writer)
+            self.mechanism.step(&mut self.mechanism_data, None, writer)
         }
-    }
-
-    /// Provide channel binding data for mechanisms
-    ///
-    /// Some mechanisms can make use of channel binding to verify that the underlying (encrypted)
-    /// connection is in fact with the expected party and not being MitM'ed.
-    /// To allow this behaviour the channel binding data needs to be made available with a call to
-    /// this method.
-    pub fn set_channel_binding_data(&mut self, name: &'static str, value: Box<[u8]>) {
-        unimplemented!()
-        //self.session_data.set_channel_binding_data(name, value);
     }
 }
 
 #[cfg(feature = "provider_base64")]
-impl SessionT {
+impl Session {
     /// Perform one step of SASL authentication, base64 encoded.
     ///
     /// *requires feature `provider_base64`*
@@ -157,34 +165,85 @@ impl SessionT {
     /// Refer to your protocol documentation if SASL data needs to be base64 encoded.
     pub fn step64(
         &mut self,
-        input: Option<impl AsRef<[u8]>>,
+        input: Option<&[u8]>,
         writer: &mut impl Write,
     ) -> StepResult {
         use base64::write::EncoderWriter;
-
-        let input = input
-            .map(|inp| base64::decode_config(inp.as_ref(), base64::STANDARD))
-            .transpose()?;
         let mut writer64 = EncoderWriter::new(writer, base64::STANDARD);
-        self.step(input, &mut writer64)
+
+        if let Some(input) = input {
+            let input = base64::decode_config(input, base64::STANDARD)?;
+            self.step(Some(&input[..]), &mut writer64)
+        } else {
+            self.step(None, &mut writer64)
+        }
+    }
+}
+
+pub struct MechanismData {
+    callback: Box<dyn SessionCallback>,
+    channel_binding_cb: Option<Box<dyn ChannelBindingCallback>>,
+    session_data: SessionData,
+}
+
+impl MechanismData {
+    pub(crate) fn new(
+        callback: Box<dyn SessionCallback>,
+        channel_binding_cb: Option<Box<dyn ChannelBindingCallback>>,
+        mechanism_desc: Mechanism,
+        side: Side
+    ) -> Self {
+        Self {
+            callback,
+            channel_binding_cb,
+            session_data: SessionData::new(mechanism_desc, side),
+        }
+    }
+
+    pub fn callback<Q: Query>(&mut self, query: &mut Q) -> Result<(), CallbackError> {
+        self.callback.callback(&self.session_data, query)
+    }
+    pub fn need<P: AnsQuery>(&mut self, params: P::Params)
+        -> Result<P::Answer, CallbackError>
+    {
+        let mut query = P::build(params);
+        self.callback(&mut query)?;
+        query
+            .into_answer()
+            .ok_or(CallbackError::NoAnswer)
+    }
+
+    // Legacy bs:
+    pub unsafe fn set_property_raw(&mut self, _prop: Gsasl_property, _: Arc<String>) {
+        unimplemented!()
+    }
+    pub fn set_property<P: PropertyQ>(&mut self, _: Arc<P::Item>) {
+        unimplemented!()
+    }
+    pub fn get_property<P: PropertyQ>(&mut self) -> Option<Arc<P::Item>> {
+        unimplemented!()
+    }
+    pub unsafe fn callback_raw(&mut self, _prop: Gsasl_property) -> *const libc::c_char {
+        unimplemented!()
+    }
+    pub fn get_property_or_callback<P: PropertyQ>(&mut self)
+        -> Result<Option<Arc<P::Item>>, SessionError>
+    {
+        unimplemented!()
+    }
+    pub fn validate(&mut self, _: &dyn ValidateQ) -> Result<(), SessionError> {
+        unimplemented!()
     }
 }
 
 pub struct SessionData {
-    // TODO: Move caching out of SessionData and into Callback. That makes no_std or situations
-    //       where caching makes no sense much more reasonable to implement.
-    pub(crate) callback: Option<Arc<dyn DynCallback + Send + Sync>>,
-    property_cache: HashMap<Property, Arc<dyn Any + Send + Sync>>,
-    mechanism: &'static Mechanism,
+    mechanism_desc: Mechanism,
     side: Side,
 }
 
-impl Debug for SessionData {
+impl Debug for MechanismData {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SessionData")
-            .field("has callback", &self.callback.is_some())
-            .field("property cache", &self.property_cache)
-            .finish()
+        f.debug_struct("SessionData").finish()
     }
 }
 
@@ -206,82 +265,18 @@ pub enum Step {
 pub type StepResult = Result<Step, SessionError>;
 
 impl SessionData {
-    pub(crate) fn new(
-        callback: Option<Arc<dyn DynCallback + Send + Sync>>,
-        mechanism: &'static Mechanism,
-        side: Side,
-    ) -> Self {
+    pub(crate) fn new(mechanism_desc: Mechanism, side: Side) -> Self {
         Self {
-            callback,
-            property_cache: HashMap::new(),
-            mechanism,
+            mechanism_desc,
             side,
         }
     }
 }
 
 impl SessionData {
-    pub fn callback<P: PropertyQ>(&mut self) -> Result<(), SessionError> {
-        let property = P::property();
-        self.callback_property(property)
-    }
-
-    pub fn validate(&mut self, validation: Validation) -> Result<(), SessionError> {
-        self.callback
-            .clone()
-            .map(|cb| cb.validate(self, validation, self.mechanism.mechanism))
-            .unwrap_or(Err(SessionError::no_validate(validation)))
-    }
-
-    pub fn get_property_or_callback<P: PropertyQ>(
-        &mut self,
-    ) -> Result<Option<Arc<P::Item>>, SessionError> {
-        if !self.has_property::<P>() {
-            match self.callback::<P>() {
-                Ok(()) => {}
-                Err(SessionError::NoCallback { .. }) => return Ok(None),
-                Err(e) => return Err(e),
-            }
-        }
-        Ok(self.get_property::<P>())
-    }
-
-    pub fn has_property<P: PropertyQ>(&self) -> bool {
-        self.property_cache.contains_key(&P::property())
-    }
-
-    pub fn get_property<P: PropertyQ>(&self) -> Option<Arc<P::Item>> {
-        self.property_cache
-            .get(&P::property())
-            .and_then(|prop| prop.clone().downcast::<P::Item>().ok())
-    }
-
-    pub fn set_property<P: PropertyQ>(
-        &mut self,
-        item: Arc<P::Item>,
-    ) -> Option<Arc<dyn Any + Send + Sync>> {
-        self.property_cache.insert(P::property(), item)
-    }
-
-    pub(crate) unsafe fn set_property_raw(&mut self, prop: Gsasl_property, data: Arc<String>) {
-        let property = property_from_code(prop).unwrap();
-        self.property_cache.insert(property, data);
-    }
-
-    pub(crate) fn callback_raw(&mut self, prop: Gsasl_property) -> Result<(), SessionError> {
-        let property = property_from_code(prop).unwrap();
-        self.callback_property(property)
-    }
-
-    pub(crate) fn callback_property(&mut self, property: Property) -> Result<(), SessionError> {
-        self.callback
-            .clone()
-            .map(|cb| cb.provide_prop(self, property))
-            .unwrap_or(Err(SessionError::NoCallback { property }))
-    }
 }
 
-#[cfg(test)]
+#[cfg(testn)]
 mod tests {
     use super::*;
     use crate::gsasl::consts::{GSASL_AUTHID, GSASL_PASSWORD};
@@ -295,10 +290,10 @@ mod tests {
         struct CB {
             data: usize,
         }
-        impl DynCallback for CB {
-            fn provide_prop(
+        impl Callback for CB {
+            fn callback(
                 &self,
-                session: &mut SessionData,
+                session: &mut MechanismData,
                 _action: Property,
             ) -> Result<(), SessionError> {
                 let _ = session.set_property::<AuthId>(Arc::new(format!("is {}", self.data)));
@@ -307,11 +302,7 @@ mod tests {
         }
 
         let cbox = CB { data: 0 };
-        let mut session = SessionData::new(
-            Some(Arc::new(cbox)),
-            &PLAIN,
-            Side::Client,
-        );
+        let mut session = MechanismData::new(Some(Arc::new(cbox)), &PLAIN, Side::Client);
 
         assert!(session.get_property::<AuthId>().is_none());
         assert_eq!(

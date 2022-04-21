@@ -110,12 +110,12 @@ pub mod validate;
 
 mod vectored_io;
 
-use crate::callback::DynCallback;
+use crate::callback::Callback;
 use crate::error::SASLError;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 use crate::registry::Mechanism;
-use crate::session::{Session, SessionT, Side};
+use crate::session::{Session, SessionBuilder, Side};
 pub use property::{Property, PropertyQ};
 
 /// SASL Provider context
@@ -128,7 +128,7 @@ pub use property::{Property, PropertyQ};
 /// authentication exchanges in parallel, e.g. in a server context, you can wrap it in an
 /// [`std::sync::Arc`] to add cheap cloning, or initialize it as a global value.
 pub struct SASL {
-    pub callback: Option<Arc<dyn DynCallback + Send + Sync>>,
+    pub callback: Arc<dyn Callback>,
 
     #[cfg(feature = "registry_dynamic")]
     dynamic_mechs: Vec<&'static Mechanism>,
@@ -141,7 +141,6 @@ pub struct SASL {
 impl Debug for SASL {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut s = f.debug_struct("SASL");
-        s.field("has callback", &self.callback.is_some());
         #[cfg(feature = "registry_dynamic")]
         s.field("registered mechanisms", &self.dynamic_mechs);
         #[cfg(feature = "registry_static")]
@@ -158,7 +157,7 @@ impl Debug for SASL {
 /// They are mainly relevant for protocol implementations wanting to start an
 /// authentication exchange.
 impl SASL {
-    /// Returns the list of client mechanisms supported by this provider.
+    /// Return all mechanisms supported on the client side by this provider.
     ///
     /// An interactive client "logging in" to some server application would use this method. The
     /// server application would use [`SASL::server_mech_list()`].
@@ -189,7 +188,7 @@ impl SASL {
         }
     }
 
-    /// Returns the list of Server Mechanisms supported by this provider.
+    /// Return all mechanisms supported on the server side by this provider.
     ///
     /// An server allowing client software to "log in" would use this method. A client
     /// application would use [`SASL::client_mech_list()`].
@@ -222,7 +221,7 @@ impl SASL {
     pub fn client_start_suggested<'a>(
         &self,
         mechs: impl IntoIterator<Item = &'a Mechname>,
-    ) -> Result<SessionT, SASLError> {
+    ) -> Result<SessionBuilder, SASLError> {
         mechs
             .into_iter()
             .filter_map(|name| {
@@ -245,7 +244,7 @@ impl SASL {
     pub fn server_start_suggested<'a>(
         &self,
         mechs: impl IntoIterator<Item = &'a Mechname>,
-    ) -> Result<SessionT, SASLError> {
+    ) -> Result<SessionBuilder, SASLError> {
         mechs
             .into_iter()
             .filter_map(|name| {
@@ -291,13 +290,14 @@ impl SASL {
         mechdesc: &'static Mechanism,
         mechanism: Box<dyn Authentication>,
         side: Side,
-    ) -> SessionT {
-        Session::new(
+    ) -> SessionBuilder {
+        /*SessionBuilder::new(
             self.callback.clone(),
-            mechdesc,
             mechanism,
+            *mechdesc,
             side,
-        )
+        )*/
+        unimplemented!()
     }
 
     #[doc(hidden)]
@@ -308,7 +308,7 @@ impl SASL {
         mech_list: impl IntoIterator<Item = &'static Mechanism>,
         start: impl Fn(&Mechanism) -> Option<Result<Box<dyn Authentication>, SASLError>>,
         side: Side,
-    ) -> Result<SessionT, SASLError> {
+    ) -> Result<SessionBuilder, SASLError> {
         // Using an inverted result to shortcircuit out of `try_fold`: We want to stop looking
         // for mechanisms as soon as we found the first matching one. try_fold stop running as
         // soon as the first `ControlFlow::Break` is found, which for the implementation of `Try` on
@@ -339,7 +339,7 @@ impl SASL {
     /// an authcid, optional authzid and password for PLAIN. To provide that data an application
     /// has to either call `set_property` before running the step that requires the data, or
     /// install a callback.
-    pub fn client_start(&self, mech: &mechname::Mechname) -> Result<SessionT, SASLError> {
+    pub fn client_start(&self, mech: &mechname::Mechname) -> Result<SessionBuilder, SASLError> {
         self.start_inner(
             mech,
             self.client_mech_list(),
@@ -354,7 +354,7 @@ impl SASL {
     /// authentication data provided by the user.
     ///
     /// See [Callback](Callback) on how to implement callbacks.
-    pub fn server_start(&self, mech: &mechname::Mechname) -> Result<SessionT, SASLError> {
+    pub fn server_start(&self, mech: &mechname::Mechname) -> Result<SessionBuilder, SASLError> {
         self.start_inner(
             mech,
             self.server_mech_list(),

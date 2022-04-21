@@ -206,7 +206,7 @@ impl IsOk for CheckLen<18> {}
 impl IsOk for CheckLen<19> {}
 impl IsOk for CheckLen<20> {}
 
-#[cfg(test)]
+#[cfg(ntest)]
 mod tests {
     use super::*;
 

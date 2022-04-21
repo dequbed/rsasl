@@ -4,7 +4,7 @@ use rsasl::SASL;
 use rsasl::error::SASLError;
 use rsasl::mechanism::Authentication;
 use rsasl::mechname::Mechname;
-use rsasl::session::{SessionData, Side, StepResult};
+use rsasl::session::{MechanismData, Side, StepResult};
 
 struct CustomMechanism {
     client: bool,
@@ -29,7 +29,7 @@ impl CustomMechanism {
 }
 
 impl Authentication for CustomMechanism {
-    fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
+    fn step(&mut self, session: &mut MechanismData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
         // Do your mechanism stuff here, updating state in *self as you go.
         unimplemented!()
         /*

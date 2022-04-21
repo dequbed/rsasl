@@ -1,6 +1,6 @@
 use crate::error::SessionError;
 use crate::error::SessionError::NoSecurityLayer;
-use crate::session::{SessionData, StepResult};
+use crate::session::{MechanismData, StepResult};
 use std::io::Write;
 
 /// Trait implemented to be one party in an authentication exchange
@@ -13,7 +13,7 @@ use std::io::Write;
 /// ```rust
 /// # use std::io::Write;
 /// # use rsasl::mechanism::Authentication;
-/// # use rsasl::session::{SessionData, StepResult};
+/// # use rsasl::session::{MechanismData, StepResult};
 /// // Data required for both sides
 /// struct Common {
 ///     step: usize,
@@ -25,7 +25,7 @@ use std::io::Write;
 /// pub struct Server(Common);
 ///
 /// impl Authentication for Client {
-///     fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
+///     fn step(&mut self, session: &mut MechanismData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
 ///         match self.0.step {
 ///             0 => { }
 ///             _ => { }
@@ -34,7 +34,7 @@ use std::io::Write;
 ///     }
 /// }
 /// impl Authentication for Server {
-///     fn step(&mut self, session: &mut SessionData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
+///     fn step(&mut self, session: &mut MechanismData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
 ///         # unimplemented!()
 ///     }
 /// }
@@ -45,7 +45,7 @@ pub trait Authentication {
     /// Do a single step of authentication with the other party
     fn step(
         &mut self,
-        session: &mut SessionData,
+        session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
     ) -> StepResult;

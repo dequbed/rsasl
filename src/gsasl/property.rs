@@ -1,13 +1,13 @@
 use crate::gsasl::consts::*;
 use crate::gsasl::consts::{Gsasl_property, GSASL_OK};
 use crate::property::*;
-use crate::session::SessionData;
+use crate::session::MechanismData;
 use libc::{size_t, strlen};
 use std::ffi::CString;
 use std::sync::Arc;
 
 pub unsafe fn gsasl_property_set(
-    mut sctx: &mut SessionData,
+    mut sctx: &mut MechanismData,
     mut prop: Gsasl_property,
     mut data: *const libc::c_char,
 ) -> libc::c_int {
@@ -24,7 +24,7 @@ pub unsafe fn gsasl_property_set(
 }
 
 pub unsafe fn gsasl_property_set_raw(
-    mut sctx: &mut SessionData,
+    mut sctx: &mut MechanismData,
     mut prop: Gsasl_property,
     mut data: *const libc::c_char,
     mut len: size_t,
@@ -59,7 +59,7 @@ pub unsafe fn gsasl_property_set_raw(
  *
  * Since: 0.2.0
  **/
-unsafe fn gsasl_property_fast(sctx: &mut SessionData, prop: Gsasl_property) -> *const libc::c_char {
+unsafe fn gsasl_property_fast(sctx: &mut MechanismData, prop: Gsasl_property) -> *const libc::c_char {
     if GSASL_OPENID20_OUTCOME_DATA == prop {
         if let Some(prop) = sctx.get_property::<OpenID20OutcomeData>() {
             prop.as_ptr()
@@ -204,19 +204,20 @@ unsafe fn gsasl_property_fast(sctx: &mut SessionData, prop: Gsasl_property) -> *
             std::ptr::null()
         }
     } else if GSASL_AUTHID == prop {
-        if let Some(prop) = sctx.get_property::<AuthId>() {
+        unimplemented!()
+        /*if let Some(prop) = /*sctx.get_property::<AuthId>()*/ {
             let cstr = Box::leak(Box::new(CString::new(prop.as_bytes().to_owned()).unwrap()));
             (*cstr).as_ptr()
         } else {
             std::ptr::null()
-        }
+        }*/
     } else {
         std::ptr::null()
     }
 }
 
 pub unsafe fn gsasl_property_get(
-    sctx: &mut SessionData,
+    sctx: &mut MechanismData,
     prop: Gsasl_property,
 ) -> *const libc::c_char {
     let mut ptr = gsasl_property_fast(sctx, prop);
@@ -227,7 +228,7 @@ pub unsafe fn gsasl_property_get(
     ptr
 }
 
-#[cfg(test)]
+#[cfg(testn)]
 mod tests {
     use super::*;
     use crate::mechanisms::plain::mechinfo::PLAIN;
@@ -237,7 +238,7 @@ mod tests {
 
     #[test]
     fn property_get_set() {
-        let mut session = SessionData::new(None, &PLAIN, Side::Client);
+        let mut session = MechanismData::new(None, &PLAIN, Side::Client);
 
         unsafe {
             let ptr = gsasl_property_fast(&mut session, GSASL_QOP);

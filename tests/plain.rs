@@ -1,10 +1,10 @@
 
-use rsasl::callback::DynCallback;
+use rsasl::callback::Callback;
 use rsasl::error::{SessionError};
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, AuthzId, Password};
 use rsasl::session::Step::{Done, NeedsMore};
-use rsasl::session::{SessionData, StepResult};
+use rsasl::session::{MechanismData, StepResult};
 use rsasl::validate::{validations, Validation};
 use rsasl::SASL;
 
@@ -50,10 +50,10 @@ fn plain_client() {
 #[test]
 fn plain_server() {
     struct CB;
-    impl DynCallback for CB {
+    impl Callback for CB {
         fn validate(
             &self,
-            session: &mut SessionData,
+            session: &mut MechanismData,
             validation: Validation,
             _mechanism: &Mechname,
         ) -> Result<(), SessionError> {

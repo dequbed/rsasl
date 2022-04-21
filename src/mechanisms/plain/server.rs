@@ -1,3 +1,5 @@
+use std::any::{Any, TypeId};
+use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::str::Utf8Error;
@@ -8,9 +10,10 @@ use stringprep::{saslprep, Error};
 use crate::error::{MechanismError, MechanismErrorKind};
 use crate::property::{AuthId, AuthzId, Password};
 use crate::session::Step::{Done, NeedsMore};
-use crate::session::{SessionData, StepResult};
+use crate::session::{MechanismData, StepResult};
 use crate::validate::validations::SIMPLE;
 use crate::Authentication;
+use crate::validate::{ValidateQ, Validation};
 
 #[derive(Debug)]
 enum PlainError {
@@ -48,11 +51,17 @@ impl MechanismError for PlainError {
 }
 
 pub struct Plain;
+#[derive(Debug)]
+pub struct PlainValidation {
+    pub authcid: String,
+    pub authzid: Option<String>,
+    pub password: String,
+}
 
 impl Authentication for Plain {
     fn step(
         &mut self,
-        session: &mut SessionData,
+        session: &mut MechanismData,
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
     ) -> StepResult {
@@ -69,25 +78,25 @@ impl Authentication for Plain {
             return Err(PlainError::BadFormat.into());
         }
 
-        if !authzid.is_empty() {
+        let authzid = if !authzid.is_empty() {
             let s = std::str::from_utf8(authzid).map_err(PlainError::BadAuthzid)?;
-            let authzidprep = saslprep(s).map_err(|e| PlainError::from(e))?.to_string();
-            session.set_property::<AuthzId>(Arc::new(authzidprep));
-        }
+            Some(saslprep(s).map_err(|e| PlainError::from(e))?.to_string())
+        } else {
+            None
+        };
 
         let authcid = std::str::from_utf8(authcid).map_err(PlainError::BadAuthcid)?;
-        let authcidprep = saslprep(authcid)
+        let authcid = saslprep(authcid)
             .map_err(|e| PlainError::from(e))?
             .to_string();
-        session.set_property::<AuthId>(Arc::new(authcidprep));
 
         let password = std::str::from_utf8(password).map_err(PlainError::BadPassword)?;
-        let passwordprep = saslprep(password)
+        let password = saslprep(password)
             .map_err(|e| PlainError::from(e))?
             .to_string();
-        session.set_property::<Password>(Arc::new(passwordprep));
 
-        session.validate(SIMPLE)?;
+        let vquery = PlainValidation { authzid, authcid, password };
+        session.validate(&vquery)?;
         Ok(Done(None))
     }
 }

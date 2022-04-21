@@ -22,7 +22,7 @@ use crate::mechanisms::scram::tokens::{
     scram_free_server_first,
 };
 use crate::mechanisms::scram::tools::set_saltedpassword;
-use crate::session::SessionData;
+use crate::session::MechanismData;
 use crate::Shared;
 use ::libc;
 use libc::{
@@ -218,7 +218,7 @@ unsafe fn extract_serverkey(
 }
 
 pub unsafe fn _gsasl_scram_server_step(
-    sctx: &mut SessionData,
+    sctx: &mut MechanismData,
     mech_data: Option<NonNull<()>>,
     input: Option<&[u8]>,
     output: *mut *mut libc::c_char,

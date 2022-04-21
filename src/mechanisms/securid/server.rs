@@ -4,7 +4,7 @@ use crate::gsasl::consts::{
     GSASL_OK, GSASL_PASSCODE, GSASL_PIN, GSASL_SUGGESTED_PIN, GSASL_VALIDATE_SECURID,
 };
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
-use crate::session::SessionData;
+use crate::session::MechanismData;
 use crate::Shared;
 use ::libc;
 use libc::{malloc, memchr, memcpy, size_t, strdup, strlen};
@@ -32,7 +32,7 @@ use std::ptr::NonNull;
  *
  */
 pub unsafe fn _gsasl_securid_server_step(
-    sctx: &mut SessionData,
+    sctx: &mut MechanismData,
     _mech_data: Option<NonNull<()>>,
     input: Option<&[u8]>,
     output: *mut *mut libc::c_char,

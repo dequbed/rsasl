@@ -7,7 +7,7 @@ use crate::gsasl::consts::{
 use crate::gsasl::gl::free::rpl_free;
 use crate::gsasl::mechtools::_gsasl_gs2_generate_header;
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set_raw};
-use crate::session::SessionData;
+use crate::session::MechanismData;
 use crate::Shared;
 use ::libc;
 use libc::{calloc, size_t, strdup, strlen};
@@ -59,7 +59,7 @@ pub(crate) unsafe fn _gsasl_saml20_client_start(
 }
 
 pub unsafe fn _gsasl_saml20_client_step(
-    sctx: &mut SessionData,
+    sctx: &mut MechanismData,
     mech_data: Option<NonNull<()>>,
     input: Option<&[u8]>,
     output: *mut *mut libc::c_char,

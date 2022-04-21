@@ -8,7 +8,7 @@ use crate::gsasl::saslprep::{gsasl_saslprep, Gsasl_saslprep_flags};
 use crate::mechanisms::cram_md5::challenge::cram_md5_challenge;
 use crate::mechanisms::cram_md5::digest::cram_md5_digest;
 use crate::property::Password;
-use crate::session::SessionData;
+use crate::session::MechanismData;
 use crate::Shared;
 use ::libc;
 use libc::{calloc, malloc, memcmp, memcpy, size_t, strdup, strlen};
@@ -34,7 +34,7 @@ pub(crate) unsafe fn _gsasl_cram_md5_server_start(
 }
 
 pub unsafe fn _gsasl_cram_md5_server_step(
-    sctx: &mut SessionData,
+    sctx: &mut MechanismData,
     mech_data: Option<NonNull<()>>,
     input: Option<&[u8]>,
     output: *mut *mut libc::c_char,

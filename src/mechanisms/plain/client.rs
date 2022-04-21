@@ -1,10 +1,11 @@
 use crate::error::SessionError;
 use crate::mechanism::Authentication;
-use crate::property::{AuthId, AuthzId, Password};
+use crate::property::{AuthId, AuthzId, Password, PlainCredentials, Credentials};
 use crate::session::Step::Done;
-use crate::session::{SessionData, StepResult};
+use crate::session::{MechanismData, StepResult};
 use crate::vectored_io::VectoredWriter;
 use std::io::Write;
+use crate::callback::Question;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Plain;
@@ -12,18 +13,11 @@ pub struct Plain;
 impl Authentication for Plain {
     fn step(
         &mut self,
-        session: &mut SessionData,
+        session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
     ) -> StepResult {
-        let authzid = session.get_property_or_callback::<AuthzId>()?;
-
-        let authid = session
-            .get_property_or_callback::<AuthId>()?
-            .ok_or(SessionError::no_property::<AuthId>())?;
-        let password = session
-            .get_property_or_callback::<Password>()?
-            .ok_or(SessionError::no_property::<Password>())?;
+        let Credentials { authid, authzid, password } = session.need::<PlainCredentials>(())?;
 
         let authzidbuf = if let Some(authz) = &authzid {
             authz.as_bytes()
@@ -46,11 +40,11 @@ impl Authentication for Plain {
     }
 }
 
-#[cfg(test)]
+#[cfg(testn)]
 mod test {
     use super::*;
     use crate::mechanisms::plain::mechinfo::PLAIN;
-    use crate::session::SessionData;
+    use crate::session::MechanismData;
     use crate::session::Step::NeedsMore;
     use crate::Side;
     use std::io::Cursor;
@@ -58,7 +52,7 @@ mod test {
 
     #[test]
     fn simple() {
-        let mut session = SessionData::new(None, &PLAIN, Side::Client);
+        let mut session = MechanismData::new(None, &PLAIN, Side::Client);
 
         let username = "testuser".to_string();
         assert_eq!(username.len(), 8);
@@ -93,7 +87,7 @@ mod test {
 
     #[test]
     fn split_writer() {
-        let mut session = SessionData::new(None, &PLAIN, Side::Client);
+        let mut session = MechanismData::new(None, &PLAIN, Side::Client);
 
         let username = "testuser".to_string();
         assert_eq!(username.len(), 8);
