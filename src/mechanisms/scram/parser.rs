@@ -95,14 +95,14 @@ impl<'a> SaslName<'a> {
     /// Convert a Rust-side string into the representation required by SCRAM
     ///
     /// This will clone the given string if characters need escaping
-    pub fn escape(input: Arc<String>) -> Result<Arc<String>, SaslNameError> {
+    pub fn escape(input: String) -> Result<String, SaslNameError> {
         if input.contains('\0') {
             return Err(SaslNameError::InvalidChar(0));
         }
 
         if input.contains(&[',', '=']) {
             let escaped: String = input.chars().flat_map(SaslEscapeState::escape).collect();
-            Ok(Arc::new(escaped))
+            Ok(escaped)
         } else {
             Ok(input)
         }
@@ -219,13 +219,13 @@ pub struct ClientFirstMessage<'scram> {
 impl<'scram> ClientFirstMessage<'scram> {
     pub fn new(
         cbflag: GS2CBindFlag<'scram>,
-        authzid: Option<&'scram str>,
+        authzid: Option<&'scram String>,
         username: &'scram str,
         nonce: &'scram [u8],
     ) -> Self {
         Self {
             cbflag,
-            authzid,
+            authzid: authzid.map(|s| s.as_ref()),
             username,
             nonce,
         }
@@ -535,38 +535,6 @@ mod tests {
         for (input, output) in valid.iter() {
             assert_eq!(GS2CBindFlag::parse(input), Ok(*output))
         }
-    }
-
-    #[test]
-    fn write_client_first_message() {
-        let username = "testuser";
-        let nonce = b"testnonce";
-        let cbname = "tls-unique";
-
-        let msg = ClientFirstMessage {
-            cbflag: GS2CBindFlag::Used(cbname),
-            authzid: None,
-            username,
-            nonce,
-        };
-
-        let expected = "p=tls-unique,,n=testuser,r=testnonce";
-
-        let mut out = Cursor::new(Vec::new());
-        let mut vecw = VectoredWriter::new(msg.to_ioslices());
-        let _written = vecw.write_all_vectored(&mut out).unwrap();
-
-        let v = out.into_inner();
-        let f = std::str::from_utf8(&v[..]).unwrap();
-        println!("Output: {:?}", f);
-        assert_eq!(f, expected);
-
-        let parsed = ClientFirstMessage::parse(expected.as_bytes()).unwrap();
-        println!("Parsed: {:?}", parsed);
-        assert_eq!(parsed.cbflag, GS2CBindFlag::Used("tls-unique"));
-        assert_eq!(parsed.authzid, None);
-        assert_eq!(parsed.username, username);
-        assert_eq!(parsed.nonce, nonce);
     }
 }
 

@@ -9,6 +9,15 @@ use std::{fmt, io};
 use crate::callback::CallbackError;
 use crate::mechname::MechanismNameError;
 
+// TODO: Error types:
+// - Setup error. Bad Mechanism, no shared mechanism, mechanism failed to start.
+//      * `SetupError`?
+// - Session error. Stepping Mechanism broke, I/O error in output writer
+//      * Callback error should be handled specifically?
+// - Authentication error. Mechanism stepped to completion, authentication *failed*.
+//     * one bit of data i.e. can be bool `isValid`. Extra data is super specific per-mechanism
+//       and put on the output writer.
+
 pub type Result<T> = std::result::Result<T, SASLError>;
 
 static UNKNOWN_ERROR: &'static str = "The given error code is unknown to gsasl";

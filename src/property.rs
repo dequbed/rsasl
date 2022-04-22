@@ -127,40 +127,6 @@ impl<T: Any + Clone> CallbackA for T {
 }
 
 #[derive(Debug)]
-pub struct Credentials {
-    pub authid: String,
-    pub authzid: Option<String>,
-    pub password: String,
-}
-pub struct PlainCredentials(Option<Credentials>);
-impl Question for PlainCredentials {
-    type Params = ();
-
-    fn build(_: Self::Params) -> Self {
-        Self(None)
-    }
-}
-impl Answerable for PlainCredentials {
-    type Answer = Credentials;
-
-    fn respond(&mut self, resp: Self::Answer) {
-        self.0 = Some(resp);
-    }
-
-    fn into_answer(self) -> Option<Self::Answer> {
-        self.0
-    }
-}
-pub struct ValidateSimple(Credentials);
-impl Question for ValidateSimple {
-    type Params = Credentials;
-
-    fn build(params: Self::Params) -> Self {
-        Self(params)
-    }
-}
-
-#[derive(Debug)]
 pub struct AuthId(PhantomData<()>);
 impl PropertyQ for AuthId {
     type Item = String;

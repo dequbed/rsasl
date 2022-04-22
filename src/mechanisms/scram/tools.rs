@@ -54,12 +54,6 @@ where D: Digest + BlockSizeUser,
         b",r=",
         combined_nonce,
     ];
-    let _o: Vec<u8> = auth_message_parts
-        .iter()
-        .map(|s| s.iter())
-        .flatten()
-        .map(|b| *b)
-        .collect();
 
     let mut stored_key_hmac = <SimpleHmac<D>>::new_from_slice(stored_key.as_ref())
         .expect("HMAC can work with any key size");

@@ -1,6 +1,6 @@
 use crate::error::SessionError;
 use crate::error::SessionError::NoSecurityLayer;
-use crate::session::{MechanismData, StepResult};
+use crate::session::{MechanismData, Step, StepResult};
 use std::io::Write;
 
 /// Trait implemented to be one party in an authentication exchange
@@ -40,7 +40,7 @@ use std::io::Write;
 /// }
 /// ```
 ///
-/// And register the two types separately
+/// and register the two types separately
 pub trait Authentication {
     /// Do a single step of authentication with the other party
     fn step(
@@ -51,6 +51,8 @@ pub trait Authentication {
     ) -> StepResult;
 
     // TODO: Document the problems with SASL security layers before release
+    // TODO: Split Authentication & Security Layer stuff?
+    // TODO: `fn is_security_layer_installed(&self) -> bool`?
     fn encode(&mut self, _input: &[u8]) -> Result<Box<[u8]>, SessionError> {
         Err(NoSecurityLayer)
     }
@@ -58,3 +60,7 @@ pub trait Authentication {
         Err(NoSecurityLayer)
     }
 }
+
+// TODO(?): Proper generic version of the Authentication trait with defined Error types?
+//          Would make rsasl more useful in the no-framework/statically defined use-case.
+//          Probably a thing to be explored later.
