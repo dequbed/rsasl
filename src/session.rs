@@ -64,22 +64,6 @@ impl SessionBuilder {
     }
 }
 
-/// TODO: Things that need doing
-/// - Give the Mechanism access to required (user-provided) data ⇒ user callback
-/// - Let the Mechanism tell the user to do an action ⇒ user callback
-/// - Give the Mechanism access to channel binding data ⇒ channel binding callback
-/// - Let the Mechanism tell the user to verify an authentication ⇒ user callback
-/// - Give the user access to global & context data.
-/// - Type safety: Users should have a hard time misusing the framework.
-///     * props are generic but callbacks should type-check? => requires(?) prop cache
-///         * Alternative: Provide takes a future because yay async yay.
-///             * Doesn't change caching does it?
-///         * Actual alternative: Return values using the trait object passed in.
-///     * Validations are trait objects but you can get access to values w/ downcast
-///
-/// Typecheck idea: Validate on construction, use unsafe internally and be really careful. We're
-/// pretty required unsafe anyway? (I think?)
-
 pub struct Session {
     mechanism: Box<dyn Authentication>,
     mechanism_data: MechanismData,
@@ -249,6 +233,12 @@ impl Debug for MechanismData {
     }
 }
 
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum AuthenticationError {
+
+}
+
 #[derive(Debug, Eq, PartialEq)]
 /// The outcome of a single step in the authentication exchange
 ///
@@ -264,6 +254,10 @@ pub enum Step {
 //  *On top of that* a mechanism may error for non-authentication related errors, e.g. IO errors
 //  or missing properties in which case a mechanism has not written *valid* data and the
 //  connection, if any, should be reset.
+pub struct StepOutcome {
+    pub step: Step,
+    pub data_len: Option<usize>,
+}
 pub type StepResult = Result<Step, SessionError>;
 
 impl SessionData {

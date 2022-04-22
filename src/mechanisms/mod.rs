@@ -24,6 +24,10 @@
 //! making use of [feature unification](https://doc.rust-lang.org/cargo/reference/features.html#feature-unification)
 //! to not compile in mechanisms that aren't needed.
 
+pub mod common {
+    pub mod properties;
+}
+
 #[cfg(feature = "anonymous")]
 pub mod anonymous {
     //! `ANONYMOUS` *mechanism. Requires feature "anonymous"*
@@ -111,6 +115,7 @@ pub mod scram {
     pub mod tokens;
     pub mod tools;
     pub mod validate;
+    pub mod properties;
 }
 
 #[cfg(feature = "securid")]

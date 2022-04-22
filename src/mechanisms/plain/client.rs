@@ -1,11 +1,11 @@
 use crate::error::SessionError;
 use crate::mechanism::Authentication;
-use crate::property::{AuthId, AuthzId, Password, PlainCredentials, Credentials};
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 use crate::vectored_io::VectoredWriter;
 use std::io::Write;
 use crate::callback::Question;
+use crate::mechanisms::common::properties::{Credentials, SimpleCredentials};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Plain;
@@ -17,7 +17,7 @@ impl Authentication for Plain {
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
     ) -> StepResult {
-        let Credentials { authid, authzid, password } = session.need::<PlainCredentials>(())?;
+        let Credentials { authid, authzid, password } = session.need::<SimpleCredentials>(())?;
 
         let authzidbuf = if let Some(authz) = &authzid {
             authz.as_bytes()
@@ -50,40 +50,6 @@ mod test {
     use std::io::Cursor;
     use std::sync::Arc;
 
-    #[test]
-    fn simple() {
-        let mut session = MechanismData::new(None, &PLAIN, Side::Client);
-
-        let username = "testuser".to_string();
-        assert_eq!(username.len(), 8);
-        let password = "secret".to_string();
-        assert_eq!(password.len(), 6);
-
-        session.set_property::<AuthId>(Arc::new(username));
-        session.set_property::<Password>(Arc::new(password));
-
-        let mut out = Cursor::new(Vec::new());
-
-        // Do an authentication step. In a PLAIN exchange there is only one step, with no data.
-        let mut plain = Plain;
-        let step_result = plain.step(&mut session, None, &mut out).unwrap();
-
-        match step_result {
-            Done(Some(len)) => {
-                assert_eq!(len, 1 + 8 + 1 + 6);
-                let buffer = &out.into_inner()[0..len];
-                // (1) "\0" + (8) "testuser" + (1) "\0" + (6) "secret"
-                let (name, pass) = buffer.split_at(9);
-                assert_eq!(name[0], 0);
-                assert_eq!(name, b"\0testuser");
-                assert_eq!(pass[0], 0);
-                assert_eq!(pass, b"\0secret");
-                return;
-            }
-            Done(None) => panic!("PLAIN exchange produced no output"),
-            NeedsMore(_) => panic!("PLAIN exchange took more than one step"),
-        }
-    }
 
     #[test]
     fn split_writer() {

@@ -48,6 +48,7 @@ use crate::session::Step::NeedsMore;
 use crate::session::{MechanismData, Step, StepResult};
 use crate::vectored_io::VectoredWriter;
 use crate::{Authentication, Shared};
+use crate::mechanisms::common::properties::{Credentials, SimpleCredentials};
 
 /// All the characters that are valid chars for a nonce
 const PRINTABLE: &'static [u8] =
@@ -69,11 +70,18 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> ScramClient<D, N>
             state: Some(ScramClientState::Initial(State::new(None))),
         }
     }
+
+    pub fn new_plus() -> Self {
+        Self {
+            plus: true,
+            state: Some(ScramClientState::Initial(State::new(None))),
+        }
+    }
 }
 
 enum ScramClientState<D: Digest + BlockSizeUser, const N: usize> {
     Initial(State<StateClientFirst<N>>),
-    ClientFirst(State<WaitingServerFirst<D, N>>),
+    ClientFirst(State<WaitingServerFirst<D, N>>, String),
     ServerFirst(State<WaitingServerFinal<D>>),
 }
 
@@ -93,8 +101,8 @@ impl<const N: usize> State<StateClientFirst<N>> {
     pub fn step<D: Digest + BlockSizeUser + Clone + Sync>(
         self,
         rng: &mut impl Rng,
-        authzid: Option<&str>,
-        username: Arc<String>,
+        authzid: Option<String>,
+        username: String,
         writer: impl Write,
         written: &mut usize,
     ) -> Result<State<WaitingServerFirst<D, N>>, SessionError> {
@@ -168,8 +176,8 @@ impl<const N: usize> StateClientFirst<N> {
         self,
         rng: &mut impl Rng,
         cbflag: GS2CBindFlag<'_>,
-        authzid: Option<&str>,
-        username: Arc<String>,
+        authzid: Option<String>,
+        username: String,
         writer: impl Write,
         written: &mut usize,
     ) -> Result<WaitingServerFirst<D, N>, SessionError> {
@@ -178,7 +186,7 @@ impl<const N: usize> StateClientFirst<N> {
         let client_nonce: [u8; N] = [0u8; N].map(|_| *distribution.sample(rng));
 
         let b =
-            ClientFirstMessage::new(cbflag, authzid, &username, &client_nonce[..]).to_ioslices();
+            ClientFirstMessage::new(cbflag, authzid.as_ref(), &username, &client_nonce[..]).to_ioslices();
 
         let mut vecw = VectoredWriter::new(b);
         (*written) = vecw.write_all_vectored(writer)?;
@@ -212,7 +220,7 @@ struct WaitingServerFirst<D: Digest + BlockSizeUser, const N: usize> {
     // Need to compare combined_nonce to be valid
     client_nonce: [u8; N],
 
-    username: Arc<String>,
+    username: String,
     // Input <= Server First Message { combined_nonce, salt, iteration_count }
 
     // Validate: len combined_nonce > len client_nonce
@@ -227,7 +235,7 @@ struct WaitingServerFirst<D: Digest + BlockSizeUser, const N: usize> {
 }
 
 impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirst<D, N> {
-    pub fn new(gs2_header: Vec<u8>, client_nonce: [u8; N], username: Arc<String>) -> Self {
+    pub fn new(gs2_header: Vec<u8>, client_nonce: [u8; N], username: String) -> Self {
         Self {
             gs2_header,
             client_nonce,
@@ -348,31 +356,25 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication fo
                 };
                  */
 
-                let authzid = session.get_property_or_callback::<AuthzId>()?;
-                let authid = session
-                    .get_property_or_callback::<AuthId>()?
-                    .ok_or(SessionError::no_property::<AuthId>())?;
+                let Credentials { authid, authzid, password } = session.need::<SimpleCredentials>(())?;
+
                 let username = SaslName::escape(authid).unwrap();
 
                 let mut rng = rand::thread_rng();
                 let mut written = 0;
                 let new_state = state.step(
                     &mut rng,
-                    authzid.as_ref().map(|arc| arc.as_str()),
+                    authzid,
                     username,
                     writer,
                     &mut written,
                 )?;
-                self.state = Some(ClientFirst(new_state));
+                self.state = Some(ClientFirst(new_state, password));
 
                 Ok(NeedsMore(Some(written)))
             }
-            Some(ClientFirst(state)) => {
+            Some(ClientFirst(state, password)) => {
                 let server_first = input.ok_or(SessionError::InputDataRequired)?;
-
-                let password = session
-                    .get_property_or_callback::<Password>()?
-                    .ok_or(SessionError::no_property::<Password>())?;
 
                 let mut written = 0;
                 let new_state = state.step(&password, server_first, writer, &mut written)?;
