@@ -22,7 +22,7 @@ impl MechanismError for ParseError {
     }
 }
 
-pub struct ExternalValidation;
+pub struct ExternalValidation(pub Option<String>);
 impl ValidationQ for ExternalValidation {
     fn validation() -> Validation where Self: Sized {
         EXTERNAL
@@ -39,15 +39,17 @@ impl Authentication for External {
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
     ) -> StepResult {
-        if let Some(input) = input {
+        let v = if let Some(input) = input {
             if let Ok(authid) = std::str::from_utf8(input) {
-                session.set_property::<AuthId>(Arc::new(authid.to_string()));
+                ExternalValidation(Some(authid.to_string()))
             } else {
                 return Err(ParseError.into());
             }
-        }
+        } else {
+            ExternalValidation(None);
+        };
 
-        session.validate(&ExternalValidation)?;
+        session.validate(&v)?;
         Ok(Done(None))
     }
 }
