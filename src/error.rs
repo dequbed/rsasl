@@ -22,35 +22,6 @@ pub type Result<T> = std::result::Result<T, SASLError>;
 
 static UNKNOWN_ERROR: &'static str = "The given error code is unknown to gsasl";
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
-/// Statically sized mechanism name container
-pub struct MechanismArray {
-    len: u8,
-    data: [u8; 20],
-}
-impl MechanismArray {
-    pub fn new(name: &Mechname) -> Self {
-        let len = min(name.len(), 20);
-        let mut data = [0u8; 20];
-        (&mut data[0..len]).copy_from_slice(name.as_bytes());
-
-        Self {
-            len: len as u8,
-            data,
-        }
-    }
-
-    pub fn as_mechname(&self) -> &Mechname {
-        // Safe because the only way to construct `Self` is from a valid Mechname
-        Mechname::new_unchecked(&self.data[0..(self.len as usize)])
-    }
-}
-impl Display for MechanismArray {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(self.as_mechname(), f)
-    }
-}
-
 /// Different high-level kinds of errors that can happen in mechanisms
 pub enum MechanismErrorKind {
     /// Parsing failed for the given reason (syntactical error)
@@ -230,7 +201,7 @@ pub enum SASLError {
     Base64DecodeError { source: base64::DecodeError },
 
     // setup errors
-    UnknownMechanism(MechanismArray),
+    UnknownMechanism,
     NoSharedMechanism,
     MechanismNameError(MechanismNameError),
     Gsasl(libc::c_uint),
@@ -238,7 +209,7 @@ pub enum SASLError {
 
 impl SASLError {
     pub fn unknown_mechanism(name: &Mechname) -> Self {
-        Self::UnknownMechanism(MechanismArray::new(name))
+        Self::UnknownMechanism
     }
 }
 
@@ -246,8 +217,8 @@ impl Debug for SASLError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             SASLError::Io { source } => Debug::fmt(source, f),
-            SASLError::UnknownMechanism(mecharray) => {
-                write!(f, "UnknownMechanism(\"{}\")", mecharray)
+            SASLError::UnknownMechanism => {
+                f.write_str("UnknownMechanism")
             }
             #[cfg(feature = "base64")]
             SASLError::Base64DecodeError { source } => Debug::fmt(source, f),
@@ -267,8 +238,8 @@ impl Display for SASLError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             SASLError::Io { source } => Display::fmt(source, f),
-            SASLError::UnknownMechanism(mecharray) => {
-                write!(f, "mechanism {} is not implemented", mecharray)
+            SASLError::UnknownMechanism => {
+                write!(f, "mechanism is unkown to us")
             }
             #[cfg(feature = "base64")]
             SASLError::Base64DecodeError { source } => Display::fmt(source, f),

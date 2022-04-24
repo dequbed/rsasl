@@ -90,36 +90,6 @@ unsafe fn gsasl_property_fast(sctx: &mut MechanismData, prop: Gsasl_property) ->
         } else {
             std::ptr::null()
         }
-    } else if GSASL_SCRAM_STOREDKEY == prop {
-        if let Some(prop) = sctx.get_property::<ScramStoredkey>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_SCRAM_SERVERKEY == prop {
-        if let Some(prop) = sctx.get_property::<ScramServerkey>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_SCRAM_SALTED_PASSWORD == prop {
-        if let Some(prop) = sctx.get_property::<ScramSaltedPassword>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_SCRAM_SALT == prop {
-        if let Some(prop) = sctx.get_property::<ScramSalt>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_SCRAM_ITER == prop {
-        if let Some(prop) = sctx.get_property::<ScramIter>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
     } else if GSASL_QOP == prop {
         if let Some(it) = sctx.get_property::<Qop>() {
             let ptr = it.as_ptr();

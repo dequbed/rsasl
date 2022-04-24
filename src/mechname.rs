@@ -43,7 +43,7 @@ impl Mechname {
             // be equivalent to the length of the input
             debug_assert_eq!(len, input.len());
 
-            Ok(Mechname::new_unchecked(input))
+            Ok(unsafe { Mechname::const_new_unchecked(input) })
         }
     }
 
