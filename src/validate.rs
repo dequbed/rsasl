@@ -1,30 +1,6 @@
-use std::any::{Any, TypeId};
 use std::fmt::{Debug, Display, Formatter};
+use crate::callback::Query;
 
-
-
-pub trait ValidateQ {
-    fn type_id(&self) -> TypeId;
-    fn validation(&self) -> Validation;
-    fn as_any(&self) -> &dyn Any;
-    fn downcast(query: &dyn ValidateQ) -> Option<&Self> where Self: Sized;
-}
-impl<T: Any> ValidateQ for T {
-    fn type_id(&self) -> TypeId {
-        TypeId::of::<Validation>()
-    }
-
-    fn validation(&self) -> Validation {
-        unimplemented!()
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn downcast(query: &dyn ValidateQ) -> Option<&Self> where Self: Sized {
-        query.as_any().downcast_ref::<Self>()
-    }
-}
 
 #[derive(Debug)]
 pub struct ValidationDefinition {
@@ -35,6 +11,10 @@ impl ValidationDefinition {
     pub const fn new(name: &'static str, display: &'static str) -> Self {
         Self { name, display }
     }
+}
+
+pub trait ValidationQ: Query {
+    fn validation() -> Validation where Self: Sized;
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]

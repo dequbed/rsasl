@@ -7,6 +7,7 @@ use crate::validate::validations::EXTERNAL;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::sync::Arc;
+use crate::validate::{Validation, ValidationQ};
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct ParseError;
@@ -18,6 +19,13 @@ impl Display for ParseError {
 impl MechanismError for ParseError {
     fn kind(&self) -> MechanismErrorKind {
         MechanismErrorKind::Parse
+    }
+}
+
+pub struct ExternalValidation;
+impl ValidationQ for ExternalValidation {
+    fn validation() -> Validation where Self: Sized {
+        EXTERNAL
     }
 }
 
@@ -39,7 +47,7 @@ impl Authentication for External {
             }
         }
 
-        session.validate(&EXTERNAL)?;
+        session.validate(&ExternalValidation)?;
         Ok(Done(None))
     }
 }

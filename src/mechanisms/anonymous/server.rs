@@ -7,6 +7,7 @@ use crate::Authentication;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::sync::Arc;
+use crate::validate::{Validation, ValidationQ};
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct ParseError;
@@ -18,6 +19,13 @@ impl Display for ParseError {
 impl MechanismError for ParseError {
     fn kind(&self) -> MechanismErrorKind {
         MechanismErrorKind::Parse
+    }
+}
+
+pub struct AnonymousValidation;
+impl ValidationQ for AnonymousValidation {
+    fn validation() -> Validation where Self: Sized {
+        ANONYMOUS
     }
 }
 
@@ -47,7 +55,7 @@ impl Authentication for Anonymous {
             }
 
             session.set_property::<AnonymousToken>(Arc::new(input.to_string()));
-            session.validate(&ANONYMOUS)?;
+            session.validate(&AnonymousValidation)?;
 
             Ok(Done(None))
         } else {

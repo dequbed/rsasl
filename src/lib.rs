@@ -110,7 +110,7 @@ pub mod validate;
 
 mod vectored_io;
 
-use crate::callback::{Callback, SessionCallback};
+use crate::callback::SessionCallback;
 use crate::error::SASLError;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
