@@ -73,10 +73,12 @@ impl Display for CallbackError {
         }
     }
 }
-impl<E: 'static + Error + Send + Sync> From<E> for CallbackError {
-    #[inline(always)]
-    fn from(e: E) -> Self {
-        Self::Boxed(Box::new(e))
+impl Error for CallbackError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            CallbackError::Boxed(e) => Some(e.as_ref()),
+            _ => None,
+        }
     }
 }
 
