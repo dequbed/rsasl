@@ -17,7 +17,11 @@ ones aren't yet implemented in the 2.0 version / main branch)
 - [ ] CRAM-MD5
 - [ ] DIGEST-MD5
 - [ ] SCRAM-SHA-1
+  - [x] client side
+  - [ ] server side
 - [ ] SCRAM-SHA-256
+  - [x] client side
+  - [ ] server side
 - [ ] ~~NTLM~~
 - [ ] SECURID
 - [ ] ~~GSSAPI~~

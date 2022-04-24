@@ -1,3 +1,7 @@
+use std::intrinsics::unchecked_mul;
+use std::io::Write;
+use std::marker::PhantomData;
+use crate::error::SessionError;
 use crate::gsasl::base64::{gsasl_base64_from, gsasl_base64_to};
 use crate::gsasl::consts::{
     GSASL_AUTHENTICATION_ERROR, GSASL_AUTHID, GSASL_AUTHZID, GSASL_CB_TLS_UNIQUE,
@@ -15,20 +19,112 @@ use crate::gsasl::mechtools::{
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set};
 use crate::gsasl::saslprep::{gsasl_saslprep, GSASL_ALLOW_UNASSIGNED};
 use crate::mechanisms::scram::client::{scram_client_final, scram_client_first};
-use crate::mechanisms::scram::parser::{scram_parse_client_final, scram_parse_client_first};
+use crate::mechanisms::scram::parser::{ClientFinal, ClientFirstMessage, scram_parse_client_final, scram_parse_client_first, ServerFirst};
 use crate::mechanisms::scram::printer::{scram_print_server_final, scram_print_server_first};
 use crate::mechanisms::scram::tokens::{
     scram_free_client_final, scram_free_client_first, scram_free_server_final,
     scram_free_server_first,
 };
-use crate::mechanisms::scram::tools::set_saltedpassword;
+use crate::mechanisms::scram::tools::{find_proofs, PRINTABLE, set_saltedpassword};
 use crate::session::MechanismData;
 use crate::Shared;
 use ::libc;
+use digest::core_api::BlockSizeUser;
 use libc::{
     calloc, malloc, memchr, memcmp, memcpy, memmem, size_t, strcmp, strdup, strlen, strtoul,
 };
 use std::ptr::NonNull;
+use rand::distributions::{Distribution, Slice};
+use crate::vectored_io::VectoredWriter;
+
+struct ScramSaltedPassword<'a> {
+    iterations: u32,
+    salt: &'a [u8],
+    password: &'a [u8],
+}
+
+struct WaitingClientFirst<const N: usize> {
+    nonce: PhantomData<&'static [u8; N]>
+}
+
+impl<const N: usize> WaitingClientFirst<N> {
+    pub fn new() -> Self {
+        Self { nonce: PhantomData }
+    }
+
+    pub fn handle_client_first(
+        mut self,
+        client_first: &[u8],
+        writer: impl Write,
+        written: &mut usize,
+    ) -> Result<WaitingClientFinal, SessionError> {
+        let ClientFirstMessage {
+            cbflag,
+            authzid,
+            username,
+            nonce
+        } = ClientFirstMessage::parse(client_first)?;
+
+        let ScramSaltedPassword {
+            iterations,
+            salt,
+            password
+        } = self.get_salted_pw(username);
+
+        let distribution = Slice::new(PRINTABLE).unwrap();
+        let server_nonce: [u8; N] = [0u8; N].map(|_| *distribution.sample(rng));
+
+        let msg = ServerFirst::new(
+            nonce,
+            &server_nonce,
+            salt,
+            iterations
+        );
+        let (client_proof, server_signature) = find_proofs::<sha2::Sha256>(
+            username,
+            nonce,
+            msg,
+            gs2headerb64,
+            nonce,
+        );
+
+        let mut vecw = VectoredWriter::new(msg.to_ioslices());
+        *written = vecw.write_all_vectored(writer)?;
+
+        Ok(WaitingClientFinal::new())
+    }
+
+    fn get_salted_pw(&self, _username: &str) -> ScramSaltedPassword {
+        unimplemented!()
+    }
+}
+
+struct WaitingClientFinal {}
+impl WaitingClientFinal {
+    pub fn new() -> Self {
+        Self { }
+    }
+
+    pub fn handle_client_final(
+        mut self,
+        client_final: &[u8],
+        writer: impl Write,
+        written: &mut usize,
+    ) -> Result<Outcome, SessionError> {
+        let ClientFinal {
+            channel_binding,
+            nonce,
+            proof,
+        } = ClientFinal::parse(client_final)?;
+    }
+}
+
+pub enum Outcome {
+    Failed,
+    Successful {
+        username: (),
+    }
+}
 
 extern "C" {
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char, _: ...) -> libc::c_int;
