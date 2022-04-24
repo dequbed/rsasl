@@ -10,6 +10,7 @@ use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use std::sync::Arc;
+use crate::mechanisms::common::error::MechanismError;
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub enum SaslNameError {
@@ -26,7 +27,7 @@ enum SaslEscapeState {
     Comma,
     Comma1,
     Equals,
-    Equals1
+    Equals1,
 }
 
 impl SaslEscapeState {
@@ -52,11 +53,11 @@ impl Iterator for SaslEscapeState {
             Self::Comma => {
                 *self = Self::Comma1;
                 Some('=')
-            },
+            }
             Self::Comma1 => {
                 *self = Self::Char('C');
                 Some('2')
-            },
+            }
             Self::Equals => {
                 *self = Self::Equals1;
                 Some('=')
@@ -276,7 +277,7 @@ impl<'scram> ClientFirstMessage<'scram> {
         })
     }
 
-    pub fn to_ioslices(&self) -> [&'scram [u8]; 8] {
+    fn gs2_header_parts(&self) -> [&'scram [u8]; 4] {
         let [cba, cbb] = self.cbflag.to_ioslices();
 
         let (prefix, authzid): (&[u8], &[u8]) = if let Some(authzid) = self.authzid {
@@ -284,6 +285,12 @@ impl<'scram> ClientFirstMessage<'scram> {
         } else {
             (b",", &[])
         };
+
+        [cba, cbb, prefix, authzid]
+    }
+
+    pub fn to_ioslices(&self) -> [&'scram [u8]; 8] {
+        let [cba, cbb, prefix, authzid] = self.gs2_header_parts();
 
         [
             cba,
@@ -296,19 +303,53 @@ impl<'scram> ClientFirstMessage<'scram> {
             self.nonce,
         ]
     }
+
+    pub(super) fn build_gs2_header_vec(&self) -> Vec<u8> {
+        let [cba, cbb, prefix, authzid] = self.gs2_header_parts();
+
+        let gs2_header_len = cba.len() + cbb.len() + prefix.len() + authzid.len() + 1;
+        let mut gs2_header = Vec::with_capacity(gs2_header_len);
+
+        // y | n | p=
+        gs2_header.extend_from_slice(cba);
+        // &[] | cbname
+        gs2_header.extend_from_slice(cbb);
+        // b","
+        gs2_header.extend_from_slice(prefix);
+        // authzid
+        gs2_header.extend_from_slice(authzid);
+        // b","
+        gs2_header.extend_from_slice(b",");
+
+        gs2_header
+    }
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub struct ServerFirst<'scram> {
+    /// Client or Client+Server Nonce
+    ///
+    /// If the field `server_nonce` is None this contains both client and server nonce
+    /// concatenated, otherwise it contains only the client nonce.
     pub nonce: &'scram [u8],
-    pub nonce2: &'scram [u8],
+    pub server_nonce: Option<&'scram [u8]>,
     pub salt: &'scram [u8],
     pub iteration_count: &'scram [u8],
 }
 
 impl<'scram> ServerFirst<'scram> {
-    pub fn new(nonce: &[u8], nonce2: &[u8], salt: &[u8], iteration_count: u32) -> Self {
-        Self { nonce, nonce2, salt, iteration_count: &iteration_count.to_be_bytes() }
+    pub fn new(
+        client_nonce: &'scram [u8],
+        server_nonce: &'scram [u8],
+        salt: &'scram [u8],
+        iteration_count: &'scram [u8],
+    ) -> Self {
+        Self {
+            nonce: client_nonce,
+            server_nonce: Some(server_nonce),
+            salt,
+            iteration_count: iteration_count,
+        }
     }
 
     pub fn parse(input: &'scram [u8]) -> Result<Self, ParseError> {
@@ -348,7 +389,7 @@ impl<'scram> ServerFirst<'scram> {
 
         Ok(Self {
             nonce,
-            nonce2: &[],
+            server_nonce: None,
             salt,
             iteration_count,
         })
@@ -358,7 +399,7 @@ impl<'scram> ServerFirst<'scram> {
         [
             b"r=",
             self.nonce,
-            self.nonce2,
+            self.server_nonce.unwrap_or(&[]),
             b",s=",
             self.salt,
             b",i=",

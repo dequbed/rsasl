@@ -9,7 +9,6 @@ use digest::crypto_common::BlockSizeUser;
 use digest::Digest;
 use digest::generic_array::GenericArray;
 use libc::{calloc, malloc, memcmp, memcpy, size_t, strchr, strcmp, strdup, strlen};
-use rand::distributions::{Distribution, Slice};
 use rand::Rng;
 
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
@@ -42,7 +41,7 @@ use crate::mechanisms::scram::tokens::{
     scram_free_client_final, scram_free_client_first, scram_free_server_final,
     scram_free_server_first,
 };
-use crate::mechanisms::scram::tools::{find_proofs, hash_password, set_saltedpassword, DOutput, PRINTABLE};
+use crate::mechanisms::scram::tools::{find_proofs, hash_password, set_saltedpassword, DOutput, PRINTABLE, generate_nonce};
 use crate::property::{AuthId, AuthzId, Password};
 use crate::session::Step::NeedsMore;
 use crate::session::{MechanismData, Step, StepResult};
@@ -178,8 +177,7 @@ impl<const N: usize> StateClientFirst<N> {
         written: &mut usize,
     ) -> Result<WaitingServerFirst<D, N>, SessionError> {
         // The PRINTABLE slice is const not empty which is the only failure case we unwrap.
-        let distribution = Slice::new(PRINTABLE).unwrap();
-        let client_nonce: [u8; N] = [0u8; N].map(|_| *distribution.sample(rng));
+        let client_nonce: [u8; N] = generate_nonce(rng);
 
         let b =
             ClientFirstMessage::new(cbflag, authzid.as_ref(), &username, &client_nonce[..]).to_ioslices();
@@ -242,7 +240,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
 
     pub fn handle_server_first_salted(
         mut self,
-        salted_password: &[u8],
+        salted_password: &DOutput<D>,
         cbdata: Option<Box<[u8]>>,
         server_first: ServerFirst,
         writer: impl Write,
@@ -263,7 +261,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
 
         let proof = base64::encode(client_proof.as_slice());
 
-        let b = ClientFinal::new(gs2headerb64.as_bytes(), nonce, proof.as_bytes()).to_ioslices();
+        let b = ClientFinal::new(gs2headerb64.as_bytes(), server_first.nonce, proof.as_bytes()).to_ioslices();
 
         let mut vecw = VectoredWriter::new(b);
         *written = vecw.write_all_vectored(writer)?;
@@ -281,7 +279,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
     ) -> Result<WaitingServerFinal<D>, SessionError> {
         let server_first @ ServerFirst {
             nonce,
-            nonce2,
+            server_nonce: _,
             salt,
             iteration_count,
         } = ServerFirst::parse(server_first).map_err(SCRAMError::ParseError)?;
