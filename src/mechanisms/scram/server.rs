@@ -39,13 +39,36 @@ use rand::{Rng, RngCore, thread_rng};
 use stringprep::saslprep;
 use crate::callback::CallbackError;
 use crate::mechanisms::scram::properties::{ScramPassParams, ScramSaltedPassword, ScramSaltedPasswordQuery};
-use crate::mechanisms::scram::server::ScramServerState::WaitingClientFirst;
 use crate::session::Step::{Done, NeedsMore};
 use crate::vectored_io::VectoredWriter;
 
 
 const DEFAULT_ITERATIONS: u32 = 2u32.pow(14); // 16384, TODO check if still reasonable
 const DEFAULT_SALT_LEN: usize = 32;
+
+pub type ScramSha1Server<const N: usize> = ScramServer<sha1::Sha1, N>;
+pub type ScramSha256Server<const N: usize> = ScramServer<sha2::Sha256, N>;
+pub type ScramSha512Server<const N: usize> = ScramServer<sha2::Sha512, N>;
+
+pub struct ScramServer<D: Digest + BlockSizeUser, const N: usize> {
+    plus: bool,
+    state: Option<ScramServerState<D, N>>,
+}
+impl<D: Digest + BlockSizeUser, const N: usize> ScramServer<D, N> {
+    pub fn new() -> Self {
+        Self {
+            plus: false,
+            state: Some(ScramServerState::WaitingClientFirst(State::new()))
+        }
+    }
+
+    pub fn new_plus() -> Self {
+        Self {
+            plus: true,
+            state: Some(ScramServerState::WaitingClientFirst(State::new()))
+        }
+    }
+}
 
 pub struct WaitingClientFirst<const N: usize> {
     nonce: PhantomData<&'static [u8; N]>
@@ -56,14 +79,14 @@ impl<const N: usize> WaitingClientFirst<N> {
         Self { nonce: PhantomData }
     }
 
-    pub fn handle_client_first(
+    pub fn handle_client_first<D: Digest + BlockSizeUser>(
         mut self,
         rng: &mut impl Rng,
         session_data: &mut MechanismData,
         client_first: &[u8],
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<WaitingClientFinal<sha2::Sha256>, SessionError> {
+    ) -> Result<WaitingClientFinal<D>, SessionError> {
         // Step 1: (try to) parse the client message received.
         let client_first @ ClientFirstMessage {
             cbflag,
@@ -111,7 +134,7 @@ impl<const N: usize> WaitingClientFirst<N> {
             let gs2header = client_first.build_gs2_header_vec();
             let gs2headerb64 = base64::encode(gs2header);
 
-            let (proof, signature) = find_proofs::<sha2::Sha256>(
+            let (proof, signature) = find_proofs::<D>(
                 username,
                 client_nonce,
                 msg,
@@ -217,18 +240,6 @@ pub enum Outcome {
     }
 }
 
-pub struct ScramServer<D: Digest + BlockSizeUser, const N: usize> {
-    plus: bool,
-    state: Option<ScramServerState<D, N>>,
-}
-impl<D: Digest + BlockSizeUser, const N: usize> ScramServer<D, N> {
-    pub fn new() -> Self {
-        Self {
-            plus: false,
-            state: Some(ScramServerState::WaitingClientFirst(State::new()))
-        }
-    }
-}
 
 struct State<S> {
     state: S,
