@@ -89,13 +89,14 @@ impl Mechname {
     }
 
     #[inline(always)]
-    /// Convert a byte slice into an `&Mechname` without checking validity.
+    /// Convert a `&str` into an `&Mechname` without checking validity.
     ///
-    /// Like [`Mechname::const_new_unchecked`] this is not marked `unsafe` because it is save
-    /// from a Memory protection POV, just potentially may result in (memory-safe!) bugs if the
-    /// given slice is invalid.
-    pub fn new_unchecked<'a, S: AsRef<[u8]> + 'a>(s: S) -> &'a Mechname {
-         unsafe { &*(s.as_ref() as *const [u8] as *const Mechname) }
+    /// Unlike [`Mechname::const_new_unchecked`] this is not marked `unsafe` because it is save
+    /// from a Memory protection POV, and does not validate the implicit UTF-8 assertion of
+    /// Rust, it just potentially may result in (memory-safe!) bugs if the given slice contains
+    /// invalid bytes.
+    pub fn new_unchecked<'a, S: AsRef<str> + 'a>(s: S) -> &'a Mechname {
+         unsafe { &*(s.as_ref().as_bytes() as *const [u8] as *const Mechname) }
     }
 }
 
@@ -131,10 +132,10 @@ impl<'a> TryFrom<&'a [u8]> for &'a Mechname {
 }
 
 impl Deref for Mechname {
-    type Target = [u8];
+    type Target = str;
 
     fn deref(&self) -> &Self::Target {
-        self.as_bytes()
+        self.as_str()
     }
 }
 
