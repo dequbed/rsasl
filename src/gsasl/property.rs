@@ -152,13 +152,6 @@ unsafe fn gsasl_property_fast(sctx: &mut MechanismData, prop: Gsasl_property) ->
         } else {
             std::ptr::null()
         }
-    } else if GSASL_ANONYMOUS_TOKEN == prop {
-        if let Some(prop) = sctx.get_property::<AnonymousToken>() {
-            let cstr = Box::leak(Box::new(CString::new(prop.as_bytes().to_owned()).unwrap()));
-            cstr.as_ptr()
-        } else {
-            std::ptr::null()
-        }
     } else if GSASL_PASSWORD == prop {
         if let Some(prop) = sctx.get_property::<Password>() {
             let cstr = Box::leak(Box::new(CString::new(prop.as_bytes().to_owned()).unwrap()));
