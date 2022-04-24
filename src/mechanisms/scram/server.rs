@@ -188,6 +188,7 @@ impl<D: Digest + BlockSizeUser> WaitingClientFinal<D> {
                         let msg = ServerFinal::Verifier(data.signature.as_slice());
                         let mut vecw = VectoredWriter::new(msg.to_ioslices());
                         *written = vecw.write_all_vectored(writer)?;
+                        // FIXME: We need to validate the authzid/authid combo first!
                         return Ok(Outcome::Successful { username: () });
                     }
                 } else {
