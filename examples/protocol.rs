@@ -7,11 +7,11 @@ fn main() {
     let sasl = SASL::new();
 
     let presented = &[
-        Mechname::const_new_unchecked(b"LOGIN"),
-        Mechname::const_new_unchecked(b"PLAIN"),
-        Mechname::const_new_unchecked(b"GSSAPI"),
-        Mechname::const_new_unchecked(b"SCRAM-SHA-1"),
-        Mechname::const_new_unchecked(b"SCRAM-SHA-256"),
+        Mechname::const_new_unvalidated(b"LOGIN"),
+        Mechname::const_new_unvalidated(b"PLAIN"),
+        Mechname::const_new_unvalidated(b"GSSAPI"),
+        Mechname::const_new_unvalidated(b"SCRAM-SHA-1"),
+        Mechname::const_new_unvalidated(b"SCRAM-SHA-256"),
     ];
 
     let suggested = sasl

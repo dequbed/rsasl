@@ -45,7 +45,7 @@ impl Authentication for CustomMechanism {
     }
 }
 
-const MECHNAME: &'static Mechname = &Mechname::const_new_unchecked(b"X-CUSTOMMECH");
+const MECHNAME: &'static Mechname = &Mechname::const_new_unvalidated(b"X-CUSTOMMECH");
 
 use rsasl::registry::{Mechanism, MECHANISMS};
 

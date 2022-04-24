@@ -49,7 +49,7 @@
 //! // It is *crucial* that these `static`s are marked `pub` and reachable by dependent crates, see
 //! // the Note below.
 //! pub static MYCOOLMECHANISM: Mechanism = Mechanism {
-//!     mechanism: Mechname::const_new_unchecked(b"X-MYCOOLMECHANISM"),
+//!     mechanism: Mechname::const_new_unvalidated(b"X-MYCOOLMECHANISM"),
 //!     priority: 1100,
 //!     client: Some(|_sasl| Ok(Box::new(MyCoolMechanism))),
 //!     // In this case only the client side is implemented
@@ -151,7 +151,7 @@ impl Debug for Mechanism {
 
 impl Display for Mechanism {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.mechanism)
+        f.write_str(self.mechanism.as_str())
     }
 }
 

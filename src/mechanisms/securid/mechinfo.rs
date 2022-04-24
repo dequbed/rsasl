@@ -9,7 +9,7 @@ use crate::{Mechanism, Mechname, Side};
 use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static SECURID: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unchecked(b"SECURID"),
+    mechanism: &Mechname::const_new_unvalidated(b"SECURID"),
     priority: 300,
     client: Some(|_sasl| {
         CMechanismStateKeeper::build(MechanismVTable {

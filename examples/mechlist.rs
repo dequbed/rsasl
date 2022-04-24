@@ -20,7 +20,7 @@ impl Authentication for Test {
 }
 
 const TEST: Mechanism = Mechanism {
-    mechanism: Mechname::const_new_unchecked(b"X-TEST"),
+    mechanism: Mechname::const_new_unvalidated(b"X-TEST"),
     priority: 500,
     client: Some(|_sasl| Ok(Box::new(Test))),
     server: None,

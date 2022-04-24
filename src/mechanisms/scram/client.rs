@@ -438,7 +438,7 @@ mod tests {
     fn scram_test_1() {
         let mut sasl = SASL::new();
         const M: Mechanism = Mechanism {
-            mechanism: Mechname::const_new_unchecked(b"SCRAM"),
+            mechanism: Mechname::const_new_unvalidated(b"SCRAM"),
             priority: 0,
             client: Some(|_sasl| Ok(Box::new(ScramClient::<18>::new()))),
             server: None,
