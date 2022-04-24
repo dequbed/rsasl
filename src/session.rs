@@ -10,8 +10,8 @@ use crate::gsasl::consts::{Gsasl_property};
 use crate::mechanism::Authentication;
 use crate::property::PropertyQ;
 use crate::validate::*;
-use crate::{Callback, Mechanism};
-use crate::callback::{Answerable, AnsQuery, CallbackError, Query, SessionCallback};
+use crate::callback::{Answerable, AnsQuery, CallbackError, Query, SessionCallback, ValidationError};
+use crate::Mechanism;
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -187,6 +187,13 @@ impl MechanismData {
     pub fn callback<Q: Query>(&self, query: &mut Q) -> Result<(), CallbackError> {
         self.callback.callback(&self.session_data, query)
     }
+    pub fn validate<V: Query + ValidationQ>(&mut self, query: &V) -> Result<(), SessionError> {
+        match self.callback.validate(&self.session_data, query) {
+            Ok(()) => Ok(()),
+            Err(ValidationError::NoValidation) => Err(SessionError::no_validate(V::validation())),
+            Err(_) => Err(SessionError::AuthenticationFailure)
+        }
+    }
 
     /// Retrieve values from the user-provided callback
     pub fn need<P: AnsQuery>(&self, params: P::Params)
@@ -215,9 +222,6 @@ impl MechanismData {
     pub fn get_property_or_callback<P: PropertyQ>(&mut self)
         -> Result<Option<Arc<P::Item>>, SessionError>
     {
-        unimplemented!()
-    }
-    pub fn validate(&mut self, _: &dyn ValidateQ) -> Result<(), SessionError> {
         unimplemented!()
     }
 }

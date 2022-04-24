@@ -13,12 +13,9 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 
-use crate::error::SessionError;
 use crate::error::SessionError::{NoCallback, NoValidate};
-use crate::property::{CallbackQ};
-use crate::session::{SessionData};
-use crate::validate::{ValidateQ};
-use crate::{PropertyQ};
+use crate::session::SessionData;
+use crate::validate::ValidationQ;
 
 
 mod sealed {
@@ -26,9 +23,13 @@ mod sealed {
 
     pub trait Sealed {
         fn as_any_mut(&mut self) -> &mut dyn Any;
+        fn as_any(&self) -> &dyn Any;
     }
     impl<T: Any> Sealed for T {
         fn as_any_mut(&mut self) -> &mut dyn Any {
+            self
+        }
+        fn as_any(&self) -> &dyn Any {
             self
         }
     }
@@ -39,6 +40,10 @@ pub trait Query: 'static + sealed::Sealed {
     #[inline(always)]
     fn downcast_mut(d: &mut dyn Query) -> Option<&mut Self> where Self: Sized {
         d.as_any_mut().downcast_mut::<Self>()
+    }
+    #[inline(always)]
+    fn downcast(d: &dyn Query) -> Option<&Self> where Self: Sized {
+        d.as_any().downcast_ref::<Self>()
     }
 }
 impl<T: 'static> Query for T {}
@@ -82,48 +87,14 @@ impl Error for CallbackError {
     }
 }
 
+#[derive(Debug)]
+pub enum ValidationError {
+    NoValidation,
+    BadAuthentication,
+    BadAuthorization,
+}
+
 pub trait SessionCallback {
-    fn callback(&self, _session_data: &SessionData, _query: &mut dyn Query)
-        -> Result<(), CallbackError>
-    {
-        Err(CallbackError::NoCallback)
-    }
-}
-
-#[test]
-fn cb_test() {
-    #[derive(Debug)]
-    struct Q { p: u64 };
-    impl Answerable for Q {
-        type Answer = u64;
-
-        fn respond(&mut self, resp: Self::Answer) {
-            self.p = resp;
-        }
-
-        fn into_answer(self) -> Option<Self::Answer> {
-            Some(self.p)
-        }
-    }
-    struct CB;
-    impl SessionCallback for CB {
-        fn callback(&self, _s: &SessionData, query: &mut dyn Query) -> Result<(),
-            CallbackError> {
-            if let Some(q) = Q::downcast_mut(query) {
-                Ok(q.respond(42))
-            } else {
-                Err(CallbackError::NoCallback)
-            }
-        }
-    }
-    let cb = CB;
-    let mut md = MechanismData::new(Arc::new(cb), None, PLAIN.clone(), Side::Client);
-    let mut q = Q { p: 0 };
-    let o = md.callback::<Q>(&mut q);
-    println!("{:?}: {:?}", o, q);
-}
-
-pub trait Callback: Sync + Send {
     /// Query by a mechanism implementation to provide some information or do some action
     ///
     /// The parameter `query` defines the exact property that is requested. Query is a request for
@@ -161,12 +132,10 @@ pub trait Callback: Sync + Send {
     /// In some cases (e.g. [`OpenID20AuthenticateInBrowser`] the mechanism expects that a certain
     /// action is taken by the user instead of an explicit property being provided (e.g. to
     /// authenticate to their OIDC IdP using the system's web browser).
-    fn callback(
-        &self,
-        _session: &mut SessionData,
-        query: &dyn CallbackQ,
-    ) -> Result<(), SessionError> {
-        return Err(NoCallback { property: query.property() });
+    fn callback(&self, _session_data: &SessionData, _query: &mut dyn Query)
+        -> Result<(), CallbackError>
+    {
+        Err(CallbackError::NoCallback)
     }
 
     /// Validate an authentication exchange
@@ -183,13 +152,44 @@ pub trait Callback: Sync + Send {
     ///
     /// See the [`validate module documentation`](crate::validate) for details on how to
     /// implement each validation.
-    fn validate(
-        &self,
-        _session: &mut SessionData,
-        query: &dyn ValidateQ,
-    ) -> Result<(), SessionError> {
-        return Err(NoValidate { validation: query.validation() });
+    fn validate(&self, _session_data: &SessionData, _query: &dyn Query)
+        -> Result<(), ValidationError>
+    {
+        Err(ValidationError::NoValidation)
     }
+}
+
+#[test]
+fn cb_test() {
+    #[derive(Debug)]
+    struct Q { p: u64 };
+    impl Answerable for Q {
+        type Answer = u64;
+
+        fn respond(&mut self, resp: Self::Answer) {
+            self.p = resp;
+        }
+
+        fn into_answer(self) -> Option<Self::Answer> {
+            Some(self.p)
+        }
+    }
+    struct CB;
+    impl SessionCallback for CB {
+        fn callback(&self, _s: &SessionData, query: &mut dyn Query) -> Result<(),
+            CallbackError> {
+            if let Some(q) = Q::downcast_mut(query) {
+                Ok(q.respond(42))
+            } else {
+                Err(CallbackError::NoCallback)
+            }
+        }
+    }
+    let cb = CB;
+    let mut md = MechanismData::new(Arc::new(cb), None, PLAIN.clone(), Side::Client);
+    let mut q = Q { p: 0 };
+    let o = md.callback::<Q>(&mut q);
+    println!("{:?}: {:?}", o, q);
 }
 
 #[cfg(test)]

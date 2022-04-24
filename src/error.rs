@@ -172,7 +172,7 @@ impl Display for SessionError {
                 write!(f, "no validation callback for {} installed", validation)
             }
             Self::NoProperty { property } => write!(f, "required property {} is not set", property),
-            SessionError::AuthenticationFailure => f.write_str("authentication failed"),
+            Self::AuthenticationFailure => f.write_str("authentication failed"),
             Self::CallbackError(e) => write!(f, "Error occured during callback: {}", e),
             Self::MechanismDone => f.write_str("mechanism was stepped after having completed"),
         }

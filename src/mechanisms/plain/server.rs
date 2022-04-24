@@ -13,6 +13,8 @@ use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, StepResult};
 
 use crate::Authentication;
+use crate::validate::{Validation, ValidationDefinition, ValidationQ};
+use crate::validate::validations::SIMPLE;
 
 
 #[derive(Debug)]
@@ -56,6 +58,11 @@ pub struct PlainValidation {
     pub authcid: String,
     pub authzid: Option<String>,
     pub password: String,
+}
+impl ValidationQ for PlainValidation {
+    fn validation() -> Validation where Self: Sized {
+        SIMPLE
+    }
 }
 
 impl Authentication for Plain {
