@@ -1,10 +1,4 @@
-use crate::gsasl::gsasl::{CMechanismStateKeeper, MechanismVTable};
 use crate::mechanisms::scram::{client, server};
-use crate::mechanisms::scram::server::{
-    _gsasl_scram_server_finish, _gsasl_scram_server_step, _gsasl_scram_sha1_plus_server_start,
-    _gsasl_scram_sha1_server_start, _gsasl_scram_sha256_plus_server_start,
-    _gsasl_scram_sha256_server_start,
-};
 use crate::{Mechanism, Mechname, Side};
 
 const NONCE_LEN: usize = 24;

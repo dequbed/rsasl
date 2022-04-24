@@ -101,15 +101,3 @@ where D: Digest + BlockSizeUser,
 
     (client_key, server_signature)
 }
-
-/* Hex encode HASHBUF which is HASH digest output and set salted
-password property to the hex encoded value. */
-pub unsafe fn set_saltedpassword(
-    sctx: &mut MechanismData,
-    hash: Gsasl_hash,
-    hashbuf: *const libc::c_char,
-) -> libc::c_int {
-    let mut hexstr: [libc::c_char; 65] = [0; 65];
-    _gsasl_hex_encode(hashbuf, gsasl_hash_length(hash), hexstr.as_mut_ptr());
-    return gsasl_property_set(sctx, GSASL_SCRAM_SALTED_PASSWORD, hexstr.as_mut_ptr());
-}
