@@ -25,8 +25,8 @@ use crate::mechanisms::scram::tokens::{
     scram_free_server_first,
 };
 use crate::mechanisms::scram::tools::{DOutput, find_proofs, generate_nonce, PRINTABLE, set_saltedpassword};
-use crate::session::MechanismData;
-use crate::Shared;
+use crate::session::{MechanismData, StepResult};
+use crate::{Authentication, Shared};
 use ::libc;
 use digest::core_api::BlockSizeUser;
 use libc::{
@@ -39,6 +39,8 @@ use rand::{Rng, RngCore, thread_rng};
 use stringprep::saslprep;
 use crate::callback::CallbackError;
 use crate::mechanisms::scram::properties::{ScramPassParams, ScramSaltedPassword, ScramSaltedPasswordQuery};
+use crate::mechanisms::scram::server::ScramServerState::WaitingClientFirst;
+use crate::session::Step::{Done, NeedsMore};
 use crate::vectored_io::VectoredWriter;
 
 
@@ -203,8 +205,8 @@ impl<D: Digest + BlockSizeUser> WaitingClientFinal<D> {
         Ok(outcome)
     }
 
-    pub fn verify_channel_bindings(&self, channel_binding: &[u8]) -> bool {
-        unimplemented!()
+    pub fn verify_channel_bindings(&self, _channel_binding: &[u8]) -> bool {
+        todo!()
     }
 }
 
@@ -212,6 +214,104 @@ pub enum Outcome {
     Failed,
     Successful {
         username: (),
+    }
+}
+
+pub struct ScramServer<D: Digest + BlockSizeUser, const N: usize> {
+    plus: bool,
+    state: Option<ScramServerState<D, N>>,
+}
+impl<D: Digest + BlockSizeUser, const N: usize> ScramServer<D, N> {
+    pub fn new() -> Self {
+        Self {
+            plus: false,
+            state: Some(ScramServerState::WaitingClientFirst(State::new()))
+        }
+    }
+}
+
+struct State<S> {
+    state: S,
+}
+impl<const N: usize> State<WaitingClientFirst<N>> {
+    pub fn new() -> Self {
+        Self {
+            state: WaitingClientFirst::new(),
+        }
+    }
+
+    pub fn step<D: Digest + BlockSizeUser>(
+        self,
+        rng: &mut impl Rng,
+        session_data: &mut MechanismData,
+        input: &[u8],
+        writer: impl Write,
+        written: &mut usize,
+    ) -> Result<State<WaitingClientFinal<D>>, SessionError> {
+        let state = self.state.handle_client_first(
+            rng,
+            session_data,
+            input,
+            writer,
+            written
+        )?;
+        Ok(State { state })
+    }
+}
+impl<D: Digest + BlockSizeUser> State<WaitingClientFinal<D>> {
+    pub fn step(
+        self,
+        input: &[u8],
+        writer: impl Write,
+        written: &mut usize,
+    ) -> Result<State<Outcome>, SessionError> {
+        let state = self.state.handle_client_final(input, writer, written)?;
+        Ok(State { state })
+    }
+}
+
+enum ScramServerState<D: Digest + BlockSizeUser, const N: usize> {
+    WaitingClientFirst(State<WaitingClientFirst<N>>),
+    WaitingClientFinal(State<WaitingClientFinal<D>>),
+    Finished(State<Outcome>)
+}
+
+impl<D: Digest + BlockSizeUser, const N: usize> Authentication for ScramServer<D, N> {
+    fn step(&mut self, session: &mut MechanismData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
+        use ScramServerState::*;
+        match self.state.take() {
+            Some(WaitingClientFirst(state)) => {
+                let client_first = input.ok_or(SessionError::InputDataRequired)?;
+
+                let mut rng = rand::thread_rng();
+                let mut written = 0;
+                let new_state = state.step(
+                    &mut rng,
+                    session,
+                    client_first,
+                    writer,
+                    &mut written
+                )?;
+                self.state = Some(WaitingClientFinal(new_state));
+                Ok(NeedsMore(Some(written)))
+            },
+            Some(WaitingClientFinal(state)) => {
+                let client_final = input.ok_or(SessionError::InputDataRequired)?;
+                let mut written = 0;
+                let new_state = state.step(
+                    client_final,
+                    writer,
+                    &mut written
+                )?;
+                self.state = Some(Finished(new_state));
+                Ok(Done(Some(written)))
+            },
+            Some(Finished(_state)) => {
+                Err(SessionError::MechanismDone)
+            },
+
+            None => panic!("SCRAM server state machine in invalid state"),
+        }
     }
 }
 
