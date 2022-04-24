@@ -11,7 +11,7 @@ use crate::{Mechanism, Mechname, Side};
 use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static OPENID20: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unchecked(b"OPENID20"),
+    mechanism: &Mechname::const_new_unvalidated(b"OPENID20"),
     priority: 1000,
     client: Some(|_sasl| {
         CMechanismStateKeeper::build(MechanismVTable {
