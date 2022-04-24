@@ -8,6 +8,12 @@ use digest::crypto_common::BlockSizeUser;
 use digest::generic_array::GenericArray;
 use digest::{Digest, Mac, OutputSizeUser};
 use hmac::SimpleHmac;
+use crate::mechanisms::scram::parser::ServerFirst;
+
+
+/// All the characters that are valid chars for a nonce
+pub(super) const PRINTABLE: &'static [u8] =
+    b"!\"#$%&'()*+-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxy";
 
 pub(super) type DOutput<D> = GenericArray<u8, <SimpleHmac<D> as OutputSizeUser>::OutputSize>;
 
@@ -21,9 +27,8 @@ where
 pub fn find_proofs<D>(
     username: &str,
     client_nonce: &[u8],
-    server_first: &[u8],
+    server_first: ServerFirst<'_>,
     gs2headerb64: &str,
-    combined_nonce: &[u8],
     salted_password: &DOutput<D>
 ) -> (DOutput<D>, DOutput<D>)
 where D: Digest + BlockSizeUser,
@@ -42,17 +47,26 @@ where D: Digest + BlockSizeUser,
 
     let stored_key = D::digest(client_key.as_ref());
 
-    let auth_message_parts: [&[u8]; 10] = [
+    let ServerFirst { nonce, nonce2, .. } = server_first;
+    let server_first_parts = server_first.to_ioslices();
+    let auth_message_parts: [&[u8]; 17] = [
         b"n=",
         username.as_bytes(),
         b",r=",
         client_nonce,
         b",",
-        server_first,
+        server_first_parts[0],
+        server_first_parts[1],
+        server_first_parts[2],
+        server_first_parts[3],
+        server_first_parts[4],
+        server_first_parts[5],
+        server_first_parts[6],
         b",c=",
         gs2headerb64.as_bytes(),
         b",r=",
-        combined_nonce,
+        nonce,
+        nonce2,
     ];
 
     let mut stored_key_hmac = <SimpleHmac<D>>::new_from_slice(stored_key.as_ref())

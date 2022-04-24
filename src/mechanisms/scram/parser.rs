@@ -301,11 +301,16 @@ impl<'scram> ClientFirstMessage<'scram> {
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub struct ServerFirst<'scram> {
     pub nonce: &'scram [u8],
+    pub nonce2: &'scram [u8],
     pub salt: &'scram [u8],
     pub iteration_count: &'scram [u8],
 }
 
 impl<'scram> ServerFirst<'scram> {
+    pub fn new(nonce: &[u8], nonce2: &[u8], salt: &[u8], iteration_count: u32) -> Self {
+        Self { nonce, nonce2, salt, iteration_count: &iteration_count.to_be_bytes() }
+    }
+
     pub fn parse(input: &'scram [u8]) -> Result<Self, ParseError> {
         let mut partiter = input.split(|b| matches!(b, b','));
 
@@ -343,15 +348,17 @@ impl<'scram> ServerFirst<'scram> {
 
         Ok(Self {
             nonce,
+            nonce2: &[],
             salt,
             iteration_count,
         })
     }
 
-    pub fn to_ioslices(&self) -> [&'scram [u8]; 6] {
+    pub fn to_ioslices(&self) -> [&'scram [u8]; 7] {
         [
             b"r=",
             self.nonce,
+            self.nonce2,
             b",s=",
             self.salt,
             b",i=",

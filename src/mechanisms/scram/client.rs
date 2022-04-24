@@ -42,17 +42,13 @@ use crate::mechanisms::scram::tokens::{
     scram_free_client_final, scram_free_client_first, scram_free_server_final,
     scram_free_server_first,
 };
-use crate::mechanisms::scram::tools::{find_proofs, hash_password, set_saltedpassword, DOutput};
+use crate::mechanisms::scram::tools::{find_proofs, hash_password, set_saltedpassword, DOutput, PRINTABLE};
 use crate::property::{AuthId, AuthzId, Password};
 use crate::session::Step::NeedsMore;
 use crate::session::{MechanismData, Step, StepResult};
 use crate::vectored_io::VectoredWriter;
 use crate::{Authentication, Shared};
 use crate::mechanisms::common::properties::{Credentials, SimpleCredentials};
-
-/// All the characters that are valid chars for a nonce
-const PRINTABLE: &'static [u8] =
-    b"!\"#$%&'()*+-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxy";
 
 pub type ScramSha256Client<const N: usize> = ScramClient<sha2::Sha256, N>;
 pub type ScramSha512Client<const N: usize> = ScramClient<sha2::Sha512, N>;
@@ -244,6 +240,37 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
         }
     }
 
+    pub fn handle_server_first_salted(
+        mut self,
+        salted_password: &[u8],
+        cbdata: Option<Box<[u8]>>,
+        server_first: ServerFirst,
+        writer: impl Write,
+        written: &mut usize,
+    ) -> Result<WaitingServerFinal<D>, SessionError> {
+        self.gs2_header
+            .extend_from_slice(cbdata.as_ref().map(|b| b.as_ref()).unwrap_or(&[]));
+        let gs2headerb64 = base64::encode(self.gs2_header);
+
+        let (client_proof, server_signature) =
+            find_proofs::<D>(
+                self.username.as_str(),
+                &self.client_nonce[..],
+                server_first,
+                &gs2headerb64,
+                salted_password,
+            );
+
+        let proof = base64::encode(client_proof.as_slice());
+
+        let b = ClientFinal::new(gs2headerb64.as_bytes(), nonce, proof.as_bytes()).to_ioslices();
+
+        let mut vecw = VectoredWriter::new(b);
+        *written = vecw.write_all_vectored(writer)?;
+
+        Ok(WaitingServerFinal::new(server_signature))
+    }
+
     pub fn handle_server_first(
         mut self,
         password: &str,
@@ -252,8 +279,9 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
         writer: impl Write,
         written: &mut usize,
     ) -> Result<WaitingServerFinal<D>, SessionError> {
-        let ServerFirst {
+        let server_first @ ServerFirst {
             nonce,
+            nonce2,
             salt,
             iteration_count,
         } = ServerFirst::parse(server_first).map_err(SCRAMError::ParseError)?;
@@ -275,28 +303,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
         let mut salted_password = GenericArray::default();
         hash_password::<D>(password, iterations, &salt[..], &mut salted_password);
 
-        self.gs2_header
-            .extend_from_slice(cbdata.as_ref().map(|b| b.as_ref()).unwrap_or(&[]));
-        let gs2headerb64 = base64::encode(self.gs2_header);
-
-        let (client_proof, server_signature) =
-            find_proofs::<D>(
-                self.username.as_str(),
-                &self.client_nonce[..],
-                server_first,
-                &gs2headerb64,
-                nonce,
-                &salted_password,
-            );
-
-        let proof = base64::encode(client_proof.as_slice());
-
-        let b = ClientFinal::new(gs2headerb64.as_bytes(), nonce, proof.as_bytes()).to_ioslices();
-
-        let mut vecw = VectoredWriter::new(b);
-        *written = vecw.write_all_vectored(writer)?;
-
-        Ok(WaitingServerFinal::new(server_signature))
+        self.handle_server_first_salted(&salted_password, cbdata, server_first, writer, written)
     }
 }
 
