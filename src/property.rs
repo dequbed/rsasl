@@ -208,51 +208,6 @@ impl PropertyQ for CBTlsUnique {
 }
 
 #[derive(Debug)]
-pub struct ScramStoredkey(PhantomData<()>);
-impl PropertyQ for ScramStoredkey {
-    type Item = CString;
-    fn property() -> Property {
-        SCRAM_STOREDKEY
-    }
-}
-
-#[derive(Debug)]
-pub struct ScramServerkey(PhantomData<()>);
-impl PropertyQ for ScramServerkey {
-    type Item = CString;
-    fn property() -> Property {
-        SCRAM_SERVERKEY
-    }
-}
-
-#[derive(Debug)]
-pub struct ScramSaltedPassword(PhantomData<()>);
-impl PropertyQ for ScramSaltedPassword {
-    type Item = CString;
-    fn property() -> Property {
-        SCRAM_SALTED_PASSWORD
-    }
-}
-
-#[derive(Debug)]
-pub struct ScramSalt(PhantomData<()>);
-impl PropertyQ for ScramSalt {
-    type Item = CString;
-    fn property() -> Property {
-        SCRAM_SALT
-    }
-}
-
-#[derive(Debug)]
-pub struct ScramIter(PhantomData<()>);
-impl PropertyQ for ScramIter {
-    type Item = CString;
-    fn property() -> Property {
-        SCRAM_ITER
-    }
-}
-
-#[derive(Debug)]
 pub struct Qop(PhantomData<()>);
 impl PropertyQ for Qop {
     type Item = CString;
