@@ -1,5 +1,4 @@
 use crate::error::{MechanismError, MechanismErrorKind};
-use crate::property::AnonymousToken;
 use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, StepResult};
 use crate::validate::validations::ANONYMOUS;
@@ -22,7 +21,7 @@ impl MechanismError for ParseError {
     }
 }
 
-pub struct AnonymousValidation;
+pub struct AnonymousValidation(pub String);
 impl ValidationQ for AnonymousValidation {
     fn validation() -> Validation where Self: Sized {
         ANONYMOUS
@@ -31,7 +30,6 @@ impl ValidationQ for AnonymousValidation {
 
 #[derive(Copy, Clone, Debug)]
 pub struct Anonymous;
-
 impl Authentication for Anonymous {
     fn step(
         &mut self,
@@ -54,8 +52,7 @@ impl Authentication for Anonymous {
                 return Err(ParseError.into());
             }
 
-            session.set_property::<AnonymousToken>(Arc::new(input.to_string()));
-            session.validate(&AnonymousValidation)?;
+            session.validate(&AnonymousValidation(input.to_string()))?;
 
             Ok(Done(None))
         } else {

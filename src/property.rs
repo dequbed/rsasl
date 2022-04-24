@@ -298,15 +298,6 @@ impl PropertyQ for Service {
 }
 
 #[derive(Debug)]
-pub struct AnonymousToken(PhantomData<()>);
-impl PropertyQ for AnonymousToken {
-    type Item = String;
-    fn property() -> Property {
-        ANONYMOUS_TOKEN
-    }
-}
-
-#[derive(Debug)]
 pub struct Password(PhantomData<()>);
 impl PropertyQ for Password {
     type Item = String;
@@ -350,16 +341,6 @@ pub mod properties {
         "cb_tls_unique",
         "TLS Channel binding \"unique\"",
     ));
-    pub const SCRAM_STOREDKEY: Property = Property::new(&PropertyDefinition::new(
-        "scram_storedkey",
-        "SCRAM stored key",
-    ));
-    pub const SCRAM_SERVERKEY: Property =
-        Property::new(&PropertyDefinition::new("ScramServerkey", ""));
-    pub const SCRAM_SALTED_PASSWORD: Property =
-        Property::new(&PropertyDefinition::new("ScramSaltedPassword", ""));
-    pub const SCRAM_SALT: Property = Property::new(&PropertyDefinition::new("ScramSalt", ""));
-    pub const SCRAM_ITER: Property = Property::new(&PropertyDefinition::new("ScramIter", ""));
     pub const QOP: Property = Property::new(&PropertyDefinition::new("Qop", ""));
     pub const QOPS: Property = Property::new(&PropertyDefinition::new("Qops", ""));
     pub const DIGEST_MD5_HASHED_PASSWORD: Property =
@@ -372,8 +353,6 @@ pub mod properties {
         Property::new(&PropertyDefinition::new("GssapiDisplayName", ""));
     pub const HOSTNAME: Property = Property::new(&PropertyDefinition::new("Hostname", ""));
     pub const SERVICE: Property = Property::new(&PropertyDefinition::new("Service", ""));
-    pub const ANONYMOUS_TOKEN: Property =
-        Property::new(&PropertyDefinition::new("AnonymousToken", ""));
     pub const PASSWORD: Property = Property::new(&PropertyDefinition::new("password", ""));
 }
 use properties::*;
