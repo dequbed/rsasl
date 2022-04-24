@@ -1,19 +1,19 @@
-use std::any::{Any, TypeId};
-use std::borrow::Cow;
+
+
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::str::Utf8Error;
-use std::sync::Arc;
+
 
 use stringprep::{saslprep, Error};
 
 use crate::error::{MechanismError, MechanismErrorKind};
-use crate::property::{AuthId, AuthzId, Password};
+
 use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, StepResult};
-use crate::validate::validations::SIMPLE;
+
 use crate::Authentication;
-use crate::validate::{ValidateQ, Validation};
+
 
 #[derive(Debug)]
 enum PlainError {

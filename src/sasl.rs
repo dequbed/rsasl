@@ -1,6 +1,6 @@
-use std::any::Any;
-use crate::{init, registry, Callback, Mechanism, SASL, SessionCallback};
-use std::cmp::Ordering;
+
+use crate::{init, registry, SASL, SessionCallback};
+
 use std::sync::Arc;
 
 impl SASL {

@@ -1,14 +1,14 @@
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::marker::PhantomData;
-use std::ptr::NonNull;
-use std::sync::Arc;
 
-use ::libc;
+
+
+
 use digest::crypto_common::BlockSizeUser;
 use digest::Digest;
 use digest::generic_array::GenericArray;
-use libc::{calloc, malloc, memcmp, memcpy, size_t, strchr, strcmp, strdup, strlen};
+
 use rand::Rng;
 
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
@@ -16,11 +16,11 @@ use crate::mechanisms::scram::parser::{
     ClientFinal, ClientFirstMessage,
     GS2CBindFlag, SaslName, ServerErrorValue, ServerFinal, ServerFirst,
 };
-use crate::mechanisms::scram::tools::{find_proofs, hash_password, DOutput, PRINTABLE, generate_nonce};
+use crate::mechanisms::scram::tools::{find_proofs, hash_password, DOutput, generate_nonce};
 use crate::session::Step::NeedsMore;
 use crate::session::{MechanismData, Step, StepResult};
 use crate::vectored_io::VectoredWriter;
-use crate::{Authentication, Shared};
+use crate::{Authentication};
 use crate::mechanisms::common::properties::{Credentials, SimpleCredentials};
 
 pub type ScramSha256Client<const N: usize> = ScramClient<sha2::Sha256, N>;
@@ -244,7 +244,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
     }
 
     pub fn handle_server_first(
-        mut self,
+        self,
         password: &str,
         cbdata: Option<Box<[u8]>>,
         server_first: &[u8],

@@ -1,4 +1,4 @@
-use std::any::TypeId;
+
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use crate::callback::CallbackError;

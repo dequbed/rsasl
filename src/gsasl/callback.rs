@@ -1,15 +1,15 @@
 use crate::gsasl::consts::Gsasl_property;
-use crate::gsasl::consts::*;
-use crate::property::properties::*;
+
+
 use crate::session::MechanismData;
-use crate::validate::validations::*;
+
 use crate::Shared;
 use ::libc;
 
 pub(crate) unsafe fn gsasl_callback(
     _ctx: *mut Shared,
-    sctx: &mut MechanismData,
-    prop: Gsasl_property,
+    _sctx: &mut MechanismData,
+    _prop: Gsasl_property,
 ) -> libc::c_int {
     /*
     let res = match prop {

@@ -54,7 +54,7 @@ impl<const N: usize> WaitingClientFirst<N> {
     }
 
     pub fn handle_client_first<D: Digest + BlockSizeUser>(
-        mut self,
+        self,
         rng: &mut impl Rng,
         session_data: &mut MechanismData,
         client_first: &[u8],
@@ -63,8 +63,8 @@ impl<const N: usize> WaitingClientFirst<N> {
     ) -> Result<WaitingClientFinal<D>, SessionError> {
         // Step 1: (try to) parse the client message received.
         let client_first @ ClientFirstMessage {
-            cbflag,
-            authzid, // FIXME: Save authzid
+            cbflag: _,
+            authzid: _, // FIXME: Save authzid
             username,
             nonce: client_nonce
         } = ClientFirstMessage::parse(client_first).map_err(SCRAMError::ParseError)?;
@@ -162,7 +162,7 @@ impl<D: Digest + BlockSizeUser> WaitingClientFinal<D> {
     }
 
     pub fn handle_client_final(
-        mut self,
+        self,
         client_final: &[u8],
         writer: impl Write,
         written: &mut usize,
@@ -173,7 +173,7 @@ impl<D: Digest + BlockSizeUser> WaitingClientFinal<D> {
             proof,
         } = ClientFinal::parse(client_final).map_err(SCRAMError::ParseError)?;
 
-        let mut outcome = Outcome::Failed;
+        let outcome = Outcome::Failed;
 
         let msg = if !self.verify_channel_bindings(channel_binding) {
             ServerFinal::Error(ServerErrorValue::ChannelBindingsDontMatch)

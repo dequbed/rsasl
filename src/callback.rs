@@ -8,18 +8,18 @@
 //! Because that would devolve to basically `fn callback(query: Box<dyn Any>) -> Box<dyn Any>`
 //! with exactly zero protection against accidentally not providing some required data.
 
-use std::any::{Any, TypeId};
+
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::marker::PhantomData;
-use std::sync::Arc;
+
+
 use crate::error::SessionError;
 use crate::error::SessionError::{NoCallback, NoValidate};
-use crate::property::{CallbackQ, Property};
-use crate::session::{MechanismData, SessionData};
-use crate::validate::{ValidateQ, Validation};
-use crate::{Mechanism, Mechname, PropertyQ, Side};
-use crate::mechanisms::plain::mechinfo::PLAIN;
+use crate::property::{CallbackQ};
+use crate::session::{SessionData};
+use crate::validate::{ValidateQ};
+use crate::{PropertyQ};
+
 
 mod sealed {
     use std::any::Any;

@@ -1,6 +1,6 @@
 use crate::error::SessionError;
 use crate::error::SessionError::NoSecurityLayer;
-use crate::session::{MechanismData, Step, StepResult};
+use crate::session::{MechanismData, StepResult};
 use std::io::Write;
 
 /// Trait implemented to be one party in an authentication exchange
