@@ -115,7 +115,7 @@ use crate::error::SASLError;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 use crate::registry::Mechanism;
-use crate::session::{Session, SessionBuilder, Side};
+use crate::session::{SessionBuilder, Side};
 pub use property::{Property, PropertyQ};
 
 /// SASL Provider context

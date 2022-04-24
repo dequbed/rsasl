@@ -1,10 +1,10 @@
-use crate::error::SessionError;
+
 use crate::mechanism::Authentication;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 use crate::vectored_io::VectoredWriter;
 use std::io::Write;
-use crate::callback::Question;
+
 use crate::mechanisms::common::properties::{Credentials, SimpleCredentials};
 
 #[derive(Copy, Clone, Debug)]

@@ -1,16 +1,16 @@
-use std::any::Any;
-use std::collections::HashMap;
+
+
 use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::error::SessionError;
-use crate::gsasl::consts::{property_from_code, Gsasl_property};
+use crate::gsasl::consts::{Gsasl_property};
 use crate::mechanism::Authentication;
 use crate::property::PropertyQ;
 use crate::validate::*;
-use crate::{Callback, Mechanism, Mechname, Property};
+use crate::{Callback, Mechanism};
 use crate::callback::{Answerable, AnsQuery, CallbackError, Query, SessionCallback};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]

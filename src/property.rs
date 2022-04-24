@@ -422,7 +422,7 @@ pub mod properties {
     pub const PASSWORD: Property = Property::new(&PropertyDefinition::new("password", ""));
 }
 use properties::*;
-use crate::callback::{Answerable, Question};
+
 
 #[cfg(test)]
 mod tests {
