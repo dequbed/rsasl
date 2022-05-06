@@ -2,7 +2,7 @@ use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 use crate::property::Property;
 use crate::validate::Validation;
 use crate::{Mechname, PropertyQ};
-use std::cmp::min;
+
 use std::ffi::CStr;
 use std::fmt::{Debug, Display, Formatter};
 use std::{fmt, io};
@@ -208,7 +208,7 @@ pub enum SASLError {
 }
 
 impl SASLError {
-    pub fn unknown_mechanism(name: &Mechname) -> Self {
+    pub fn unknown_mechanism(_name: &Mechname) -> Self {
         Self::UnknownMechanism
     }
 }

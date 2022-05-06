@@ -13,7 +13,7 @@ use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, StepResult};
 
 use crate::Authentication;
-use crate::validate::{Validation, ValidationDefinition, ValidationQ};
+use crate::validate::{Validation, ValidationQ};
 use crate::validate::validations::SIMPLE;
 
 

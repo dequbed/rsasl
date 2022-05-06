@@ -1,12 +1,12 @@
 use crate::error::{MechanismError, MechanismErrorKind};
 use crate::mechanism::Authentication;
-use crate::property::AuthId;
+
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 use crate::validate::validations::EXTERNAL;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
-use std::sync::Arc;
+
 use crate::validate::{Validation, ValidationQ};
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -46,7 +46,7 @@ impl Authentication for External {
                 return Err(ParseError.into());
             }
         } else {
-            ExternalValidation(None);
+            ExternalValidation(None)
         };
 
         session.validate(&v)?;
