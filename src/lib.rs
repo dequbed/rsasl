@@ -66,8 +66,6 @@
 //! But the inner authentication **data** (here in base64-encoded as `AHVzZXJuYW1lAHNlY3JldAo=`
 //! since these are text-based protocols) is always the same.
 //!
-//! Additionally the mechanism names (here `PLAIN` and `GSSAPI`) are also
-//!
 //! This modularity becomes an even bigger advantage if combined with cryptographically strong
 //! authentication or single-sign-on technologies. Instead of every protocol and their
 //! implementations having to juggle cryptographic proofs or figure out the latest SSO mechanism
@@ -75,8 +73,8 @@
 //!
 //! Of course a final client or server for those protocols still has to worry about
 //! authentication on some level but this crate is meant to help with that, and also enable
-//! middleware-style protocol crates that are entirely authentication-agnostic and can defer
-//! those decisions entirely to their users.
+//! middleware-style protocol crates that are entirely authentication-agnostic and defer those
+//! decisions entirely to their users.
 //!
 //! # Where to start
 //! - [I'm implementing some network protocol and I need to add SASL authentication to it!](#protocol-implementations)
@@ -86,16 +84,15 @@
 //!
 //! ## Protocol Implementations
 //!
-//! Crates implementing a protocol should allow users to provide an [`SASL`] struct at run time.
-//! Users construct this struct configuring the supported Mechanisms, their priorities and
-//! providing all required information for the authentication exchange, such as username and
-//! password.
+//! The main contact point between a protocol implementation crate and its user regarding
+//! authentication is the [`SASL`] struct. This struct is constructed by the users letting them
+//! configure which mechanisms are enabled, their order of preference, and install callbacks used
+//! by mechanisms to retrieve required data (e.g. username/password for PLAIN) from the user.
 //!
-//! Protocol crates then call [`SASL::suggest_client_mechanism()`] or
-//! [`SASL::suggest_server_mechanism()`] to decide on a common Mechanism based on user preference
-//! and call [`SASL::client_start()`] or [`SASL::server_start()`] to actually start an
-//! authentication exchange, returning a [`Session`] struct. (See the documentation for
-//! [`Session`] on how to perform the steps of an authentication exchange)
+//! Protocol crates can then call methods like [`SASL::client_start_suggested()`] or
+//! [`SASL::server_start_suggested()`] to start an authentication with the best shared mechanism
+//! available, returning a [`Session`] which will be used for the rest of this authentication
+//! exchange
 //!
 //! In addition protocol implementations should depend on rsasl like this:
 //! ```toml
@@ -111,6 +108,11 @@
 //! This makes use of [feature unification](https://doc.rust-lang.org/cargo/reference/features.html#feature-unification)
 //! to make rsasl a (nearly) zero-dependency crate and putting all decisions about compiled-in
 //! support and features into the hand of the final user.
+//! Specifically when depended on this way rsasl does not compile code for *any mechanisms* and
+//! most of the selection internals to minimize the compile-time and code size impact of this
+//! dependency. Re-enabling required mechanisms and selection system is deferred to the user of
+//! the protocol implementation who will have their own dependency on rsasl if they want to make
+//! use of SASL authentication.
 //! To this end a protocol crate **should not** re-export anything from the rsasl crate! Doing so
 //! may lead to a situation where users can't use any mechanisms since they only depend on
 //! rsasl via a transient dependency that has no mechanism features enabled.
@@ -295,6 +297,9 @@ impl SASL {
             .filter(|mechanism: &&Mechanism| mechanism.server.is_some())
     }
 
+    // FIXME: There need to be two variants of this fn since we have to choose "-PLUS" here. So
+    //        we need to be able to supply info of if we'll supply channel binding data already.
+    //        (probably just supply the channel binding callback and good enough)
     pub fn client_start_suggested<'a>(
         &self,
         mechs: impl IntoIterator<Item = &'a Mechname>,
