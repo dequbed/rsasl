@@ -5,7 +5,8 @@
 ![maintenance]
 ![license]
 
-rsasl is an framework for the Simple Authentication and Security Layer — SASL.
+rsasl is an framework for [RFC 4422](https://tools.ietf.org/html/rfc4422); the Simple Authentication and Security 
+Layer — aka SASL.
 
 rsasl provide a large number of mechanisms by itself: (Crossed off ones are ported to pure Rust already, striked through
 ones aren't yet implemented in the 2.0 version / main branch)
