@@ -1,4 +1,4 @@
-use crate::error::SessionError;
+
 use crate::mechanism::Authentication;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};

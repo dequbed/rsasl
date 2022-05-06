@@ -5,7 +5,7 @@ use crate::validate::validations::ANONYMOUS;
 use crate::Authentication;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
-use std::sync::Arc;
+
 use crate::validate::{Validation, ValidationQ};
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
