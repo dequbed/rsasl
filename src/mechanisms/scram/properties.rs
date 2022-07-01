@@ -1,4 +1,3 @@
-use crate::callback::{Answerable, Question};
 
 pub struct ScramSaltedPasswordRef<'a> {
     iterations: u32,
@@ -28,27 +27,6 @@ pub enum ScramSaltedPasswordQuery {
     Q(String),
     A(ScramSaltedPassword),
 }
-impl Question for ScramSaltedPasswordQuery {
-    type Params = String;
-
-    fn build(params: Self::Params) -> Self {
-        Self::Q(params)
-    }
-}
-impl Answerable for ScramSaltedPasswordQuery {
-    type Answer = ScramSaltedPassword;
-
-    fn respond(&mut self, resp: Self::Answer) {
-        *self = Self::A(resp);
-    }
-
-    fn into_answer(self) -> Option<Self::Answer> {
-        match self {
-            ScramSaltedPasswordQuery::Q(_) => None,
-            ScramSaltedPasswordQuery::A(p) => Some(p)
-        }
-    }
-}
 
 pub enum ScramSaltedPasswordQueryClient {
     Q {
@@ -59,39 +37,8 @@ pub enum ScramSaltedPasswordQueryClient {
     },
     A(Box<[u8]>),
 }
-impl Question for ScramSaltedPasswordQueryClient {
-    type Params = (String, ScramPassParams);
-
-    fn build(params: Self::Params) -> Self {
-        Self::Q {
-            username: params.0,
-            params: params.1,
-        }
-    }
-}
-impl Answerable for ScramSaltedPasswordQueryClient {
-    type Answer = Box<[u8]>;
-
-    fn respond(&mut self, resp: Self::Answer) {
-        *self = Self::A(resp)
-    }
-
-    fn into_answer(self) -> Option<Self::Answer> {
-        match self {
-            Self::A(b) => Some(b),
-            Self::Q { .. }  => None,
-        }
-    }
-}
 
 pub struct ScramValidate {
     pub authid: String,
     pub authzid: String,
-}
-impl Question for ScramValidate {
-    type Params = ScramValidate;
-
-    fn build(params: Self::Params) -> Self {
-        params
-    }
 }

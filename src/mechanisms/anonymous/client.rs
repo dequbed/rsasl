@@ -3,30 +3,8 @@ use crate::mechanism::Authentication;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 use std::io::Write;
-use crate::callback::{Answerable, Question};
 
 pub struct AnonymousToken(pub Option<String>);
-impl Question for AnonymousToken {
-    type Params = ();
-
-    fn build(_: Self::Params) -> Self {
-        Self(None)
-    }
-}
-impl Answerable for AnonymousToken {
-    type Answer = String;
-
-    fn respond(&mut self, resp: Self::Answer) {
-        if resp.len() == 0 || resp.len() > 255 {
-            return;
-        }
-        self.0 = Some(resp);
-    }
-
-    fn into_answer(self) -> Option<Self::Answer> {
-        self.0
-    }
-}
 
 #[derive(Copy, Clone, Debug)]
 pub struct Anonymous;

@@ -1,5 +1,4 @@
 use std::fmt::{Debug, Display, Formatter};
-use crate::callback::Query;
 
 
 #[derive(Debug)]
@@ -13,7 +12,7 @@ impl ValidationDefinition {
     }
 }
 
-pub trait ValidationQ: Query {
+pub trait ValidationQ {
     fn validation() -> Validation where Self: Sized;
 }
 

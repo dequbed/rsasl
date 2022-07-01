@@ -1,17 +1,15 @@
-
-
 use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::error::SessionError;
-use crate::gsasl::consts::{Gsasl_property};
+use crate::gsasl::consts::Gsasl_property;
 use crate::mechanism::Authentication;
 use crate::property::PropertyQ;
 use crate::validate::*;
-use crate::callback::{Answerable, AnsQuery, CallbackError, Query, SessionCallback, ValidationError};
-use crate::Mechanism;
+use crate::{Mechanism, SessionCallback};
+use crate::callback::{CallbackError, CallbackRequest, ClosureRequester, req, Request, RequestTag, RequestType, TaggedOption, ValidationError};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -67,7 +65,6 @@ impl SessionBuilder {
 pub struct Session {
     mechanism: Box<dyn Authentication>,
     mechanism_data: MechanismData,
-
     // Callback types:
     // - provide property / do action (e.g. provide username/password, start OIDC auth)
     //      ⇒ CLIENT + SERVER
@@ -98,7 +95,8 @@ impl Session {
 
     #[inline(always)]
     pub fn are_we_first(&self) -> bool {
-        self.mechanism_data.session_data.side == self.mechanism_data.session_data.mechanism_desc.first
+        self.mechanism_data.session_data.side
+            == self.mechanism_data.session_data.mechanism_desc.first
     }
 }
 
@@ -127,7 +125,8 @@ impl Session {
     /// containing `Some(0)`) and no data to send (a `Step` containing `None`).
     pub fn step(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult {
         if let Some(input) = input {
-            self.mechanism.step(&mut self.mechanism_data, Some(input.as_ref()), writer)
+            self.mechanism
+                .step(&mut self.mechanism_data, Some(input.as_ref()), writer)
         } else {
             self.mechanism.step(&mut self.mechanism_data, None, writer)
         }
@@ -147,11 +146,7 @@ impl Session {
     /// Requiring base64-encoded SASL data is common in line-based or textual formats, such as
     /// SMTP, IMAP, XMPP and IRCv3.
     /// Refer to your protocol documentation if SASL data needs to be base64 encoded.
-    pub fn step64(
-        &mut self,
-        input: Option<&[u8]>,
-        writer: &mut impl Write,
-    ) -> StepResult {
+    pub fn step64(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult {
         use base64::write::EncoderWriter;
         let mut writer64 = EncoderWriter::new(writer, base64::STANDARD);
 
@@ -175,7 +170,7 @@ impl MechanismData {
         callback: Arc<dyn SessionCallback>,
         channel_binding_cb: Option<Box<dyn ChannelBindingCallback>>,
         mechanism_desc: Mechanism,
-        side: Side
+        side: Side,
     ) -> Self {
         Self {
             callback,
@@ -184,26 +179,27 @@ impl MechanismData {
         }
     }
 
-    pub fn callback<Q: Query>(&self, query: &mut Q) -> Result<(), CallbackError> {
-        self.callback.callback(&self.session_data, query)
-    }
-    pub fn validate<V: Query + ValidationQ>(&mut self, query: &V) -> Result<(), SessionError> {
+    pub fn validate<V>(&mut self, query: &V) -> Result<(), SessionError> {
         match self.callback.validate(&self.session_data, query) {
             Ok(()) => Ok(()),
             Err(ValidationError::NoValidation) => Err(SessionError::no_validate(V::validation())),
-            Err(_) => Err(SessionError::AuthenticationFailure)
+            Err(_) => Err(SessionError::AuthenticationFailure),
         }
     }
 
-    /// Retrieve values from the user-provided callback
-    pub fn need<P: AnsQuery>(&self, params: P::Params)
-        -> Result<P::Answer, CallbackError>
+    pub fn callback<'a>(&self, request: &mut Request<'a>) -> Result<(), CallbackError>
     {
-        let mut query = P::build(params);
-        self.callback(&mut query)?;
-        query
-            .into_answer()
-            .ok_or(CallbackError::NoAnswer)
+        self.callback.callback(&self.session_data, request)
+    }
+
+    pub fn need<'a, T: RequestType<'a>, F: FnMut(T::Answer) -> T::Result>(
+        &self,
+        params: T::Params,
+        closure: F,
+    ) -> Result<(), CallbackError> {
+        let mut mechcb = ClosureRequester::new(params, closure);
+        let mut tagged_option = req(&mut mechcb as &mut dyn CallbackRequest<'a, T>);
+        self.callback2(unsafe { tagged_option.as_request() })
     }
 
     // Legacy bs:
@@ -219,9 +215,9 @@ impl MechanismData {
     pub unsafe fn callback_raw(&mut self, _prop: Gsasl_property) -> *const libc::c_char {
         unimplemented!()
     }
-    pub fn get_property_or_callback<P: PropertyQ>(&mut self)
-        -> Result<Option<Arc<P::Item>>, SessionError>
-    {
+    pub fn get_property_or_callback<P: PropertyQ>(
+        &mut self,
+    ) -> Result<Option<Arc<P::Item>>, SessionError> {
         unimplemented!()
     }
 }
@@ -237,11 +233,8 @@ impl Debug for MechanismData {
     }
 }
 
-
 #[derive(Debug, Eq, PartialEq)]
-pub enum AuthenticationError {
-
-}
+pub enum AuthenticationError {}
 
 #[derive(Debug, Eq, PartialEq)]
 /// The outcome of a single step in the authentication exchange
@@ -273,8 +266,7 @@ impl SessionData {
     }
 }
 
-impl SessionData {
-}
+impl SessionData {}
 
 #[cfg(testn)]
 mod tests {
