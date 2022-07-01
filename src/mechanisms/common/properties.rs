@@ -1,7 +1,7 @@
 //! Properties and related types that are useful for more than one mechanism.
 //!
 
-use crate::callback::{RequestType};
+use crate::callback::{RequestType, tags};
 
 #[derive(Debug)]
 /// Plaintext credentials
@@ -24,7 +24,6 @@ pub struct Credentials<'a> {
 
 pub struct SimpleCredentials;
 impl<'a> RequestType<'a> for SimpleCredentials {
-    type Params = ();
     type Answer = Credentials<'a>;
     type Result = ();
 }

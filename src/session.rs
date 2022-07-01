@@ -2,6 +2,10 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 
+use crate::callback::{
+    build_context, tags, CallbackError, CallbackRequest, ClosureCR, Context, Provider, Request,
+    RequestTag, RequestType, TaggedOption, ValidationError,
+};
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
@@ -9,7 +13,6 @@ use crate::mechanism::Authentication;
 use crate::property::PropertyQ;
 use crate::validate::*;
 use crate::{Mechanism, SessionCallback};
-use crate::callback::{CallbackError, CallbackRequest, ClosureRequester, req, Request, RequestTag, RequestType, TaggedOption, ValidationError};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -180,26 +183,39 @@ impl MechanismData {
     }
 
     pub fn validate<V>(&mut self, query: &V) -> Result<(), SessionError> {
-        match self.callback.validate(&self.session_data, query) {
-            Ok(()) => Ok(()),
-            Err(ValidationError::NoValidation) => Err(SessionError::no_validate(V::validation())),
-            Err(_) => Err(SessionError::AuthenticationFailure),
-        }
+        todo!()
     }
 
-    pub fn callback<'a>(&self, request: &mut Request<'a>) -> Result<(), CallbackError>
-    {
-        self.callback.callback(&self.session_data, request)
-    }
-
-    pub fn need<'a, T: RequestType<'a>, F: FnMut(T::Answer) -> T::Result>(
+    pub fn callback<'a>(
         &self,
-        params: T::Params,
-        closure: F,
+        context: &Context<'a>,
+        request: &mut Request<'a>,
     ) -> Result<(), CallbackError> {
-        let mut mechcb = ClosureRequester::new(params, closure);
-        let mut tagged_option = req(&mut mechcb as &mut dyn CallbackRequest<'a, T>);
-        self.callback2(unsafe { tagged_option.as_request() })
+        self.callback.callback(&self.session_data, context, request)
+    }
+
+    pub fn need<'a, T, C, P>(&self, provider: &'a P, mechcb: &'a mut C) -> Result<(), CallbackError>
+    where
+        T: RequestType<'a>,
+        C: CallbackRequest<T::Answer, T::Result>,
+        P: Provider<'a>,
+    {
+        let mut tagged_option = TaggedOption::<'_, tags::RefMut<RequestTag<T>>>(Some(mechcb));
+        self.callback(build_context(provider), unsafe {
+            tagged_option.as_request()
+        })
+    }
+
+    pub fn need_with<'a, T: RequestType<'a>, F: FnMut(T::Answer) -> T::Result + 'a, P>(
+        &self,
+        provider: &'a P,
+        closure: &'a mut F,
+    ) -> Result<(), CallbackError>
+    where
+        P: Provider<'a>,
+    {
+        let closurecr = ClosureCR::<'a, T, F>::wrap(closure);
+        self.need::<'a, T, _, P>(provider, closurecr)
     }
 
     // Legacy bs:

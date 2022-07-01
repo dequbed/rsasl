@@ -1,8 +1,9 @@
+use crate::callback::RequestType;
 
-pub struct ScramSaltedPasswordRef<'a> {
+pub struct ScramSaltedPassword {
     iterations: u32,
-    salt: &'a [u8],
-    password: &'a [u8],
+    salt: Box<[u8]>,
+    password: Box<[u8]>,
 }
 
 #[derive(Debug)]
@@ -10,33 +11,24 @@ pub struct ScramSaltedPasswordRef<'a> {
 ///
 /// A server SHOULD store users' passwords hashed in a way SCRAM can use and not in plaintext.
 ///
-pub struct ScramPassParams {
+pub struct ScramPassParams<'a> {
     pub iterations: u32,
-    pub salt: Box<[u8]>,
+    pub salt: &'a [u8],
 }
+
 #[derive(Debug)]
-pub struct ScramSaltedPassword {
-    pub params: ScramPassParams,
-    pub password: Box<[u8]>,
-    // TODO: Include the algorithm name dummy
-    //          ⇒ crypto_common::AlgorithmName will be useful
-}
-// TODO: (Feature-gated) Implement serde for these since they are commonly stored?
-
-pub enum ScramSaltedPasswordQuery {
-    Q(String),
-    A(ScramSaltedPassword),
+pub enum ScramPasswordError {
+    /// Password can't possibly be for the current hash function.
+    PasswordHashMismatch,
 }
 
-pub enum ScramSaltedPasswordQueryClient {
-    Q {
-        username: String,
-        params: ScramPassParams,
-        // TODO: Include the algorithm name dummy
-        //          ⇒ crypto_common::AlgorithmName will be useful
-    },
-    A(Box<[u8]>),
+pub struct ScramSaltedPasswordQuery;
+impl<'a> RequestType<'a> for ScramSaltedPasswordQuery {
+    type Answer = (ScramPassParams<'a>, &'a [u8]);
+    type Result = Result<(), ScramPasswordError>;
 }
+
+pub struct ScramSaltedPasswordQueryClient;
 
 pub struct ScramValidate {
     pub authid: String,

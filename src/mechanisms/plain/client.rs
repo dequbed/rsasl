@@ -15,28 +15,29 @@ impl Authentication for Plain {
         &mut self,
         session: &mut MechanismData,
         _input: Option<&[u8]>,
-        writer: &mut dyn Write,
+        mut writer: &mut dyn Write,
     ) -> StepResult {
-        let Credentials { authid, authzid, password } = session.need::<SimpleCredentials>(())?;
+        let mut writer_out = Ok(0);
+        session.need_with::<'_, SimpleCredentials, _, _>(&(), &mut |Credentials { authid, authzid, password }| {
+            let authzidbuf = if let Some(authz) = &authzid {
+                authz.as_bytes()
+            } else {
+                &[]
+            };
 
-        let authzidbuf = if let Some(authz) = &authzid {
-            authz.as_bytes()
-        } else {
-            &[]
-        };
+            let data: [&[u8]; 5] = [
+                authzidbuf,
+                &[0],
+                authid.as_bytes(),
+                &[0],
+                password,
+            ];
+            let mut vecw = VectoredWriter::new(data);
 
-        let data: [&[u8]; 5] = [
-            authzidbuf,
-            &[0],
-            authid.as_bytes(),
-            &[0],
-            password.as_bytes(),
-        ];
-        let mut vecw = VectoredWriter::new(data);
+            writer_out = vecw.write_all_vectored(&mut writer);
+        })?;
 
-        let written = vecw.write_all_vectored(writer)?;
-
-        Ok(Done(Some(written)))
+        Ok(Done(Some(writer_out?)))
     }
 }
 

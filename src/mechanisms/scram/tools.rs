@@ -24,11 +24,11 @@ pub(super) fn generate_nonce<const N: usize>(rng: &mut impl Rng) -> [u8; N] {
 
 pub(super) type DOutput<D> = GenericArray<u8, <SimpleHmac<D> as OutputSizeUser>::OutputSize>;
 
-pub fn hash_password<D>(password: &str, iterations: u32, salt: &[u8], out: &mut DOutput<D>)
+pub fn hash_password<D>(password: &[u8], iterations: u32, salt: &[u8], out: &mut DOutput<D>)
 where
     D: Digest + BlockSizeUser + Clone + Sync
 {
-    pbkdf2::pbkdf2::<SimpleHmac<D>>(password.as_bytes(), salt, iterations, out.as_mut_slice());
+    pbkdf2::pbkdf2::<SimpleHmac<D>>(password, salt, iterations, out.as_mut_slice());
 }
 
 pub fn find_proofs<D>(

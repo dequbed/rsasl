@@ -86,16 +86,16 @@ impl<'a> SaslName<'a> {
     /// Convert a Rust-side string into the representation required by SCRAM
     ///
     /// This will clone the given string if characters need escaping
-    pub fn escape(input: String) -> Result<String, SaslNameError> {
+    pub fn escape(input: &str) -> Result<Cow<'_, str>, SaslNameError> {
         if input.contains('\0') {
             return Err(SaslNameError::InvalidChar(0));
         }
 
         if input.contains(&[',', '=']) {
             let escaped: String = input.chars().flat_map(SaslEscapeState::escape).collect();
-            Ok(escaped)
+            Ok(Cow::Owned(escaped))
         } else {
-            Ok(input)
+            Ok(Cow::Borrowed(input))
         }
     }
 
