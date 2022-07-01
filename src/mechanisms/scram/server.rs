@@ -1,16 +1,18 @@
 use std::io::Write;
 use std::marker::PhantomData;
 use digest::crypto_common::BlockSizeUser;
-use digest::Digest;
+use digest::{Digest, OutputSizeUser};
 use digest::generic_array::GenericArray;
+use hmac::SimpleHmac;
 use rand::{Rng, RngCore, thread_rng};
 use stringprep::saslprep;
 use crate::Authentication;
-use crate::callback::CallbackError;
+use crate::callback::{CallbackError, ThisProvider};
 use crate::error::SessionError;
+use crate::mechanisms::external::client::AuthId;
 use crate::mechanisms::scram::client::SCRAMError;
 use crate::mechanisms::scram::parser::{ClientFinal, ClientFirstMessage, ServerErrorValue, ServerFinal, ServerFirst};
-use crate::mechanisms::scram::properties::{ScramPassParams, ScramSaltedPassword, ScramSaltedPasswordQuery};
+use crate::mechanisms::scram::properties::{ScramPassParams, ScramPasswordError, ScramSaltedPassword, ScramSaltedPasswordQuery};
 use crate::mechanisms::scram::tools::{DOutput, find_proofs, generate_nonce};
 use crate::session::{MechanismData, StepResult};
 use crate::session::Step::{Done, NeedsMore};
@@ -71,22 +73,34 @@ impl<const N: usize> WaitingClientFirst<N> {
 
         // FIXME: Escape Username from SCRAM format to whatever
 
+
+        let mut outer_iterations = None;
+        let mut outer_password: Option<GenericArray<u8, D::OutputSize>> = None;
+        let mut outer_salt = None;
+
         // Retrieve the password for the given user via callback.
         // If the callback doesn't return a password (usually because the user does not exist) we
         // proceed with the authentication exchange with randomly generated data, since SCRAM
         // only indicates failure like that in the last step.
-        let (ScramPassParams {
-                iterations,
-                salt,
-            },
-            password
-        ) = self.get_salted_pw(session_data, username)?
-            //^ do a callback to get values
-            .map(|ScramSaltedPassword { params, password }| (params, Some(password)))
-            //^ Make the value Option<(Params, Option<Password>)> so we can work with it
-            .unwrap_or_else(|| (self.gen_rand_pw_params(), None));
-            //^ Generate new random values if no password was returned
+        if let Err(_) = session_data.need_with::<'_, ScramSaltedPasswordQuery, _, _>(
+            &ThisProvider::<AuthId>::with(username),
+            &mut |(ScramPassParams { salt, iterations }, password)| {
+                if password.len() != <SimpleHmac<D> as OutputSizeUser>::output_size() {
+                    return Err(ScramPasswordError::PasswordHashMismatch);
+                }
+                outer_password = Some(GenericArray::clone_from_slice(password));
+                outer_iterations = Some(iterations);
+                outer_salt = Some(Vec::from(salt));
 
+                Ok(())
+        }) {
+            let (iterations, salt) = self.gen_rand_pw_params();
+            outer_iterations = Some(iterations);
+            outer_salt = Some(salt);
+        }
+
+        let iterations = outer_iterations.unwrap();
+        let salt = outer_salt.unwrap();
 
         let server_nonce: [u8; N] = generate_nonce(rng);
 
@@ -104,7 +118,7 @@ impl<const N: usize> WaitingClientFirst<N> {
         common_nonce.extend_from_slice(&client_nonce);
         common_nonce.extend_from_slice(&server_nonce);
 
-        if let Some(salted_password) = password {
+        if let Some(salted_password) = outer_password {
             let gs2header = client_first.build_gs2_header_vec();
             let gs2headerb64 = base64::encode(gs2header);
 
@@ -121,27 +135,11 @@ impl<const N: usize> WaitingClientFirst<N> {
         }
     }
 
-    fn get_salted_pw(&self, session_data: &mut MechanismData, username: &str)
-        -> Result<Option<ScramSaltedPassword>, SessionError>
-    {
-        let username = saslprep(username).expect("SASLprep failed").to_string();
-        match session_data.need::<ScramSaltedPasswordQuery>(username) {
-            Ok(answer) => Ok(Some(answer)),
-            Err(CallbackError::NoCallback | CallbackError::NoAnswer) => {
-                Ok(None)
-            },
-            Err(e) => Err(e.into())
-        }
-    }
-
-    fn gen_rand_pw_params(&self) -> ScramPassParams {
+    fn gen_rand_pw_params(&self) -> (u32, Vec<u8>) {
         let mut salt = [0u8; DEFAULT_SALT_LEN];
         thread_rng().fill_bytes(&mut salt);
 
-        ScramPassParams {
-            iterations: DEFAULT_ITERATIONS,
-            salt: salt.into(),
-        }
+        (DEFAULT_ITERATIONS, Vec::from(salt))
     }
 }
 

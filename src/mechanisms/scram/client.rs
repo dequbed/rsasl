@@ -50,7 +50,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> ScramClient<D, N>
 
 enum ScramClientState<D: Digest + BlockSizeUser, const N: usize> {
     Initial(State<StateClientFirst<N>>),
-    ClientFirst(State<WaitingServerFirst<D, N>>, String),
+    ClientFirst(State<WaitingServerFirst<D, N>>, Vec<u8>),
     ServerFirst(State<WaitingServerFinal<D>>),
 }
 
@@ -93,7 +93,7 @@ impl<const N: usize> State<StateClientFirst<N>> {
 impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> State<WaitingServerFirst<D, N>> {
     pub fn step(
         self,
-        password: &str,
+        password: &[u8],
         server_first: &[u8],
         writer: impl Write,
         written: &mut usize,
@@ -245,7 +245,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
 
     pub fn handle_server_first(
         self,
-        password: &str,
+        password: &[u8],
         cbdata: Option<Box<[u8]>>,
         server_first: &[u8],
         writer: impl Write,
@@ -335,9 +335,18 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication fo
                 };
                  */
 
-                let Credentials { authid, authzid, password } = session.need::<SimpleCredentials>(())?;
+                let mut username = None;
+                let mut outer_authzid = None;
+                let mut outer_passwd = None;
+                session.need_with::<'_, SimpleCredentials, _, _>(&(), &mut |Credentials { authid, authzid, password }| {
+                    username = Some(SaslName::escape(authid).unwrap().into_owned());
+                    outer_authzid = authzid.map(|s| s.to_string());
+                    outer_passwd = Some(password.to_owned())
+                })?;
+                let username = username.unwrap();
+                let authzid = outer_authzid;
+                let password= outer_passwd.unwrap();
 
-                let username = SaslName::escape(authid).unwrap();
 
                 let mut rng = rand::thread_rng();
                 let mut written = 0;

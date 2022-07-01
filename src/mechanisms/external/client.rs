@@ -2,8 +2,16 @@ use crate::mechanism::Authentication;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 use std::io::Write;
+use crate::callback::{RequestType, tags};
 
-pub struct AuthId(pub Option<String>);
+pub struct AuthId;
+impl<'a> tags::MaybeSizedType<'a> for AuthId {
+    type Reified = str;
+}
+impl<'a> RequestType<'a> for AuthId {
+    type Answer = &'a str;
+    type Result = ();
+}
 
 #[derive(Copy, Clone, Debug)]
 pub struct External;
@@ -15,12 +23,16 @@ impl Authentication for External {
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
     ) -> StepResult {
-        if let Ok(authid) = session.need::<AuthId>(()) {
+        let mut write_out = Ok(());
+        let mut len = None;
+
+        session.need_with::<'_, AuthId, _, _>(&(), &mut |authid| {
             let buf = authid.as_bytes();
-            writer.write_all(buf)?;
-            Ok(Done(Some(buf.len())))
-        } else {
-            Ok(Done(None))
-        }
+            write_out = writer.write_all(buf);
+            len = Some(buf.len());
+        });
+
+        write_out?;
+        Ok(Done(len))
     }
 }
