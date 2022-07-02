@@ -48,7 +48,7 @@ impl Authentication for Anonymous {
             The <token> production is restricted to 255 UTF-8 encoded Unicode
             characters.   As the encoding of a characters uses a sequence of 1
             to 4 octets, a token may be long as 1020 octets. */
-            if input.len() == 0 || input.len() > 255 {
+            if input.len() == 0 || input.chars().count() > 255 {
                 return Err(ParseError.into());
             }
 
