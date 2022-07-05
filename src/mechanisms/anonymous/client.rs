@@ -3,12 +3,11 @@ use crate::mechanism::Authentication;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 use std::io::Write;
-use crate::callback::RequestType;
+use crate::callback::tags;
 
 pub struct AnonymousToken;
-impl<'a> RequestType<'a> for AnonymousToken {
-    type Answer = &'a str;
-    type Result = ();
+impl<'a> tags::MaybeSizedType<'a> for AnonymousToken {
+    type Reified = str;
 }
 
 #[derive(Copy, Clone, Debug)]

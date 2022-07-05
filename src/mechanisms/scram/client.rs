@@ -337,11 +337,11 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication fo
 
                 let mut username = None;
                 let mut outer_authzid = None;
-                let mut outer_passwd = None;
+                let mut outer_passwd: Option<Vec<u8>> = None;
                 session.need_with::<'_, SimpleCredentials, _, _>(&(), &mut |Credentials { authid, authzid, password }| {
                     username = Some(SaslName::escape(authid).unwrap().into_owned());
                     outer_authzid = authzid.map(|s| s.to_string());
-                    outer_passwd = Some(password.to_owned())
+                    outer_passwd = Some((*password).to_owned())
                 })?;
                 let username = username.unwrap();
                 let authzid = outer_authzid;

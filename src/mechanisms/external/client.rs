@@ -2,15 +2,11 @@ use crate::mechanism::Authentication;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 use std::io::Write;
-use crate::callback::{RequestType, tags};
+use crate::callback::tags;
 
 pub struct AuthId;
 impl<'a> tags::MaybeSizedType<'a> for AuthId {
     type Reified = str;
-}
-impl<'a> RequestType<'a> for AuthId {
-    type Answer = &'a str;
-    type Result = ();
 }
 
 #[derive(Copy, Clone, Debug)]

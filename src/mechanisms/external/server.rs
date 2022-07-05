@@ -7,6 +7,7 @@ use std::fmt::{Display, Formatter};
 use std::io::Write;
 use crate::callback::tags::Type;
 use crate::callback::ThisProvider;
+use crate::mechanisms::external::client::AuthId;
 
 use crate::validate::Validation;
 
@@ -40,14 +41,16 @@ impl Authentication for External {
     ) -> StepResult {
         let outcome = if let Some(input) = input {
             if let Ok(authid) = std::str::from_utf8(input) {
-                let provider = ThisProvider(authid);
+                let provider = ThisProvider::<AuthId>::with(authid);
                 session.validate::<ExternalValidation, _>(&provider)
             } else {
                 return Err(ParseError.into());
             }
         } else {
             session.validate::<ExternalValidation, _>(&())
-        }?;
+        };
+
+        let outcome = outcome.map_err(|_| ParseError /* FIXME!! */)?;
 
         if outcome {
             Ok(Done(None))

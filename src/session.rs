@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 
-use crate::callback::{build_context, tags, CallbackError, CallbackRequest, ClosureCR, Context, Provider, Request, RequestTag, RequestType, TaggedOption, ValidationError, Validate};
+use crate::callback::{build_context, tags, CallbackError, CallbackRequest, ClosureCR, Context, Provider, Request, RequestTag, TaggedOption, ValidationError, Validate};
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
@@ -181,7 +181,7 @@ impl MechanismData {
 
     pub fn validate<'a, V, P>(&mut self, provider: &'a P) -> Result<V::Reified, ValidationError>
     where
-        V: Validation,
+        V: Validation<'a>,
         P: Provider<'a>
     {
         let mut tagged_option = TaggedOption::<'_, V>(None);
@@ -202,8 +202,8 @@ impl MechanismData {
 
     pub fn need<'a, T, C, P>(&self, provider: &'a P, mechcb: &'a mut C) -> Result<(), CallbackError>
     where
-        T: RequestType<'a>,
-        C: CallbackRequest<T::Answer, T::Result>,
+        T: tags::MaybeSizedType<'a>,
+        C: CallbackRequest<T::Reified>,
         P: Provider<'a>,
     {
         let mut tagged_option = TaggedOption::<'_, tags::RefMut<RequestTag<T>>>(Some(mechcb));
@@ -217,7 +217,7 @@ impl MechanismData {
         }
     }
 
-    pub fn need_with<'a, T: RequestType<'a>, F: FnMut(T::Answer) -> T::Result + 'a, P>(
+    pub fn need_with<'a, T: tags::MaybeSizedType<'a>, F: FnMut(&T::Reified) + 'a, P>(
         &self,
         provider: &'a P,
         closure: &'a mut F,

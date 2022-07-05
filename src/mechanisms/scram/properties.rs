@@ -1,4 +1,4 @@
-use crate::callback::RequestType;
+use crate::callback::tags;
 
 pub struct ScramSaltedPassword {
     iterations: u32,
@@ -23,9 +23,8 @@ pub enum ScramPasswordError {
 }
 
 pub struct ScramSaltedPasswordQuery;
-impl<'a> RequestType<'a> for ScramSaltedPasswordQuery {
-    type Answer = (ScramPassParams<'a>, &'a [u8]);
-    type Result = Result<(), ScramPasswordError>;
+impl<'a> tags::Type<'a> for ScramSaltedPasswordQuery {
+    type Reified = (ScramPassParams<'a>, &'a [u8]);
 }
 
 pub struct ScramSaltedPasswordQueryClient;
