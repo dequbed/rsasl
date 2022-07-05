@@ -1,7 +1,6 @@
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
-use crate::property::Property;
 use crate::validate::Validation;
-use crate::{Mechanism, Mechname, PropertyQ};
+use crate::{Mechanism, Mechname};
 use thiserror::Error;
 
 use crate::callback::CallbackError;
