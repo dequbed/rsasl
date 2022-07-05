@@ -1,9 +1,7 @@
 use rsasl::callback::Callback;
-use rsasl::error::{SessionError};
+use rsasl::error::SessionError;
 use rsasl::mechname::Mechname;
-use rsasl::property::{
-    properties, AuthId, Password, Property,
-};
+use rsasl::property::{properties, AuthId, Password, Property};
 use rsasl::session::MechanismData;
 use rsasl::session::Step::{Done, NeedsMore};
 use rsasl::SASL;

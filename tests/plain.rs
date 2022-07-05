@@ -1,6 +1,5 @@
-
 use rsasl::callback::Callback;
-use rsasl::error::{SessionError};
+use rsasl::error::SessionError;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, AuthzId, Password};
 use rsasl::session::Step::{Done, NeedsMore};

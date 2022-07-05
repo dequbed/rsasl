@@ -1,33 +1,32 @@
-use crate::error::{MechanismError, MechanismErrorKind};
+use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
+use thiserror::Error;
 
+use crate::callback::tags::Type;
+use crate::callback::ThisProvider;
+use crate::mechanisms::external::client::AuthId;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
-use crate::validate::validations::EXTERNAL;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 
-use crate::validate::{Validation, ValidationQ};
+use crate::validate::Validation;
 
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]
+#[error("the given external token is invalid UTF-8")]
 pub struct ParseError;
-impl Display for ParseError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("the given external token is invalid UTF-8")
-    }
-}
 impl MechanismError for ParseError {
     fn kind(&self) -> MechanismErrorKind {
         MechanismErrorKind::Parse
     }
 }
 
-pub struct ExternalValidation(pub Option<String>);
-impl ValidationQ for ExternalValidation {
-    fn validation() -> Validation where Self: Sized {
-        EXTERNAL
-    }
+pub struct ExternalValidation;
+
+impl<'a> Type<'a> for ExternalValidation {
+    type Reified = bool;
 }
+impl<'a> Validation<'a> for ExternalValidation {}
 
 #[derive(Copy, Clone, Debug)]
 pub struct External;
@@ -39,17 +38,23 @@ impl Authentication for External {
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
     ) -> StepResult {
-        let v = if let Some(input) = input {
+        let outcome = if let Some(input) = input {
             if let Ok(authid) = std::str::from_utf8(input) {
-                ExternalValidation(Some(authid.to_string()))
+                let provider = ThisProvider::<AuthId>::with(authid);
+                session.validate::<ExternalValidation, _>(&provider)
             } else {
                 return Err(ParseError.into());
             }
         } else {
-            ExternalValidation(None)
+            session.validate::<ExternalValidation, _>(&())
         };
 
-        session.validate(&v)?;
-        Ok(Done(None))
+        let outcome = outcome.map_err(|_| ParseError /* FIXME!! */)?;
+
+        if outcome {
+            Ok(Done(None))
+        } else {
+            Err(SessionError::AuthenticationFailure)
+        }
     }
 }

@@ -1,14 +1,14 @@
-use std::io::Write;
-use std::mem;
-use rsasl::SASL;
 use rsasl::error::SASLError;
 use rsasl::mechanism::Authentication;
 use rsasl::mechname::Mechname;
 use rsasl::session::{MechanismData, Side, StepResult};
+use rsasl::SASL;
+use std::io::Write;
+use std::mem;
 
 struct CustomMechanism {
     client: bool,
-    step: Step
+    step: Step,
 }
 
 enum Step {
@@ -20,16 +20,27 @@ enum Step {
 
 impl CustomMechanism {
     pub fn new_client(_sasl: &SASL) -> Result<Box<dyn Authentication>, SASLError> {
-        Ok(Box::new(Self { step: Step::New, client: true }))
+        Ok(Box::new(Self {
+            step: Step::New,
+            client: true,
+        }))
     }
 
     pub fn new_server(_sasl: &SASL) -> Result<Box<dyn Authentication>, SASLError> {
-        Ok(Box::new(Self { step: Step::New, client: false }))
+        Ok(Box::new(Self {
+            step: Step::New,
+            client: false,
+        }))
     }
 }
 
 impl Authentication for CustomMechanism {
-    fn step(&mut self, session: &mut MechanismData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
+    fn step(
+        &mut self,
+        session: &mut MechanismData,
+        input: Option<&[u8]>,
+        writer: &mut dyn Write,
+    ) -> StepResult {
         // Do your mechanism stuff here, updating state in *self as you go.
         unimplemented!()
         /*

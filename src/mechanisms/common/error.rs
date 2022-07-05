@@ -1,7 +1,6 @@
-
+use crate::callback::CallbackError;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use crate::callback::CallbackError;
 
 #[derive(Debug)]
 /// Common mechanism Error type
@@ -17,8 +16,9 @@ pub enum MechanismError {
 impl Display for MechanismError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::NeedMoreData =>
-                f.write_str("mechanism expected input data to be provided this step"),
+            Self::NeedMoreData => {
+                f.write_str("mechanism expected input data to be provided this step")
+            }
             Self::Callback(e) => Debug::fmt(e, f),
         }
     }

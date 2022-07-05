@@ -1,4 +1,3 @@
-
 use rsasl::mechname::Mechname;
 
 use rsasl::SASL;

@@ -1,27 +1,25 @@
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::marker::PhantomData;
-
-
-
+use thiserror::Error;
 
 use digest::crypto_common::BlockSizeUser;
-use digest::Digest;
 use digest::generic_array::GenericArray;
+use digest::Digest;
 
 use rand::Rng;
 
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
+use crate::mechanisms::common::properties::{Credentials, SimpleCredentials};
 use crate::mechanisms::scram::parser::{
-    ClientFinal, ClientFirstMessage,
-    GS2CBindFlag, SaslName, ServerErrorValue, ServerFinal, ServerFirst,
+    ClientFinal, ClientFirstMessage, GS2CBindFlag, SaslName, ServerErrorValue, ServerFinal,
+    ServerFirst,
 };
-use crate::mechanisms::scram::tools::{find_proofs, hash_password, DOutput, generate_nonce};
+use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, hash_password, DOutput};
 use crate::session::Step::NeedsMore;
 use crate::session::{MechanismData, Step, StepResult};
 use crate::vectored_io::VectoredWriter;
-use crate::{Authentication};
-use crate::mechanisms::common::properties::{Credentials, SimpleCredentials};
+use crate::Authentication;
 
 pub type ScramSha256Client<const N: usize> = ScramClient<sha2::Sha256, N>;
 pub type ScramSha512Client<const N: usize> = ScramClient<sha2::Sha512, N>;
@@ -50,7 +48,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> ScramClient<D, N>
 
 enum ScramClientState<D: Digest + BlockSizeUser, const N: usize> {
     Initial(State<StateClientFirst<N>>),
-    ClientFirst(State<WaitingServerFirst<D, N>>, String),
+    ClientFirst(State<WaitingServerFirst<D, N>>, Vec<u8>),
     ServerFirst(State<WaitingServerFinal<D>>),
 }
 
@@ -93,7 +91,7 @@ impl<const N: usize> State<StateClientFirst<N>> {
 impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> State<WaitingServerFirst<D, N>> {
     pub fn step(
         self,
-        password: &str,
+        password: &[u8],
         server_first: &[u8],
         writer: impl Write,
         written: &mut usize,
@@ -153,8 +151,8 @@ impl<const N: usize> StateClientFirst<N> {
         // The PRINTABLE slice is const not empty which is the only failure case we unwrap.
         let client_nonce: [u8; N] = generate_nonce(rng);
 
-        let b =
-            ClientFirstMessage::new(cbflag, authzid.as_ref(), &username, &client_nonce[..]).to_ioslices();
+        let b = ClientFirstMessage::new(cbflag, authzid.as_ref(), &username, &client_nonce[..])
+            .to_ioslices();
 
         let mut vecw = VectoredWriter::new(b);
         (*written) = vecw.write_all_vectored(writer)?;
@@ -224,18 +222,22 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
             .extend_from_slice(cbdata.as_ref().map(|b| b.as_ref()).unwrap_or(&[]));
         let gs2headerb64 = base64::encode(self.gs2_header);
 
-        let (client_proof, server_signature) =
-            find_proofs::<D>(
-                self.username.as_str(),
-                &self.client_nonce[..],
-                server_first,
-                &gs2headerb64,
-                salted_password,
-            );
+        let (client_proof, server_signature) = find_proofs::<D>(
+            self.username.as_str(),
+            &self.client_nonce[..],
+            server_first,
+            &gs2headerb64,
+            salted_password,
+        );
 
         let proof = base64::encode(client_proof.as_slice());
 
-        let b = ClientFinal::new(gs2headerb64.as_bytes(), server_first.nonce, proof.as_bytes()).to_ioslices();
+        let b = ClientFinal::new(
+            gs2headerb64.as_bytes(),
+            server_first.nonce,
+            proof.as_bytes(),
+        )
+        .to_ioslices();
 
         let mut vecw = VectoredWriter::new(b);
         *written = vecw.write_all_vectored(writer)?;
@@ -245,7 +247,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
 
     pub fn handle_server_first(
         self,
-        password: &str,
+        password: &[u8],
         cbdata: Option<Box<[u8]>>,
         server_first: &[u8],
         writer: impl Write,
@@ -263,7 +265,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
         }
 
         let iterations: u32 = std::str::from_utf8(iteration_count)
-            .map_err(|_| SCRAMError::ParseError(super::parser::ParseError::BadUtf8))?
+            .map_err(|e| SCRAMError::ParseError(super::parser::ParseError::BadUtf8(e)))?
             .parse()
             .map_err(|_| SCRAMError::Protocol(ProtocolError::IterationCountFormat))?;
 
@@ -313,7 +315,9 @@ impl<D: Digest + BlockSizeUser> WaitingServerFinal<D> {
 
 struct StateServerFinal {}
 
-impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication for ScramClient<D, N> {
+impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
+    for ScramClient<D, N>
+{
     fn step(
         &mut self,
         session: &mut MechanismData,
@@ -335,19 +339,28 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication fo
                 };
                  */
 
-                let Credentials { authid, authzid, password } = session.need::<SimpleCredentials>(())?;
-
-                let username = SaslName::escape(authid).unwrap();
+                let mut username = None;
+                let mut outer_authzid = None;
+                let mut outer_passwd: Option<Vec<u8>> = None;
+                session.need_with::<'_, SimpleCredentials, _, _>(
+                    &(),
+                    &mut |Credentials {
+                              authid,
+                              authzid,
+                              password,
+                          }| {
+                        username = Some(SaslName::escape(authid).unwrap().into_owned());
+                        outer_authzid = authzid.map(|s| s.to_string());
+                        outer_passwd = Some((*password).to_owned())
+                    },
+                )?;
+                let username = username.unwrap();
+                let authzid = outer_authzid;
+                let password = outer_passwd.unwrap();
 
                 let mut rng = rand::thread_rng();
                 let mut written = 0;
-                let new_state = state.step(
-                    &mut rng,
-                    authzid,
-                    username,
-                    writer,
-                    &mut written,
-                )?;
+                let new_state = state.step(&mut rng, authzid, username, writer, &mut written)?;
                 self.state = Some(ClientFirst(new_state, password));
 
                 Ok(NeedsMore(Some(written)))
@@ -392,27 +405,18 @@ impl Display for ProtocolError {
     }
 }
 
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]
 pub enum SCRAMError {
+    #[error("SCRAM protocol error: {0}")]
     Protocol(ProtocolError),
-    ParseError(super::parser::ParseError),
+    #[error("failed to parse received message: {0}")]
+    ParseError(
+        #[from]
+        #[source]
+        super::parser::ParseError,
+    ),
+    #[error("SCRAM outcome error: {0}")]
     ServerError(ServerErrorValue),
-}
-
-impl From<super::parser::ParseError> for SCRAMError {
-    fn from(e: super::parser::ParseError) -> Self {
-        Self::ParseError(e)
-    }
-}
-
-impl Display for SCRAMError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SCRAMError::Protocol(e) => write!(f, "SCRAM protocol error, {}", e),
-            SCRAMError::ParseError(e) => write!(f, "SCRAM parse error, {}", e),
-            SCRAMError::ServerError(e) => write!(f, "SCRAM outcome error, {}", e),
-        }
-    }
 }
 
 impl MechanismError for SCRAMError {
