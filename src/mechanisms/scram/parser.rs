@@ -1,6 +1,8 @@
+use thiserror::Error;
 use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
+use std::str::Utf8Error;
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub enum SaslNameError {
@@ -142,24 +144,26 @@ impl<'a> SaslName<'a> {
     }
 }
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Error)]
 pub enum ParseError {
+    #[error("bad channel flag")]
     BadCBFlag,
+    #[error("channel binding name contains invalid byte {0:#x}")]
     BadCBName(u8),
+    #[error("invalid gs2header")]
     BadGS2Header,
+    #[error("attribute contains invalid byte {0:#x}")]
     InvalidAttribute(u8),
+    #[error("required attribute is missing")]
     MissingAttributes,
+    #[error("too many attributes were provided")]
     TooManyAttributes,
+    #[error("an extension is unknown but marked mandatory")]
     UnknownMandatoryExtensions,
-    BadUtf8,
+    #[error("invalid UTF-8: {0}")]
+    BadUtf8(#[from] #[source] Utf8Error),
+    #[error("nonce contains invalid character")]
     BadNonce,
-}
-
-impl Display for ParseError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // FIXME: Have proper error explanations
-        f.write_str("a parse error occured")
-    }
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
@@ -230,7 +234,7 @@ impl<'scram> ClientFirstMessage<'scram> {
 
         let authzid = partiter.next().ok_or(ParseError::BadGS2Header)?;
         let authzid = if !authzid.is_empty() {
-            Some(std::str::from_utf8(authzid).map_err(|_| ParseError::BadUtf8)?)
+            Some(std::str::from_utf8(authzid).map_err(|e| ParseError::BadUtf8(e))?)
         } else {
             None
         };
@@ -241,7 +245,7 @@ impl<'scram> ClientFirstMessage<'scram> {
         }
 
         let username = if &next[0..2] == b"n=" {
-            std::str::from_utf8(&next[2..]).map_err(|_| ParseError::BadUtf8)?
+            std::str::from_utf8(&next[2..]).map_err(|e| ParseError::BadUtf8(e))?
         } else {
             return Err(ParseError::InvalidAttribute(next[0] as u8));
         };

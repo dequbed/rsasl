@@ -246,7 +246,7 @@ impl<'a> Context<'a> {
         self.0.provide(unsafe { tagged_option.as_demand() });
         tagged_option.0
     }
-    pub fn get_ref<T: tags::Type<'a>>(&'a self) -> Option<&'a T::Reified> {
+    pub fn get_ref<T: tags::MaybeSizedType<'a>>(&'a self) -> Option<&'a T::Reified> {
         self.get_by_tag::<tags::Ref<T>>()
     }
 }

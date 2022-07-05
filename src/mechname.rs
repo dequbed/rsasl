@@ -1,3 +1,4 @@
+use thiserror::Error;
 use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
@@ -150,14 +151,16 @@ const fn is_valid(byte: u8) -> bool {
     byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'-' || byte == b'_'
 }
 
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Error)]
 pub enum MechanismNameError {
     /// Mechanism name shorter than 1 character
+    #[error("can not be the empty string")]
     TooShort,
 
     /// Mechanism name contained a character outside of [A-Z0-9-_] at `index`
     ///
     ///
+    #[error("contains invalid character at offset {index}: {value:#x}")]
     InvalidChar {
         /// Index of the invalid character byte
         index: usize,
@@ -165,29 +168,6 @@ pub enum MechanismNameError {
         value: u8,
     },
 }
-
-impl Display for MechanismNameError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            MechanismNameError::TooShort => f.write_str("mechanism name can't be an empty string"),
-            MechanismNameError::InvalidChar { index, value }
-            if value.is_ascii_alphanumeric() => write!(
-                f,
-                "mechanism name contains invalid character '{char}' at index {}",
-                index,
-                char = unsafe {
-                    // SAFETY: Pattern guard guarantees this is a valid ASCII char so also a valid
-                    // UTF-8 Unicode Scalar Value
-                    char::from_u32_unchecked(*value as u32)
-                },
-            ),
-            MechanismNameError::InvalidChar { index, value } => {
-                write!(f, "mechanism name contains invalid byte {:#x} at index {}", value, index)
-            }
-        }
-    }
-}
-
 
 use compiletime_checking::*;
 #[doc(hidden)]

@@ -1,3 +1,4 @@
+use thiserror::Error;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::marker::PhantomData;
@@ -263,7 +264,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
         }
 
         let iterations: u32 = std::str::from_utf8(iteration_count)
-            .map_err(|_| SCRAMError::ParseError(super::parser::ParseError::BadUtf8))?
+            .map_err(|e| SCRAMError::ParseError(super::parser::ParseError::BadUtf8(e)))?
             .parse()
             .map_err(|_| SCRAMError::Protocol(ProtocolError::IterationCountFormat))?;
 
@@ -401,27 +402,14 @@ impl Display for ProtocolError {
     }
 }
 
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]
 pub enum SCRAMError {
+    #[error("SCRAM protocol error: {0}")]
     Protocol(ProtocolError),
-    ParseError(super::parser::ParseError),
+    #[error("failed to parse received message: {0}")]
+    ParseError(#[from] #[source] super::parser::ParseError),
+    #[error("SCRAM outcome error: {0}")]
     ServerError(ServerErrorValue),
-}
-
-impl From<super::parser::ParseError> for SCRAMError {
-    fn from(e: super::parser::ParseError) -> Self {
-        Self::ParseError(e)
-    }
-}
-
-impl Display for SCRAMError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SCRAMError::Protocol(e) => write!(f, "SCRAM protocol error, {}", e),
-            SCRAMError::ParseError(e) => write!(f, "SCRAM parse error, {}", e),
-            SCRAMError::ServerError(e) => write!(f, "SCRAM outcome error, {}", e),
-        }
-    }
 }
 
 impl MechanismError for SCRAMError {

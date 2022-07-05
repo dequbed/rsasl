@@ -1,3 +1,4 @@
+use thiserror::Error;
 use std::borrow::{Borrow, Cow};
 use std::fmt::{Display, Formatter};
 use std::io::Write;
@@ -16,33 +17,18 @@ use crate::Authentication;
 use crate::callback::{Demand, Provider};
 use crate::property::{AuthId, AuthzId, Password};
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 enum PlainError {
+    #[error("invalid format, expected three strings separated by two NULL-bytes")]
     BadFormat,
-    BadAuthzid(Utf8Error),
-    BadAuthcid(Utf8Error),
-    BadPassword(Utf8Error),
-    Saslprep(stringprep::Error),
-}
-
-impl Display for PlainError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::BadFormat => {
-                f.write_str("invalid format, expected three strings separated by two NULL-bytes")
-            }
-            Self::BadAuthzid(e) => write!(f, "authzid is invalid UTF-8: {}", e),
-            Self::BadAuthcid(e) => write!(f, "authcid is invalid UTF-8: {}", e),
-            Self::BadPassword(e) => write!(f, "password is invalid UTF-8: {}", e),
-            Self::Saslprep(e) => write!(f, "saslprep failed: {}", e),
-        }
-    }
-}
-
-impl From<stringprep::Error> for PlainError {
-    fn from(e: Error) -> Self {
-        Self::Saslprep(e)
-    }
+    #[error("authzid is invalid UTF-8: {0}")]
+    BadAuthzid(#[source] Utf8Error),
+    #[error("authcid is invalid UTF-8: {0}")]
+    BadAuthcid(#[source] Utf8Error),
+    #[error("password is invalid UTF-8: {0}")]
+    BadPassword(#[source] Utf8Error),
+    #[error("saslprep failed: {0}")]
+    Saslprep(#[from] #[source] stringprep::Error),
 }
 
 impl MechanismError for PlainError {

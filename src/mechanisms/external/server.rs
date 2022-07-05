@@ -1,3 +1,4 @@
+use thiserror::Error;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
 
@@ -11,13 +12,9 @@ use crate::mechanisms::external::client::AuthId;
 
 use crate::validate::Validation;
 
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]
+#[error("the given external token is invalid UTF-8")]
 pub struct ParseError;
-impl Display for ParseError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("the given external token is invalid UTF-8")
-    }
-}
 impl MechanismError for ParseError {
     fn kind(&self) -> MechanismErrorKind {
         MechanismErrorKind::Parse
