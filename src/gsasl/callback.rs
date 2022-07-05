@@ -1,6 +1,5 @@
 use crate::gsasl::consts::Gsasl_property;
 
-
 use crate::session::MechanismData;
 
 use crate::Shared;

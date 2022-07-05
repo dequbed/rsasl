@@ -1,23 +1,26 @@
-use std::io::Write;
-use std::marker::PhantomData;
-use digest::crypto_common::BlockSizeUser;
-use digest::{Digest, OutputSizeUser};
-use digest::generic_array::GenericArray;
-use hmac::SimpleHmac;
-use rand::{Rng, RngCore, thread_rng};
-use stringprep::saslprep;
-use crate::Authentication;
 use crate::callback::{CallbackError, ThisProvider};
 use crate::error::SessionError;
 use crate::mechanisms::external::client::AuthId;
 use crate::mechanisms::scram::client::SCRAMError;
-use crate::mechanisms::scram::parser::{ClientFinal, ClientFirstMessage, ServerErrorValue, ServerFinal, ServerFirst};
-use crate::mechanisms::scram::properties::{ScramPassParams, ScramPasswordError, ScramSaltedPassword, ScramSaltedPasswordQuery};
-use crate::mechanisms::scram::tools::{DOutput, find_proofs, generate_nonce};
-use crate::session::{MechanismData, StepResult};
+use crate::mechanisms::scram::parser::{
+    ClientFinal, ClientFirstMessage, ServerErrorValue, ServerFinal, ServerFirst,
+};
+use crate::mechanisms::scram::properties::{
+    ScramPassParams, ScramPasswordError, ScramSaltedPassword, ScramSaltedPasswordQuery,
+};
+use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, DOutput};
 use crate::session::Step::{Done, NeedsMore};
+use crate::session::{MechanismData, StepResult};
 use crate::vectored_io::VectoredWriter;
-
+use crate::Authentication;
+use digest::crypto_common::BlockSizeUser;
+use digest::generic_array::GenericArray;
+use digest::{Digest, OutputSizeUser};
+use hmac::SimpleHmac;
+use rand::{thread_rng, Rng, RngCore};
+use std::io::Write;
+use std::marker::PhantomData;
+use stringprep::saslprep;
 
 const DEFAULT_ITERATIONS: u32 = 2u32.pow(14); // 16384, TODO check if still reasonable
 const DEFAULT_SALT_LEN: usize = 32;
@@ -34,20 +37,20 @@ impl<D: Digest + BlockSizeUser, const N: usize> ScramServer<D, N> {
     pub fn new() -> Self {
         Self {
             plus: false,
-            state: Some(ScramServerState::WaitingClientFirst(State::new()))
+            state: Some(ScramServerState::WaitingClientFirst(State::new())),
         }
     }
 
     pub fn new_plus() -> Self {
         Self {
             plus: true,
-            state: Some(ScramServerState::WaitingClientFirst(State::new()))
+            state: Some(ScramServerState::WaitingClientFirst(State::new())),
         }
     }
 }
 
 pub struct WaitingClientFirst<const N: usize> {
-    nonce: PhantomData<&'static [u8; N]>
+    nonce: PhantomData<&'static [u8; N]>,
 }
 
 impl<const N: usize> WaitingClientFirst<N> {
@@ -68,11 +71,10 @@ impl<const N: usize> WaitingClientFirst<N> {
             cbflag: _,
             authzid: _, // FIXME: Save authzid
             username,
-            nonce: client_nonce
+            nonce: client_nonce,
         } = ClientFirstMessage::parse(client_first).map_err(SCRAMError::ParseError)?;
 
         // FIXME: Escape Username from SCRAM format to whatever
-
 
         let mut outer_iterations: Option<u32> = None;
         let mut outer_password: Option<GenericArray<u8, D::OutputSize>> = None;
@@ -91,7 +93,8 @@ impl<const N: usize> WaitingClientFirst<N> {
                 }
                 outer_iterations = Some(*iterations);
                 outer_salt = Some(Vec::from(*salt));
-        }) {
+            },
+        ) {
             let (iterations, salt) = self.gen_rand_pw_params();
             outer_iterations = Some(iterations);
             outer_salt = Some(salt);
@@ -103,12 +106,7 @@ impl<const N: usize> WaitingClientFirst<N> {
         let server_nonce: [u8; N] = generate_nonce(rng);
 
         let it_bytes = iterations.to_be_bytes();
-        let msg = ServerFirst::new(
-            &client_nonce,
-            &server_nonce,
-            &salt,
-            &it_bytes,
-        );
+        let msg = ServerFirst::new(&client_nonce, &server_nonce, &salt, &it_bytes);
         let mut vecw = VectoredWriter::new(msg.to_ioslices());
         *written = vecw.write_all_vectored(writer)?;
 
@@ -141,9 +139,9 @@ impl<const N: usize> WaitingClientFirst<N> {
     }
 }
 
-pub struct WaitingClientFinal<D: Digest + BlockSizeUser>{
+pub struct WaitingClientFinal<D: Digest + BlockSizeUser> {
     nonce: Vec<u8>,
-    data: Option<FinalInner<D>>
+    data: Option<FinalInner<D>>,
 }
 struct FinalInner<D: Digest + BlockSizeUser> {
     proof: DOutput<D>,
@@ -151,7 +149,10 @@ struct FinalInner<D: Digest + BlockSizeUser> {
 }
 impl<D: Digest + BlockSizeUser> WaitingClientFinal<D> {
     pub fn new(nonce: Vec<u8>, proof: DOutput<D>, signature: DOutput<D>) -> Self {
-        Self { nonce, data: Some(FinalInner { proof, signature }) }
+        Self {
+            nonce,
+            data: Some(FinalInner { proof, signature }),
+        }
     }
     pub fn bad_user(nonce: Vec<u8>) -> Self {
         Self { nonce, data: None }
@@ -206,11 +207,8 @@ impl<D: Digest + BlockSizeUser> WaitingClientFinal<D> {
 
 pub enum Outcome {
     Failed,
-    Successful {
-        username: (),
-    }
+    Successful { username: () },
 }
-
 
 struct State<S> {
     state: S,
@@ -230,13 +228,9 @@ impl<const N: usize> State<WaitingClientFirst<N>> {
         writer: impl Write,
         written: &mut usize,
     ) -> Result<State<WaitingClientFinal<D>>, SessionError> {
-        let state = self.state.handle_client_first(
-            rng,
-            session_data,
-            input,
-            writer,
-            written
-        )?;
+        let state = self
+            .state
+            .handle_client_first(rng, session_data, input, writer, written)?;
         Ok(State { state })
     }
 }
@@ -255,11 +249,16 @@ impl<D: Digest + BlockSizeUser> State<WaitingClientFinal<D>> {
 enum ScramServerState<D: Digest + BlockSizeUser, const N: usize> {
     WaitingClientFirst(State<WaitingClientFirst<N>>),
     WaitingClientFinal(State<WaitingClientFinal<D>>),
-    Finished(State<Outcome>)
+    Finished(State<Outcome>),
 }
 
 impl<D: Digest + BlockSizeUser, const N: usize> Authentication for ScramServer<D, N> {
-    fn step(&mut self, session: &mut MechanismData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
+    fn step(
+        &mut self,
+        session: &mut MechanismData,
+        input: Option<&[u8]>,
+        writer: &mut dyn Write,
+    ) -> StepResult {
         use ScramServerState::*;
         match self.state.take() {
             Some(WaitingClientFirst(state)) => {
@@ -267,30 +266,19 @@ impl<D: Digest + BlockSizeUser, const N: usize> Authentication for ScramServer<D
 
                 let mut rng = rand::thread_rng();
                 let mut written = 0;
-                let new_state = state.step(
-                    &mut rng,
-                    session,
-                    client_first,
-                    writer,
-                    &mut written
-                )?;
+                let new_state =
+                    state.step(&mut rng, session, client_first, writer, &mut written)?;
                 self.state = Some(WaitingClientFinal(new_state));
                 Ok(NeedsMore(Some(written)))
-            },
+            }
             Some(WaitingClientFinal(state)) => {
                 let client_final = input.ok_or(SessionError::InputDataRequired)?;
                 let mut written = 0;
-                let new_state = state.step(
-                    client_final,
-                    writer,
-                    &mut written
-                )?;
+                let new_state = state.step(client_final, writer, &mut written)?;
                 self.state = Some(Finished(new_state));
                 Ok(Done(Some(written)))
-            },
-            Some(Finished(_state)) => {
-                Err(SessionError::MechanismDone)
-            },
+            }
+            Some(Finished(_state)) => Err(SessionError::MechanismDone),
 
             None => panic!("SCRAM server state machine in invalid state"),
         }

@@ -26,7 +26,7 @@ impl FromStr for ProtocolVerb {
             "AUTH" => Ok(Self::Auth(AuthMessage::from_str(rest)?)),
             "ECHO" => Ok(Self::Echo(rest.to_string())),
             "ERR" => Ok(Self::Error(ProtocolError::from_str(rest)?)),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -44,7 +44,7 @@ impl FromStr for ProtocolError {
         match verb {
             "SYN" => Ok(Self::SyntaxError(rest.to_string())),
             "AUTH" => Ok(Self::AuthenticationError(rest.to_string())),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -63,14 +63,16 @@ impl FromStr for AuthMessage {
         let snd = i.next();
         let lst = i.next();
         match verb {
-            "START" => if let Some(mech) = snd {
-                Ok(Self::Start(mech.to_string(), lst.map(|s| s.to_string())))
-            } else {
-                Err(())
-            },
+            "START" => {
+                if let Some(mech) = snd {
+                    Ok(Self::Start(mech.to_string(), lst.map(|s| s.to_string())))
+                } else {
+                    Err(())
+                }
+            }
             "CONT" => Ok(Self::Continue(snd.map(|s| s.to_string()))),
             "DONE" => Ok(Self::Done),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }

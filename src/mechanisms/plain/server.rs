@@ -1,8 +1,8 @@
-use thiserror::Error;
 use std::borrow::{Borrow, Cow};
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::str::Utf8Error;
+use thiserror::Error;
 
 use stringprep::{saslprep, Error};
 
@@ -12,10 +12,10 @@ use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, StepResult};
 
 use crate::callback::tags::Type;
-use crate::validate::Validation;
-use crate::Authentication;
 use crate::callback::{Demand, Provider};
 use crate::property::{AuthId, AuthzId, Password};
+use crate::validate::Validation;
+use crate::Authentication;
 
 #[derive(Debug, Error)]
 enum PlainError {
@@ -28,7 +28,11 @@ enum PlainError {
     #[error("password is invalid UTF-8: {0}")]
     BadPassword(#[source] Utf8Error),
     #[error("saslprep failed: {0}")]
-    Saslprep(#[from] #[source] stringprep::Error),
+    Saslprep(
+        #[from]
+        #[source]
+        stringprep::Error,
+    ),
 }
 
 impl MechanismError for PlainError {
@@ -99,7 +103,8 @@ impl Authentication for Plain {
             authcid,
             password: password.as_bytes(),
         };
-        session.validate::<PlainValidation, _>(&provider)
+        session
+            .validate::<PlainValidation, _>(&provider)
             .map_err(|_| PlainError::BadFormat /* FIXME!! */)?;
         Ok(Done(None))
     }

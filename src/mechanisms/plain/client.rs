@@ -1,4 +1,3 @@
-
 use crate::mechanism::Authentication;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
@@ -18,24 +17,25 @@ impl Authentication for Plain {
         mut writer: &mut dyn Write,
     ) -> StepResult {
         let mut writer_out = Ok(0);
-        session.need_with::<'_, SimpleCredentials, _, _>(&(), &mut |Credentials { authid, authzid, password }| {
-            let authzidbuf = if let Some(authz) = &authzid {
-                authz.as_bytes()
-            } else {
-                &[]
-            };
+        session.need_with::<'_, SimpleCredentials, _, _>(
+            &(),
+            &mut |Credentials {
+                      authid,
+                      authzid,
+                      password,
+                  }| {
+                let authzidbuf = if let Some(authz) = &authzid {
+                    authz.as_bytes()
+                } else {
+                    &[]
+                };
 
-            let data: [&[u8]; 5] = [
-                authzidbuf,
-                &[0],
-                authid.as_bytes(),
-                &[0],
-                password,
-            ];
-            let mut vecw = VectoredWriter::new(data);
+                let data: [&[u8]; 5] = [authzidbuf, &[0], authid.as_bytes(), &[0], password];
+                let mut vecw = VectoredWriter::new(data);
 
-            writer_out = vecw.write_all_vectored(&mut writer);
-        })?;
+                writer_out = vecw.write_all_vectored(&mut writer);
+            },
+        )?;
 
         Ok(Done(Some(writer_out?)))
     }
@@ -50,7 +50,6 @@ mod test {
     use crate::Side;
     use std::io::Cursor;
     use std::sync::Arc;
-
 
     #[test]
     fn split_writer() {

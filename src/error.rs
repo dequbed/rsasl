@@ -1,14 +1,14 @@
-use thiserror::Error;
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 use crate::property::Property;
 use crate::validate::Validation;
 use crate::{Mechanism, Mechname, PropertyQ};
+use thiserror::Error;
 
+use crate::callback::CallbackError;
+use crate::mechname::MechanismNameError;
 use std::ffi::CStr;
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::{fmt, io};
-use crate::callback::CallbackError;
-use crate::mechname::MechanismNameError;
 
 // TODO: Error types:
 // - Setup error. Bad Mechanism, no shared mechanism, mechanism failed to start.
@@ -90,13 +90,17 @@ pub enum SessionError {
     MechanismError(Box<dyn MechanismError>),
 
     #[error("callback error: {0}")]
-    CallbackError(#[from] #[source] CallbackError),
+    CallbackError(
+        #[from]
+        #[source]
+        CallbackError,
+    ),
 
     #[error("step was called after mechanism finished")]
     MechanismDone,
 
     #[error(transparent)]
-    Gsasl(Gsasl)
+    Gsasl(Gsasl),
 }
 static_assertions::assert_impl_all!(SessionError: Send, Sync);
 
@@ -124,11 +128,18 @@ impl<T: MechanismError + 'static> From<T> for SessionError {
 ///
 pub enum SASLError {
     #[error("mechanism name is invalid: {0}")]
-    MechanismNameError(#[source] #[from] MechanismNameError),
+    MechanismNameError(
+        #[source]
+        #[from]
+        MechanismNameError,
+    ),
+
     #[error("provided mechanism name is not supported")]
     UnknownMechanism,
+
     #[error("no shared mechanism found")]
     NoSharedMechanism,
+
     #[error(transparent)]
     Gsasl(#[from] Gsasl),
 }
@@ -137,11 +148,6 @@ impl SASLError {
     pub fn unknown_mechanism(_mechanism: &Mechname) -> Self {
         Self::UnknownMechanism
     }
-}
-
-#[inline(always)]
-fn fmt_err_to_str(err: &libc::c_uint) -> &'static str {
-    rsasl_err_to_str(*err).unwrap_or(UNKNOWN_ERROR)
 }
 
 /// Convert an error code to a human readable description of that error

@@ -1,13 +1,13 @@
-use thiserror::Error;
+use crate::callback::tags::Type;
+use crate::callback::ThisProvider;
 use crate::error::{MechanismError, MechanismErrorKind};
+use crate::mechanisms::anonymous::client::AnonymousToken;
 use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, StepResult};
 use crate::Authentication;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
-use crate::callback::tags::Type;
-use crate::callback::ThisProvider;
-use crate::mechanisms::anonymous::client::AnonymousToken;
+use thiserror::Error;
 
 use crate::validate::Validation;
 
@@ -21,7 +21,9 @@ impl MechanismError for ParseError {
 }
 
 pub struct AnonymousValidation;
-impl<'a> Type<'a> for AnonymousValidation { type Reified = bool; }
+impl<'a> Type<'a> for AnonymousValidation {
+    type Reified = bool;
+}
 impl<'a> Validation<'a> for AnonymousValidation {}
 
 #[derive(Copy, Clone, Debug)]
@@ -48,7 +50,8 @@ impl Authentication for Anonymous {
                 return Err(ParseError.into());
             }
 
-            session.validate::<AnonymousValidation, _>(&ThisProvider::<AnonymousToken>::with(input))
+            session
+                .validate::<AnonymousValidation, _>(&ThisProvider::<AnonymousToken>::with(input))
                 .map_err(|_| ParseError /* FIXME!! */)?;
             Ok(Done(None))
         } else {

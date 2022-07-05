@@ -86,7 +86,6 @@ impl Property {
     }
 }
 
-
 /// Property Query marker
 ///
 /// This trait is used to associate a type to this property so that [`get_property`] and
@@ -94,7 +93,10 @@ impl Property {
 pub trait PropertyQ: 'static + Debug {
     type Item: 'static + Send + Sync;
     fn property() -> Property;
-    fn type_id() -> TypeId where Self: Any {
+    fn type_id() -> TypeId
+    where
+        Self: Any,
+    {
         TypeId::of::<Self>()
     }
 }
@@ -337,9 +339,8 @@ pub mod properties {
     pub const SERVICE: Property = Property::new(&PropertyDefinition::new("Service", ""));
     pub const PASSWORD: Property = Property::new(&PropertyDefinition::new("password", ""));
 }
-use properties::*;
 use crate::callback::tags;
-
+use properties::*;
 
 #[cfg(test)]
 mod tests {

@@ -1,8 +1,8 @@
-use thiserror::Error;
 use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
+use thiserror::Error;
 
 use crate::mechname::MechanismNameError::InvalidChar;
 
@@ -35,10 +35,15 @@ impl Mechname {
         if input.len() < 1 {
             Err(MechanismNameError::TooShort)
         } else {
-            let len = input.iter().try_fold(0usize, |index, value| if is_invalid(*value) {
-                Err(InvalidChar { index, value: *value })
-            } else {
-                Ok(index + 1)
+            let len = input.iter().try_fold(0usize, |index, value| {
+                if is_invalid(*value) {
+                    Err(InvalidChar {
+                        index,
+                        value: *value,
+                    })
+                } else {
+                    Ok(index + 1)
+                }
             })?;
             // The above fold should have run for *all* bytes in input and thus the index should
             // be equivalent to the length of the input
@@ -86,7 +91,7 @@ impl Mechname {
     ///
     /// Uses transmute due to [rustc issue #51911](https://github.com/rust-lang/rust/issues/51911)
     pub const unsafe fn const_new_unchecked(s: &[u8]) -> &Mechname {
-         std::mem::transmute(s)
+        std::mem::transmute(s)
     }
 
     #[inline(always)]
@@ -97,7 +102,7 @@ impl Mechname {
     /// Rust, it just potentially may result in (memory-safe!) bugs if the given slice contains
     /// invalid bytes.
     pub fn new_unchecked<'a, S: AsRef<str> + 'a>(s: S) -> &'a Mechname {
-         unsafe { &*(s.as_ref().as_bytes() as *const [u8] as *const Mechname) }
+        unsafe { &*(s.as_ref().as_bytes() as *const [u8] as *const Mechname) }
     }
 }
 
