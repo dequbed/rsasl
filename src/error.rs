@@ -1,10 +1,11 @@
+use thiserror::Error;
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 use crate::property::Property;
 use crate::validate::Validation;
-use crate::{Mechname, PropertyQ};
+use crate::{Mechanism, Mechname, PropertyQ};
 
 use std::ffi::CStr;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display, Error, Formatter};
 use std::{fmt, io};
 use crate::callback::CallbackError;
 use crate::mechname::MechanismNameError;
@@ -34,11 +35,11 @@ pub enum MechanismErrorKind {
 }
 
 /// Errors specific to a certain mechanism
-pub trait MechanismError: Debug + Display + Send + Sync {
+pub trait MechanismError: Debug + Display + Send + Sync + std::error::Error {
     fn kind(&self) -> MechanismErrorKind;
 }
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Error)]
 pub struct Gsasl(pub libc::c_uint);
 impl Debug for Gsasl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -57,31 +58,45 @@ impl MechanismError for Gsasl {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum SessionError {
+    #[error("IO error occurred: {source}")]
     Io {
+        #[from]
         source: std::io::Error,
     },
 
     #[cfg(feature = "provider_base64")]
+    #[error("base64 wrapping failed: {source}")]
     Base64 {
+        #[from]
         source: base64::DecodeError,
     },
 
+    #[error("no security layer is installed")]
     NoSecurityLayer,
 
+    #[error("authentication failed")]
     /// Authentication exchange as syntactically valid but failed. Returned e.g. if the provided
     /// password didn't match the provided user.
     AuthenticationFailure,
 
+    #[error("input data was required but not provided")]
     // Common Mechanism Errors:
     /// Mechanism was called without input data when requiring some
     InputDataRequired,
 
+    #[error("internal mechanism error: {0}")]
     MechanismError(Box<dyn MechanismError>),
 
-    CallbackError(CallbackError),
+    #[error("callback error: {0}")]
+    CallbackError(#[from] #[source] CallbackError),
+
+    #[error("step was called after mechanism finished")]
     MechanismDone,
+
+    #[error(transparent)]
+    Gsasl(Gsasl)
 }
 static_assertions::assert_impl_all!(SessionError: Send, Sync);
 
@@ -97,59 +112,6 @@ impl SessionError {
         }
     }
 }
-impl Display for SessionError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Io { source } => write!(f, "I/O error occured: {}", source),
-
-            #[cfg(feature = "provider_base64")]
-            Self::Base64 { source } => {
-                write!(f, "failed to decode base64-encoded input: {}", source)
-            }
-
-            Self::NoSecurityLayer => f.write_str("no security layer is installed"),
-            Self::InputDataRequired => f.write_str("input data is required but None supplied"),
-
-            Self::MechanismError(source) => Display::fmt(source, f),
-            Self::AuthenticationFailure => f.write_str("authentication failed"),
-            Self::CallbackError(e) => write!(f, "Error occured during callback: {}", e),
-            Self::MechanismDone => f.write_str("mechanism was stepped after having completed"),
-        }
-    }
-}
-
-impl PartialEq for SessionError {
-    fn eq(&self, other: &Self) -> bool {
-        use SessionError::*;
-        match (self, other) {
-            #[cfg(feature = "base64")]
-            (Base64 { source: a }, Base64 { source: b }) => a == b,
-            (NoSecurityLayer, NoSecurityLayer) => true,
-            (AuthenticationFailure, AuthenticationFailure) => true,
-            (InputDataRequired, InputDataRequired) => true,
-            _ => false,
-        }
-    }
-}
-
-impl From<io::Error> for SessionError {
-    fn from(source: io::Error) -> Self {
-        Self::Io { source }
-    }
-}
-
-#[cfg(feature = "base64")]
-impl From<base64::DecodeError> for SessionError {
-    fn from(source: base64::DecodeError) -> Self {
-        Self::Base64 { source }
-    }
-}
-
-impl From<CallbackError> for SessionError {
-    fn from(e: CallbackError) -> Self {
-        Self::CallbackError(e)
-    }
-}
 
 impl<T: MechanismError + 'static> From<T> for SessionError {
     fn from(e: T) -> Self {
@@ -157,94 +119,29 @@ impl<T: MechanismError + 'static> From<T> for SessionError {
     }
 }
 
-// Contain mostly fat pointers so 16 bytes. Try to not be (much) bigger than that
+#[derive(Debug, Error)]
+/// The error type for rsasl errors originating from the `SASL` type
+///
 pub enum SASLError {
-    // outside errors
-    Io { source: std::io::Error },
-
-    #[cfg(feature = "base64")]
-    Base64DecodeError { source: base64::DecodeError },
-
-    // setup errors
+    #[error("mechanism name is invalid: {0}")]
+    MechanismNameError(#[source] #[from] MechanismNameError),
+    #[error("provided mechanism name is not supported")]
     UnknownMechanism,
+    #[error("no shared mechanism found")]
     NoSharedMechanism,
-    MechanismNameError(MechanismNameError),
-    Gsasl(libc::c_uint),
+    #[error(transparent)]
+    Gsasl(#[from] Gsasl),
 }
 
 impl SASLError {
-    pub fn unknown_mechanism(_name: &Mechname) -> Self {
+    pub fn unknown_mechanism(_mechanism: &Mechname) -> Self {
         Self::UnknownMechanism
     }
 }
 
-impl Debug for SASLError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            SASLError::Io { source } => Debug::fmt(source, f),
-            SASLError::UnknownMechanism => {
-                f.write_str("UnknownMechanism")
-            }
-            #[cfg(feature = "base64")]
-            SASLError::Base64DecodeError { source } => Debug::fmt(source, f),
-            SASLError::MechanismNameError(e) => Debug::fmt(e, f),
-            SASLError::Gsasl(n) => write!(
-                f,
-                "{}[{}]",
-                rsasl_errname_to_str(*n).unwrap_or("UNKNOWN_ERROR"),
-                n
-            ),
-            SASLError::NoSharedMechanism => f.write_str("NoSharedMechanism"),
-        }
-    }
-}
-
-impl Display for SASLError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            SASLError::Io { source } => Display::fmt(source, f),
-            SASLError::UnknownMechanism => {
-                write!(f, "mechanism is unkown to us")
-            }
-            #[cfg(feature = "base64")]
-            SASLError::Base64DecodeError { source } => Display::fmt(source, f),
-            SASLError::MechanismNameError(e) => Display::fmt(e, f),
-            SASLError::Gsasl(n) => write!(
-                f,
-                "({}): {}",
-                rsasl_errname_to_str(*n).unwrap_or("UNKNOWN_ERROR"),
-                gsasl_err_to_str_internal(*n)
-            ),
-            SASLError::NoSharedMechanism => f.write_str("no shared mechanism found to use"),
-        }
-    }
-}
-
-impl std::error::Error for SASLError {}
-
-impl From<MechanismNameError> for SASLError {
-    fn from(e: MechanismNameError) -> Self {
-        SASLError::MechanismNameError(e)
-    }
-}
-
-#[cfg(feature = "base64")]
-impl From<base64::DecodeError> for SASLError {
-    fn from(source: base64::DecodeError) -> Self {
-        SASLError::Base64DecodeError { source }
-    }
-}
-
-impl From<std::io::Error> for SASLError {
-    fn from(source: std::io::Error) -> Self {
-        SASLError::Io { source }
-    }
-}
-
-impl From<libc::c_uint> for SASLError {
-    fn from(e: libc::c_uint) -> Self {
-        SASLError::Gsasl(e)
-    }
+#[inline(always)]
+fn fmt_err_to_str(err: &libc::c_uint) -> &'static str {
+    rsasl_err_to_str(*err).unwrap_or(UNKNOWN_ERROR)
 }
 
 /// Convert an error code to a human readable description of that error

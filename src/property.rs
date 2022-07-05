@@ -99,33 +99,6 @@ pub trait PropertyQ: 'static + Debug {
     }
 }
 
-/// (Trait) Object safe version of [`PropertyQ`]
-pub trait CallbackQ {
-    fn type_id(&self) -> TypeId;
-    fn property(&self) -> Property;
-    fn as_any(&self) -> &dyn Any;
-}
-impl<T: Any + PropertyQ> CallbackQ for T {
-    fn type_id(&self) -> TypeId {
-        <T as PropertyQ>::type_id()
-    }
-    fn property(&self) -> Property {
-        <T as PropertyQ>::property()
-    }
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
-pub trait CallbackA: Any + Clone {
-    fn as_any(&self) -> &dyn Any;
-}
-impl<T: Any + Clone> CallbackA for T {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
 #[derive(Debug)]
 pub struct AuthId(PhantomData<()>);
 impl PropertyQ for AuthId {

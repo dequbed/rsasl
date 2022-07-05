@@ -1,3 +1,4 @@
+use thiserror::Error;
 use crate::error::{MechanismError, MechanismErrorKind};
 use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, StepResult};
@@ -10,13 +11,9 @@ use crate::mechanisms::anonymous::client::AnonymousToken;
 
 use crate::validate::Validation;
 
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]
+#[error("anonymous token received is invalid UTF-8 or longer than 255 chars")]
 pub struct ParseError;
-impl Display for ParseError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("the given anonymous token is invalid UTF-8 or longer than 255 chars")
-    }
-}
 impl MechanismError for ParseError {
     fn kind(&self) -> MechanismErrorKind {
         MechanismErrorKind::Parse
