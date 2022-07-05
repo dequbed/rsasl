@@ -86,7 +86,7 @@ impl CMechanismStateKeeper {
         if let Some(start) = vtable.start {
             let rc = unsafe { start(&Shared, &mut mech_data) };
             if rc != GSASL_OK as i32 {
-                return Err(SASLError::Gsasl(rc as libc::c_uint));
+                return Err(SASLError::Gsasl(Gsasl(rc as libc::c_uint)));
             }
         }
 

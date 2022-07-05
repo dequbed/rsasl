@@ -25,8 +25,8 @@
 //! to not compile in mechanisms that aren't needed.
 
 pub mod common {
-    pub mod properties;
     pub mod error;
+    pub mod properties;
 }
 
 #[cfg(feature = "anonymous")]
@@ -111,9 +111,9 @@ pub mod scram {
     pub mod client;
     pub mod mechinfo;
     pub mod parser;
+    pub mod properties;
     pub mod server;
     pub mod tools;
-    pub mod properties;
 }
 
 #[cfg(feature = "securid")]

@@ -86,7 +86,6 @@ impl Property {
     }
 }
 
-
 /// Property Query marker
 ///
 /// This trait is used to associate a type to this property so that [`get_property`] and
@@ -94,35 +93,11 @@ impl Property {
 pub trait PropertyQ: 'static + Debug {
     type Item: 'static + Send + Sync;
     fn property() -> Property;
-    fn type_id() -> TypeId where Self: Any {
+    fn type_id() -> TypeId
+    where
+        Self: Any,
+    {
         TypeId::of::<Self>()
-    }
-}
-
-/// (Trait) Object safe version of [`PropertyQ`]
-pub trait CallbackQ {
-    fn type_id(&self) -> TypeId;
-    fn property(&self) -> Property;
-    fn as_any(&self) -> &dyn Any;
-}
-impl<T: Any + PropertyQ> CallbackQ for T {
-    fn type_id(&self) -> TypeId {
-        <T as PropertyQ>::type_id()
-    }
-    fn property(&self) -> Property {
-        <T as PropertyQ>::property()
-    }
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
-pub trait CallbackA: Any + Clone {
-    fn as_any(&self) -> &dyn Any;
-}
-impl<T: Any + Clone> CallbackA for T {
-    fn as_any(&self) -> &dyn Any {
-        self
     }
 }
 
@@ -134,6 +109,9 @@ impl PropertyQ for AuthId {
         AUTHID
     }
 }
+impl<'a> tags::MaybeSizedType<'a> for AuthId {
+    type Reified = str;
+}
 
 #[derive(Debug)]
 pub struct AuthzId(PhantomData<()>);
@@ -142,6 +120,9 @@ impl PropertyQ for AuthzId {
     fn property() -> Property {
         AUTHZID
     }
+}
+impl<'a> tags::MaybeSizedType<'a> for AuthzId {
+    type Reified = str;
 }
 
 #[derive(Debug)]
@@ -305,6 +286,9 @@ impl PropertyQ for Password {
         PASSWORD
     }
 }
+impl<'a> tags::MaybeSizedType<'a> for Password {
+    type Reified = [u8];
+}
 
 pub mod properties {
     use super::*;
@@ -355,8 +339,8 @@ pub mod properties {
     pub const SERVICE: Property = Property::new(&PropertyDefinition::new("Service", ""));
     pub const PASSWORD: Property = Property::new(&PropertyDefinition::new("password", ""));
 }
+use crate::callback::tags;
 use properties::*;
-
 
 #[cfg(test)]
 mod tests {

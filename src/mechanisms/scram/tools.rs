@@ -1,17 +1,10 @@
-
-
-
-
-
-
+use crate::mechanisms::scram::parser::ServerFirst;
 use digest::crypto_common::BlockSizeUser;
 use digest::generic_array::GenericArray;
 use digest::{Digest, Mac, OutputSizeUser};
 use hmac::SimpleHmac;
 use rand::distributions::{Distribution, Slice};
 use rand::Rng;
-use crate::mechanisms::scram::parser::ServerFirst;
-
 
 /// All the characters that are valid chars for a nonce
 pub(super) const PRINTABLE: &'static [u8] =
@@ -24,11 +17,11 @@ pub(super) fn generate_nonce<const N: usize>(rng: &mut impl Rng) -> [u8; N] {
 
 pub(super) type DOutput<D> = GenericArray<u8, <SimpleHmac<D> as OutputSizeUser>::OutputSize>;
 
-pub fn hash_password<D>(password: &str, iterations: u32, salt: &[u8], out: &mut DOutput<D>)
+pub fn hash_password<D>(password: &[u8], iterations: u32, salt: &[u8], out: &mut DOutput<D>)
 where
-    D: Digest + BlockSizeUser + Clone + Sync
+    D: Digest + BlockSizeUser + Clone + Sync,
 {
-    pbkdf2::pbkdf2::<SimpleHmac<D>>(password.as_bytes(), salt, iterations, out.as_mut_slice());
+    pbkdf2::pbkdf2::<SimpleHmac<D>>(password, salt, iterations, out.as_mut_slice());
 }
 
 pub fn find_proofs<D>(
@@ -36,25 +29,28 @@ pub fn find_proofs<D>(
     client_nonce: &[u8],
     server_first: ServerFirst<'_>,
     gs2headerb64: &str,
-    salted_password_hash: &DOutput<D>
+    salted_password_hash: &DOutput<D>,
 ) -> (DOutput<D>, DOutput<D>)
-where D: Digest + BlockSizeUser,
+where
+    D: Digest + BlockSizeUser,
 {
-    let mut salted_password_hmac =
-        <SimpleHmac<D>>::new_from_slice(salted_password_hash)
-            .expect("HMAC can work with any key size");
+    let mut salted_password_hmac = <SimpleHmac<D>>::new_from_slice(salted_password_hash)
+        .expect("HMAC can work with any key size");
     salted_password_hmac.update(b"Client Key");
     let mut client_key = salted_password_hmac.finalize().into_bytes();
 
-    let mut salted_password_hmac =
-        <SimpleHmac<D>>::new_from_slice(salted_password_hash)
-            .expect("HMAC can work with any key size");
+    let mut salted_password_hmac = <SimpleHmac<D>>::new_from_slice(salted_password_hash)
+        .expect("HMAC can work with any key size");
     salted_password_hmac.update(b"Server Key");
     let server_key = salted_password_hmac.finalize().into_bytes();
 
     let stored_key = D::digest(client_key.as_ref());
 
-    let ServerFirst { nonce, server_nonce, .. } = server_first;
+    let ServerFirst {
+        nonce,
+        server_nonce,
+        ..
+    } = server_first;
     let server_first_parts = server_first.to_ioslices();
     let auth_message_parts: [&[u8]; 17] = [
         b"n=",

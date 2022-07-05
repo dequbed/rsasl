@@ -1,17 +1,18 @@
-
-
 use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 
+use crate::callback::{
+    build_context, tags, CallbackError, CallbackRequest, ClosureCR, Context, Provider, Request,
+    RequestTag, TaggedOption, Validate, ValidationError,
+};
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::error::SessionError;
-use crate::gsasl::consts::{Gsasl_property};
+use crate::gsasl::consts::Gsasl_property;
 use crate::mechanism::Authentication;
 use crate::property::PropertyQ;
 use crate::validate::*;
-use crate::callback::{Answerable, AnsQuery, CallbackError, Query, SessionCallback, ValidationError};
-use crate::Mechanism;
+use crate::{Mechanism, SessionCallback};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -67,7 +68,6 @@ impl SessionBuilder {
 pub struct Session {
     mechanism: Box<dyn Authentication>,
     mechanism_data: MechanismData,
-
     // Callback types:
     // - provide property / do action (e.g. provide username/password, start OIDC auth)
     //      ⇒ CLIENT + SERVER
@@ -98,7 +98,8 @@ impl Session {
 
     #[inline(always)]
     pub fn are_we_first(&self) -> bool {
-        self.mechanism_data.session_data.side == self.mechanism_data.session_data.mechanism_desc.first
+        self.mechanism_data.session_data.side
+            == self.mechanism_data.session_data.mechanism_desc.first
     }
 }
 
@@ -127,7 +128,8 @@ impl Session {
     /// containing `Some(0)`) and no data to send (a `Step` containing `None`).
     pub fn step(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult {
         if let Some(input) = input {
-            self.mechanism.step(&mut self.mechanism_data, Some(input.as_ref()), writer)
+            self.mechanism
+                .step(&mut self.mechanism_data, Some(input.as_ref()), writer)
         } else {
             self.mechanism.step(&mut self.mechanism_data, None, writer)
         }
@@ -147,11 +149,7 @@ impl Session {
     /// Requiring base64-encoded SASL data is common in line-based or textual formats, such as
     /// SMTP, IMAP, XMPP and IRCv3.
     /// Refer to your protocol documentation if SASL data needs to be base64 encoded.
-    pub fn step64(
-        &mut self,
-        input: Option<&[u8]>,
-        writer: &mut impl Write,
-    ) -> StepResult {
+    pub fn step64(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult {
         use base64::write::EncoderWriter;
         let mut writer64 = EncoderWriter::new(writer, base64::STANDARD);
 
@@ -175,7 +173,7 @@ impl MechanismData {
         callback: Arc<dyn SessionCallback>,
         channel_binding_cb: Option<Box<dyn ChannelBindingCallback>>,
         mechanism_desc: Mechanism,
-        side: Side
+        side: Side,
     ) -> Self {
         Self {
             callback,
@@ -184,26 +182,53 @@ impl MechanismData {
         }
     }
 
-    pub fn callback<Q: Query>(&self, query: &mut Q) -> Result<(), CallbackError> {
-        self.callback.callback(&self.session_data, query)
+    pub fn validate<'a, V, P>(&mut self, provider: &'a P) -> Result<V::Reified, ValidationError>
+    where
+        V: Validation<'a>,
+        P: Provider<'a>,
+    {
+        let mut tagged_option = TaggedOption::<'_, V>(None);
+        let context = build_context(provider);
+        let validate = unsafe { tagged_option.as_validate() };
+        self.callback
+            .validate(&self.session_data, context, validate)?;
+        tagged_option.take().ok_or(ValidationError::NoValidation)
     }
-    pub fn validate<V: Query + ValidationQ>(&mut self, query: &V) -> Result<(), SessionError> {
-        match self.callback.validate(&self.session_data, query) {
-            Ok(()) => Ok(()),
-            Err(ValidationError::NoValidation) => Err(SessionError::no_validate(V::validation())),
-            Err(_) => Err(SessionError::AuthenticationFailure)
+
+    pub fn callback<'a, P: Provider<'a>>(
+        &self,
+        provider: &'a P,
+        request: &mut Request<'a>,
+    ) -> Result<(), CallbackError> {
+        let context = build_context(provider);
+        self.callback.callback(&self.session_data, context, request)
+    }
+
+    pub fn need<'a, T, C, P>(&self, provider: &'a P, mechcb: &'a mut C) -> Result<(), CallbackError>
+    where
+        T: tags::MaybeSizedType<'a>,
+        C: CallbackRequest<T::Reified>,
+        P: Provider<'a>,
+    {
+        let mut tagged_option = TaggedOption::<'_, tags::RefMut<RequestTag<T>>>(Some(mechcb));
+        self.callback(provider, unsafe { tagged_option.as_request() })?;
+        if tagged_option.is_some() {
+            Err(CallbackError::NoCallback)
+        } else {
+            Ok(())
         }
     }
 
-    /// Retrieve values from the user-provided callback
-    pub fn need<P: AnsQuery>(&self, params: P::Params)
-        -> Result<P::Answer, CallbackError>
+    pub fn need_with<'a, T: tags::MaybeSizedType<'a>, F: FnMut(&T::Reified) + 'a, P>(
+        &self,
+        provider: &'a P,
+        closure: &'a mut F,
+    ) -> Result<(), CallbackError>
+    where
+        P: Provider<'a>,
     {
-        let mut query = P::build(params);
-        self.callback(&mut query)?;
-        query
-            .into_answer()
-            .ok_or(CallbackError::NoAnswer)
+        let closurecr = ClosureCR::<'a, T, F>::wrap(closure);
+        self.need::<'a, T, _, P>(provider, closurecr)
     }
 
     // Legacy bs:
@@ -219,9 +244,9 @@ impl MechanismData {
     pub unsafe fn callback_raw(&mut self, _prop: Gsasl_property) -> *const libc::c_char {
         unimplemented!()
     }
-    pub fn get_property_or_callback<P: PropertyQ>(&mut self)
-        -> Result<Option<Arc<P::Item>>, SessionError>
-    {
+    pub fn get_property_or_callback<P: PropertyQ>(
+        &mut self,
+    ) -> Result<Option<Arc<P::Item>>, SessionError> {
         unimplemented!()
     }
 }
@@ -237,11 +262,8 @@ impl Debug for MechanismData {
     }
 }
 
-
 #[derive(Debug, Eq, PartialEq)]
-pub enum AuthenticationError {
-
-}
+pub enum AuthenticationError {}
 
 #[derive(Debug, Eq, PartialEq)]
 /// The outcome of a single step in the authentication exchange
@@ -273,84 +295,4 @@ impl SessionData {
     }
 }
 
-impl SessionData {
-}
-
-#[cfg(testn)]
-mod tests {
-    use super::*;
-    use crate::gsasl::consts::{GSASL_AUTHID, GSASL_PASSWORD};
-    use crate::mechanisms::plain::mechinfo::PLAIN;
-    use crate::property::{AuthId, Password};
-    use crate::{Mechname, Property, SASL};
-
-    #[test]
-    fn callback_test() {
-        #[derive(Debug)]
-        struct CB {
-            data: usize,
-        }
-        impl Callback for CB {
-            fn callback(
-                &self,
-                session: &mut MechanismData,
-                _action: Property,
-            ) -> Result<(), SessionError> {
-                let _ = session.set_property::<AuthId>(Arc::new(format!("is {}", self.data)));
-                Ok(())
-            }
-        }
-
-        let cbox = CB { data: 0 };
-        let mut session = MechanismData::new(Some(Arc::new(cbox)), &PLAIN, Side::Client);
-
-        assert!(session.get_property::<AuthId>().is_none());
-        assert_eq!(
-            session
-                .get_property_or_callback::<AuthId>()
-                .unwrap()
-                .unwrap()
-                .as_str(),
-            "is 0"
-        );
-    }
-
-    #[test]
-    fn property_set_get() {
-        let sasl = SASL::new();
-        let mut sess = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
-
-        assert!(sess.get_property::<AuthId>().is_none());
-        assert!(sess.session_data.property_cache.is_empty());
-
-        assert!(sess
-            .set_property::<AuthId>(Arc::new("test".to_string()))
-            .is_none());
-        assert!(sess
-            .set_property::<Password>(Arc::new("secret".to_string()))
-            .is_none());
-
-        assert_eq!(sess.get_property::<AuthId>().unwrap().as_str(), "test");
-        assert_eq!(sess.get_property::<Password>().unwrap().as_str(), "secret");
-        println!("{:?}", sess.session_data.property_cache);
-    }
-
-    #[test]
-    fn property_set_raw() {
-        let sasl = SASL::new();
-        let mut sess = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
-
-        assert!(sess.get_property::<AuthId>().is_none());
-        assert!(sess.session_data.property_cache.is_empty());
-
-        unsafe {
-            sess.session_data
-                .set_property_raw(GSASL_AUTHID, Arc::new("test".to_string()));
-            sess.session_data
-                .set_property_raw(GSASL_PASSWORD, Arc::new("secret".to_string()));
-        }
-
-        assert_eq!(sess.get_property::<AuthId>().unwrap().as_str(), "test");
-        assert_eq!(sess.get_property::<Password>().unwrap().as_str(), "secret");
-    }
-}
+impl SessionData {}
