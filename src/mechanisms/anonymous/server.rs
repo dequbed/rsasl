@@ -51,7 +51,8 @@ impl Authentication for Anonymous {
                 return Err(ParseError.into());
             }
 
-            session.validate::<AnonymousValidation, _>(&ThisProvider::<AnonymousToken>::with(input))?;
+            session.validate::<AnonymousValidation, _>(&ThisProvider::<AnonymousToken>::with(input))
+                .map_err(|_| ParseError /* FIXME!! */)?;
             Ok(Done(None))
         } else {
             Err(ParseError.into())

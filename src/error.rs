@@ -86,12 +86,6 @@ pub enum SessionError {
 static_assertions::assert_impl_all!(SessionError: Send, Sync);
 
 impl SessionError {
-    pub fn no_property<P: PropertyQ>() -> Self {
-        Self::NoProperty {
-            property: P::property(),
-        }
-    }
-
     pub fn input_required() -> Self {
         Self::InputDataRequired
     }
@@ -117,15 +111,6 @@ impl Display for SessionError {
             Self::InputDataRequired => f.write_str("input data is required but None supplied"),
 
             Self::MechanismError(source) => Display::fmt(source, f),
-            Self::NoCallback { property } => write!(
-                f,
-                "callback could not provide the requested property {:?}",
-                property
-            ),
-            Self::NoValidate { validation } => {
-                write!(f, "no validation callback for {} installed", validation)
-            }
-            Self::NoProperty { property } => write!(f, "required property {} is not set", property),
             Self::AuthenticationFailure => f.write_str("authentication failed"),
             Self::CallbackError(e) => write!(f, "Error occured during callback: {}", e),
             Self::MechanismDone => f.write_str("mechanism was stepped after having completed"),

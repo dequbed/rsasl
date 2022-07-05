@@ -74,7 +74,7 @@ impl<const N: usize> WaitingClientFirst<N> {
         // FIXME: Escape Username from SCRAM format to whatever
 
 
-        let mut outer_iterations = None;
+        let mut outer_iterations: Option<u32> = None;
         let mut outer_password: Option<GenericArray<u8, D::OutputSize>> = None;
         let mut outer_salt = None;
 
@@ -85,14 +85,12 @@ impl<const N: usize> WaitingClientFirst<N> {
         if let Err(_) = session_data.need_with::<'_, ScramSaltedPasswordQuery, _, _>(
             &ThisProvider::<AuthId>::with(username),
             &mut |(ScramPassParams { salt, iterations }, password)| {
-                if password.len() != <SimpleHmac<D> as OutputSizeUser>::output_size() {
-                    return Err(ScramPasswordError::PasswordHashMismatch);
+                if password.len() == <SimpleHmac<D> as OutputSizeUser>::output_size() {
+                    // FIXME: Sorta kinda actually does needs error reporting. Hmm meh :I
+                    outer_password = Some(GenericArray::clone_from_slice(password));
                 }
-                outer_password = Some(GenericArray::clone_from_slice(password));
-                outer_iterations = Some(iterations);
-                outer_salt = Some(Vec::from(salt));
-
-                Ok(())
+                outer_iterations = Some(*iterations);
+                outer_salt = Some(Vec::from(*salt));
         }) {
             let (iterations, salt) = self.gen_rand_pw_params();
             outer_iterations = Some(iterations);

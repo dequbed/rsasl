@@ -126,12 +126,6 @@ impl<T: Any + Clone> CallbackA for T {
     }
 }
 
-pub struct AnonymousToken;
-impl<'a> tags::Type<'a> for AnonymousToken {
-    type Reified = &'a str;
-}
-
-
 #[derive(Debug)]
 pub struct AuthId(PhantomData<()>);
 impl PropertyQ for AuthId {
@@ -139,6 +133,9 @@ impl PropertyQ for AuthId {
     fn property() -> Property {
         AUTHID
     }
+}
+impl<'a> tags::MaybeSizedType<'a> for AuthId {
+    type Reified = str;
 }
 
 #[derive(Debug)]
@@ -148,6 +145,9 @@ impl PropertyQ for AuthzId {
     fn property() -> Property {
         AUTHZID
     }
+}
+impl<'a> tags::MaybeSizedType<'a> for AuthzId {
+    type Reified = str;
 }
 
 #[derive(Debug)]
@@ -310,6 +310,9 @@ impl PropertyQ for Password {
     fn property() -> Property {
         PASSWORD
     }
+}
+impl<'a> tags::MaybeSizedType<'a> for Password {
+    type Reified = [u8];
 }
 
 pub mod properties {
