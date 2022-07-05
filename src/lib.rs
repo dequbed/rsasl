@@ -373,12 +373,7 @@ impl SASL {
         mechanism: Box<dyn Authentication>,
         side: Side,
     ) -> SessionBuilder {
-        SessionBuilder::new(
-            self.callback.clone(),
-            mechanism,
-            *mechdesc,
-            side,
-        )
+        SessionBuilder::new(self.callback.clone(), mechanism, *mechdesc, side)
     }
 
     #[doc(hidden)]

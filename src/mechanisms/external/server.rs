@@ -1,14 +1,14 @@
-use thiserror::Error;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
+use thiserror::Error;
 
+use crate::callback::tags::Type;
+use crate::callback::ThisProvider;
+use crate::mechanisms::external::client::AuthId;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 use std::fmt::{Display, Formatter};
 use std::io::Write;
-use crate::callback::tags::Type;
-use crate::callback::ThisProvider;
-use crate::mechanisms::external::client::AuthId;
 
 use crate::validate::Validation;
 
@@ -23,7 +23,9 @@ impl MechanismError for ParseError {
 
 pub struct ExternalValidation;
 
-impl<'a> Type<'a> for ExternalValidation { type Reified = bool; }
+impl<'a> Type<'a> for ExternalValidation {
+    type Reified = bool;
+}
 impl<'a> Validation<'a> for ExternalValidation {}
 
 #[derive(Copy, Clone, Debug)]

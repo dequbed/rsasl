@@ -1,5 +1,7 @@
 use rsasl::callback::{Answerable, CallbackError, Query, SessionCallback, ValidationError};
 use rsasl::error::SessionError;
+use rsasl::mechanisms::common::properties::SimpleCredentials;
+use rsasl::mechanisms::plain::server::PlainValidation;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
 use rsasl::session::Step::Done;
@@ -8,17 +10,22 @@ use rsasl::validate::{validations, Validation, Validation};
 use rsasl::SASL;
 use std::io::Cursor;
 use std::sync::Arc;
-use rsasl::mechanisms::common::properties::SimpleCredentials;
-use rsasl::mechanisms::plain::server::PlainValidation;
 
 // Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
 
 impl SessionCallback for OurCallback {
-    fn validate(&self, _session_data: &SessionData, query: &dyn Query)
-        -> Result<(), ValidationError>
-    {
-        if let Some(PlainValidation { authcid, authzid, password }) = PlainValidation::downcast(query) {
+    fn validate(
+        &self,
+        _session_data: &SessionData,
+        query: &dyn Query,
+    ) -> Result<(), ValidationError> {
+        if let Some(PlainValidation {
+            authcid,
+            authzid,
+            password,
+        }) = PlainValidation::downcast(query)
+        {
             if authzid.is_none() && authcid == "username" && password == "secret" {
                 Ok(())
             } else {
@@ -49,7 +56,9 @@ pub fn main() {
     {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with wrong password:\n   ");
-        let mut session = sasl.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap()
+        let mut session = sasl
+            .server_start(Mechname::new(b"PLAIN").unwrap())
+            .unwrap()
             .without_channel_binding();
         let step_result = session.step(Some(b"\0username\0badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());
@@ -62,7 +71,9 @@ pub fn main() {
     {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with malformed data:\n   ");
-        let mut session = sasl.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap()
+        let mut session = sasl
+            .server_start(Mechname::new(b"PLAIN").unwrap())
+            .unwrap()
             .without_channel_binding();
         let step_result = session.step(Some(b"\0username badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());

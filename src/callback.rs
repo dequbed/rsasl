@@ -8,11 +8,11 @@
 //! Because that would devolve to basically `fn callback(query: Box<dyn Any>) -> Box<dyn Any>`
 //! with exactly zero protection against accidentally not providing some required data.
 
+use crate::callback::tags::MaybeSizedType;
 use std::any::TypeId;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
-use crate::callback::tags::MaybeSizedType;
 
 use crate::session::SessionData;
 use crate::validate::Validation;
@@ -92,14 +92,18 @@ pub struct ClosureCR<'a, T, F: 'a> {
     _marker: PhantomData<&'a T>,
 }
 impl<'a, T, F> ClosureCR<'a, T, F>
-where T: tags::MaybeSizedType<'a>, F: FnMut(&T::Reified) + 'a
+where
+    T: tags::MaybeSizedType<'a>,
+    F: FnMut(&T::Reified) + 'a,
 {
     pub fn wrap(closure: &mut F) -> &mut Self {
         unsafe { std::mem::transmute(closure) }
     }
 }
 impl<'a, T, F> CallbackRequest<T::Reified> for ClosureCR<'a, T, F>
-    where T: tags::MaybeSizedType<'a>, F: FnMut(&T::Reified)
+where
+    T: tags::MaybeSizedType<'a>,
+    F: FnMut(&T::Reified),
 {
     fn satisfy(&mut self, answer: &T::Reified) {
         (self.closure)(answer)
@@ -199,10 +203,7 @@ impl<'a> Request<'a> {
     ///
     /// If the type of the request is not `T` or if the request was already satisfied this method
     /// returns `None`.
-    pub fn satisfy<T: tags::MaybeSizedType<'a>>(
-        &mut self,
-        answer: &T::Reified,
-    ) -> Option<()> {
+    pub fn satisfy<T: tags::MaybeSizedType<'a>>(&mut self, answer: &T::Reified) -> Option<()> {
         if let Some(mech) = self
             .0
             .downcast_mut::<tags::RefMut<RequestTag<T>>>()

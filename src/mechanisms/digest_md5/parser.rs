@@ -613,10 +613,7 @@ static mut digest_responseauth_opts: [*const libc::c_char; 2] = [
     b"rspauth\x00" as *const u8 as *const libc::c_char,
     0 as *const libc::c_char,
 ];
-unsafe fn parse_finish(
-    mut finish: *mut libc::c_char,
-    out: *mut digest_md5_finish,
-) -> libc::c_int {
+unsafe fn parse_finish(mut finish: *mut libc::c_char, out: *mut digest_md5_finish) -> libc::c_int {
     let mut value: *mut libc::c_char = 0 as *mut libc::c_char;
     memset(
         out as *mut libc::c_void,

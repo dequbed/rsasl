@@ -1,6 +1,6 @@
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
-use rsasl::session::{Step};
+use rsasl::session::Step;
 use rsasl::SASL;
 
 use std::io::Cursor;

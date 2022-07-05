@@ -1,5 +1,4 @@
-
-use crate::{init, registry, SASL, SessionCallback};
+use crate::{init, registry, SessionCallback, SASL};
 
 use std::sync::Arc;
 

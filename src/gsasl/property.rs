@@ -59,7 +59,10 @@ pub unsafe fn gsasl_property_set_raw(
  *
  * Since: 0.2.0
  **/
-unsafe fn gsasl_property_fast(sctx: &mut MechanismData, prop: Gsasl_property) -> *const libc::c_char {
+unsafe fn gsasl_property_fast(
+    sctx: &mut MechanismData,
+    prop: Gsasl_property,
+) -> *const libc::c_char {
     if GSASL_OPENID20_OUTCOME_DATA == prop {
         if let Some(prop) = sctx.get_property::<OpenID20OutcomeData>() {
             prop.as_ptr()

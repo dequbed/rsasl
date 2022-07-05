@@ -1,9 +1,8 @@
-
+use crate::callback::tags;
 use crate::mechanism::Authentication;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 use std::io::Write;
-use crate::callback::tags;
 
 pub struct AnonymousToken;
 impl<'a> tags::MaybeSizedType<'a> for AnonymousToken {
