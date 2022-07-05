@@ -2,10 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 
-use crate::callback::{
-    build_context, tags, CallbackError, CallbackRequest, ClosureCR, Context, Provider, Request,
-    RequestTag, RequestType, TaggedOption, ValidationError,
-};
+use crate::callback::{build_context, tags, CallbackError, CallbackRequest, ClosureCR, Context, Provider, Request, RequestTag, RequestType, TaggedOption, ValidationError, Validate};
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
@@ -182,15 +179,24 @@ impl MechanismData {
         }
     }
 
-    pub fn validate<V>(&mut self, query: &V) -> Result<(), SessionError> {
-        todo!()
+    pub fn validate<'a, V, P>(&mut self, provider: &'a P) -> Result<V::Reified, ValidationError>
+    where
+        V: Validation,
+        P: Provider<'a>
+    {
+        let mut tagged_option = TaggedOption::<'_, V>(None);
+        let context = build_context(provider);
+        let validate = unsafe { tagged_option.as_validate() };
+        self.callback.validate(&self.session_data, context, validate)?;
+        tagged_option.take().ok_or(ValidationError::NoValidation)
     }
 
-    pub fn callback<'a>(
+    pub fn callback<'a, P: Provider<'a>>(
         &self,
-        context: &Context<'a>,
+        provider: &'a P,
         request: &mut Request<'a>,
     ) -> Result<(), CallbackError> {
+        let context = build_context(provider);
         self.callback.callback(&self.session_data, context, request)
     }
 
@@ -201,9 +207,14 @@ impl MechanismData {
         P: Provider<'a>,
     {
         let mut tagged_option = TaggedOption::<'_, tags::RefMut<RequestTag<T>>>(Some(mechcb));
-        self.callback(build_context(provider), unsafe {
+        self.callback(provider, unsafe {
             tagged_option.as_request()
-        })
+        })?;
+        if tagged_option.is_some() {
+            Err(CallbackError::NoCallback)
+        } else {
+            Ok(())
+        }
     }
 
     pub fn need_with<'a, T: RequestType<'a>, F: FnMut(T::Answer) -> T::Result + 'a, P>(

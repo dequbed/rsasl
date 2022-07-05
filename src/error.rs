@@ -12,11 +12,9 @@ use crate::mechname::MechanismNameError;
 // TODO: Error types:
 // - Setup error. Bad Mechanism, no shared mechanism, mechanism failed to start.
 //      * `SetupError`?
-// - Session error. Stepping Mechanism broke, I/O error in output writer
+// - Session error. Stepping Mechanism broke, I/O error in output writer, requirements not delivered
 //      * Callback error should be handled specifically?
-// - Authentication error. Mechanism stepped to completion, authentication *failed*.
-//     * one bit of data i.e. can be bool `isValid`. Extra data is super specific per-mechanism
-//       and put on the output writer.
+//      * Includes Authentication error. Mechanism stepped to completion, authentication *failed*.
 
 pub type Result<T> = std::result::Result<T, SASLError>;
 
@@ -82,17 +80,6 @@ pub enum SessionError {
 
     MechanismError(Box<dyn MechanismError>),
 
-    NoCallback {
-        property: Property,
-    },
-    NoValidate {
-        validation: Validation,
-    },
-
-    NoProperty {
-        property: Property,
-    },
-
     CallbackError(CallbackError),
     MechanismDone,
 }
@@ -103,10 +90,6 @@ impl SessionError {
         Self::NoProperty {
             property: P::property(),
         }
-    }
-
-    pub fn no_validate(validation: Validation) -> Self {
-        Self::NoValidate { validation }
     }
 
     pub fn input_required() -> Self {
@@ -159,9 +142,6 @@ impl PartialEq for SessionError {
             (NoSecurityLayer, NoSecurityLayer) => true,
             (AuthenticationFailure, AuthenticationFailure) => true,
             (InputDataRequired, InputDataRequired) => true,
-            (NoCallback { property: a }, NoCallback { property: b }) => a == b,
-            (NoValidate { validation: a }, NoValidate { validation: b }) => a == b,
-            (NoProperty { property: a }, NoProperty { property: b }) => a == b,
             _ => false,
         }
     }

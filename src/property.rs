@@ -126,6 +126,12 @@ impl<T: Any + Clone> CallbackA for T {
     }
 }
 
+pub struct AnonymousToken;
+impl<'a> tags::Type<'a> for AnonymousToken {
+    type Reified = &'a str;
+}
+
+
 #[derive(Debug)]
 pub struct AuthId(PhantomData<()>);
 impl PropertyQ for AuthId {
@@ -356,6 +362,7 @@ pub mod properties {
     pub const PASSWORD: Property = Property::new(&PropertyDefinition::new("password", ""));
 }
 use properties::*;
+use crate::callback::tags;
 
 
 #[cfg(test)]
