@@ -8,7 +8,7 @@
 //! Because that would devolve to basically `fn callback(query: Box<dyn Any>) -> Box<dyn Any>`
 //! with exactly zero protection against accidentally not providing some required data.
 
-use std::any::TypeId;
+use std::any::{Any, TypeId};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
@@ -137,13 +137,23 @@ impl<'a, T: tags::Type<'a>> Erased<'a> for TaggedOption<'a, T> {
     }
 }
 impl<'a, T: tags::Type<'a>> TaggedOption<'a, T> {
+    pub fn is_some(&self) -> bool {
+        self.0.is_some()
+    }
+
     unsafe fn as_demand(&mut self) -> &mut Demand<'a> {
         std::mem::transmute(self as &mut dyn Erased)
     }
+
     pub(crate) unsafe fn as_request(&mut self) -> &mut Request<'a> {
         std::mem::transmute(self as &mut dyn Erased)
     }
-    fn take(&mut self) -> Option<T::Reified> {
+
+    pub(crate) unsafe fn as_validate(&mut self) -> &mut Validate<'a> {
+        std::mem::transmute(self as &mut dyn Erased)
+    }
+
+    pub fn take(&mut self) -> Option<T::Reified> {
         self.0.take()
     }
 }
@@ -235,13 +245,32 @@ pub(crate) fn build_context<'a>(provider: &'a dyn Provider<'a>) -> &'a Context<'
 #[repr(transparent)]
 pub struct Context<'a>(dyn Provider<'a>);
 impl<'a> Context<'a> {
-    fn provide_by_tag<T: tags::Type<'a>>(&'a self) -> Option<T::Reified> {
+    fn get_by_tag<T: tags::Type<'a>>(&'a self) -> Option<T::Reified> {
         let mut tagged_option = TaggedOption::<'a, T>(None);
         self.0.provide(unsafe { tagged_option.as_demand() });
         tagged_option.0
     }
-    pub fn provide_ref<T: tags::Type<'a>>(&'a self) -> Option<&'a T::Reified> {
-        self.provide_by_tag::<tags::Ref<T>>()
+    pub fn get_ref<T: tags::Type<'a>>(&'a self) -> Option<&'a T::Reified> {
+        self.get_by_tag::<tags::Ref<T>>()
+    }
+}
+
+#[repr(transparent)]
+// TODO:
+//  Validate should be used to be able to do the final check on the authentication, either
+//  accepting or denying it. So it should have a method that is in some ways mandatory to call.
+pub struct Validate<'a>(dyn Erased<'a>);
+impl<'a> Validate<'a> {
+    #[inline(always)]
+    pub fn is<T: tags::Type<'a>>(&self) -> bool {
+        self.0.tag_id() == TypeId::of::<T>()
+    }
+
+    pub fn finalize<T: tags::Type<'a>>(&mut self, outcome: T::Reified) -> &mut Self {
+        if let Some(result @ TaggedOption(None)) = self.0.downcast_mut::<T>() {
+            *result = TaggedOption(Some(outcome))
+        }
+        self
     }
 }
 
@@ -261,27 +290,22 @@ pub trait SessionCallback {
     ///
     /// In most cases a
     /// callback should then issue a call to [`SessionData::set_property`], so e.g.
-    /// TODO: UPDATE!
     /// ```rust
     /// # use std::sync::Arc;
-    /// # use rsasl::callback::Callback;
-    /// # use rsasl::error::SessionError;
-    /// # use rsasl::error::SessionError::NoCallback;
+    /// # use rsasl::callback::{Callback, Context, Request, CallbackError};
     /// # use rsasl::Property;
-    /// use rsasl::property::{properties, Password, CallbackQ};
+    /// use rsasl::property::{properties, Password, CallbackQ, AuthId};
     /// # use rsasl::session::SessionData;
     /// # struct CB;
     /// # impl Callback for CB {
-    /// fn callback(&self, session: &mut SessionData, query: &dyn CallbackQ) -> Result<(), SessionError> {
-    ///     let property = query.property();
-    ///     match property {
-    ///         properties::PASSWORD => {
-    ///             session.set_property::<Password>(Arc::new("secret".to_string()));
-    ///             Ok(())
-    ///         }
-    ///         _ => {
-    ///             Err(NoCallback { property })
-    ///         }
+    /// fn callback(&self, session: &SessionData, context: &Context<'_>, request: &mut Request<'_>)
+    ///     -> Result<(), CallbackError>
+    /// {
+    ///     if request.is::<AuthId>() {
+    ///         request.satisfy("exampleuser");
+    ///         Ok(())
+    ///     } else {
+    ///         Err(CallbackError::NoCallback)
     ///     }
     /// }
     /// # }
@@ -301,22 +325,14 @@ pub trait SessionCallback {
 
     /// Validate an authentication exchange
     ///
-    /// This callback will only be issued on the server side of an authentication exchange to
-    /// validate the data passed in by the client side. Some mechanisms do not use this validation
-    /// system at all and instead only issue calls to [`provide_prop`], e.g. the (S)CRAM and DIGEST
-    /// family of mechanisms. Check the documentation of the mechanisms you need to support for
-    /// details on how to authenticate users server side.
+    /// This callback will mostly be issued on the server side of an authentication exchange to
+    /// validate the data passed in by the client side like username/password for `PLAIN`.
     ///
-    /// If used the `validation` parameter defines the exact validation to be performed. Most
-    /// mechanisms in this crate define their own validation system, with the exception of
-    /// `PLAIN` and `LOGIN` which both use [`SIMPLE`] (username / password) as validation.
-    ///
-    /// See the [`validate module documentation`](crate::validate) for details on how to
-    /// implement each validation.
-    fn validate<'a>(
+    fn validate(
         &self,
-        _session_data: &SessionData,
-        _query: &Context<'a>,
+        session_data: &SessionData,
+        context: &Context<'_>,
+        validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
         Err(ValidationError::NoValidation)
     }
@@ -337,6 +353,6 @@ mod tests {
         let value = "hello!";
         let p = ThisProvider::<TestTag>::with(&value);
         let ctx = build_context(&p);
-        assert_eq!(ctx.provide_ref::<TestTag>().unwrap(), &"hello!");
+        assert_eq!(ctx.get_ref::<TestTag>().unwrap(), &"hello!");
     }
 }

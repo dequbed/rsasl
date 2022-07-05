@@ -4,7 +4,7 @@ use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
 use rsasl::session::Step::Done;
 use rsasl::session::{MechanismData, SessionData, Step, StepResult};
-use rsasl::validate::{validations, Validation, ValidationQ};
+use rsasl::validate::{validations, Validation, Validation};
 use rsasl::SASL;
 use std::io::Cursor;
 use std::sync::Arc;

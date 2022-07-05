@@ -1,9 +1,7 @@
-
-
+use std::borrow::Borrow;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::str::Utf8Error;
-
 
 use stringprep::{saslprep, Error};
 
@@ -12,10 +10,9 @@ use crate::error::{MechanismError, MechanismErrorKind};
 use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, StepResult};
 
+use crate::callback::tags::Type;
+use crate::validate::Validation;
 use crate::Authentication;
-use crate::validate::{Validation, ValidationQ};
-use crate::validate::validations::SIMPLE;
-
 
 #[derive(Debug)]
 enum PlainError {
@@ -54,16 +51,17 @@ impl MechanismError for PlainError {
 
 pub struct Plain;
 #[derive(Debug)]
-pub struct PlainValidation {
-    pub authcid: String,
-    pub authzid: Option<String>,
-    pub password: String,
+pub struct PlainProvider<'a> {
+    pub authcid: &'a str,
+    pub authzid: Option<&'a str>,
+    pub password: &'a str,
 }
-impl ValidationQ for PlainValidation {
-    fn validation() -> Validation where Self: Sized {
-        SIMPLE
-    }
+
+pub struct PlainValidation;
+impl<'a> Type<'a> for PlainValidation {
+    type Reified = bool;
 }
+impl<'a> Validation<'a> for PlainValidation {}
 
 impl Authentication for Plain {
     fn step(
@@ -87,23 +85,23 @@ impl Authentication for Plain {
 
         let authzid = if !authzid.is_empty() {
             let s = std::str::from_utf8(authzid).map_err(PlainError::BadAuthzid)?;
-            Some(saslprep(s).map_err(|e| PlainError::from(e))?.to_string())
+            Some(saslprep(s).map_err(|e| PlainError::from(e))?)
         } else {
             None
         };
 
         let authcid = std::str::from_utf8(authcid).map_err(PlainError::BadAuthcid)?;
-        let authcid = saslprep(authcid)
-            .map_err(|e| PlainError::from(e))?
-            .to_string();
+        let authcid = saslprep(authcid).map_err(|e| PlainError::from(e))?;
 
         let password = std::str::from_utf8(password).map_err(PlainError::BadPassword)?;
-        let password = saslprep(password)
-            .map_err(|e| PlainError::from(e))?
-            .to_string();
+        let password = saslprep(password).map_err(|e| PlainError::from(e))?;
 
-        let vquery = PlainValidation { authzid, authcid, password };
-        session.validate(&vquery)?;
+        let provider = PlainProvider {
+            authzid: authzid.map(|o| o.borrow()),
+            authcid: authcid.borrow(),
+            password: password.borrow(),
+        };
+        session.validate::<PlainValidation, _>(&provider)?;
         Ok(Done(None))
     }
 }

@@ -1,12 +1,14 @@
 use crate::error::{MechanismError, MechanismErrorKind};
 use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, StepResult};
-use crate::validate::validations::ANONYMOUS;
 use crate::Authentication;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
+use crate::callback::tags::Type;
+use crate::callback::ThisProvider;
+use crate::mechanisms::anonymous::client::AnonymousToken;
 
-use crate::validate::{Validation, ValidationQ};
+use crate::validate::Validation;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct ParseError;
@@ -21,12 +23,9 @@ impl MechanismError for ParseError {
     }
 }
 
-pub struct AnonymousValidation(pub String);
-impl ValidationQ for AnonymousValidation {
-    fn validation() -> Validation where Self: Sized {
-        ANONYMOUS
-    }
-}
+pub struct AnonymousValidation;
+impl<'a> Type<'a> for AnonymousValidation { type Reified = bool; }
+impl<'a> Validation<'a> for AnonymousValidation {}
 
 #[derive(Copy, Clone, Debug)]
 pub struct Anonymous;
@@ -52,8 +51,7 @@ impl Authentication for Anonymous {
                 return Err(ParseError.into());
             }
 
-            session.validate(&AnonymousValidation(input.to_string()))?;
-
+            session.validate::<AnonymousValidation, _>(&ThisProvider::<AnonymousToken>::with(input))?;
             Ok(Done(None))
         } else {
             Err(ParseError.into())
