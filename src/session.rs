@@ -3,14 +3,13 @@ use std::io::Write;
 use std::sync::Arc;
 
 use crate::callback::{
-    build_context, tags, CallbackError, CallbackRequest, ClosureCR, Context, Provider, Request,
-    RequestTag, TaggedOption, Validate, ValidationError,
+    build_context, tags, CallbackError, CallbackRequest, ClosureCR, Provider, Request,
+    RequestTag, TaggedOption, ValidationError,
 };
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
 use crate::mechanism::Authentication;
-use crate::property::PropertyQ;
 use crate::validate::*;
 use crate::{Mechanism, SessionCallback};
 
@@ -235,18 +234,10 @@ impl MechanismData {
     pub unsafe fn set_property_raw(&mut self, _prop: Gsasl_property, _: Arc<String>) {
         unimplemented!()
     }
-    pub fn set_property<P: PropertyQ>(&mut self, _: Arc<P::Item>) {
+    pub unsafe fn get_property<T>(&self) -> Option<&std::ffi::CStr> {
         unimplemented!()
     }
-    pub fn get_property<P: PropertyQ>(&mut self) -> Option<Arc<P::Item>> {
-        unimplemented!()
-    }
-    pub unsafe fn callback_raw(&mut self, _prop: Gsasl_property) -> *const libc::c_char {
-        unimplemented!()
-    }
-    pub fn get_property_or_callback<P: PropertyQ>(
-        &mut self,
-    ) -> Result<Option<Arc<P::Item>>, SessionError> {
+    pub unsafe fn get_property_or_callback<T>(&self) -> Result<Option<&str>, ()> {
         unimplemented!()
     }
 }
