@@ -1,13 +1,14 @@
-use rsasl::mechname::Mechname;
-use rsasl::property::{AuthId, Password};
-use rsasl::session::Step::{Done, NeedsMore};
-use rsasl::SASL;
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
-use rsasl::callback::{CallbackError, Context, Request, SessionCallback, Validate, ValidationError};
+use rsasl::callback::{CallbackError, Request, SessionCallback};
+use rsasl::context::Context;
 use rsasl::mechanisms::common::properties::{Credentials, SimpleCredentials};
+use rsasl::mechname::Mechname;
+use rsasl::property::{AuthId, Password};
+use rsasl::SASL;
 use rsasl::session::SessionData;
+use rsasl::session::Step::{Done, NeedsMore};
 
 struct Properties {
     username: String,
@@ -15,13 +16,8 @@ struct Properties {
 }
 impl SessionCallback for Properties {
     fn callback(&self, session_data: &SessionData, context: &Context, request: &mut Request<'_>) -> Result<(), CallbackError> {
-        request.satisfy::<AuthId>(self.username.as_ref());
-        request.satisfy::<Password>(self.password.as_bytes());
-        request.satisfy::<SimpleCredentials>(&Credentials {
-            authid: self.username.as_ref(),
-            authzid: None,
-            password: self.password.as_bytes(),
-        });
+        request.satisfy::<AuthId>(self.username.trim());
+        request.satisfy::<Password>(self.password.trim().as_bytes());
         Ok(())
     }
 }

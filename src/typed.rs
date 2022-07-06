@@ -6,6 +6,7 @@
 //! username, password) and from the protocol implementation (e.g. channel binding data).
 
 use std::any::TypeId;
+use std::ops::{Deref, DerefMut};
 use crate::property::MaybeSizedProperty;
 
 pub(crate) mod tags {
@@ -44,32 +45,30 @@ pub(crate) mod tags {
 }
 
 #[repr(transparent)]
-pub struct Demand<'a>(dyn Erased<'a> + 'a);
-impl<'a> Demand<'a> {
-    fn provide<T: tags::Type<'a>>(&mut self, value: T::Reified) -> &mut Self {
-        if let Some(res @ TaggedOption(None)) = self.0.downcast_mut::<T>() {
-            res.0 = Some(value)
-        }
-        self
+/// An option made covariant over a tagged type `T`
+///
+/// This is the only possible implementation of [`Erased`] allowing safe casts to be made under
+/// this assumption.
+pub(crate) struct TaggedOption<'a, T: tags::Type<'a>>(pub(crate) Option<T::Reified>);
+impl<'a, T: tags::Type<'a>> Deref for TaggedOption<'a, T> {
+    type Target = Option<T::Reified>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
-
-    pub fn provide_ref<T: MaybeSizedProperty>(&mut self, value: &'a T::Value) -> &mut Self {
-        self.provide::<tags::Ref<tags::MaybeSizedValue<T::Value>>>(value)
-    }
-    pub fn provide_mut<T: MaybeSizedProperty>(&mut self, value: &'a mut T::Value) -> &mut Self {
-        self.provide::<tags::RefMut<tags::MaybeSizedValue<T::Value>>>(value)
+}
+impl<'a, T: tags::Type<'a>> DerefMut for TaggedOption<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
-#[repr(transparent)]
-struct TaggedOption<'a, T: tags::Type<'a>>(Option<T::Reified>);
-impl<'a, T: tags::Type<'a>> TaggedOption<'a, T> {
-    unsafe fn as_demand(&mut self) -> &mut Demand<'a> {
-        std::mem::transmute(self as &mut dyn Erased)
-    }
-}
-
-trait Erased<'a>: 'a {
+/// A trait to safely type-erase non-`'static` values
+///
+/// [`std::any::Any`] allows similar dynamic typing, but can not store values with lifetimes
+/// associated like references (e.g. `&str`). This trait encodes the lifetimes of the objects as
+/// well, allowing to safely type-erase e.g. a `&'a str`. This trait is the fundamental mechanic
+/// behind [`Context`](crate::context::Context) and [`Request`](crate::callback::Request).
+pub(crate) trait Erased<'a>: 'a {
     fn tag_id(&self) -> TypeId;
 }
 impl<'a, T: tags::Type<'a>> Erased<'a> for TaggedOption<'a, T> {
@@ -79,12 +78,12 @@ impl<'a, T: tags::Type<'a>> Erased<'a> for TaggedOption<'a, T> {
 }
 impl<'a> dyn Erased<'a> {
     #[inline]
-    fn is<T: tags::Type<'a>>(&self) -> bool {
+    pub fn is<T: tags::Type<'a>>(&self) -> bool {
         TypeId::of::<T>() == self.tag_id()
     }
 
     #[inline]
-    fn downcast_mut<T: tags::Type<'a>>(&mut self) -> Option<&mut TaggedOption<'a, T>> {
+    pub fn downcast_mut<T: tags::Type<'a>>(&mut self) -> Option<&mut TaggedOption<'a, T>> {
         if self.is::<T>() {
             Some(unsafe { &mut *(self as *mut Self as *mut TaggedOption<'a, T>) })
         } else {

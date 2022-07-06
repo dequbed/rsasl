@@ -11,11 +11,10 @@ use crate::error::{MechanismError, MechanismErrorKind};
 use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, StepResult};
 
-use crate::callback::tags::Type;
-use crate::callback::{Demand, Provider};
-use crate::property::{AuthId, AuthzId, Password};
+use crate::property::{AuthId, AuthzId, Password, Property};
 use crate::validate::Validation;
 use crate::Authentication;
+use crate::context::{Demand, Provider};
 
 #[derive(Debug, Error)]
 enum PlainError {
@@ -60,10 +59,10 @@ impl<'b> Provider for PlainProvider<'b> {
 }
 
 pub struct PlainValidation;
-impl<'a> Type<'a> for PlainValidation {
-    type Reified = bool;
+impl Property for PlainValidation {
+    type Value = bool;
 }
-impl<'a> Validation<'a> for PlainValidation {}
+impl Validation for PlainValidation {}
 
 impl Authentication for Plain {
     fn step(

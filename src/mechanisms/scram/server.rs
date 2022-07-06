@@ -1,13 +1,10 @@
-use crate::callback::{CallbackError, ThisProvider};
 use crate::error::SessionError;
 use crate::mechanisms::external::client::AuthId;
 use crate::mechanisms::scram::client::SCRAMError;
 use crate::mechanisms::scram::parser::{
     ClientFinal, ClientFirstMessage, ServerErrorValue, ServerFinal, ServerFirst,
 };
-use crate::mechanisms::scram::properties::{
-    ScramPassParams, ScramPasswordError, ScramSaltedPassword, ScramSaltedPasswordQuery,
-};
+use crate::mechanisms::scram::properties::{ScramPassParams, ScramSaltedPasswordQuery};
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, DOutput};
 use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, StepResult};
@@ -21,6 +18,7 @@ use rand::{thread_rng, Rng, RngCore};
 use std::io::Write;
 use std::marker::PhantomData;
 use stringprep::saslprep;
+use crate::context::ThisProvider;
 
 const DEFAULT_ITERATIONS: u32 = 2u32.pow(14); // 16384, TODO check if still reasonable
 const DEFAULT_SALT_LEN: usize = 32;

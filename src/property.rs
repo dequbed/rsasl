@@ -38,16 +38,14 @@ use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::ptr::NonNull;
-use crate::callback::{Demand, Provider, tags, Context, Request, CallbackError};
-use crate::callback::tags::MaybeSizedType;
 use crate::SessionCallback;
 use crate::session::SessionData;
 
-pub trait Property {
+pub trait Property: 'static {
     type Value: 'static;
 }
 
-pub trait MaybeSizedProperty {
+pub trait MaybeSizedProperty: 'static {
     type Value: ?Sized + 'static;
 }
 impl<P: Property> MaybeSizedProperty for P {
@@ -119,6 +117,6 @@ pub struct Service(PhantomData<()>);
 
 #[derive(Debug)]
 pub struct Password(PhantomData<()>);
-impl<'a> tags::MaybeSizedType<'a> for Password {
-    type Reified = [u8];
+impl MaybeSizedProperty for Password {
+    type Value = [u8];
 }
