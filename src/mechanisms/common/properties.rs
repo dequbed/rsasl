@@ -1,30 +1,30 @@
 //! Properties and related types that are useful for more than one mechanism.
 //!
 
-use crate::callback::tags;
+use crate::property::Property;
 
 #[derive(Debug)]
 /// Plaintext credentials
-pub struct Credentials<'a> {
+pub struct Credentials {
     /// Authentication ID
     ///
     /// This is usually the "username" to be used, respectively the username that the password
     /// belongs to.
-    pub authid: &'a str,
+    pub authid: &'static str,
     /// Auth**orization** ID
     ///
     /// Separate from the authid this is the name of the entity to *authorize* as. Not commonly
     /// used.
-    pub authzid: Option<&'a str>,
+    pub authzid: Option<&'static str>,
     /// Password
     ///
     /// The password to be used.
-    pub password: &'a [u8],
+    pub password: &'static [u8],
 }
 
 pub struct SimpleCredentials;
-impl<'a> tags::Type<'a> for SimpleCredentials {
-    type Reified = Credentials<'a>;
+impl Property for SimpleCredentials {
+    type Value = Credentials;
 }
 
 pub struct ValidateSimple;

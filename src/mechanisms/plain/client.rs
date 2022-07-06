@@ -3,8 +3,12 @@ use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 use crate::vectored_io::VectoredWriter;
 use std::io::Write;
+use crate::callback::CallbackError;
+use crate::error::SessionError;
+use crate::error::SessionError::MechanismError;
 
 use crate::mechanisms::common::properties::{Credentials, SimpleCredentials};
+use crate::property::{AuthId, AuthzId, Password};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Plain;
@@ -16,28 +20,31 @@ impl Authentication for Plain {
         _input: Option<&[u8]>,
         mut writer: &mut dyn Write,
     ) -> StepResult {
-        let mut writer_out = Ok(0);
-        session.need_with::<'_, SimpleCredentials, _, _>(
-            &(),
-            &mut |Credentials {
-                      authid,
-                      authzid,
-                      password,
-                  }| {
-                let authzidbuf = if let Some(authz) = &authzid {
-                    authz.as_bytes()
-                } else {
-                    &[]
-                };
+        let mut len = 0usize;
+        let mut out = Ok(());
+        session.need_with::<'_, AuthzId, _, _>(&(), &mut |authzid| {
+            out = writer.write_all(authzid.as_bytes());
+            len += authzid.len();
+        });
+        out?;
+        len += writer.write(&[0])?;
 
-                let data: [&[u8]; 5] = [authzidbuf, &[0], authid.as_bytes(), &[0], password];
-                let mut vecw = VectoredWriter::new(data);
+        let mut out = Ok(());
+        session.need_with::<'_, AuthId, _, _>(&(), &mut |authid| {
+            out = writer.write_all(authid.as_bytes());
+            len += authid.len();
+        });
+        out?;
+        len += writer.write(&[0])?;
 
-                writer_out = vecw.write_all_vectored(&mut writer);
-            },
-        )?;
+        let mut out = Ok(());
+        session.need_with::<'_, Password, _, _>(&(), &mut |password| {
+            out = writer.write_all(password);
+            len += password.len();
+        });
+        out?;
 
-        Ok(Done(Some(writer_out?)))
+        Ok(Done(Some(len)))
     }
 }
 

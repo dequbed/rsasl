@@ -1,12 +1,12 @@
-use crate::callback::tags;
 use crate::mechanism::Authentication;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 use std::io::Write;
+use crate::property::MaybeSizedProperty;
 
 pub struct AuthId;
-impl<'a> tags::MaybeSizedType<'a> for AuthId {
-    type Reified = str;
+impl MaybeSizedProperty for AuthId {
+    type Value = str;
 }
 
 #[derive(Copy, Clone, Debug)]
