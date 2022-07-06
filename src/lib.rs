@@ -184,7 +184,9 @@ pub mod mechname;
 pub mod registry;
 
 pub mod channel_bindings;
+mod typed;
 pub mod property;
+pub mod context;
 pub mod validate;
 
 mod vectored_io;
@@ -195,7 +197,6 @@ use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 use crate::registry::Mechanism;
 use crate::session::{SessionBuilder, Side};
-pub use property::{Property, PropertyQ};
 
 /// SASL Provider context
 ///

@@ -1,13 +1,12 @@
-use crate::callback::tags::Type;
-use crate::callback::ThisProvider;
 use crate::error::{MechanismError, MechanismErrorKind};
 use crate::mechanisms::anonymous::client::AnonymousToken;
 use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, StepResult};
 use crate::Authentication;
-use std::fmt::{Display, Formatter};
 use std::io::Write;
 use thiserror::Error;
+use crate::context::ThisProvider;
+use crate::property::Property;
 
 use crate::validate::Validation;
 
@@ -21,10 +20,10 @@ impl MechanismError for ParseError {
 }
 
 pub struct AnonymousValidation;
-impl<'a> Type<'a> for AnonymousValidation {
-    type Reified = bool;
+impl Property for AnonymousValidation {
+    type Value = bool;
 }
-impl<'a> Validation<'a> for AnonymousValidation {}
+impl Validation for AnonymousValidation {}
 
 #[derive(Copy, Clone, Debug)]
 pub struct Anonymous;

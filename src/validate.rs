@@ -1,4 +1,2 @@
-use crate::callback::tags;
-use std::fmt::{Debug, Display, Formatter};
-
-pub trait Validation<'a>: tags::Type<'a> {}
+use crate::property::Property;
+pub trait Validation: Property {}
