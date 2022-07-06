@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+use crate::callback::{RequestResponse, TOKEN};
 use crate::property::MaybeSizedProperty;
 use crate::typed::{Erased, TaggedOption, tags};
 
@@ -22,17 +24,19 @@ impl<'a> Demand<'a> {
     }
 }
 impl<'a> Demand<'a> {
-    fn provide<T: tags::Type<'a>>(&mut self, value: T::Reified) -> &mut Self {
+    fn provide<T: tags::Type<'a>>(&mut self, value: T::Reified) -> RequestResponse<&mut Self> {
         if let Some(res @ TaggedOption(None)) = self.0.downcast_mut::<T>() {
-            res.0 = Some(value)
+            res.0 = Some(value);
+            RequestResponse::Break(TOKEN(PhantomData))
+        } else {
+            RequestResponse::Continue(self)
         }
-        self
     }
 
-    pub fn provide_ref<T: MaybeSizedProperty>(&mut self, value: &'a T::Value) -> &mut Self {
+    pub fn provide_ref<T: MaybeSizedProperty>(&mut self, value: &'a T::Value) -> RequestResponse<&mut Self> {
         self.provide::<tags::Ref<tags::MaybeSizedValue<T::Value>>>(value)
     }
-    pub fn provide_mut<T: MaybeSizedProperty>(&mut self, value: &'a mut T::Value) -> &mut Self {
+    pub fn provide_mut<T: MaybeSizedProperty>(&mut self, value: &'a mut T::Value) -> RequestResponse<&mut Self> {
         self.provide::<tags::RefMut<tags::MaybeSizedValue<T::Value>>>(value)
     }
 }
