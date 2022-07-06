@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::callback::{
     build_context, tags, CallbackError, CallbackRequest, ClosureCR, Provider, Request,
-    RequestTag, TaggedOption, ValidationError,
+    RequestTag, ValidationError,
 };
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::error::SessionError;
@@ -12,6 +12,7 @@ use crate::gsasl::consts::Gsasl_property;
 use crate::mechanism::Authentication;
 use crate::validate::*;
 use crate::{Mechanism, SessionCallback};
+use crate::context::{build_context, Provider};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -184,7 +185,7 @@ impl MechanismData {
     pub fn validate<'a, V, P>(&mut self, provider: &'a P) -> Result<V::Reified, ValidationError>
     where
         V: Validation<'a>,
-        P: Provider<'a>,
+        P: Provider,
     {
         let mut tagged_option = TaggedOption::<'_, V>(None);
         let context = build_context(provider);
@@ -194,20 +195,20 @@ impl MechanismData {
         tagged_option.take().ok_or(ValidationError::NoValidation)
     }
 
-    pub fn callback<'a, P: Provider<'a>>(
-        &self,
-        provider: &'a P,
-        request: &mut Request<'a>,
+    pub fn callback<'a, 'b, P: Provider>(
+        &'b self,
+        provider: &'b P,
+        request: &'b mut Request<'a>,
     ) -> Result<(), CallbackError> {
         let context = build_context(provider);
         self.callback.callback(&self.session_data, context, request)
     }
 
-    pub fn need<'a, T, C, P>(&self, provider: &'a P, mechcb: &'a mut C) -> Result<(), CallbackError>
+    pub fn need<'a, T, C, P>(&'a self, provider: &'a P, mechcb: &'a mut C) -> Result<(), CallbackError>
     where
         T: tags::MaybeSizedType<'a>,
         C: CallbackRequest<T::Reified>,
-        P: Provider<'a>,
+        P: Provider,
     {
         let mut tagged_option = TaggedOption::<'_, tags::RefMut<RequestTag<T>>>(Some(mechcb));
         self.callback(provider, unsafe { tagged_option.as_request() })?;
@@ -219,14 +220,14 @@ impl MechanismData {
     }
 
     pub fn need_with<'a, T: tags::MaybeSizedType<'a>, F: FnMut(&T::Reified) + 'a, P>(
-        &self,
+        &'a self,
         provider: &'a P,
         closure: &'a mut F,
     ) -> Result<(), CallbackError>
     where
-        P: Provider<'a>,
+        P: Provider,
     {
-        let closurecr = ClosureCR::<'a, T, F>::wrap(closure);
+        let closurecr = ClosureCR::<T, F>::wrap(closure);
         self.need::<'a, T, _, P>(provider, closurecr)
     }
 
@@ -242,6 +243,8 @@ impl MechanismData {
     }
 }
 
+// TODO: Since the Session object is only known to the protocol implementation and user they can
+//       share a statically known Context.
 pub struct SessionData {
     mechanism_desc: Mechanism,
     side: Side,

@@ -6,15 +6,17 @@
 //!
 //! ## Why not just return the requested value from a callback?
 //! Because that would devolve to basically `fn callback(query: Box<dyn Any>) -> Box<dyn Any>`
-//! with exactly zero protection against accidentally not providing some required data.
+//! with exactly zero type-level protection against accidentally not providing some required data.
 
-use crate::callback::tags::MaybeSizedType;
 use std::any::TypeId;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
+use crate::context::Context;
+use crate::property::MaybeSizedProperty;
 
 use crate::session::SessionData;
+use crate::typed::tags;
 use crate::validate::Validation;
 
 #[derive(Debug)]
@@ -41,66 +43,26 @@ impl Error for CallbackError {
     }
 }
 
-pub mod tags {
-    use std::marker::PhantomData;
-
-    pub trait Type<'a>: 'static + Sized {
-        type Reified: 'a;
-    }
-
-    pub trait MaybeSizedType<'a>: 'static + Sized {
-        type Reified: 'a + ?Sized;
-    }
-    impl<'a, T: Type<'a>> MaybeSizedType<'a> for T {
-        type Reified = T::Reified;
-    }
-
-    pub struct Value<T: 'static>(PhantomData<T>);
-    impl<'a, T: 'static> Type<'a> for Value<T> {
-        type Reified = T;
-    }
-
-    pub struct MaybeSizedValue<T: 'static + ?Sized>(PhantomData<T>);
-    impl<'a, T: 'static + ?Sized> MaybeSizedType<'a> for MaybeSizedValue<T> {
-        type Reified = T;
-    }
-
-    pub struct Ref<T>(PhantomData<T>);
-    impl<'a, T: MaybeSizedType<'a>> Type<'a> for Ref<T> {
-        type Reified = &'a T::Reified;
-    }
-
-    pub struct RefMut<T>(PhantomData<T>);
-    impl<'a, T: MaybeSizedType<'a>> Type<'a> for RefMut<T> {
-        type Reified = &'a mut T::Reified;
-    }
-}
-
-#[repr(transparent)]
-pub(crate) struct RequestTag<T>(PhantomData<T>);
-impl<'a, T: tags::MaybeSizedType<'a>> MaybeSizedType<'a> for RequestTag<T> {
-    type Reified = dyn CallbackRequest<T::Reified> + 'a;
-}
 
 pub trait CallbackRequest<Answer: ?Sized> {
     fn satisfy(&mut self, answer: &Answer);
 }
 
 #[repr(transparent)]
-pub struct ClosureCR<'a, T, F: 'a> {
+pub struct ClosureCR<T, F> {
     closure: F,
-    _marker: PhantomData<&'a T>,
+    _marker: PhantomData<T>,
 }
-impl<'a, T, F> ClosureCR<'a, T, F>
+impl<'a, T, F> ClosureCR<T, F>
 where
     T: tags::MaybeSizedType<'a>,
-    F: FnMut(&T::Reified) + 'a,
+    F: FnMut(&T::Reified),
 {
     pub fn wrap(closure: &mut F) -> &mut Self {
         unsafe { std::mem::transmute(closure) }
     }
 }
-impl<'a, T, F> CallbackRequest<T::Reified> for ClosureCR<'a, T, F>
+impl<'a, T, F> CallbackRequest<T::Reified> for ClosureCR<T, F>
 where
     T: tags::MaybeSizedType<'a>,
     F: FnMut(&T::Reified),
@@ -110,80 +72,13 @@ where
     }
 }
 
-trait Erased<'a>: 'a {
-    fn tag_id(&self) -> TypeId;
-}
-impl<'a> dyn Erased<'a> {
-    #[inline]
-    fn is<T: tags::Type<'a>>(&self) -> bool {
-        TypeId::of::<T>() == self.tag_id()
-    }
-
-    #[inline]
-    fn downcast_mut<T: tags::Type<'a>>(&mut self) -> Option<&mut TaggedOption<'a, T>> {
-        if self.is::<T>() {
-            Some(unsafe { &mut *(self as *mut Self as *mut TaggedOption<'a, T>) })
-        } else {
-            None
-        }
-    }
-}
 
 #[repr(transparent)]
-pub(crate) struct TaggedOption<'a, T: tags::Type<'a>>(pub(crate) Option<T::Reified>);
-impl<'a, T: tags::Type<'a>> Erased<'a> for TaggedOption<'a, T> {
-    fn tag_id(&self) -> TypeId {
-        TypeId::of::<T>()
-    }
-}
-impl<'a, T: tags::Type<'a>> TaggedOption<'a, T> {
-    pub fn is_some(&self) -> bool {
-        self.0.is_some()
-    }
-
-    unsafe fn as_demand(&mut self) -> &mut Demand<'a> {
-        std::mem::transmute(self as &mut dyn Erased)
-    }
-
-    pub(crate) unsafe fn as_request(&mut self) -> &mut Request<'a> {
-        std::mem::transmute(self as &mut dyn Erased)
-    }
-
-    pub(crate) unsafe fn as_validate(&mut self) -> &mut Validate<'a> {
-        std::mem::transmute(self as &mut dyn Erased)
-    }
-
-    pub fn take(&mut self) -> Option<T::Reified> {
-        self.0.take()
-    }
+struct RequestTag<T>(PhantomData<T>);
+impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for RequestTag<T> {
+    type Reified = dyn CallbackRequest<T::Value> + 'a;
 }
 
-#[repr(transparent)]
-pub struct Demand<'a>(dyn Erased<'a> + 'a);
-impl<'a> Demand<'a> {
-    fn provide<T: tags::Type<'a>>(&mut self, value: T::Reified) -> &mut Self {
-        if let Some(res @ TaggedOption(None)) = self.0.downcast_mut::<T>() {
-            res.0 = Some(value)
-        }
-        self
-    }
-    fn provide_with<T: tags::Type<'a>, F: FnOnce() -> T::Reified>(&mut self, f: F) -> &mut Self {
-        if let Some(res @ TaggedOption(None)) = self.0.downcast_mut::<T>() {
-            res.0 = Some(f())
-        }
-        self
-    }
-
-    pub fn provide_ref<T: tags::MaybeSizedType<'a>>(&mut self, value: &'a T::Reified) -> &mut Self {
-        self.provide::<tags::Ref<T>>(value)
-    }
-    pub fn provide_value<T: tags::Type<'a>, F: FnOnce() -> T::Reified>(
-        &mut self,
-        f: F,
-    ) -> &mut Self {
-        self.provide_with::<T, F>(f)
-    }
-}
 
 #[repr(transparent)]
 /// A type-erased callback request for some potentially context-specific values.
@@ -203,7 +98,8 @@ impl<'a> Request<'a> {
     ///
     /// If the type of the request is not `T` or if the request was already satisfied this method
     /// returns `None`.
-    pub fn satisfy<T: tags::MaybeSizedType<'a>>(&mut self, answer: &T::Reified) -> Option<()> {
+    pub fn satisfy<T: tags::MaybeSizedType<'a>>(&mut self, answer: &'a T::Reified) -> Option<
+        ()> {
         if let Some(mech) = self
             .0
             .downcast_mut::<tags::RefMut<RequestTag<T>>>()
@@ -216,41 +112,6 @@ impl<'a> Request<'a> {
     }
 }
 
-pub trait Provider<'a> {
-    fn provide(&'a self, req: &mut Demand<'a>);
-}
-impl<'a> Provider<'a> for () {
-    fn provide(&'a self, _: &mut Demand<'a>) {}
-}
-#[repr(transparent)]
-pub struct ThisProvider<'a, T: tags::MaybeSizedType<'a>>(&'a T::Reified);
-impl<'a, T: tags::MaybeSizedType<'a>> ThisProvider<'a, T> {
-    pub fn with(value: &'a T::Reified) -> Self {
-        Self(value)
-    }
-}
-impl<'a, T: tags::MaybeSizedType<'a>> Provider<'a> for ThisProvider<'a, T> {
-    fn provide(&'a self, req: &mut Demand<'a>) {
-        req.provide_ref::<T>(self.0);
-    }
-}
-
-pub(crate) fn build_context<'a>(provider: &'a dyn Provider<'a>) -> &'a Context<'a> {
-    unsafe { std::mem::transmute(provider) }
-}
-
-#[repr(transparent)]
-pub struct Context<'a>(dyn Provider<'a>);
-impl<'a> Context<'a> {
-    fn get_by_tag<T: tags::Type<'a>>(&'a self) -> Option<T::Reified> {
-        let mut tagged_option = TaggedOption::<'a, T>(None);
-        self.0.provide(unsafe { tagged_option.as_demand() });
-        tagged_option.0
-    }
-    pub fn get_ref<T: tags::MaybeSizedType<'a>>(&'a self) -> Option<&'a T::Reified> {
-        self.get_by_tag::<tags::Ref<T>>()
-    }
-}
 
 #[repr(transparent)]
 // TODO:
@@ -314,7 +175,7 @@ pub trait SessionCallback {
     fn callback(
         &self,
         session_data: &SessionData,
-        context: &Context<'_>,
+        context: &Context,
         request: &mut Request<'_>,
     ) -> Result<(), CallbackError> {
         Err(CallbackError::NoCallback)
@@ -328,7 +189,7 @@ pub trait SessionCallback {
     fn validate(
         &self,
         session_data: &SessionData,
-        context: &Context<'_>,
+        context: &Context,
         validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
         Err(ValidationError::NoValidation)

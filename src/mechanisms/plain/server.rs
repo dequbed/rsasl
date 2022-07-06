@@ -48,8 +48,8 @@ pub struct PlainProvider<'a> {
     pub authzid: Option<Cow<'a, str>>,
     pub password: &'a [u8],
 }
-impl<'a> Provider<'a> for PlainProvider<'a> {
-    fn provide(&'a self, req: &mut Demand<'a>) {
+impl<'b> Provider for PlainProvider<'b> {
+    fn provide<'a>(&'a self, req: &mut Demand<'a>) {
         req.provide_ref::<AuthId>(&self.authcid);
         req.provide_ref::<Password>(&self.password);
 
