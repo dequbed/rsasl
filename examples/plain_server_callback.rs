@@ -1,36 +1,33 @@
-use rsasl::callback::{Answerable, CallbackError, Query, SessionCallback, ValidationError};
-use rsasl::error::SessionError;
-use rsasl::mechanisms::common::properties::SimpleCredentials;
-use rsasl::mechanisms::plain::server::PlainValidation;
-use rsasl::mechname::Mechname;
-use rsasl::property::{AuthId, Password};
-use rsasl::session::Step::Done;
-use rsasl::session::{MechanismData, SessionData, Step, StepResult};
-use rsasl::validate::{validations, Validation, Validation};
-use rsasl::SASL;
 use std::io::Cursor;
 use std::sync::Arc;
+use rsasl::callback::{RequestResponse, SessionCallback};
+use rsasl::context::Context;
+use rsasl::error::SessionError;
+use rsasl::mechanisms::common::properties::ValidateSimple;
+use rsasl::mechname::Mechname;
+use rsasl::property::{AuthId, AuthzId, Password};
+use rsasl::SASL;
+use rsasl::session::{SessionData, Step, StepResult};
+use rsasl::validate::{Validate, ValidationError};
 
 // Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
 
 impl SessionCallback for OurCallback {
-    fn validate(
-        &self,
-        _session_data: &SessionData,
-        query: &dyn Query,
-    ) -> Result<(), ValidationError> {
-        if let Some(PlainValidation {
-            authcid,
-            authzid,
-            password,
-        }) = PlainValidation::downcast(query)
-        {
-            if authzid.is_none() && authcid == "username" && password == "secret" {
-                Ok(())
-            } else {
-                Err(ValidationError::BadAuthentication)
-            }
+    fn validate(&self, session_data: &SessionData, context: &Context, validate: &mut Validate<'_>)
+        -> Result<(), ValidationError>
+    {
+        if validate.is::<ValidateSimple>() {
+            let authzid = context.get_ref::<AuthzId>();
+            let authid = context.get_ref::<AuthId>()
+                .expect("SIMPLE validation requested but AuthId prop is missing!");
+            let password = context.get_ref::<Password>()
+                .expect("SIMPLE validation requested but Password prop is missing!");
+            println!("authzid: {:?}, authid: {}, password: {:?}",
+                     authzid, authid, std::str::from_utf8(password));
+            let o = authzid.is_none() && authid == "username" && password == b"secret";
+            validate.finalize::<ValidateSimple>(o);
+            Ok(())
         } else {
             Err(ValidationError::NoValidation)
         }
@@ -50,7 +47,7 @@ pub fn main() {
             .without_channel_binding();
         let step_result = session.step(Some(b"\0username\0secret"), &mut out);
         print_outcome(&step_result, out.into_inner());
-        assert_eq!(step_result.unwrap(), Done(None));
+        assert_eq!(step_result.unwrap(), Step::Done(None));
     }
     // Authentication exchange 2
     {
@@ -62,10 +59,7 @@ pub fn main() {
             .without_channel_binding();
         let step_result = session.step(Some(b"\0username\0badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());
-        assert_eq!(
-            step_result.unwrap_err(),
-            SessionError::AuthenticationFailure
-        );
+        assert!(step_result.unwrap_err().is_authentication_failure());
     }
     // Authentication exchange 2
     {

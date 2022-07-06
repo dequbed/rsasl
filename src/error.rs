@@ -114,6 +114,13 @@ impl SessionError {
             _ => false,
         }
     }
+
+    pub fn is_authentication_failure(&self) -> bool {
+        match self {
+            Self::AuthenticationFailure => true,
+            _ => false,
+        }
+    }
 }
 
 impl<T: MechanismError + 'static> From<T> for SessionError {

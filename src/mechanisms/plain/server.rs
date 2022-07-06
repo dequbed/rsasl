@@ -6,7 +6,7 @@ use thiserror::Error;
 
 use stringprep::{saslprep, Error};
 
-use crate::error::{MechanismError, MechanismErrorKind};
+use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 
 use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, StepResult};
@@ -15,6 +15,7 @@ use crate::property::{AuthId, AuthzId, Password, Property};
 use crate::validate::Validation;
 use crate::Authentication;
 use crate::context::{Demand, Provider};
+use crate::mechanisms::common::properties::ValidateSimple;
 
 #[derive(Debug, Error)]
 enum PlainError {
@@ -71,8 +72,8 @@ impl Authentication for Plain {
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
     ) -> StepResult {
-        if input.map(|buf| buf.len()).unwrap_or(0) == 0 {
-            return Ok(NeedsMore(None));
+        if input.map(|buf| buf.len()).unwrap_or(0) < 4 {
+            return Err(PlainError::BadFormat.into());
         }
 
         let input = input.unwrap();
@@ -102,9 +103,8 @@ impl Authentication for Plain {
             authcid,
             password: password.as_bytes(),
         };
-        session
-            .validate::<PlainValidation, _>(&provider)
-            .map_err(|_| PlainError::BadFormat /* FIXME!! */)?;
+
+        session.validate::<ValidateSimple, _>(&provider);
         Ok(Done(None))
     }
 }

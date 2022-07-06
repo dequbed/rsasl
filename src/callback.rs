@@ -12,13 +12,13 @@ use std::any::TypeId;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
-use std::ops::DerefMut;
+use std::ops::{ControlFlow, DerefMut};
 use crate::context::Context;
 use crate::property::MaybeSizedProperty;
 
 use crate::session::SessionData;
 use crate::typed::{Erased, TaggedOption, tags};
-use crate::validate::Validation;
+use crate::validate::{Validate, Validation, ValidationError};
 
 pub trait SessionCallback {
     /// Query by a mechanism implementation to provide some information or do some action
@@ -37,12 +37,11 @@ pub trait SessionCallback {
     /// # use rsasl::session::SessionData;
     /// # struct CB;
     /// # impl Callback for CB {
-    /// fn callback(&self, session: &SessionData, context: &Context<'_>, request: &mut Request<'_>)
+    /// fn callback(&self, session: &SessionData, context: &Context, request: &mut Request<'_>)
     ///     -> Result<(), CallbackError>
     /// {
     ///     if request.is::<AuthId>() {
-    ///         request.satisfy("exampleuser");
-    ///         Ok(())
+    ///         Ok(request.satisfy("exampleuser"))
     ///     } else {
     ///         Err(CallbackError::NoCallback)
     ///     }
@@ -58,8 +57,8 @@ pub trait SessionCallback {
         session_data: &SessionData,
         context: &Context,
         request: &mut Request<'_>,
-    ) -> Result<(), CallbackError> {
-        Err(CallbackError::NoCallback)
+    ) -> RequestResponse<CallbackError> {
+        ControlFlow::Continue(CallbackError::NoCallback)
     }
 
     /// Validate an authentication exchange
@@ -72,8 +71,8 @@ pub trait SessionCallback {
         session_data: &SessionData,
         context: &Context,
         validate: &mut Validate<'_>,
-    ) -> Result<(), ValidationError> {
-        Err(ValidationError::NoValidation)
+    ) -> RequestResponse<ValidationError> {
+        ControlFlow::Continue(ValidationError::NoValidation)
     }
 }
 
@@ -100,7 +99,6 @@ impl Error for CallbackError {
         }
     }
 }
-
 
 pub trait CallbackRequest<Answer: ?Sized> {
     fn satisfy(&mut self, answer: &Answer);
@@ -137,6 +135,32 @@ impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for RequestTag<T> {
     type Reified = dyn CallbackRequest<T::Value> + 'a;
 }
 
+#[doc(hidden)]
+pub struct TOKEN(pub(crate) PhantomData<()>);
+
+/// Control-flow utility for [`Request`] and [`Validate`].
+///
+/// This type allows to easily chain calls to [`satisfy`](Request::satisfy) or
+/// [`validate`](Validate::validate) but exit on the first successful call:
+///
+/// ```rust
+/// # use rsasl::callback::{Callback, Context, Request, CallbackError, RequestResponse};
+/// # use rsasl::Property;
+/// use rsasl::property::{properties, Password, CallbackQ, AuthId};
+/// # use rsasl::session::SessionData;
+/// # struct CB;
+/// # impl Callback for CB {
+/// fn callback(&self, session: &SessionData, context: &Context, request: &mut Request<'_>)
+///     -> RequestResponse<CallbackError>
+/// {
+///     request.satisfy::<AuthId>("exampleuser")?
+///            .satisfy::<Password>("secret")?
+///            .satisfy::<Authzid>("root")
+///            .or_fail()
+/// }
+/// # }
+/// ```
+pub type RequestResponse<R> = ControlFlow<TOKEN, R>;
 
 #[repr(transparent)]
 /// A type-erased callback request for some potentially context-specific values.
@@ -161,47 +185,19 @@ impl<'a> Request<'a> {
     ///
     /// If the type of the request is not `T` or if the request was already satisfied this method
     /// returns `None`.
-    pub fn satisfy<P: MaybeSizedProperty>(&mut self, answer: &P::Value) -> Option<
-        ()> {
+    pub fn satisfy<P: MaybeSizedProperty>(&mut self, answer: &P::Value) -> RequestResponse<&mut Self> {
         if let Some(TaggedOption(Some(mech))) = self
             .0
             .downcast_mut::<tags::RefMut<RequestTag<P>>>()
         {
-            Some(mech.satisfy(answer))
+            mech.satisfy(answer);
+            ControlFlow::Break(TOKEN(PhantomData))
         } else {
-            None
+            ControlFlow::Continue(self)
         }
     }
-}
 
-
-#[repr(transparent)]
-// TODO:
-//  Validate should be used to be able to do the final check on the authentication, either
-//  accepting or denying it. So it should have a method that is in some ways mandatory to call.
-pub struct Validate<'a>(dyn Erased<'a> + 'a);
-impl<'a> Validate<'a> {
-    pub(crate) fn new<'o, V: Validation>(opt: &'o mut TaggedOption<'a, tags::Value<V::Value>>) -> &'o mut Self {
-        unsafe { std::mem::transmute(opt as &mut dyn Erased) }
+    pub fn finish(&mut self) -> RequestResponse<CallbackError> {
+        RequestResponse::Continue(CallbackError::NoCallback)
     }
-}
-impl<'a> Validate<'a> {
-    #[inline(always)]
-    pub fn is<T: Validation>(&self) -> bool {
-        self.0.tag_id() == TypeId::of::<T>()
-    }
-
-    pub fn finalize<T: Validation>(&mut self, outcome: T::Value) -> &mut Self {
-        if let Some(result @ TaggedOption(Option::None)) = self.0.downcast_mut::<tags::Value<T::Value>>() {
-            *result = TaggedOption(Some(outcome))
-        }
-        self
-    }
-}
-
-#[derive(Debug)]
-pub enum ValidationError {
-    NoValidation,
-    BadAuthentication,
-    BadAuthorization,
 }

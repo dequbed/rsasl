@@ -7,7 +7,6 @@ use crate::callback::CallbackError;
 use crate::error::SessionError;
 use crate::error::SessionError::MechanismError;
 
-use crate::mechanisms::common::properties::{Credentials, SimpleCredentials};
 use crate::property::{AuthId, AuthzId, Password};
 
 #[derive(Copy, Clone, Debug)]

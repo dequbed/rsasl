@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 
-use crate::callback::{CallbackError, CallbackRequest, ClosureCR, Request, RequestTag, Validate, ValidationError};
+use crate::callback::{CallbackError, CallbackRequest, ClosureCR, Request, RequestResponse, RequestTag};
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
@@ -67,18 +67,6 @@ impl SessionBuilder {
 pub struct Session {
     mechanism: Box<dyn Authentication>,
     mechanism_data: MechanismData,
-    // Callback types:
-    // - provide property / do action (e.g. provide username/password, start OIDC auth)
-    //      ⇒ CLIENT + SERVER
-    //      ⇒ provided by end-user
-    // - validate authentication (e.g. check username/password against a DB)
-    //      ⇒ SERVER
-    //      ⇒ provided by end-user
-    // ^ Those two are very similar, basically a "do this thing please" callback
-    //
-    // - provide channel-binding data
-    //      ⇒ CLIENT + SERVER
-    //      ⇒ provided by either end-user or protocol impl
 }
 
 impl Session {
@@ -181,17 +169,20 @@ impl MechanismData {
         }
     }
 
-    pub fn validate<V, P>(&mut self, provider: &P) -> Result<V::Value, ValidationError>
+    pub fn validate<V, P>(&self, provider: &P) -> Result<V::Value, ValidationError>
     where
         V: Validation,
         P: Provider,
     {
-        let mut tagged_option = TaggedOption::<'_, tags::Value<V::Value>>(None);
+        let mut tagged_option = TaggedOption::<'_, V>(None);
         let context = build_context(provider);
         let validate = Validate::new::<V>(&mut tagged_option);
-        self.callback
-            .validate(&self.session_data, context, validate)?;
-        tagged_option.take().ok_or(ValidationError::NoValidation)
+        let cflow = self.callback.validate(&self.session_data, context, validate);
+        if let RequestResponse::Continue(err) = cflow {
+            Err(err)
+        } else {
+            Ok(tagged_option.0.unwrap())
+        }
     }
 
     pub fn callback<'a, 'b, P: Provider>(
@@ -200,7 +191,13 @@ impl MechanismData {
         request: &'b mut Request<'a>,
     ) -> Result<(), CallbackError> {
         let context = build_context(provider);
-        self.callback.callback(&self.session_data, context, request)
+        let cflow = self.callback.callback(&self.session_data, context, request);
+
+        if let RequestResponse::Continue(err) = cflow {
+            Err(err)
+        } else {
+            Ok(())
+        }
     }
 
     pub fn need<T, C, P>(&self, provider: &P, mechcb: &mut C) -> Result<(), CallbackError>
@@ -267,6 +264,7 @@ pub enum Step {
     Done(Option<usize>),
     NeedsMore(Option<usize>),
 }
+
 // FIXME: This is wrong. There are three outcomes: Authentication Successfully ended, Auth is
 //  still in progress, authentication errored.
 //  *Completely* independent of that a mech may return data, even in the case of an error.
@@ -278,6 +276,7 @@ pub struct StepOutcome {
     pub data_len: Option<usize>,
 }
 pub type StepResult = Result<Step, SessionError>;
+
 
 impl SessionData {
     pub(crate) fn new(mechanism_desc: Mechanism, side: Side) -> Self {
