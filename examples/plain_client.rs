@@ -5,16 +5,28 @@ use rsasl::SASL;
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
+use rsasl::callback::{CallbackError, Context, Request, SessionCallback, Validate, ValidationError};
+use rsasl::mechanisms::common::properties::{Credentials, SimpleCredentials};
+use rsasl::session::SessionData;
+
+struct Properties {
+    username: String,
+    password: String,
+}
+impl SessionCallback for Properties {
+    fn callback(&self, session_data: &SessionData, context: &Context, request: &mut Request<'_>) -> Result<(), CallbackError> {
+        request.satisfy::<AuthId>(self.username.as_ref());
+        request.satisfy::<Password>(self.password.as_bytes());
+        request.satisfy::<SimpleCredentials>(&Credentials {
+            authid: self.username.as_ref(),
+            authzid: None,
+            password: self.password.as_bytes(),
+        });
+        Ok(())
+    }
+}
 
 pub fn main() {
-    // Create an untyped SASL because we won't store/retrieve information in the context since
-    // we don't use callbacks.
-    let sasl = SASL::new();
-
-    // Usually you would first agree on a mechanism with the server, for demostration purposes
-    // we directly start a PLAIN "exchange"
-    let mut session = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
-
     // Read the "authcid" from stdin
     let mut username = String::new();
     println!("Enter username to encode for PLAIN auth:");
@@ -32,11 +44,13 @@ pub fn main() {
     }
     print!("\n");
 
-    // Set the username that will be used in the PLAIN authentication
-    session.set_property::<AuthId>(Arc::new(username));
+    // Create an untyped SASL because we won't store/retrieve information in the context since
+    // we don't use callbacks.
+    let sasl = SASL::new(Arc::new(Properties { username, password }));
 
-    // Now set the password that will be used in the PLAIN authentication
-    session.set_property::<Password>(Arc::new(password));
+    // Usually you would first agree on a mechanism with the server, for demostration purposes
+    // we directly start a PLAIN "exchange"
+    let mut session = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap().without_channel_binding();
 
     // Do an authentication step. In a PLAIN exchange there is only one step, with no data.
     let mut out = Cursor::new(Vec::new());
