@@ -1,12 +1,12 @@
-use crate::callback::tags;
 use crate::mechanism::Authentication;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 use std::io::Write;
+use crate::property::MaybeSizedProperty;
 
 pub struct AnonymousToken;
-impl<'a> tags::MaybeSizedType<'a> for AnonymousToken {
-    type Reified = str;
+impl MaybeSizedProperty for AnonymousToken {
+    type Value = str;
 }
 
 #[derive(Copy, Clone, Debug)]

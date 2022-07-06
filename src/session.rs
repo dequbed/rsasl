@@ -2,17 +2,16 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 
-use crate::callback::{
-    build_context, tags, CallbackError, CallbackRequest, ClosureCR, Context, Provider, Request,
-    RequestTag, TaggedOption, Validate, ValidationError,
-};
+use crate::callback::{CallbackError, CallbackRequest, ClosureCR, Request, RequestTag, Validate, ValidationError};
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
 use crate::mechanism::Authentication;
-use crate::property::PropertyQ;
 use crate::validate::*;
 use crate::{Mechanism, SessionCallback};
+use crate::context::{build_context, Provider};
+use crate::property::MaybeSizedProperty;
+use crate::typed::{TaggedOption, tags};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -182,36 +181,36 @@ impl MechanismData {
         }
     }
 
-    pub fn validate<'a, V, P>(&mut self, provider: &'a P) -> Result<V::Reified, ValidationError>
+    pub fn validate<V, P>(&mut self, provider: &P) -> Result<V::Value, ValidationError>
     where
-        V: Validation<'a>,
-        P: Provider<'a>,
+        V: Validation,
+        P: Provider,
     {
-        let mut tagged_option = TaggedOption::<'_, V>(None);
+        let mut tagged_option = TaggedOption::<'_, tags::Value<V::Value>>(None);
         let context = build_context(provider);
-        let validate = unsafe { tagged_option.as_validate() };
+        let validate = Validate::new::<V>(&mut tagged_option);
         self.callback
             .validate(&self.session_data, context, validate)?;
         tagged_option.take().ok_or(ValidationError::NoValidation)
     }
 
-    pub fn callback<'a, P: Provider<'a>>(
-        &self,
-        provider: &'a P,
-        request: &mut Request<'a>,
+    pub fn callback<'a, 'b, P: Provider>(
+        &'b self,
+        provider: &'b P,
+        request: &'b mut Request<'a>,
     ) -> Result<(), CallbackError> {
         let context = build_context(provider);
         self.callback.callback(&self.session_data, context, request)
     }
 
-    pub fn need<'a, T, C, P>(&self, provider: &'a P, mechcb: &'a mut C) -> Result<(), CallbackError>
+    pub fn need<T, C, P>(&self, provider: &P, mechcb: &mut C) -> Result<(), CallbackError>
     where
-        T: tags::MaybeSizedType<'a>,
-        C: CallbackRequest<T::Reified>,
-        P: Provider<'a>,
+        T: MaybeSizedProperty,
+        C: CallbackRequest<T::Value>,
+        P: Provider,
     {
         let mut tagged_option = TaggedOption::<'_, tags::RefMut<RequestTag<T>>>(Some(mechcb));
-        self.callback(provider, unsafe { tagged_option.as_request() })?;
+        self.callback(provider, Request::new::<T>(&mut tagged_option))?;
         if tagged_option.is_some() {
             Err(CallbackError::NoCallback)
         } else {
@@ -219,38 +218,32 @@ impl MechanismData {
         }
     }
 
-    pub fn need_with<'a, T: tags::MaybeSizedType<'a>, F: FnMut(&T::Reified) + 'a, P>(
+    pub fn need_with<T: MaybeSizedProperty, F: FnMut(&T::Value), P>(
         &self,
-        provider: &'a P,
-        closure: &'a mut F,
+        provider: &P,
+        closure: &mut F,
     ) -> Result<(), CallbackError>
     where
-        P: Provider<'a>,
+        P: Provider,
     {
-        let closurecr = ClosureCR::<'a, T, F>::wrap(closure);
-        self.need::<'a, T, _, P>(provider, closurecr)
+        let closurecr = ClosureCR::<T, F>::wrap(closure);
+        self.need::<T, _, P>(provider, closurecr)
     }
 
     // Legacy bs:
     pub unsafe fn set_property_raw(&mut self, _prop: Gsasl_property, _: Arc<String>) {
         unimplemented!()
     }
-    pub fn set_property<P: PropertyQ>(&mut self, _: Arc<P::Item>) {
+    pub unsafe fn get_property<T>(&self) -> Option<&std::ffi::CStr> {
         unimplemented!()
     }
-    pub fn get_property<P: PropertyQ>(&mut self) -> Option<Arc<P::Item>> {
-        unimplemented!()
-    }
-    pub unsafe fn callback_raw(&mut self, _prop: Gsasl_property) -> *const libc::c_char {
-        unimplemented!()
-    }
-    pub fn get_property_or_callback<P: PropertyQ>(
-        &mut self,
-    ) -> Result<Option<Arc<P::Item>>, SessionError> {
+    pub unsafe fn get_property_or_callback<T>(&self) -> Result<Option<&str>, ()> {
         unimplemented!()
     }
 }
 
+// TODO: Since the Session object is only known to the protocol implementation and user they can
+//       share a statically known Context.
 pub struct SessionData {
     mechanism_desc: Mechanism,
     side: Side,

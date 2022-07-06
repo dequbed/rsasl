@@ -63,135 +63,14 @@ unsafe fn gsasl_property_fast(
     sctx: &mut MechanismData,
     prop: Gsasl_property,
 ) -> *const libc::c_char {
-    if GSASL_OPENID20_OUTCOME_DATA == prop {
-        if let Some(prop) = sctx.get_property::<OpenID20OutcomeData>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_OPENID20_REDIRECT_URL == prop {
-        if let Some(prop) = sctx.get_property::<OpenID20RedirectUrl>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_SAML20_REDIRECT_URL == prop {
-        if let Some(prop) = sctx.get_property::<SAML20RedirectUrl>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_SAML20_IDP_IDENTIFIER == prop {
-        if let Some(prop) = sctx.get_property::<SAML20IDPIdentifier>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_CB_TLS_UNIQUE == prop {
-        if let Some(prop) = sctx.get_property::<CBTlsUnique>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_QOP == prop {
-        if let Some(it) = sctx.get_property::<Qop>() {
-            let ptr = it.as_ptr();
-            println!("ret {:?} @ {:?}", it, ptr);
-            ptr
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_QOPS == prop {
-        if let Some(prop) = sctx.get_property::<Qops>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_DIGEST_MD5_HASHED_PASSWORD == prop {
-        if let Some(prop) = sctx.get_property::<DigestMD5HashedPassword>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_REALM == prop {
-        if let Some(prop) = sctx.get_property::<Realm>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_PIN == prop {
-        if let Some(prop) = sctx.get_property::<Pin>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_SUGGESTED_PIN == prop {
-        if let Some(prop) = sctx.get_property::<SuggestedPin>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_PASSCODE == prop {
-        if let Some(prop) = sctx.get_property::<Passcode>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_GSSAPI_DISPLAY_NAME == prop {
-        if let Some(prop) = sctx.get_property::<GssapiDisplayName>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_HOSTNAME == prop {
-        if let Some(prop) = sctx.get_property::<Hostname>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_SERVICE == prop {
-        if let Some(prop) = sctx.get_property::<Service>() {
-            prop.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_PASSWORD == prop {
-        if let Some(prop) = sctx.get_property::<Password>() {
-            let cstr = Box::leak(Box::new(CString::new(prop.as_bytes().to_owned()).unwrap()));
-            cstr.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_AUTHZID == prop {
-        if let Some(prop) = sctx.get_property::<AuthzId>() {
-            let cstr = Box::leak(Box::new(CString::new(prop.as_bytes().to_owned()).unwrap()));
-            cstr.as_ptr()
-        } else {
-            std::ptr::null()
-        }
-    } else if GSASL_AUTHID == prop {
-        unimplemented!()
-        /*if let Some(prop) = /*sctx.get_property::<AuthId>()*/ {
-            let cstr = Box::leak(Box::new(CString::new(prop.as_bytes().to_owned()).unwrap()));
-            (*cstr).as_ptr()
-        } else {
-            std::ptr::null()
-        }*/
-    } else {
-        std::ptr::null()
-    }
+    todo!()
 }
 
 pub unsafe fn gsasl_property_get(
     sctx: &mut MechanismData,
     prop: Gsasl_property,
 ) -> *const libc::c_char {
-    let mut ptr = gsasl_property_fast(sctx, prop);
-    if ptr.is_null() {
-        let _ = sctx.callback_raw(prop);
-        ptr = gsasl_property_fast(sctx, prop);
-    }
-    ptr
+    todo!()
 }
 
 #[cfg(testn)]

@@ -1,4 +1,4 @@
-use crate::callback::tags;
+use crate::property::Property;
 
 pub struct ScramSaltedPassword {
     iterations: u32,
@@ -11,9 +11,9 @@ pub struct ScramSaltedPassword {
 ///
 /// A server SHOULD store users' passwords hashed in a way SCRAM can use and not in plaintext.
 ///
-pub struct ScramPassParams<'a> {
+pub struct ScramPassParams {
     pub iterations: u32,
-    pub salt: &'a [u8],
+    pub salt: &'static [u8],
 }
 
 #[derive(Debug)]
@@ -23,8 +23,8 @@ pub enum ScramPasswordError {
 }
 
 pub struct ScramSaltedPasswordQuery;
-impl<'a> tags::Type<'a> for ScramSaltedPasswordQuery {
-    type Reified = (ScramPassParams<'a>, &'a [u8]);
+impl Property for ScramSaltedPasswordQuery {
+    type Value = (ScramPassParams, &'static [u8]);
 }
 
 pub struct ScramSaltedPasswordQueryClient;
