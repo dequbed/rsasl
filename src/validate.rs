@@ -1,6 +1,5 @@
 use std::any::TypeId;
 use std::marker::PhantomData;
-use crate::callback::{RequestResponse, TOKEN};
 use crate::property::Property;
 use crate::typed::{Erased, TaggedOption, tags};
 
@@ -27,12 +26,12 @@ impl<'a> Validate<'a> {
         self.0.tag_id() == TypeId::of::<T>()
     }
 
-    pub fn finalize<T: Validation>(&mut self, outcome: T::Value) -> RequestResponse<&mut Self> {
+    pub fn finalize<T: Validation>(&mut self, outcome: T::Value) -> Result<&mut Self, ValidationError> {
         if let Some(result @ TaggedOption(Option::None)) = self.0.downcast_mut::<T>() {
             *result = TaggedOption(Some(outcome));
-            RequestResponse::Break(TOKEN(PhantomData))
+            Err(ValidationError::EarlyReturn(PhantomData))
         } else {
-            RequestResponse::Continue(self)
+            Ok(self)
         }
     }
 }
@@ -42,4 +41,6 @@ pub enum ValidationError {
     NoValidation,
     BadAuthentication,
     BadAuthorization,
+    #[doc(hidden)]
+    EarlyReturn(PhantomData<()>)
 }

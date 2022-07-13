@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 
-use crate::callback::{CallbackError, CallbackRequest, ClosureCR, Request, RequestResponse, RequestTag};
+use crate::callback::{CallbackError, CallbackRequest, ClosureCR, Request, RequestTag};
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
@@ -178,8 +178,8 @@ impl MechanismData {
         let context = build_context(provider);
         let validate = Validate::new::<V>(&mut tagged_option);
         let cflow = self.callback.validate(&self.session_data, context, validate);
-        if let RequestResponse::Continue(err) = cflow {
-            Err(err)
+        if let Ok(()) = cflow {
+            todo!()
         } else {
             Ok(tagged_option.0.unwrap())
         }
@@ -191,13 +191,7 @@ impl MechanismData {
         request: &'b mut Request<'a>,
     ) -> Result<(), CallbackError> {
         let context = build_context(provider);
-        let cflow = self.callback.callback(&self.session_data, context, request);
-
-        if let RequestResponse::Continue(err) = cflow {
-            Err(err)
-        } else {
-            Ok(())
-        }
+        self.callback.callback(&self.session_data, context, request)
     }
 
     pub fn need<T, C, P>(&self, provider: &P, mechcb: &mut C) -> Result<(), CallbackError>

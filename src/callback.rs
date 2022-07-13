@@ -57,8 +57,8 @@ pub trait SessionCallback {
         session_data: &SessionData,
         context: &Context,
         request: &mut Request<'_>,
-    ) -> RequestResponse<CallbackError> {
-        ControlFlow::Continue(CallbackError::NoCallback)
+    ) -> Result<(), CallbackError> {
+        Err(CallbackError::NoCallback)
     }
 
     /// Validate an authentication exchange
@@ -71,8 +71,8 @@ pub trait SessionCallback {
         session_data: &SessionData,
         context: &Context,
         validate: &mut Validate<'_>,
-    ) -> RequestResponse<ValidationError> {
-        ControlFlow::Continue(ValidationError::NoValidation)
+    ) -> Result<(), ValidationError> {
+        Err(ValidationError::NoValidation)
     }
 }
 
@@ -81,6 +81,9 @@ pub enum CallbackError {
     NoCallback,
     NoAnswer,
     Boxed(Box<dyn Error + Send + Sync>),
+
+    #[doc(hidden)]
+    EarlyReturn(PhantomData<()>)
 }
 impl Display for CallbackError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -88,6 +91,7 @@ impl Display for CallbackError {
             CallbackError::NoCallback => f.write_str("Callback does not handle that query type"),
             CallbackError::NoAnswer => f.write_str("Callback failed to provide an answer"),
             CallbackError::Boxed(e) => Display::fmt(e, f),
+            CallbackError::EarlyReturn(_) => f.write_str("callback returned early"),
         }
     }
 }
@@ -135,36 +139,9 @@ impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for RequestTag<T> {
     type Reified = dyn CallbackRequest<T::Value> + 'a;
 }
 
-#[doc(hidden)]
-pub struct TOKEN(pub(crate) PhantomData<()>);
-
-/// Control-flow utility for [`Request`] and [`Validate`].
-///
-/// This type allows to easily chain calls to [`satisfy`](Request::satisfy) or
-/// [`validate`](Validate::validate) but exit on the first successful call:
-///
-/// ```rust
-/// # use rsasl::callback::{Callback, Context, Request, CallbackError, RequestResponse};
-/// # use rsasl::Property;
-/// use rsasl::property::{properties, Password, CallbackQ, AuthId};
-/// # use rsasl::session::SessionData;
-/// # struct CB;
-/// # impl Callback for CB {
-/// fn callback(&self, session: &SessionData, context: &Context, request: &mut Request<'_>)
-///     -> RequestResponse<CallbackError>
-/// {
-///     request.satisfy::<AuthId>("exampleuser")?
-///            .satisfy::<Password>("secret")?
-///            .satisfy::<Authzid>("root")
-///            .or_fail()
-/// }
-/// # }
-/// ```
-pub type RequestResponse<R> = ControlFlow<TOKEN, R>;
-
 #[repr(transparent)]
-/// A type-erased callback request for some potentially context-specific values.
 ///
+/// A type-erased callback request for some potentially context-specific values.
 /// Since the actual type of the request is erased callbacks must first specify a type when
 /// wanting to satisfy the request. This is done with the type parameter `T` on the
 /// [`satisfy_with`] method.
@@ -175,29 +152,40 @@ impl<'a> Request<'a> {
     }
 }
 impl<'a> Request<'a> {
-    /// Return true if the Request is of type `T`.
+    /// Return true if the Request is of type `P`.
     ///
     pub fn is<P: MaybeSizedProperty>(&self) -> bool {
         self.0.is::<tags::RefMut<RequestTag<P>>>()
     }
 
-    /// Satisfy the given Request type `T` using the provided closure.
+    /// Satisfy the given Request type `P` using the provided closure.
     ///
-    /// If the type of the request is not `T` or if the request was already satisfied this method
-    /// returns `None`.
-    pub fn satisfy<P: MaybeSizedProperty>(&mut self, answer: &P::Value) -> RequestResponse<&mut Self> {
+    /// # Shortcutting behaviour
+    /// Iff the type of the request is `P` and the request was not yet satisfied, this method
+    /// will return an `Err`, otherwise it will return `Ok(&mut Self)`. This behaviour allows to
+    /// easily chain multiple calls to `satisfy` but shortcutting on the first successful one:
+    ///
+    /// ```rust
+    /// # use rsasl::callback::{CallbackError, Request};
+    /// # use rsasl::property::{AuthId, Password};
+    /// # fn example(request: &mut Request<'_>) -> Result<(), CallbackError> {
+    /// request
+    ///     .satisfy::<AuthId>("authid")? // if `P` is AuthId this will immediately return
+    ///     .satisfy::<Password>(b"password")?
+    ///     .satisfy::<Authzid>("authzid")?;
+    /// Ok(()) // If no error occured, but the request was also not satisfied,
+    /// # }
+    /// ```
+    pub fn satisfy<P: MaybeSizedProperty>(&mut self, answer: &P::Value) -> Result<&mut Self, CallbackError> {
         if let Some(TaggedOption(Some(mech))) = self
             .0
             .downcast_mut::<tags::RefMut<RequestTag<P>>>()
+            .take()
         {
             mech.satisfy(answer);
-            ControlFlow::Break(TOKEN(PhantomData))
+            Err(CallbackError::EarlyReturn(PhantomData))
         } else {
-            ControlFlow::Continue(self)
+            Ok(self)
         }
-    }
-
-    pub fn finish(&mut self) -> RequestResponse<CallbackError> {
-        RequestResponse::Continue(CallbackError::NoCallback)
     }
 }

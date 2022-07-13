@@ -14,7 +14,7 @@ use crate::session::{MechanismData, StepResult};
 use crate::property::{AuthId, AuthzId, Password, Property};
 use crate::validate::Validation;
 use crate::Authentication;
-use crate::context::{Demand, Provider};
+use crate::context::{Demand, DemandReply, Provider};
 use crate::mechanisms::common::properties::ValidateSimple;
 
 #[derive(Debug, Error)]
@@ -49,13 +49,16 @@ pub struct PlainProvider<'a> {
     pub password: &'a [u8],
 }
 impl<'b> Provider for PlainProvider<'b> {
-    fn provide<'a>(&'a self, req: &mut Demand<'a>) {
-        req.provide_ref::<AuthId>(&self.authcid);
-        req.provide_ref::<Password>(&self.password);
+    fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
+        req
+            .provide_ref::<AuthId>(&self.authcid)?
+            .provide_ref::<Password>(&self.password)?;
 
         if let Some(authzid) = self.authzid.as_ref() {
-            req.provide_ref::<AuthzId>(authzid);
+            req.provide_ref::<AuthzId>(authzid)?;
         }
+
+        req.done()
     }
 }
 
