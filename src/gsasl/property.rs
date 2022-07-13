@@ -1,6 +1,6 @@
-use crate::gsasl::consts::*;
+
 use crate::gsasl::consts::{Gsasl_property, GSASL_OK};
-use crate::property::*;
+
 use crate::session::MechanismData;
 use libc::{size_t, strlen};
 use std::ffi::CString;
@@ -60,15 +60,15 @@ pub unsafe fn gsasl_property_set_raw(
  * Since: 0.2.0
  **/
 unsafe fn gsasl_property_fast(
-    sctx: &mut MechanismData,
-    prop: Gsasl_property,
+    _sctx: &mut MechanismData,
+    _prop: Gsasl_property,
 ) -> *const libc::c_char {
     todo!()
 }
 
 pub unsafe fn gsasl_property_get(
-    sctx: &mut MechanismData,
-    prop: Gsasl_property,
+    _sctx: &mut MechanismData,
+    _prop: Gsasl_property,
 ) -> *const libc::c_char {
     todo!()
 }

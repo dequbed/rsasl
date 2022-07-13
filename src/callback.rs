@@ -8,17 +8,17 @@
 //! Because that would devolve to basically `fn callback(query: Box<dyn Any>) -> Box<dyn Any>`
 //! with exactly zero type-level protection against accidentally not providing some required data.
 
-use std::any::TypeId;
+
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
-use std::ops::{ControlFlow, DerefMut};
+
 use crate::context::Context;
 use crate::property::MaybeSizedProperty;
 
 use crate::session::SessionData;
 use crate::typed::{Erased, TaggedOption, tags};
-use crate::validate::{Validate, Validation, ValidationError};
+use crate::validate::{Validate, ValidationError};
 
 pub trait SessionCallback {
     /// Query by a mechanism implementation to provide some information or do some action
@@ -54,9 +54,9 @@ pub trait SessionCallback {
     /// authenticate to their OIDC IdP using the system's web browser).
     fn callback(
         &self,
-        session_data: &SessionData,
-        context: &Context,
-        request: &mut Request<'_>,
+        _session_data: &SessionData,
+        _context: &Context,
+        _request: &mut Request<'_>,
     ) -> Result<(), CallbackError> {
         Err(CallbackError::NoCallback)
     }
@@ -68,9 +68,9 @@ pub trait SessionCallback {
     ///
     fn validate(
         &self,
-        session_data: &SessionData,
-        context: &Context,
-        validate: &mut Validate<'_>,
+        _session_data: &SessionData,
+        _context: &Context,
+        _validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
         Err(ValidationError::NoValidation)
     }

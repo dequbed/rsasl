@@ -1,11 +1,11 @@
 use crate::mechanism::Authentication;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
-use crate::vectored_io::VectoredWriter;
+
 use std::io::Write;
-use crate::callback::CallbackError;
-use crate::error::SessionError;
-use crate::error::SessionError::MechanismError;
+
+
+
 
 use crate::property::{AuthId, AuthzId, Password};
 
@@ -17,7 +17,7 @@ impl Authentication for Plain {
         &mut self,
         session: &mut MechanismData,
         _input: Option<&[u8]>,
-        mut writer: &mut dyn Write,
+        writer: &mut dyn Write,
     ) -> StepResult {
         let mut len = 0usize;
         let mut out = Ok(());

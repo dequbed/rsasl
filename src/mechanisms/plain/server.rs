@@ -1,14 +1,14 @@
-use std::borrow::{Borrow, Cow};
-use std::fmt::{Display, Formatter};
+use std::borrow::{Cow};
+
 use std::io::Write;
 use std::str::Utf8Error;
 use thiserror::Error;
 
-use stringprep::{saslprep, Error};
+use stringprep::{saslprep};
 
-use crate::error::{MechanismError, MechanismErrorKind, SessionError};
+use crate::error::{MechanismError, MechanismErrorKind};
 
-use crate::session::Step::{Done, NeedsMore};
+use crate::session::Step::{Done};
 use crate::session::{MechanismData, StepResult};
 
 use crate::property::{AuthId, AuthzId, Password, Property};

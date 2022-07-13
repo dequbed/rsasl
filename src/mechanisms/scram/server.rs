@@ -17,7 +17,7 @@ use hmac::SimpleHmac;
 use rand::{thread_rng, Rng, RngCore};
 use std::io::Write;
 use std::marker::PhantomData;
-use stringprep::saslprep;
+
 use crate::context::ThisProvider;
 
 const DEFAULT_ITERATIONS: u32 = 2u32.pow(14); // 16384, TODO check if still reasonable

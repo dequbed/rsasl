@@ -7,7 +7,7 @@
 
 use std::any::TypeId;
 use std::ops::{Deref, DerefMut};
-use crate::property::MaybeSizedProperty;
+
 
 pub(crate) mod tags {
     use std::marker::PhantomData;
