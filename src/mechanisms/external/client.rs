@@ -22,7 +22,7 @@ impl Authentication for External {
         let mut write_out = Ok(());
         let mut len = None;
 
-        session.need_with::<'_, AuthId, _, _>(&(), &mut |authid| {
+        session.need_with::<AuthId, _>(&(), &mut |authid| {
             let buf = authid.as_bytes();
             write_out = writer.write_all(buf);
             len = Some(buf.len());

@@ -169,10 +169,9 @@ impl MechanismData {
         }
     }
 
-    pub fn validate<V, P>(&self, provider: &P) -> Result<V::Value, ValidationError>
+    pub fn validate<V>(&self, provider: &dyn Provider) -> Result<V::Value, ValidationError>
     where
         V: Validation,
-        P: Provider,
     {
         let mut tagged_option = TaggedOption::<'_, V>(None);
         let context = build_context(provider);
@@ -185,20 +184,19 @@ impl MechanismData {
         }
     }
 
-    pub fn callback<'a, 'b, P: Provider>(
+    pub fn callback<'a, 'b>(
         &'b self,
-        provider: &'b P,
+        provider: &'b dyn Provider,
         request: &'b mut Request<'a>,
     ) -> Result<(), CallbackError> {
         let context = build_context(provider);
         self.callback.callback(&self.session_data, context, request)
     }
 
-    pub fn need<T, C, P>(&self, provider: &P, mechcb: &mut C) -> Result<(), CallbackError>
+    pub fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(), CallbackError>
     where
         T: MaybeSizedProperty,
         C: CallbackRequest<T::Value>,
-        P: Provider,
     {
         let mut tagged_option = TaggedOption::<'_, tags::RefMut<RequestTag<T>>>(Some(mechcb));
         self.callback(provider, Request::new::<T>(&mut tagged_option))?;
@@ -209,16 +207,14 @@ impl MechanismData {
         }
     }
 
-    pub fn need_with<T: MaybeSizedProperty, F: FnMut(&T::Value), P>(
+    pub fn need_with<T: MaybeSizedProperty, F: FnMut(&T::Value)>(
         &self,
-        provider: &P,
+        provider: &dyn Provider,
         closure: &mut F,
     ) -> Result<(), CallbackError>
-    where
-        P: Provider,
     {
         let closurecr = ClosureCR::<T, F>::wrap(closure);
-        self.need::<T, _, P>(provider, closurecr)
+        self.need::<T, _>(provider, closurecr)
     }
 
     // Legacy bs:
