@@ -1,7 +1,8 @@
 use std::io;
 use std::io::Cursor;
+use std::ops::ControlFlow;
 use std::sync::Arc;
-use rsasl::callback::{CallbackError, Request, RequestResponse, SessionCallback};
+use rsasl::callback::{CallbackError, Request, SessionCallback};
 use rsasl::context::Context;
 use rsasl::mechanisms::common::properties::{Credentials, SimpleCredentials};
 use rsasl::mechname::Mechname;
@@ -16,11 +17,11 @@ struct Properties {
 }
 impl SessionCallback for Properties {
     fn callback(&self, session_data: &SessionData, context: &Context, request: &mut Request<'_>)
-        -> RequestResponse<CallbackError>
+        -> Result<(), CallbackError>
     {
         request.satisfy::<AuthId>(self.username.trim())?
-               .satisfy::<Password>(self.password.trim().as_bytes())?
-               .finish()
+               .satisfy::<Password>(self.password.trim().as_bytes())?;
+        Ok(())
     }
 }
 
