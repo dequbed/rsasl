@@ -144,8 +144,8 @@ impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for Action<T> {
 }
 
 #[repr(transparent)]
-///
 /// A type-erased callback request for some potentially context-specific values.
+///
 /// Since the actual type of the request is erased callbacks must first specify a type when
 /// wanting to satisfy the request. This is done with the type parameter `T` on the
 /// [`satisfy_with`] method.
@@ -164,17 +164,32 @@ impl<'a> Request<'a> {
     }
 }
 impl<'a> Request<'a> {
-    pub fn is_satisfy<P: MaybeSizedProperty>(&self) -> bool {
+    fn is_satisfy<P: MaybeSizedProperty>(&self) -> bool {
         self.0.is::<tags::RefMut<Satisfy<P>>>()
     }
-    pub fn is_action<P: MaybeSizedProperty>(&self) -> bool {
+    fn is_action<P: MaybeSizedProperty>(&self) -> bool {
         self.0.is::<tags::Ref<Action<P>>>()
+    }
+
+    /// Returns true iff this Request is for the Property `P`.
+    ///
+    /// Properties can be either requests to provide an appropriate value, or to perform a
+    /// specific (usually sideband) action, e.g. opening a web browser and letting the user log
+    /// in to their OpenID Connect / SAML / OAuth2 SSO-system.
+    ///
+    pub fn is<P: MaybeSizedProperty>(&self) -> bool {
+        self.is_satisfy() || self.is_action()
     }
 
     /// Get a reference to the value of a Request `P`.
     ///
+    /// This method does not work for all Requests, even if `Self::is` returned true for the
+    /// same `P`, as e.g. a request to provide an Authentication ID can't return a reference to
+    /// an value that wasn't provided yet.
     ///
-    pub fn get_action_ref<P: MaybeSizedProperty>(&self) -> Option<&P::Value> {
+    /// Refer to the documentation of a property on how to handle requests regarding it and whether
+    /// it will generate actionable or satisfiable requests.
+    pub fn get_action<P: MaybeSizedProperty>(&self) -> Option<&P::Value> {
        if let Some(TaggedOption(Some(value))) = self.0.downcast_ref::<tags::Ref<Action<P>>>() {
            Some(*value)
        } else {
