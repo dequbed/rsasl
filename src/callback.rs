@@ -22,28 +22,35 @@ use crate::validate::{Validate, ValidationError};
 pub trait SessionCallback {
     /// Query by a mechanism implementation to provide some information or do some action
     ///
-    /// The parameter `query` defines the exact property that is requested. Query is a request for
-    /// either some information ("property"), or to perform some outside action (e.g. authenticate
-    /// with the users IdP).
-    ///
-    /// In most cases a
-    /// callback should then issue a call to [`SessionData::set_property`], so e.g.
     /// ```rust
     /// # use std::sync::Arc;
     /// # use rsasl::callback::{Callback, Context, Request, CallbackError};
     /// # use rsasl::Property;
-    /// use rsasl::property::{properties, Password, CallbackQ, AuthId};
+    /// use rsasl::property::{properties, Password, CallbackQ, AuthId, OpenID20AuthenticateInBrowser, Realm};
     /// # use rsasl::session::SessionData;
     /// # struct CB;
     /// # impl Callback for CB {
     /// fn callback(&self, session: &SessionData, context: &Context, request: &mut Request<'_>)
     ///     -> Result<(), CallbackError>
     /// {
-    ///     if request.is::<AuthId>() {
-    ///         Ok(request.satisfy("exampleuser"))
-    ///     } else {
-    ///         Err(CallbackError::NoCallback)
+    ///     // Some requests are to provide a value for the given property by calling `satisfy`.
+    ///     request
+    ///         // satisfy calls can be chained, making use of short-circuiting
+    ///         .satisfy::<AuthId>("exampleuser")?
+    ///         .satisfy::<Password>(b"password")?
+    ///         .satisfy::<Authzid>("authzid")?;
+    ///
+    ///     // Other requests are to do a given action:
+    ///     if let Some(url) = request.get_action::<OpenID20AuthenticateInBrowser>() {
+    ///         open_browser_and_go_to(url);
+    ///         return Ok(());
     ///     }
+    ///     // Additional parameters can be retrieved from the provided `Context`:
+    ///     if let Some("MIT.EDU") = context.get_ref::<Realm>() {
+    ///         // Special handling
+    ///     }
+    ///
+    ///     Err(CallbackError::NoCallback)
     /// }
     /// # }
     /// ```
@@ -178,7 +185,7 @@ impl<'a> Request<'a> {
     /// in to their OpenID Connect / SAML / OAuth2 SSO-system.
     ///
     pub fn is<P: MaybeSizedProperty>(&self) -> bool {
-        self.is_satisfy() || self.is_action()
+        self.is_satisfy::<P>() || self.is_action::<P>()
     }
 
     /// Get a reference to the value of a Request `P`.

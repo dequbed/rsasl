@@ -301,12 +301,8 @@ impl State {
 /// Result type of a call to [`Session::step`] or [`Session::step64`]
 ///
 /// An `Err` is returned when the call to `step` produced a
-pub type StepResult2 = Result<StepOutcome, SessionError>;
+pub type StepResult2 = Result<(State, Option<usize>), SessionError>;
 
-pub struct StepOutcome {
-    pub state: State,
-    pub written: Option<usize>,
-}
 pub type StepResult = Result<Step, SessionError>;
 
 impl SessionData {
