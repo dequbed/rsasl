@@ -33,13 +33,7 @@
 //! ));
 //! ```
 
-
-
-
 use std::marker::PhantomData;
-
-
-
 
 pub trait Property: 'static {
     type Value: 'static;

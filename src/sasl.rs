@@ -1,6 +1,32 @@
 use crate::{init, registry, SessionCallback, SASL};
 
+use crate::callback::{CallbackError, Request};
+use crate::context::Context;
+use crate::property::{AuthId, AuthzId, Password};
+use crate::session::SessionData;
 use std::sync::Arc;
+
+pub struct CredentialsProvider {
+    authid: String,
+    authzid: Option<String>,
+    password: String,
+}
+impl SessionCallback for CredentialsProvider {
+    fn callback(
+        &self,
+        _session_data: &SessionData,
+        _context: &Context,
+        request: &mut Request<'_>,
+    ) -> Result<(), CallbackError> {
+        request
+            .satisfy::<AuthId>(self.authid.as_str())?
+            .satisfy::<Password>(self.password.as_bytes())?;
+        if let Some(authzid) = self.authzid.as_deref() {
+            request.satisfy::<AuthzId>(authzid)?;
+        }
+        Ok(())
+    }
+}
 
 impl SASL {
     pub fn new(callback: Arc<dyn SessionCallback>) -> Self {
@@ -15,6 +41,15 @@ impl SASL {
 
             sort_fn: |a, b| a.priority.cmp(&b.priority),
         }
+    }
+
+    /// Construct a rsasl context with preconfigured Credentials
+    pub fn with_credentials(authid: String, authzid: Option<String>, password: String) -> Self {
+        Self::new(Arc::new(CredentialsProvider {
+            authid,
+            authzid,
+            password,
+        }))
     }
 
     /// Initialize this SASL with the builtin Mechanisms

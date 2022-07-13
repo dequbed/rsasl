@@ -560,8 +560,6 @@ impl<'scram> ServerFinal<'scram> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
-    
 
     #[test]
     fn test_parse_gs2_cbind_flag() {

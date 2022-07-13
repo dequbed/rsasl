@@ -29,5 +29,7 @@ impl Property for SimpleCredentials {
 }
 
 pub struct ValidateSimple;
-impl Property for ValidateSimple { type Value = bool; }
+impl Property for ValidateSimple {
+    type Value = bool;
+}
 impl Validation for ValidateSimple {}
