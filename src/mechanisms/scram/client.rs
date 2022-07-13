@@ -342,7 +342,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
                 let mut username = None;
                 let mut outer_authzid = None;
                 let mut outer_passwd: Option<Vec<u8>> = None;
-                session.need_with::<'_, SimpleCredentials, _, _>(
+                session.need_with::<SimpleCredentials, _>(
                     &(),
                     &mut |Credentials {
                               authid,

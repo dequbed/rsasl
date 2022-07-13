@@ -21,7 +21,7 @@ impl Authentication for Plain {
     ) -> StepResult {
         let mut len = 0usize;
         let mut out = Ok(());
-        session.need_with::<'_, AuthzId, _, _>(&(), &mut |authzid| {
+        session.need_with::<AuthzId, _>(&(), &mut |authzid| {
             out = writer.write_all(authzid.as_bytes());
             len += authzid.len();
         });
@@ -29,7 +29,7 @@ impl Authentication for Plain {
         len += writer.write(&[0])?;
 
         let mut out = Ok(());
-        session.need_with::<'_, AuthId, _, _>(&(), &mut |authid| {
+        session.need_with::<AuthId, _>(&(), &mut |authid| {
             out = writer.write_all(authid.as_bytes());
             len += authid.len();
         });
@@ -37,7 +37,7 @@ impl Authentication for Plain {
         len += writer.write(&[0])?;
 
         let mut out = Ok(());
-        session.need_with::<'_, Password, _, _>(&(), &mut |password| {
+        session.need_with::<Password, _>(&(), &mut |password| {
             out = writer.write_all(password);
             len += password.len();
         });

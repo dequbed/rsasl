@@ -107,7 +107,7 @@ impl Authentication for Plain {
             password: password.as_bytes(),
         };
 
-        session.validate::<ValidateSimple, _>(&provider);
+        session.validate::<ValidateSimple>(&provider);
         Ok(Done(None))
     }
 }

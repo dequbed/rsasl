@@ -40,12 +40,12 @@ impl Authentication for External {
         let outcome = if let Some(input) = input {
             if let Ok(authid) = std::str::from_utf8(input) {
                 let provider = ThisProvider::<AuthId>::with(authid);
-                session.validate::<ExternalValidation, _>(&provider)
+                session.validate::<ExternalValidation>(&provider)
             } else {
                 return Err(ParseError.into());
             }
         } else {
-            session.validate::<ExternalValidation, _>(&())
+            session.validate::<ExternalValidation>(&())
         };
 
         let outcome = outcome.map_err(|_| ParseError /* FIXME!! */)?;

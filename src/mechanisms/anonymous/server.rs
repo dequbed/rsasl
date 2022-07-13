@@ -50,7 +50,7 @@ impl Authentication for Anonymous {
             }
 
             session
-                .validate::<AnonymousValidation, _>(&ThisProvider::<AnonymousToken>::with(input))
+                .validate::<AnonymousValidation>(&ThisProvider::<AnonymousToken>::with(input))
                 .map_err(|_| ParseError /* FIXME!! */)?;
             Ok(Done(None))
         } else {

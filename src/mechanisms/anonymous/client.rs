@@ -20,7 +20,7 @@ impl Authentication for Anonymous {
     ) -> StepResult {
         let mut write_out = Ok(());
         let mut len = None;
-        session.need_with::<'_, AnonymousToken, _, _>(&(), &mut |token| {
+        session.need_with::<AnonymousToken, _>(&(), &mut |token| {
             let buf = token.as_bytes();
             write_out = writer.write_all(buf);
             len = Some(buf.len());
