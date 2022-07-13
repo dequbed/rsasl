@@ -132,9 +132,15 @@ where
 }
 
 #[repr(transparent)]
-pub(crate) struct RequestTag<T>(PhantomData<T>);
-impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for RequestTag<T> {
+pub(crate) struct Satisfy<T>(PhantomData<T>);
+impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for Satisfy<T> {
     type Reified = dyn CallbackRequest<T::Value> + 'a;
+}
+
+#[repr(transparent)]
+pub(crate) struct Action<T>(PhantomData<T>);
+impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for Action<T> {
+    type Reified = T::Value;
 }
 
 #[repr(transparent)]
@@ -145,17 +151,35 @@ impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for RequestTag<T> {
 /// [`satisfy_with`] method.
 pub struct Request<'a>(dyn Erased<'a>);
 impl<'a> Request<'a> {
-    pub(crate) fn new<'o, P: MaybeSizedProperty>(
-        opt: &'o mut TaggedOption<'a, tags::RefMut<RequestTag<P>>>,
+    pub(crate) fn new_satisfy<'o, P: MaybeSizedProperty>(
+        opt: &'o mut TaggedOption<'a, tags::RefMut<Satisfy<P>>>,
     ) -> &'o mut Self {
         unsafe { std::mem::transmute(opt as &mut dyn Erased) }
     }
+
+    pub(crate) fn new_action<'o, P: MaybeSizedProperty>(
+        val: &'o mut TaggedOption<'a, tags::Ref<Action<P>>>,
+    ) -> &'o mut Self {
+        unsafe { std::mem::transmute(val as &mut dyn Erased) }
+    }
 }
 impl<'a> Request<'a> {
-    /// Return true if the Request is of type `P`.
+    pub fn is_satisfy<P: MaybeSizedProperty>(&self) -> bool {
+        self.0.is::<tags::RefMut<Satisfy<P>>>()
+    }
+    pub fn is_action<P: MaybeSizedProperty>(&self) -> bool {
+        self.0.is::<tags::Ref<Action<P>>>()
+    }
+
+    /// Get a reference to the value of a Request `P`.
     ///
-    pub fn is<P: MaybeSizedProperty>(&self) -> bool {
-        self.0.is::<tags::RefMut<RequestTag<P>>>()
+    ///
+    pub fn get_action_ref<P: MaybeSizedProperty>(&self) -> Option<&P::Value> {
+       if let Some(TaggedOption(Some(value))) = self.0.downcast_ref::<tags::Ref<Action<P>>>() {
+           Some(*value)
+       } else {
+           None
+       }
     }
 
     /// Satisfy the given Request type `P` using the provided closure.
@@ -181,7 +205,7 @@ impl<'a> Request<'a> {
         answer: &P::Value,
     ) -> Result<&mut Self, CallbackError> {
         if let Some(TaggedOption(Some(mech))) =
-            self.0.downcast_mut::<tags::RefMut<RequestTag<P>>>().take()
+            self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>().take()
         {
             mech.satisfy(answer);
             Err(CallbackError::EarlyReturn(PhantomData))

@@ -8,6 +8,7 @@ use crate::mechname::MechanismNameError;
 use std::ffi::CStr;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
+use crate::validate::ValidationError;
 
 // TODO: Error types:
 // - Setup error. Bad Mechanism, no shared mechanism, mechanism failed to start.
@@ -55,6 +56,42 @@ impl MechanismError for Gsasl {
         // TODO: match self and return proper type
         MechanismErrorKind::Protocol
     }
+}
+
+#[derive(Debug, Error)]
+pub enum StepError {
+    #[error("IO error occurred: {source}")]
+    Io {
+        #[from]
+        source: std::io::Error,
+    },
+
+    #[cfg(feature = "provider_base64")]
+    #[error("base64 wrapping failed: {source}")]
+    Base64 {
+        #[from]
+        source: base64::DecodeError,
+    },
+
+    #[error("input data was required but not provided")]
+    /// Mechanism was called without input data when requiring some
+    InputDataRequired,
+
+    #[error("step was called after mechanism finished")]
+    MechanismDone,
+
+    #[error("internal mechanism error: {0}")]
+    MechanismError(Box<dyn MechanismError>),
+
+    #[error("callback error: {0}")]
+    CallbackError(
+        #[from]
+        #[source]
+        CallbackError,
+    ),
+
+    #[error("validation error: {0}")]
+    ValidationError(#[from] #[source] ValidationError),
 }
 
 #[derive(Debug, Error)]

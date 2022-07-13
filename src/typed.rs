@@ -89,4 +89,13 @@ impl<'a> dyn Erased<'a> {
             None
         }
     }
+
+    #[inline]
+    pub fn downcast_ref<T: tags::Type<'a>>(&self) -> Option<&TaggedOption<'a, T>> {
+        if self.is::<T>() {
+            Some(unsafe { &*(self as *const Self as *const TaggedOption<'a, T>) })
+        } else {
+            None
+        }
+    }
 }

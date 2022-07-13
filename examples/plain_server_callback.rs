@@ -1,16 +1,47 @@
-use rsasl::callback::{RequestResponse, SessionCallback};
+use thiserror::Error;
+use rsasl::callback::SessionCallback;
 use rsasl::context::Context;
 use rsasl::error::SessionError;
 use rsasl::mechanisms::common::properties::ValidateSimple;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, AuthzId, Password};
 use rsasl::session::{SessionData, Step, StepResult};
-use rsasl::validate::{Validate, ValidationError};
+use rsasl::validate::{Validate, ValidationError, ValidationOutcome};
 use rsasl::SASL;
 use std::io::Cursor;
 use std::sync::Arc;
 
 struct OurCallback;
+#[derive(Debug, Error)]
+enum OurCallbackError {
+
+}
+impl OurCallback {
+    fn validate_simple(&self, context: &Context) -> Result<ValidationOutcome, OurCallbackError> {
+        let authzid = context.get_ref::<AuthzId>();
+        let authid = context
+            .get_ref::<AuthId>()
+            .expect("SIMPLE validation requested but AuthId prop is missing!");
+        let password = context
+            .get_ref::<Password>()
+            .expect("SIMPLE validation requested but Password prop is missing!");
+
+        println!(
+            "SIMPLE VALIDATION for (authzid: {:?}, authid: {}, password: {:?})",
+            authzid,
+            authid,
+            std::str::from_utf8(password)
+        );
+
+        if !(authzid.is_none() || authzid == Some(authid)) {
+            Ok(ValidationOutcome::AuthorizationFailed)
+        } else if authid == "username" && password == b"secret" {
+            Ok(ValidationOutcome::Successful)
+        } else {
+            Ok(ValidationOutcome::AuthenticationFailed)
+        }
+    }
+}
 impl SessionCallback for OurCallback {
     fn validate(
         &self,
@@ -18,27 +49,8 @@ impl SessionCallback for OurCallback {
         context: &Context,
         validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
-        if validate.is::<ValidateSimple>() {
-            let authzid = context.get_ref::<AuthzId>();
-            let authid = context
-                .get_ref::<AuthId>()
-                .expect("SIMPLE validation requested but AuthId prop is missing!");
-            let password = context
-                .get_ref::<Password>()
-                .expect("SIMPLE validation requested but Password prop is missing!");
-
-            println!(
-                "SIMPLE VALIDATION for (authzid: {:?}, authid: {}, password: {:?})",
-                authzid,
-                authid,
-                std::str::from_utf8(password)
-            );
-            let o = authzid.is_none() && authid == "username" && password == b"secret";
-            validate.finalize::<ValidateSimple>(o);
-            Ok(())
-        } else {
-            Err(ValidationError::NoValidation)
-        }
+        validate.with::<ValidateSimple, _, _>(|| self.validate_simple(context))?;
+        Err(ValidationError::NoValidation)
     }
 }
 

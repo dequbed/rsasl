@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 
-use crate::callback::{CallbackError, CallbackRequest, ClosureCR, Request, RequestTag};
+use crate::callback::{CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, Action};
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::context::{build_context, Provider};
 use crate::error::SessionError;
@@ -176,14 +176,8 @@ impl MechanismData {
         let mut tagged_option = TaggedOption::<'_, V>(None);
         let context = build_context(provider);
         let validate = Validate::new::<V>(&mut tagged_option);
-        let cflow = self
-            .callback
-            .validate(&self.session_data, context, validate);
-        if let Ok(()) = cflow {
-            todo!()
-        } else {
-            Ok(tagged_option.0.unwrap())
-        }
+        self.callback.validate(&self.session_data, context, validate)?;
+        tagged_option.0.ok_or(ValidationError::NoValidation)
     }
 
     pub fn callback<'a, 'b>(
@@ -195,13 +189,21 @@ impl MechanismData {
         self.callback.callback(&self.session_data, context, request)
     }
 
+    pub fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), CallbackError>
+    where
+        T: MaybeSizedProperty
+    {
+        let mut tagged_option = TaggedOption::<'_, tags::Ref<Action<T>>>(Some(value));
+        self.callback(provider, Request::new_action::<T>(&mut tagged_option))
+    }
+
     pub fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(), CallbackError>
     where
         T: MaybeSizedProperty,
         C: CallbackRequest<T::Value>,
     {
-        let mut tagged_option = TaggedOption::<'_, tags::RefMut<RequestTag<T>>>(Some(mechcb));
-        self.callback(provider, Request::new::<T>(&mut tagged_option))?;
+        let mut tagged_option = TaggedOption::<'_, tags::RefMut<Satisfy<T>>>(Some(mechcb));
+        self.callback(provider, Request::new_satisfy::<T>(&mut tagged_option))?;
         if tagged_option.is_some() {
             Err(CallbackError::NoCallback)
         } else {
@@ -256,15 +258,54 @@ pub enum Step {
     NeedsMore(Option<usize>),
 }
 
-// FIXME: This is wrong. There are three outcomes: Authentication Successfully ended, Auth is
-//  still in progress, authentication errored.
-//  *Completely* independent of that a mech may return data, even in the case of an error.
-//  *On top of that* a mechanism may error for non-authentication related errors, e.g. IO errors
-//  or missing properties in which case a mechanism has not written *valid* data and the
-//  connection, if any, should be reset.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Outcome {
+    Successful,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+/// State result of the underlying Mechanism implementation
+pub enum State {
+    /// The Mechanism has not yet completed the authentication exchange
+    Running,
+
+    /// The Mechanism has received all required information from the other party.
+    ///
+    /// However, a Mechanism returning `Finished` may still have *written* data. This data MUST be
+    /// sent to the other party to ensure both sides have received all required data.
+    ///
+    /// After a `Finished` is returned `step` or `step64` MUST NOT be called further.
+    ///
+    /// **NOTE**: This state does not guarantee that the authentication was *successful*, only that
+    /// no further calls to `step` or `step64` are possible.
+    /// Most SASL mechanisms have no way of returning the authentication outcome inline.
+    /// Instead the outer protocol will indicate the authentication outcome in a protocol-specific
+    /// way.
+    Finished,
+}
+impl State {
+    #[inline(always)]
+    pub fn is_running(&self) -> bool {
+        match self {
+            Self::Running => true,
+            _ => false,
+        }
+    }
+    #[inline(always)]
+    pub fn is_finished(&self) -> bool {
+        !self.is_running()
+    }
+}
+
+/// Result type of a call to [`Session::step`] or [`Session::step64`]
+///
+/// An `Err` is returned when the call to `step` produced a
+pub type StepResult2 = Result<StepOutcome, SessionError>;
+
 pub struct StepOutcome {
-    pub step: Step,
-    pub data_len: Option<usize>,
+    pub state: State,
+    pub written: Option<usize>,
 }
 pub type StepResult = Result<Step, SessionError>;
 
