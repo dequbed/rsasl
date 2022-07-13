@@ -1,13 +1,13 @@
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 
-use crate::{Mechname};
+use crate::Mechname;
 use thiserror::Error;
 
 use crate::callback::CallbackError;
 use crate::mechname::MechanismNameError;
 use std::ffi::CStr;
+use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
-use std::{fmt};
 
 // TODO: Error types:
 // - Setup error. Bad Mechanism, no shared mechanism, mechanism failed to start.

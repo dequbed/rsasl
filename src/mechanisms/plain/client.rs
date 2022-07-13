@@ -4,9 +4,6 @@ use crate::session::{MechanismData, StepResult};
 
 use std::io::Write;
 
-
-
-
 use crate::property::{AuthId, AuthzId, Password};
 
 #[derive(Copy, Clone, Debug)]
@@ -24,7 +21,7 @@ impl Authentication for Plain {
         session.need_with::<AuthzId, _>(&(), &mut |authzid| {
             out = writer.write_all(authzid.as_bytes());
             len += authzid.len();
-        });
+        })?;
         out?;
         len += writer.write(&[0])?;
 
@@ -32,7 +29,7 @@ impl Authentication for Plain {
         session.need_with::<AuthId, _>(&(), &mut |authid| {
             out = writer.write_all(authid.as_bytes());
             len += authid.len();
-        });
+        })?;
         out?;
         len += writer.write(&[0])?;
 
@@ -40,7 +37,7 @@ impl Authentication for Plain {
         session.need_with::<Password, _>(&(), &mut |password| {
             out = writer.write_all(password);
             len += password.len();
-        });
+        })?;
         out?;
 
         Ok(Done(Some(len)))

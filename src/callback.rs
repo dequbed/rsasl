@@ -8,7 +8,6 @@
 //! Because that would devolve to basically `fn callback(query: Box<dyn Any>) -> Box<dyn Any>`
 //! with exactly zero type-level protection against accidentally not providing some required data.
 
-
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
@@ -17,7 +16,7 @@ use crate::context::Context;
 use crate::property::MaybeSizedProperty;
 
 use crate::session::SessionData;
-use crate::typed::{Erased, TaggedOption, tags};
+use crate::typed::{tags, Erased, TaggedOption};
 use crate::validate::{Validate, ValidationError};
 
 pub trait SessionCallback {
@@ -83,7 +82,7 @@ pub enum CallbackError {
     Boxed(Box<dyn Error + Send + Sync>),
 
     #[doc(hidden)]
-    EarlyReturn(PhantomData<()>)
+    EarlyReturn(PhantomData<()>),
 }
 impl Display for CallbackError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -132,7 +131,6 @@ where
     }
 }
 
-
 #[repr(transparent)]
 pub(crate) struct RequestTag<T>(PhantomData<T>);
 impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for RequestTag<T> {
@@ -147,7 +145,9 @@ impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for RequestTag<T> {
 /// [`satisfy_with`] method.
 pub struct Request<'a>(dyn Erased<'a>);
 impl<'a> Request<'a> {
-    pub(crate) fn new<'o, P: MaybeSizedProperty>(opt: &'o mut TaggedOption<'a, tags::RefMut<RequestTag<P>>>) -> &'o mut Self {
+    pub(crate) fn new<'o, P: MaybeSizedProperty>(
+        opt: &'o mut TaggedOption<'a, tags::RefMut<RequestTag<P>>>,
+    ) -> &'o mut Self {
         unsafe { std::mem::transmute(opt as &mut dyn Erased) }
     }
 }
@@ -176,11 +176,12 @@ impl<'a> Request<'a> {
     /// Ok(()) // If no error occured, but the request was also not satisfied,
     /// # }
     /// ```
-    pub fn satisfy<P: MaybeSizedProperty>(&mut self, answer: &P::Value) -> Result<&mut Self, CallbackError> {
-        if let Some(TaggedOption(Some(mech))) = self
-            .0
-            .downcast_mut::<tags::RefMut<RequestTag<P>>>()
-            .take()
+    pub fn satisfy<P: MaybeSizedProperty>(
+        &mut self,
+        answer: &P::Value,
+    ) -> Result<&mut Self, CallbackError> {
+        if let Some(TaggedOption(Some(mech))) =
+            self.0.downcast_mut::<tags::RefMut<RequestTag<P>>>().take()
         {
             mech.satisfy(answer);
             Err(CallbackError::EarlyReturn(PhantomData))

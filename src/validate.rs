@@ -1,12 +1,7 @@
+use crate::property::Property;
+use crate::typed::{tags, Erased, TaggedOption};
 use std::any::TypeId;
 use std::marker::PhantomData;
-use crate::property::Property;
-use crate::typed::{Erased, TaggedOption, tags};
-
-enum ValidationOutcome {
-    Successful,
-    Failed,
-}
 
 pub trait Validation: Property {}
 impl<'a, V: Validation> tags::Type<'a> for V {
@@ -26,12 +21,16 @@ impl<'a> Validate<'a> {
         self.0.tag_id() == TypeId::of::<T>()
     }
 
-    pub fn finalize<T: Validation>(&mut self, outcome: T::Value) -> Result<&mut Self, ValidationError> {
+    /// Finalize the authentication exchange by providing a last value to the mechanism
+    ///
+    /// The final `outcome` value of a [`Validation`] depends on the specific mechanism that was
+    /// used, but will usually be a `bool` or `Result` type.
+    pub fn finalize<T: Validation>(&mut self, outcome: T::Value) -> Result<(), ()> {
         if let Some(result @ TaggedOption(Option::None)) = self.0.downcast_mut::<T>() {
             *result = TaggedOption(Some(outcome));
-            Err(ValidationError::EarlyReturn(PhantomData))
+            Ok(())
         } else {
-            Ok(self)
+            Err(())
         }
     }
 }
@@ -42,5 +41,5 @@ pub enum ValidationError {
     BadAuthentication,
     BadAuthorization,
     #[doc(hidden)]
-    EarlyReturn(PhantomData<()>)
+    EarlyReturn(PhantomData<()>),
 }

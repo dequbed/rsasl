@@ -2,12 +2,12 @@ use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
 use thiserror::Error;
 
+use crate::context::ThisProvider;
 use crate::mechanisms::external::client::AuthId;
+use crate::property::Property;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 use std::io::Write;
-use crate::context::ThisProvider;
-use crate::property::Property;
 
 use crate::validate::Validation;
 

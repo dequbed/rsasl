@@ -184,9 +184,9 @@ pub mod mechname;
 pub mod registry;
 
 pub mod channel_bindings;
-mod typed;
-pub mod property;
 pub mod context;
+pub mod property;
+mod typed;
 pub mod validate;
 
 mod vectored_io;

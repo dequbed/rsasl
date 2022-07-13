@@ -1,30 +1,38 @@
-use std::io::Cursor;
-use std::sync::Arc;
 use rsasl::callback::{RequestResponse, SessionCallback};
 use rsasl::context::Context;
 use rsasl::error::SessionError;
 use rsasl::mechanisms::common::properties::ValidateSimple;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, AuthzId, Password};
-use rsasl::SASL;
 use rsasl::session::{SessionData, Step, StepResult};
 use rsasl::validate::{Validate, ValidationError};
+use rsasl::SASL;
+use std::io::Cursor;
+use std::sync::Arc;
 
-// Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
-
 impl SessionCallback for OurCallback {
-    fn validate(&self, session_data: &SessionData, context: &Context, validate: &mut Validate<'_>)
-        -> Result<(), ValidationError>
-    {
+    fn validate(
+        &self,
+        session_data: &SessionData,
+        context: &Context,
+        validate: &mut Validate<'_>,
+    ) -> Result<(), ValidationError> {
         if validate.is::<ValidateSimple>() {
             let authzid = context.get_ref::<AuthzId>();
-            let authid = context.get_ref::<AuthId>()
+            let authid = context
+                .get_ref::<AuthId>()
                 .expect("SIMPLE validation requested but AuthId prop is missing!");
-            let password = context.get_ref::<Password>()
+            let password = context
+                .get_ref::<Password>()
                 .expect("SIMPLE validation requested but Password prop is missing!");
-            println!("authzid: {:?}, authid: {}, password: {:?}",
-                     authzid, authid, std::str::from_utf8(password));
+
+            println!(
+                "SIMPLE VALIDATION for (authzid: {:?}, authid: {}, password: {:?})",
+                authzid,
+                authid,
+                std::str::from_utf8(password)
+            );
             let o = authzid.is_none() && authid == "username" && password == b"secret";
             validate.finalize::<ValidateSimple>(o);
             Ok(())

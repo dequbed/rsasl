@@ -1,21 +1,21 @@
-use std::borrow::{Cow};
+use std::borrow::Cow;
 
 use std::io::Write;
 use std::str::Utf8Error;
 use thiserror::Error;
 
-use stringprep::{saslprep};
+use stringprep::saslprep;
 
 use crate::error::{MechanismError, MechanismErrorKind};
 
-use crate::session::Step::{Done};
+use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 
+use crate::context::{Demand, DemandReply, Provider};
+use crate::mechanisms::common::properties::ValidateSimple;
 use crate::property::{AuthId, AuthzId, Password, Property};
 use crate::validate::Validation;
 use crate::Authentication;
-use crate::context::{Demand, DemandReply, Provider};
-use crate::mechanisms::common::properties::ValidateSimple;
 
 #[derive(Debug, Error)]
 enum PlainError {
@@ -50,8 +50,7 @@ pub struct PlainProvider<'a> {
 }
 impl<'b> Provider for PlainProvider<'b> {
     fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
-        req
-            .provide_ref::<AuthId>(&self.authcid)?
+        req.provide_ref::<AuthId>(&self.authcid)?
             .provide_ref::<Password>(&self.password)?;
 
         if let Some(authzid) = self.authzid.as_ref() {
@@ -107,7 +106,8 @@ impl Authentication for Plain {
             password: password.as_bytes(),
         };
 
-        session.validate::<ValidateSimple>(&provider);
+        // FIXME: check for this error and for validation in general.
+        let _ = session.validate::<ValidateSimple>(&provider);
         Ok(Done(None))
     }
 }

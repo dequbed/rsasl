@@ -4,14 +4,14 @@ use std::sync::Arc;
 
 use crate::callback::{CallbackError, CallbackRequest, ClosureCR, Request, RequestTag};
 use crate::channel_bindings::ChannelBindingCallback;
+use crate::context::{build_context, Provider};
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
 use crate::mechanism::Authentication;
+use crate::property::MaybeSizedProperty;
+use crate::typed::{tags, TaggedOption};
 use crate::validate::*;
 use crate::{Mechanism, SessionCallback};
-use crate::context::{build_context, Provider};
-use crate::property::MaybeSizedProperty;
-use crate::typed::{TaggedOption, tags};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -176,7 +176,9 @@ impl MechanismData {
         let mut tagged_option = TaggedOption::<'_, V>(None);
         let context = build_context(provider);
         let validate = Validate::new::<V>(&mut tagged_option);
-        let cflow = self.callback.validate(&self.session_data, context, validate);
+        let cflow = self
+            .callback
+            .validate(&self.session_data, context, validate);
         if let Ok(()) = cflow {
             todo!()
         } else {
@@ -211,8 +213,7 @@ impl MechanismData {
         &self,
         provider: &dyn Provider,
         closure: &mut F,
-    ) -> Result<(), CallbackError>
-    {
+    ) -> Result<(), CallbackError> {
         let closurecr = ClosureCR::<T, F>::wrap(closure);
         self.need::<T, _>(provider, closurecr)
     }
@@ -266,7 +267,6 @@ pub struct StepOutcome {
     pub data_len: Option<usize>,
 }
 pub type StepResult = Result<Step, SessionError>;
-
 
 impl SessionData {
     pub(crate) fn new(mechanism_desc: Mechanism, side: Side) -> Self {

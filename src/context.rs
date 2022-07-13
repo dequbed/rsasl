@@ -1,7 +1,7 @@
+use crate::property::MaybeSizedProperty;
+use crate::typed::{tags, Erased, TaggedOption};
 use std::marker::PhantomData;
 use std::ops::ControlFlow;
-use crate::property::MaybeSizedProperty;
-use crate::typed::{Erased, TaggedOption, tags};
 
 pub trait Provider {
     fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()>;
@@ -18,11 +18,6 @@ impl Provider for () {
 
 #[doc(hidden)]
 pub struct TOKEN(PhantomData<()>);
-impl TOKEN {
-    const fn build() -> Self {
-        Self(PhantomData)
-    }
-}
 
 /// Control-flow utility to help shortcut [`Demand::provide`]
 ///
@@ -73,10 +68,16 @@ impl<'a> Demand<'a> {
         }
     }
 
-    pub fn provide_ref<T: MaybeSizedProperty>(&mut self, value: &'a T::Value) -> DemandReply<&mut Self> {
+    pub fn provide_ref<T: MaybeSizedProperty>(
+        &mut self,
+        value: &'a T::Value,
+    ) -> DemandReply<&mut Self> {
         self.provide::<tags::Ref<tags::MaybeSizedValue<T::Value>>>(value)
     }
-    pub fn provide_mut<T: MaybeSizedProperty>(&mut self, value: &'a mut T::Value) -> DemandReply<&mut Self> {
+    pub fn provide_mut<T: MaybeSizedProperty>(
+        &mut self,
+        value: &'a mut T::Value,
+    ) -> DemandReply<&mut Self> {
         self.provide::<tags::RefMut<tags::MaybeSizedValue<T::Value>>>(value)
     }
 }
@@ -115,17 +116,13 @@ impl<P: MaybeSizedProperty> ThisProvider<'_, P> {
 }
 impl<P: MaybeSizedProperty> Provider for ThisProvider<'_, P> {
     fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
-        req
-            .provide_ref::<P>(self.back())?
-            .done()
+        req.provide_ref::<P>(self.back())?.done()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
-    
 
     #[test]
     fn test_thisprovider() {

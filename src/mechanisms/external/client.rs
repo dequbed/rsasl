@@ -1,8 +1,8 @@
 use crate::mechanism::Authentication;
+use crate::property::MaybeSizedProperty;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 use std::io::Write;
-use crate::property::MaybeSizedProperty;
 
 pub struct AuthId;
 impl MaybeSizedProperty for AuthId {
@@ -26,7 +26,7 @@ impl Authentication for External {
             let buf = authid.as_bytes();
             write_out = writer.write_all(buf);
             len = Some(buf.len());
-        });
+        })?;
 
         write_out?;
         Ok(Done(len))

@@ -1,4 +1,3 @@
-
 use crate::gsasl::consts::{Gsasl_property, GSASL_OK};
 
 use crate::session::MechanismData;
