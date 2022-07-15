@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Formatter};
 use std::io::Write;
-use std::marker::PhantomData;
+
 use std::sync::Arc;
 
 use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy};
@@ -70,7 +70,7 @@ pub struct Session<V: Validation> {
     mechanism: Box<dyn Authentication>,
     mechanism_desc: Mechanism,
     side: Side,
-    _marker: PhantomData<V>,
+    validation: Option<V::Value>,
 }
 
 impl<V: Validation> Session<V> {
@@ -86,7 +86,7 @@ impl<V: Validation> Session<V> {
             mechanism,
             mechanism_desc,
             side,
-            _marker: PhantomData,
+            validation: None,
         }
     }
 
@@ -123,7 +123,7 @@ impl<V: Validation> Session<V> {
         &mut self,
         input: Option<&[u8]>,
         writer: &mut impl Write,
-    ) -> Result<(Option<V::Value>, Option<usize>), SessionError> {
+    ) -> Result<(State, Option<usize>), SessionError> {
         let mut tagged_option = TaggedOption::<'_, V>(None);
 
         let (state, written) = {
@@ -143,11 +143,20 @@ impl<V: Validation> Session<V> {
         };
 
         if state == State::Finished {
-            let value = tagged_option.0.take().ok_or(SessionError::NoValidate)?;
-            Ok((Some(value), written))
-        } else {
-            Ok((None, written))
+            self.validation = tagged_option.0.take();
         }
+        Ok((state, written))
+    }
+
+    /// Extract the Validation result of the exchange, if any
+    ///
+    /// Validation results are provided by a call to [`validate`](SessionCallback::validate) of the
+    /// user-supplied callback. They thus allow to send information from the callback to the
+    /// crate implementing the protocol using a type defined by the latter crate.
+    /// They are useful to e.g. indicate success or failure of the authentication exchange and
+    /// supply the protocol crate with information about the user that was authenticated.
+    pub fn validation(&mut self) -> Option<V::Value> {
+        self.validation.take()
     }
 }
 
@@ -168,7 +177,7 @@ impl<V: Validation> Session<V> {
         &mut self,
         input: Option<&[u8]>,
         writer: &mut impl Write,
-    ) -> Result<(Option<V::Value>, Option<usize>), SessionError> {
+    ) -> Result<(State, Option<usize>), SessionError> {
         use base64::write::EncoderWriter;
         let mut writer64 = EncoderWriter::new(writer, base64::STANDARD);
 

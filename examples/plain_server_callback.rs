@@ -19,7 +19,7 @@ impl OurCallback {
         &self,
         session_data: &SessionData,
         context: &Context,
-    ) -> Result<String, OurCallbackError> {
+    ) -> Result<Result<String, AuthError>, OurCallbackError> {
         let authzid = context.get_ref::<AuthzId>();
         let authid = context
             .get_ref::<AuthId>()
@@ -35,12 +35,15 @@ impl OurCallback {
             std::str::from_utf8(password)
         );
 
+        use AuthError::*;
         if !(authzid.is_none() || authzid == Some(authid)) {
-            panic!("uh")
+            Ok(Err(AuthzBad))
         } else if authid == "username" && password == b"secret" {
-            Ok(String::from(authid))
+            Ok(Ok(String::from(authid)))
+        } else if authid == "username" {
+            Ok(Err(PasswdBad))
         } else {
-            panic!("buh")
+            Ok(Err(NoSuchUser))
         }
     }
 }
@@ -52,13 +55,20 @@ impl SessionCallback for OurCallback {
         validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
         validate.with::<TestValidation, _, _>(|| self.test_validate(session_data, context))?;
-        Err(ValidationError::NoValidation)
+        Ok(())
     }
+}
+
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+enum AuthError {
+    AuthzBad,
+    PasswdBad,
+    NoSuchUser,
 }
 
 struct TestValidation;
 impl Property for TestValidation {
-    type Value = String;
+    type Value = Result<String, AuthError>;
 }
 impl Validation for TestValidation {}
 
@@ -75,7 +85,8 @@ pub fn main() {
             .without_channel_binding::<TestValidation>();
         let step_result = session.step(Some(b"\0username\0secret"), &mut out);
         print_outcome(&step_result, out.into_inner());
-        assert_eq!(step_result.unwrap(), (Some(String::from("username")), None));
+        assert_eq!(step_result.unwrap(), (State::Finished, None));
+        assert_eq!(session.validation(), Some(Ok(String::from("username"))))
     }
     // Authentication exchange 2
     {
@@ -87,7 +98,34 @@ pub fn main() {
             .without_channel_binding::<TestValidation>();
         let step_result = session.step(Some(b"\0username\0badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());
-        assert!(step_result.unwrap_err().is_authentication_failure());
+        assert_eq!(step_result.unwrap(), (State::Finished, None));
+        assert_eq!(session.validation(), Some(Err(AuthError::PasswdBad)));
+    }
+
+    {
+        let mut out = Cursor::new(Vec::new());
+        print!("Authenticating to server with unknown user:\n   ");
+        let mut session = sasl
+            .server_start(Mechname::new(b"PLAIN").unwrap())
+            .unwrap()
+            .without_channel_binding::<TestValidation>();
+        let step_result = session.step(Some(b"\0somebody\0somepass"), &mut out);
+        print_outcome(&step_result, out.into_inner());
+        assert_eq!(step_result.unwrap(), (State::Finished, None));
+        assert_eq!(session.validation(), Some(Err(AuthError::NoSuchUser)));
+    }
+
+    {
+        let mut out = Cursor::new(Vec::new());
+        print!("Authenticating to server with bad authzid:\n   ");
+        let mut session = sasl
+            .server_start(Mechname::new(b"PLAIN").unwrap())
+            .unwrap()
+            .without_channel_binding::<TestValidation>();
+        let step_result = session.step(Some(b"username\0somebody\0badpass"), &mut out);
+        print_outcome(&step_result, out.into_inner());
+        assert_eq!(step_result.unwrap(), (State::Finished, None));
+        assert_eq!(session.validation(), Some(Err(AuthError::AuthzBad)));
     }
     // Authentication exchange 2
     {
@@ -104,26 +142,20 @@ pub fn main() {
 }
 
 fn print_outcome(
-    step_result: &Result<(Option<String>, Option<usize>), SessionError>,
+    step_result: &Result<(State, Option<usize>), SessionError>,
     buffer: Vec<u8>,
 ) {
     match step_result {
-        Ok((Some(name), Some(_))) => {
+        Ok((State::Finished, Some(_))) => {
             println!(
-                "Authentication successful, bytes to return to client: {:?} (name: {})",
-                buffer, name
+                "Authentication finished, bytes to return to client: {:?}",
+                buffer
             );
         }
-        Ok((Some(name), None)) => {
-            println!(
-                "Authentication successful, no data to return (name: {})",
-                name
-            );
+        Ok((State::Finished, None)) => {
+            println!("Authentication finished, no data to return");
         }
-        Ok((None, _)) => assert!(false, "PLAIN exchange took more than one step"),
-        Err(SessionError::AuthenticationFailure) => {
-            println!("Authentication failed, bad username or password")
-        }
+        Ok((State::Running, _)) => assert!(false, "PLAIN exchange took more than one step"),
         Err(e) => println!("Authentication errored: {}", e),
     }
 }
