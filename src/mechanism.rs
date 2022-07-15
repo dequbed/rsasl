@@ -1,6 +1,6 @@
 use crate::error::SessionError;
 use crate::error::SessionError::NoSecurityLayer;
-use crate::session::{MechanismData, StepResult};
+use crate::session::{MechanismData, StepResult2};
 use std::io::Write;
 
 /// Trait implemented to be one party in an authentication exchange
@@ -48,7 +48,7 @@ pub trait Authentication {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult;
+    ) -> StepResult2;
 
     // TODO: Document the problems with SASL security layers before release
     // TODO: Split Authentication & Security Layer stuff?

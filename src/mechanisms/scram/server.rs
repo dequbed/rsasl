@@ -7,7 +7,7 @@ use crate::mechanisms::scram::parser::{
 use crate::mechanisms::scram::properties::{ScramPassParams, ScramSaltedPasswordQuery};
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, DOutput};
 use crate::session::Step::{Done, NeedsMore};
-use crate::session::{MechanismData, StepResult};
+use crate::session::{MechanismData, State, StepResult2};
 use crate::vectored_io::VectoredWriter;
 use crate::Authentication;
 use digest::crypto_common::BlockSizeUser;
@@ -35,14 +35,14 @@ impl<D: Digest + BlockSizeUser, const N: usize> ScramServer<D, N> {
     pub fn new() -> Self {
         Self {
             plus: false,
-            state: Some(ScramServerState::WaitingClientFirst(State::new())),
+            state: Some(ScramServerState::WaitingClientFirst(ScramState::new())),
         }
     }
 
     pub fn new_plus() -> Self {
         Self {
             plus: true,
-            state: Some(ScramServerState::WaitingClientFirst(State::new())),
+            state: Some(ScramServerState::WaitingClientFirst(ScramState::new())),
         }
     }
 }
@@ -208,10 +208,10 @@ pub enum Outcome {
     Successful { username: () },
 }
 
-struct State<S> {
+struct ScramState<S> {
     state: S,
 }
-impl<const N: usize> State<WaitingClientFirst<N>> {
+impl<const N: usize> ScramState<WaitingClientFirst<N>> {
     pub fn new() -> Self {
         Self {
             state: WaitingClientFirst::new(),
@@ -225,29 +225,29 @@ impl<const N: usize> State<WaitingClientFirst<N>> {
         input: &[u8],
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<State<WaitingClientFinal<D>>, SessionError> {
+    ) -> Result<ScramState<WaitingClientFinal<D>>, SessionError> {
         let state = self
             .state
             .handle_client_first(rng, session_data, input, writer, written)?;
-        Ok(State { state })
+        Ok(ScramState { state })
     }
 }
-impl<D: Digest + BlockSizeUser> State<WaitingClientFinal<D>> {
+impl<D: Digest + BlockSizeUser> ScramState<WaitingClientFinal<D>> {
     pub fn step(
         self,
         input: &[u8],
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<State<Outcome>, SessionError> {
+    ) -> Result<ScramState<Outcome>, SessionError> {
         let state = self.state.handle_client_final(input, writer, written)?;
-        Ok(State { state })
+        Ok(ScramState { state })
     }
 }
 
 enum ScramServerState<D: Digest + BlockSizeUser, const N: usize> {
-    WaitingClientFirst(State<WaitingClientFirst<N>>),
-    WaitingClientFinal(State<WaitingClientFinal<D>>),
-    Finished(State<Outcome>),
+    WaitingClientFirst(ScramState<WaitingClientFirst<N>>),
+    WaitingClientFinal(ScramState<WaitingClientFinal<D>>),
+    Finished(ScramState<Outcome>),
 }
 
 impl<D: Digest + BlockSizeUser, const N: usize> Authentication for ScramServer<D, N> {
@@ -256,7 +256,7 @@ impl<D: Digest + BlockSizeUser, const N: usize> Authentication for ScramServer<D
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> StepResult2 {
         use ScramServerState::*;
         match self.state.take() {
             Some(WaitingClientFirst(state)) => {
@@ -267,14 +267,14 @@ impl<D: Digest + BlockSizeUser, const N: usize> Authentication for ScramServer<D
                 let new_state =
                     state.step(&mut rng, session, client_first, writer, &mut written)?;
                 self.state = Some(WaitingClientFinal(new_state));
-                Ok(NeedsMore(Some(written)))
+                Ok((State::Running, Some(written)))
             }
             Some(WaitingClientFinal(state)) => {
                 let client_final = input.ok_or(SessionError::InputDataRequired)?;
                 let mut written = 0;
                 let new_state = state.step(client_final, writer, &mut written)?;
                 self.state = Some(Finished(new_state));
-                Ok(Done(Some(written)))
+                Ok((State::Finished, Some(written)))
             }
             Some(Finished(_state)) => Err(SessionError::MechanismDone),
 
