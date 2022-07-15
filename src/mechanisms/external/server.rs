@@ -1,4 +1,4 @@
-use crate::error::{MechanismError, MechanismErrorKind, SessionError};
+use crate::error::{MechanismError, MechanismErrorKind};
 use crate::mechanism::Authentication;
 use thiserror::Error;
 

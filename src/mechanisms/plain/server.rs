@@ -11,9 +11,9 @@ use crate::error::{MechanismError, MechanismErrorKind};
 use crate::session::{MechanismData, State, StepResult};
 
 use crate::context::{Demand, DemandReply, Provider};
-use crate::mechanisms::common::properties::ValidateSimple;
+
 use crate::property::{AuthId, AuthzId, Password, Property};
-use crate::validate::{Validation, ValidationOutcome};
+use crate::validate::{Validation};
 use crate::Authentication;
 
 #[derive(Debug, Error)]
