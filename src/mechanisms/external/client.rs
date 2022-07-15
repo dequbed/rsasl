@@ -1,7 +1,7 @@
 use crate::mechanism::Authentication;
 use crate::property::MaybeSizedProperty;
 use crate::session::Step::Done;
-use crate::session::{MechanismData, StepResult};
+use crate::session::{MechanismData, State, StepResult};
 use std::io::Write;
 
 pub struct AuthId;
@@ -29,6 +29,6 @@ impl Authentication for External {
         })?;
 
         write_out?;
-        Ok(Done(len))
+        Ok((State::Finished, len))
     }
 }

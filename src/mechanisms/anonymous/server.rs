@@ -1,9 +1,9 @@
 use crate::context::ThisProvider;
-use crate::error::{MechanismError, MechanismErrorKind};
+use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanisms::anonymous::client::AnonymousToken;
 use crate::property::Property;
 use crate::session::Step::{Done, NeedsMore};
-use crate::session::{MechanismData, StepResult};
+use crate::session::{MechanismData, State, StepResult};
 use crate::Authentication;
 use std::io::Write;
 use thiserror::Error;
@@ -37,7 +37,7 @@ impl Authentication for Anonymous {
         let input = if let Some(buf) = input {
             buf
         } else {
-            return Ok(NeedsMore(None));
+            return Err(SessionError::InputDataRequired);
         };
 
         if let Ok(input) = std::str::from_utf8(input) {
@@ -52,7 +52,7 @@ impl Authentication for Anonymous {
             session
                 .validate::<AnonymousValidation>(&ThisProvider::<AnonymousToken>::with(input))
                 .map_err(|_| ParseError /* FIXME!! */)?;
-            Ok(Done(None))
+            Ok((State::Finished, None))
         } else {
             Err(ParseError.into())
         }

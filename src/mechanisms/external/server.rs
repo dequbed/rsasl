@@ -6,7 +6,7 @@ use crate::context::ThisProvider;
 use crate::mechanisms::external::client::AuthId;
 use crate::property::Property;
 use crate::session::Step::Done;
-use crate::session::{MechanismData, StepResult};
+use crate::session::{MechanismData, State, StepResult};
 use std::io::Write;
 
 use crate::validate::Validation;
@@ -51,7 +51,7 @@ impl Authentication for External {
         let outcome = outcome.map_err(|_| ParseError /* FIXME!! */)?;
 
         if outcome {
-            Ok(Done(None))
+            Ok((State::Finished, None))
         } else {
             Err(SessionError::AuthenticationFailure)
         }
