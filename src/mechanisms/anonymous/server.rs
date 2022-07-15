@@ -3,7 +3,7 @@ use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanisms::anonymous::client::AnonymousToken;
 use crate::property::Property;
 use crate::session::Step::{Done, NeedsMore};
-use crate::session::{MechanismData, State, StepResult2};
+use crate::session::{MechanismData, State, StepResult};
 use crate::Authentication;
 use std::io::Write;
 use thiserror::Error;
@@ -33,7 +33,7 @@ impl Authentication for Anonymous {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
-    ) -> StepResult2 {
+    ) -> StepResult {
         let input = if let Some(buf) = input {
             buf
         } else {

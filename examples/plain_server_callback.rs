@@ -4,7 +4,7 @@ use rsasl::error::SessionError;
 use rsasl::mechanisms::common::properties::ValidateSimple;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, AuthzId, Password};
-use rsasl::session::{SessionData, State, Step, StepResult2};
+use rsasl::session::{SessionData, State, Step, StepResult};
 use rsasl::validate::{Validate, ValidationError, ValidationOutcome};
 use rsasl::SASL;
 use std::io::Cursor;
@@ -93,7 +93,7 @@ pub fn main() {
     }
 }
 
-fn print_outcome(step_result: &StepResult2, buffer: Vec<u8>) {
+fn print_outcome(step_result: &StepResult, buffer: Vec<u8>) {
     match step_result {
         Ok((State::Finished, Some(_))) => {
             println!(

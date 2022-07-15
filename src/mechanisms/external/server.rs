@@ -6,7 +6,7 @@ use crate::context::ThisProvider;
 use crate::mechanisms::external::client::AuthId;
 use crate::property::Property;
 use crate::session::Step::Done;
-use crate::session::{MechanismData, State, StepResult2};
+use crate::session::{MechanismData, State, StepResult};
 use std::io::Write;
 
 use crate::validate::Validation;
@@ -36,7 +36,7 @@ impl Authentication for External {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
-    ) -> StepResult2 {
+    ) -> StepResult {
         let outcome = if let Some(input) = input {
             if let Ok(authid) = std::str::from_utf8(input) {
                 let provider = ThisProvider::<AuthId>::with(authid);

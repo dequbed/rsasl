@@ -9,7 +9,7 @@ use stringprep::saslprep;
 use crate::error::{MechanismError, MechanismErrorKind};
 
 use crate::session::Step::Done;
-use crate::session::{MechanismData, State, StepResult2};
+use crate::session::{MechanismData, State, StepResult};
 
 use crate::context::{Demand, DemandReply, Provider};
 use crate::mechanisms::common::properties::ValidateSimple;
@@ -73,7 +73,7 @@ impl Authentication for Plain {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
-    ) -> StepResult2 {
+    ) -> StepResult {
         if input.map(|buf| buf.len()).unwrap_or(0) < 4 {
             return Err(PlainError::BadFormat.into());
         }

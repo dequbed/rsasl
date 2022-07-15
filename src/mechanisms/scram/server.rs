@@ -7,7 +7,7 @@ use crate::mechanisms::scram::parser::{
 use crate::mechanisms::scram::properties::{ScramPassParams, ScramSaltedPasswordQuery};
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, DOutput};
 use crate::session::Step::{Done, NeedsMore};
-use crate::session::{MechanismData, State, StepResult2};
+use crate::session::{MechanismData, State, StepResult};
 use crate::vectored_io::VectoredWriter;
 use crate::Authentication;
 use digest::crypto_common::BlockSizeUser;
@@ -256,7 +256,7 @@ impl<D: Digest + BlockSizeUser, const N: usize> Authentication for ScramServer<D
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult2 {
+    ) -> StepResult {
         use ScramServerState::*;
         match self.state.take() {
             Some(WaitingClientFirst(state)) => {

@@ -1,6 +1,6 @@
 use crate::mechanism::Authentication;
 use crate::session::Step::Done;
-use crate::session::{MechanismData, State, StepResult2};
+use crate::session::{MechanismData, State, StepResult};
 
 use std::io::Write;
 
@@ -15,7 +15,7 @@ impl Authentication for Plain {
         session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult2 {
+    ) -> StepResult {
         let mut len = 0usize;
         let mut out = Ok(());
         session.need_with::<AuthzId, _>(&(), &mut |authzid| {

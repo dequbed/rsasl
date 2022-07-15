@@ -113,7 +113,7 @@ impl Session {
     ///
     /// Keep in mind that SASL makes a distinction between zero-sized data to send (a Step
     /// containing `Some(0)`) and no data to send (a `Step` containing `None`).
-    pub fn step(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult2 {
+    pub fn step(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult {
         if let Some(input) = input {
             self.mechanism
                 .step(&mut self.mechanism_data, Some(input.as_ref()), writer)
@@ -136,7 +136,7 @@ impl Session {
     /// Requiring base64-encoded SASL data is common in line-based or textual formats, such as
     /// SMTP, IMAP, XMPP and IRCv3.
     /// Refer to your protocol documentation if SASL data needs to be base64 encoded.
-    pub fn step64(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult2 {
+    pub fn step64(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult {
         use base64::write::EncoderWriter;
         let mut writer64 = EncoderWriter::new(writer, base64::STANDARD);
 
@@ -293,9 +293,7 @@ impl State {
 /// Result type of a call to `step` or `step64`
 ///
 /// See the documentation of [`Session::step`] for more details about this type
-pub type StepResult2 = Result<(State, Option<usize>), SessionError>;
-
-pub type StepResult = Result<Step, SessionError>;
+pub type StepResult = Result<(State, Option<usize>), SessionError>;
 
 impl SessionData {
     pub(crate) fn new(mechanism_desc: Mechanism, side: Side) -> Self {
