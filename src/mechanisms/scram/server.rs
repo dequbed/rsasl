@@ -6,7 +6,6 @@ use crate::mechanisms::scram::parser::{
 };
 use crate::mechanisms::scram::properties::{ScramPassParams, ScramSaltedPasswordQuery};
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, DOutput};
-use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, State, StepResult};
 use crate::vectored_io::VectoredWriter;
 use crate::Authentication;

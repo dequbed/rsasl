@@ -88,3 +88,9 @@ pub struct Password;
 impl MaybeSizedProperty for Password {
     type Value = [u8];
 }
+
+#[derive(Debug)]
+pub struct ChannelBindings;
+impl Property for ChannelBindings {
+    type Value = ();
+}

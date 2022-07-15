@@ -2,7 +2,6 @@ use crate::context::ThisProvider;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanisms::anonymous::client::AnonymousToken;
 use crate::property::Property;
-use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, State, StepResult};
 use crate::Authentication;
 use std::io::Write;
@@ -49,9 +48,7 @@ impl Authentication for Anonymous {
                 return Err(ParseError.into());
             }
 
-            session
-                .validate::<AnonymousValidation>(&ThisProvider::<AnonymousToken>::with(input))
-                .map_err(|_| ParseError /* FIXME!! */)?;
+            session.validate(&ThisProvider::<AnonymousToken>::with(input))?;
             Ok((State::Finished, None))
         } else {
             Err(ParseError.into())
