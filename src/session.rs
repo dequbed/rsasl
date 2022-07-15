@@ -246,9 +246,6 @@ impl Debug for MechanismData {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum AuthenticationError {}
-
-#[derive(Debug, Eq, PartialEq)]
 /// The outcome of a single step in the authentication exchange
 ///
 /// Since SASL is multi-step each step can either complete the exchange or require more steps to be
@@ -256,12 +253,6 @@ pub enum AuthenticationError {}
 pub enum Step {
     Done(Option<usize>),
     NeedsMore(Option<usize>),
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Outcome {
-    Successful,
-    Failed,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -298,9 +289,9 @@ impl State {
     }
 }
 
-/// Result type of a call to [`Session::step`] or [`Session::step64`]
+/// Result type of a call to `step` or `step64`
 ///
-/// An `Err` is returned when the call to `step` produced a
+/// See the documentation of [`Session::step`] for more details about this type
 pub type StepResult2 = Result<(State, Option<usize>), SessionError>;
 
 pub type StepResult = Result<Step, SessionError>;
@@ -313,5 +304,3 @@ impl SessionData {
         }
     }
 }
-
-impl SessionData {}
