@@ -9,7 +9,7 @@ use stringprep::saslprep;
 use crate::error::{MechanismError, MechanismErrorKind};
 
 use crate::session::Step::Done;
-use crate::session::{MechanismData, StepResult};
+use crate::session::{MechanismData, State, StepResult};
 
 use crate::context::{Demand, DemandReply, Provider};
 use crate::mechanisms::common::properties::ValidateSimple;
@@ -108,6 +108,6 @@ impl Authentication for Plain {
 
         // FIXME: check for this error and for validation in general.
         let _ = session.validate::<ValidateSimple>(&provider);
-        Ok(Done(None))
+        Ok((State::Finished, None))
     }
 }

@@ -3,7 +3,7 @@ use crate::error::SessionError;
 use crate::gsasl::consts::{GSASL_NEEDS_MORE, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
 use crate::mechanism::Authentication;
 use crate::session::Step::{Done, NeedsMore};
-use crate::session::{MechanismData, StepResult};
+use crate::session::{MechanismData, State, StepResult};
 use crate::{SASLError, Shared};
 use libc::{c_char, size_t};
 use std::fmt::{Debug, Formatter};
@@ -135,9 +135,9 @@ impl Authentication for CMechanismStateKeeper {
                     &mut outlen,
                 );
                 if res == GSASL_OK as libc::c_int {
-                    Ok(Done(write_output(writer, output, outlen)?))
+                    Ok((State::Finished, write_output(writer, output, outlen)?))
                 } else if res == GSASL_NEEDS_MORE as libc::c_int {
-                    Ok(NeedsMore(write_output(writer, output, outlen)?))
+                    Ok((State::Running, write_output(writer, output, outlen)?))
                 } else {
                     Err(Gsasl(res as libc::c_uint).into())
                 }

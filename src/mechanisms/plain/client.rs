@@ -1,6 +1,6 @@
 use crate::mechanism::Authentication;
 use crate::session::Step::Done;
-use crate::session::{MechanismData, StepResult};
+use crate::session::{MechanismData, State, StepResult};
 
 use std::io::Write;
 
@@ -40,7 +40,7 @@ impl Authentication for Plain {
         })?;
         out?;
 
-        Ok(Done(Some(len)))
+        Ok((State::Finished, Some(len)))
     }
 }
 

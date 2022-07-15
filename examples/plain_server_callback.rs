@@ -4,7 +4,7 @@ use rsasl::error::SessionError;
 use rsasl::mechanisms::common::properties::ValidateSimple;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, AuthzId, Password};
-use rsasl::session::{SessionData, Step, StepResult};
+use rsasl::session::{SessionData, State, Step, StepResult};
 use rsasl::validate::{Validate, ValidationError, ValidationOutcome};
 use rsasl::SASL;
 use std::io::Cursor;
@@ -65,7 +65,7 @@ pub fn main() {
             .without_channel_binding();
         let step_result = session.step(Some(b"\0username\0secret"), &mut out);
         print_outcome(&step_result, out.into_inner());
-        assert_eq!(step_result.unwrap(), Step::Done(None));
+        assert_eq!(step_result.unwrap(), (State::Finished, None));
     }
     // Authentication exchange 2
     {
@@ -95,16 +95,16 @@ pub fn main() {
 
 fn print_outcome(step_result: &StepResult, buffer: Vec<u8>) {
     match step_result {
-        Ok(Step::Done(Some(_))) => {
+        Ok((State::Finished, Some(_))) => {
             println!(
                 "Authentication successful, bytes to return to client: {:?}",
                 buffer
             );
         }
-        Ok(Step::Done(None)) => {
+        Ok((State::Finished, None)) => {
             println!("Authentication successful, no data to return");
         }
-        Ok(Step::NeedsMore(_)) => assert!(false, "PLAIN exchange took more than one step"),
+        Ok((State::Running, _)) => assert!(false, "PLAIN exchange took more than one step"),
         Err(SessionError::AuthenticationFailure) => {
             println!("Authentication failed, bad username or password")
         }
