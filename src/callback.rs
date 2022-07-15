@@ -197,11 +197,11 @@ impl<'a> Request<'a> {
     /// Refer to the documentation of a property on how to handle requests regarding it and whether
     /// it will generate actionable or satisfiable requests.
     pub fn get_action<P: MaybeSizedProperty>(&self) -> Option<&P::Value> {
-       if let Some(TaggedOption(Some(value))) = self.0.downcast_ref::<tags::Ref<Action<P>>>() {
-           Some(*value)
-       } else {
-           None
-       }
+        if let Some(TaggedOption(Some(value))) = self.0.downcast_ref::<tags::Ref<Action<P>>>() {
+            Some(*value)
+        } else {
+            None
+        }
     }
 
     /// Satisfy the given Request type `P` using the provided closure.

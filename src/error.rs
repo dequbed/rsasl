@@ -5,10 +5,10 @@ use thiserror::Error;
 
 use crate::callback::CallbackError;
 use crate::mechname::MechanismNameError;
+use crate::validate::ValidationError;
 use std::ffi::CStr;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
-use crate::validate::ValidationError;
 
 // TODO: Error types:
 // - Setup error. Bad Mechanism, no shared mechanism, mechanism failed to start.
@@ -91,7 +91,11 @@ pub enum StepError {
     ),
 
     #[error("validation error: {0}")]
-    ValidationError(#[from] #[source] ValidationError),
+    ValidationError(
+        #[from]
+        #[source]
+        ValidationError,
+    ),
 }
 
 #[derive(Debug, Error)]
