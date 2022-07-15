@@ -1,7 +1,7 @@
 use crate::mechanism::Authentication;
 use crate::property::MaybeSizedProperty;
 use crate::session::Step::Done;
-use crate::session::{MechanismData, State, StepResult2};
+use crate::session::{MechanismData, State, StepResult};
 use std::io::Write;
 
 pub struct AuthId;
@@ -18,7 +18,7 @@ impl Authentication for External {
         session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult2 {
+    ) -> StepResult {
         let mut write_out = Ok(());
         let mut len = None;
 
