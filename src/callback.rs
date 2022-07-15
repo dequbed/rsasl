@@ -8,44 +8,49 @@
 //! Because that would devolve to basically `fn callback(query: Box<dyn Any>) -> Box<dyn Any>`
 //! with exactly zero type-level protection against accidentally not providing some required data.
 
-use std::any::TypeId;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
-use std::ops::DerefMut;
+
 use crate::context::Context;
 use crate::property::MaybeSizedProperty;
 
 use crate::session::SessionData;
-use crate::typed::{Erased, TaggedOption, tags};
-use crate::validate::Validation;
+use crate::typed::{tags, Erased, TaggedOption};
+use crate::validate::{Validate, ValidationError};
 
 pub trait SessionCallback {
     /// Query by a mechanism implementation to provide some information or do some action
     ///
-    /// The parameter `query` defines the exact property that is requested. Query is a request for
-    /// either some information ("property"), or to perform some outside action (e.g. authenticate
-    /// with the users IdP).
-    ///
-    /// In most cases a
-    /// callback should then issue a call to [`SessionData::set_property`], so e.g.
     /// ```rust
     /// # use std::sync::Arc;
     /// # use rsasl::callback::{Callback, Context, Request, CallbackError};
     /// # use rsasl::Property;
-    /// use rsasl::property::{properties, Password, CallbackQ, AuthId};
+    /// use rsasl::property::{properties, Password, CallbackQ, AuthId, OpenID20AuthenticateInBrowser, Realm};
     /// # use rsasl::session::SessionData;
     /// # struct CB;
     /// # impl Callback for CB {
-    /// fn callback(&self, session: &SessionData, context: &Context<'_>, request: &mut Request<'_>)
+    /// fn callback(&self, session: &SessionData, context: &Context, request: &mut Request<'_>)
     ///     -> Result<(), CallbackError>
     /// {
-    ///     if request.is::<AuthId>() {
-    ///         request.satisfy("exampleuser");
-    ///         Ok(())
-    ///     } else {
-    ///         Err(CallbackError::NoCallback)
+    ///     // Some requests are to provide a value for the given property by calling `satisfy`.
+    ///     request
+    ///         // satisfy calls can be chained, making use of short-circuiting
+    ///         .satisfy::<AuthId>("exampleuser")?
+    ///         .satisfy::<Password>(b"password")?
+    ///         .satisfy::<Authzid>("authzid")?;
+    ///
+    ///     // Other requests are to do a given action:
+    ///     if let Some(url) = request.get_action::<OpenID20AuthenticateInBrowser>() {
+    ///         open_browser_and_go_to(url);
+    ///         return Ok(());
     ///     }
+    ///     // Additional parameters can be retrieved from the provided `Context`:
+    ///     if let Some("MIT.EDU") = context.get_ref::<Realm>() {
+    ///         // Special handling
+    ///     }
+    ///
+    ///     Err(CallbackError::NoCallback)
     /// }
     /// # }
     /// ```
@@ -55,9 +60,9 @@ pub trait SessionCallback {
     /// authenticate to their OIDC IdP using the system's web browser).
     fn callback(
         &self,
-        session_data: &SessionData,
-        context: &Context,
-        request: &mut Request<'_>,
+        _session_data: &SessionData,
+        _context: &Context,
+        _request: &mut Request<'_>,
     ) -> Result<(), CallbackError> {
         Err(CallbackError::NoCallback)
     }
@@ -69,9 +74,9 @@ pub trait SessionCallback {
     ///
     fn validate(
         &self,
-        session_data: &SessionData,
-        context: &Context,
-        validate: &mut Validate<'_>,
+        _session_data: &SessionData,
+        _context: &Context,
+        _validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
         Err(ValidationError::NoValidation)
     }
@@ -82,6 +87,9 @@ pub enum CallbackError {
     NoCallback,
     NoAnswer,
     Boxed(Box<dyn Error + Send + Sync>),
+
+    #[doc(hidden)]
+    EarlyReturn(PhantomData<()>),
 }
 impl Display for CallbackError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -89,6 +97,7 @@ impl Display for CallbackError {
             CallbackError::NoCallback => f.write_str("Callback does not handle that query type"),
             CallbackError::NoAnswer => f.write_str("Callback failed to provide an answer"),
             CallbackError::Boxed(e) => Display::fmt(e, f),
+            CallbackError::EarlyReturn(_) => f.write_str("callback returned early"),
         }
     }
 }
@@ -100,7 +109,6 @@ impl Error for CallbackError {
         }
     }
 }
-
 
 pub trait CallbackRequest<Answer: ?Sized> {
     fn satisfy(&mut self, answer: &Answer);
@@ -130,13 +138,17 @@ where
     }
 }
 
-
 #[repr(transparent)]
-pub(crate) struct RequestTag<T>(PhantomData<T>);
-impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for RequestTag<T> {
+pub(crate) struct Satisfy<T>(PhantomData<T>);
+impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for Satisfy<T> {
     type Reified = dyn CallbackRequest<T::Value> + 'a;
 }
 
+#[repr(transparent)]
+pub(crate) struct Action<T>(PhantomData<T>);
+impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for Action<T> {
+    type Reified = T::Value;
+}
 
 #[repr(transparent)]
 /// A type-erased callback request for some potentially context-specific values.
@@ -146,62 +158,81 @@ impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for RequestTag<T> {
 /// [`satisfy_with`] method.
 pub struct Request<'a>(dyn Erased<'a>);
 impl<'a> Request<'a> {
-    pub(crate) fn new<'o, P: MaybeSizedProperty>(opt: &'o mut TaggedOption<'a, tags::RefMut<RequestTag<P>>>) -> &'o mut Self {
+    pub(crate) fn new_satisfy<'o, P: MaybeSizedProperty>(
+        opt: &'o mut TaggedOption<'a, tags::RefMut<Satisfy<P>>>,
+    ) -> &'o mut Self {
         unsafe { std::mem::transmute(opt as &mut dyn Erased) }
+    }
+
+    pub(crate) fn new_action<'o, P: MaybeSizedProperty>(
+        val: &'o mut TaggedOption<'a, tags::Ref<Action<P>>>,
+    ) -> &'o mut Self {
+        unsafe { std::mem::transmute(val as &mut dyn Erased) }
     }
 }
 impl<'a> Request<'a> {
-    /// Return true if the Request is of type `T`.
-    ///
-    pub fn is<P: MaybeSizedProperty>(&self) -> bool {
-        self.0.is::<tags::RefMut<RequestTag<P>>>()
+    fn is_satisfy<P: MaybeSizedProperty>(&self) -> bool {
+        self.0.is::<tags::RefMut<Satisfy<P>>>()
+    }
+    fn is_action<P: MaybeSizedProperty>(&self) -> bool {
+        self.0.is::<tags::Ref<Action<P>>>()
     }
 
-    /// Satisfy the given Request type `T` using the provided closure.
+    /// Returns true iff this Request is for the Property `P`.
     ///
-    /// If the type of the request is not `T` or if the request was already satisfied this method
-    /// returns `None`.
-    pub fn satisfy<P: MaybeSizedProperty>(&mut self, answer: &P::Value) -> Option<
-        ()> {
-        if let Some(TaggedOption(Some(mech))) = self
-            .0
-            .downcast_mut::<tags::RefMut<RequestTag<P>>>()
-        {
-            Some(mech.satisfy(answer))
+    /// Properties can be either requests to provide an appropriate value, or to perform a
+    /// specific (usually sideband) action, e.g. opening a web browser and letting the user log
+    /// in to their OpenID Connect / SAML / OAuth2 SSO-system.
+    ///
+    pub fn is<P: MaybeSizedProperty>(&self) -> bool {
+        self.is_satisfy::<P>() || self.is_action::<P>()
+    }
+
+    /// Get a reference to the value of a Request `P`.
+    ///
+    /// This method does not work for all Requests, even if `Self::is` returned true for the
+    /// same `P`, as e.g. a request to provide an Authentication ID can't return a reference to
+    /// an value that wasn't provided yet.
+    ///
+    /// Refer to the documentation of a property on how to handle requests regarding it and whether
+    /// it will generate actionable or satisfiable requests.
+    pub fn get_action<P: MaybeSizedProperty>(&self) -> Option<&P::Value> {
+        if let Some(TaggedOption(Some(value))) = self.0.downcast_ref::<tags::Ref<Action<P>>>() {
+            Some(*value)
         } else {
             None
         }
     }
-}
 
-
-#[repr(transparent)]
-// TODO:
-//  Validate should be used to be able to do the final check on the authentication, either
-//  accepting or denying it. So it should have a method that is in some ways mandatory to call.
-pub struct Validate<'a>(dyn Erased<'a> + 'a);
-impl<'a> Validate<'a> {
-    pub(crate) fn new<'o, V: Validation>(opt: &'o mut TaggedOption<'a, tags::Value<V::Value>>) -> &'o mut Self {
-        unsafe { std::mem::transmute(opt as &mut dyn Erased) }
-    }
-}
-impl<'a> Validate<'a> {
-    #[inline(always)]
-    pub fn is<T: Validation>(&self) -> bool {
-        self.0.tag_id() == TypeId::of::<T>()
-    }
-
-    pub fn finalize<T: Validation>(&mut self, outcome: T::Value) -> &mut Self {
-        if let Some(result @ TaggedOption(Option::None)) = self.0.downcast_mut::<tags::Value<T::Value>>() {
-            *result = TaggedOption(Some(outcome))
+    /// Satisfy the given Request type `P` using the provided closure.
+    ///
+    /// # Shortcutting behaviour
+    /// Iff the type of the request is `P` and the request was not yet satisfied, this method
+    /// will return an `Err`, otherwise it will return `Ok(&mut Self)`. This behaviour allows to
+    /// easily chain multiple calls to `satisfy` but shortcutting on the first successful one:
+    ///
+    /// ```rust
+    /// # use rsasl::callback::{CallbackError, Request};
+    /// # use rsasl::property::{AuthId, Password};
+    /// # fn example(request: &mut Request<'_>) -> Result<(), CallbackError> {
+    /// request
+    ///     .satisfy::<AuthId>("authid")? // if `P` is AuthId this will immediately return
+    ///     .satisfy::<Password>(b"password")?
+    ///     .satisfy::<Authzid>("authzid")?;
+    /// Ok(()) // If no error occured, but the request was also not satisfied,
+    /// # }
+    /// ```
+    pub fn satisfy<P: MaybeSizedProperty>(
+        &mut self,
+        answer: &P::Value,
+    ) -> Result<&mut Self, CallbackError> {
+        if let Some(TaggedOption(Some(mech))) =
+            self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>().take()
+        {
+            mech.satisfy(answer);
+            Err(CallbackError::EarlyReturn(PhantomData))
+        } else {
+            Ok(self)
         }
-        self
     }
-}
-
-#[derive(Debug)]
-pub enum ValidationError {
-    NoValidation,
-    BadAuthentication,
-    BadAuthorization,
 }

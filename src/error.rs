@@ -1,13 +1,14 @@
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
-use crate::validate::Validation;
-use crate::{Mechanism, Mechname};
+
+use crate::Mechname;
 use thiserror::Error;
 
 use crate::callback::CallbackError;
 use crate::mechname::MechanismNameError;
+use crate::validate::ValidationError;
 use std::ffi::CStr;
-use std::fmt::{Debug, Display, Error, Formatter};
-use std::{fmt, io};
+use std::fmt;
+use std::fmt::{Debug, Display, Formatter};
 
 // TODO: Error types:
 // - Setup error. Bad Mechanism, no shared mechanism, mechanism failed to start.
@@ -55,6 +56,46 @@ impl MechanismError for Gsasl {
         // TODO: match self and return proper type
         MechanismErrorKind::Protocol
     }
+}
+
+#[derive(Debug, Error)]
+pub enum StepError {
+    #[error("IO error occurred: {source}")]
+    Io {
+        #[from]
+        source: std::io::Error,
+    },
+
+    #[cfg(feature = "provider_base64")]
+    #[error("base64 wrapping failed: {source}")]
+    Base64 {
+        #[from]
+        source: base64::DecodeError,
+    },
+
+    #[error("input data was required but not provided")]
+    /// Mechanism was called without input data when requiring some
+    InputDataRequired,
+
+    #[error("step was called after mechanism finished")]
+    MechanismDone,
+
+    #[error("internal mechanism error: {0}")]
+    MechanismError(Box<dyn MechanismError>),
+
+    #[error("callback error: {0}")]
+    CallbackError(
+        #[from]
+        #[source]
+        CallbackError,
+    ),
+
+    #[error("validation error: {0}")]
+    ValidationError(
+        #[from]
+        #[source]
+        ValidationError,
+    ),
 }
 
 #[derive(Debug, Error)]
@@ -111,6 +152,13 @@ impl SessionError {
     pub fn is_mechanism_error(&self) -> bool {
         match self {
             Self::MechanismError(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_authentication_failure(&self) -> bool {
+        match self {
+            Self::AuthenticationFailure => true,
             _ => false,
         }
     }

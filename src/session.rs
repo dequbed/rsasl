@@ -2,16 +2,16 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 
-use crate::callback::{CallbackError, CallbackRequest, ClosureCR, Request, RequestTag, Validate, ValidationError};
+use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy};
 use crate::channel_bindings::ChannelBindingCallback;
+use crate::context::{build_context, Provider};
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
 use crate::mechanism::Authentication;
+use crate::property::MaybeSizedProperty;
+use crate::typed::{tags, TaggedOption};
 use crate::validate::*;
 use crate::{Mechanism, SessionCallback};
-use crate::context::{build_context, Provider};
-use crate::property::MaybeSizedProperty;
-use crate::typed::{TaggedOption, tags};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -67,18 +67,6 @@ impl SessionBuilder {
 pub struct Session {
     mechanism: Box<dyn Authentication>,
     mechanism_data: MechanismData,
-    // Callback types:
-    // - provide property / do action (e.g. provide username/password, start OIDC auth)
-    //      ⇒ CLIENT + SERVER
-    //      ⇒ provided by end-user
-    // - validate authentication (e.g. check username/password against a DB)
-    //      ⇒ SERVER
-    //      ⇒ provided by end-user
-    // ^ Those two are very similar, basically a "do this thing please" callback
-    //
-    // - provide channel-binding data
-    //      ⇒ CLIENT + SERVER
-    //      ⇒ provided by either end-user or protocol impl
 }
 
 impl Session {
@@ -181,36 +169,42 @@ impl MechanismData {
         }
     }
 
-    pub fn validate<V, P>(&mut self, provider: &P) -> Result<V::Value, ValidationError>
+    pub fn validate<V>(&self, provider: &dyn Provider) -> Result<V::Value, ValidationError>
     where
         V: Validation,
-        P: Provider,
     {
-        let mut tagged_option = TaggedOption::<'_, tags::Value<V::Value>>(None);
+        let mut tagged_option = TaggedOption::<'_, V>(None);
         let context = build_context(provider);
         let validate = Validate::new::<V>(&mut tagged_option);
         self.callback
             .validate(&self.session_data, context, validate)?;
-        tagged_option.take().ok_or(ValidationError::NoValidation)
+        tagged_option.0.ok_or(ValidationError::NoValidation)
     }
 
-    pub fn callback<'a, 'b, P: Provider>(
+    pub fn callback<'a, 'b>(
         &'b self,
-        provider: &'b P,
+        provider: &'b dyn Provider,
         request: &'b mut Request<'a>,
     ) -> Result<(), CallbackError> {
         let context = build_context(provider);
         self.callback.callback(&self.session_data, context, request)
     }
 
-    pub fn need<T, C, P>(&self, provider: &P, mechcb: &mut C) -> Result<(), CallbackError>
+    pub fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), CallbackError>
+    where
+        T: MaybeSizedProperty,
+    {
+        let mut tagged_option = TaggedOption::<'_, tags::Ref<Action<T>>>(Some(value));
+        self.callback(provider, Request::new_action::<T>(&mut tagged_option))
+    }
+
+    pub fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(), CallbackError>
     where
         T: MaybeSizedProperty,
         C: CallbackRequest<T::Value>,
-        P: Provider,
     {
-        let mut tagged_option = TaggedOption::<'_, tags::RefMut<RequestTag<T>>>(Some(mechcb));
-        self.callback(provider, Request::new::<T>(&mut tagged_option))?;
+        let mut tagged_option = TaggedOption::<'_, tags::RefMut<Satisfy<T>>>(Some(mechcb));
+        self.callback(provider, Request::new_satisfy::<T>(&mut tagged_option))?;
         if tagged_option.is_some() {
             Err(CallbackError::NoCallback)
         } else {
@@ -218,16 +212,13 @@ impl MechanismData {
         }
     }
 
-    pub fn need_with<T: MaybeSizedProperty, F: FnMut(&T::Value), P>(
+    pub fn need_with<T: MaybeSizedProperty, F: FnMut(&T::Value)>(
         &self,
-        provider: &P,
+        provider: &dyn Provider,
         closure: &mut F,
-    ) -> Result<(), CallbackError>
-    where
-        P: Provider,
-    {
+    ) -> Result<(), CallbackError> {
         let closurecr = ClosureCR::<T, F>::wrap(closure);
-        self.need::<T, _, P>(provider, closurecr)
+        self.need::<T, _>(provider, closurecr)
     }
 
     // Legacy bs:
@@ -256,9 +247,6 @@ impl Debug for MechanismData {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum AuthenticationError {}
-
-#[derive(Debug, Eq, PartialEq)]
 /// The outcome of a single step in the authentication exchange
 ///
 /// Since SASL is multi-step each step can either complete the exchange or require more steps to be
@@ -267,16 +255,46 @@ pub enum Step {
     Done(Option<usize>),
     NeedsMore(Option<usize>),
 }
-// FIXME: This is wrong. There are three outcomes: Authentication Successfully ended, Auth is
-//  still in progress, authentication errored.
-//  *Completely* independent of that a mech may return data, even in the case of an error.
-//  *On top of that* a mechanism may error for non-authentication related errors, e.g. IO errors
-//  or missing properties in which case a mechanism has not written *valid* data and the
-//  connection, if any, should be reset.
-pub struct StepOutcome {
-    pub step: Step,
-    pub data_len: Option<usize>,
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+/// State result of the underlying Mechanism implementation
+pub enum State {
+    /// The Mechanism has not yet completed the authentication exchange
+    Running,
+
+    /// The Mechanism has received all required information from the other party.
+    ///
+    /// However, a Mechanism returning `Finished` may still have *written* data. This data MUST be
+    /// sent to the other party to ensure both sides have received all required data.
+    ///
+    /// After a `Finished` is returned `step` or `step64` MUST NOT be called further.
+    ///
+    /// **NOTE**: This state does not guarantee that the authentication was *successful*, only that
+    /// no further calls to `step` or `step64` are possible.
+    /// Most SASL mechanisms have no way of returning the authentication outcome inline.
+    /// Instead the outer protocol will indicate the authentication outcome in a protocol-specific
+    /// way.
+    Finished,
 }
+impl State {
+    #[inline(always)]
+    pub fn is_running(&self) -> bool {
+        match self {
+            Self::Running => true,
+            _ => false,
+        }
+    }
+    #[inline(always)]
+    pub fn is_finished(&self) -> bool {
+        !self.is_running()
+    }
+}
+
+/// Result type of a call to `step` or `step64`
+///
+/// See the documentation of [`Session::step`] for more details about this type
+pub type StepResult2 = Result<(State, Option<usize>), SessionError>;
+
 pub type StepResult = Result<Step, SessionError>;
 
 impl SessionData {
@@ -287,5 +305,3 @@ impl SessionData {
         }
     }
 }
-
-impl SessionData {}

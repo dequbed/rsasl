@@ -1,14 +1,47 @@
 use crate::property::MaybeSizedProperty;
-use crate::typed::{Erased, TaggedOption, tags};
+use crate::typed::{tags, Erased, TaggedOption};
+use std::marker::PhantomData;
+use std::ops::ControlFlow;
 
 pub trait Provider {
-    fn provide<'a>(&'a self, req: &mut Demand<'a>);
-    fn provide_mut<'a>(&'a mut self, _req: &mut Demand<'a>) {}
+    fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()>;
+    fn provide_mut<'a>(&'a mut self, _req: &mut Demand<'a>) -> DemandReply<()> {
+        DemandReply::Continue(())
+    }
 }
 
 impl Provider for () {
-    fn provide<'a>(&'a self, _: &mut Demand<'a>) {}
+    fn provide<'a>(&'a self, _: &mut Demand<'a>) -> DemandReply<()> {
+        DemandReply::Continue(())
+    }
 }
+
+#[doc(hidden)]
+pub struct TOKEN(PhantomData<()>);
+
+/// Control-flow utility to help shortcut [`Demand::provide`]
+///
+/// This type allows to easily chain calls to [`provide`](Demand::provide) while exiting as soon
+/// as possible by using [`std::ops::ControlFlow`].
+///
+/// ```rust
+/// # use rsasl::context::{Demand, DemandReply, Provider};
+/// use rsasl::property::{AuthId, Password, AuthzId};
+/// # struct CB;
+/// # impl Provider for CB {
+/// fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
+///     req.provide_ref::<AuthId>("exampleuser")?
+///         // If `AuthId` is requested the `?` operator will immediately shortcut to a return and
+///         // not execute any of the following `provide_ref`
+///        .provide_ref::<Password>("secret")?
+///        .provide_ref::<AuthzId>("root")?
+///        .done()
+///         // The final call to `done()` returns the expected `DemandReply<()>` if none of the
+///         // `provide_ref` previously matched.
+/// }
+/// # }
+/// ```
+pub type DemandReply<T> = ControlFlow<TOKEN, T>;
 
 #[repr(transparent)]
 /// A type-erased demand for a Property
@@ -22,17 +55,29 @@ impl<'a> Demand<'a> {
     }
 }
 impl<'a> Demand<'a> {
-    fn provide<T: tags::Type<'a>>(&mut self, value: T::Reified) -> &mut Self {
-        if let Some(res @ TaggedOption(None)) = self.0.downcast_mut::<T>() {
-            res.0 = Some(value)
-        }
-        self
+    pub fn done(&self) -> DemandReply<()> {
+        DemandReply::Continue(())
     }
 
-    pub fn provide_ref<T: MaybeSizedProperty>(&mut self, value: &'a T::Value) -> &mut Self {
+    fn provide<T: tags::Type<'a>>(&mut self, value: T::Reified) -> DemandReply<&mut Self> {
+        if let Some(res @ TaggedOption(None)) = self.0.downcast_mut::<T>() {
+            res.0 = Some(value);
+            DemandReply::Break(TOKEN(PhantomData))
+        } else {
+            DemandReply::Continue(self)
+        }
+    }
+
+    pub fn provide_ref<T: MaybeSizedProperty>(
+        &mut self,
+        value: &'a T::Value,
+    ) -> DemandReply<&mut Self> {
         self.provide::<tags::Ref<tags::MaybeSizedValue<T::Value>>>(value)
     }
-    pub fn provide_mut<T: MaybeSizedProperty>(&mut self, value: &'a mut T::Value) -> &mut Self {
+    pub fn provide_mut<T: MaybeSizedProperty>(
+        &mut self,
+        value: &'a mut T::Value,
+    ) -> DemandReply<&mut Self> {
         self.provide::<tags::RefMut<tags::MaybeSizedValue<T::Value>>>(value)
     }
 }
@@ -70,16 +115,14 @@ impl<P: MaybeSizedProperty> ThisProvider<'_, P> {
     }
 }
 impl<P: MaybeSizedProperty> Provider for ThisProvider<'_, P> {
-    fn provide<'a>(&'a self, req: &mut Demand<'a>) {
-        req.provide_ref::<P>(self.back());
+    fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
+        req.provide_ref::<P>(self.back())?.done()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mechanisms::plain::server::PlainValidation;
-    use std::ptr::NonNull;
 
     #[test]
     fn test_thisprovider() {

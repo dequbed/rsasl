@@ -7,7 +7,6 @@
 
 use std::any::TypeId;
 use std::ops::{Deref, DerefMut};
-use crate::property::MaybeSizedProperty;
 
 pub(crate) mod tags {
     use std::marker::PhantomData;
@@ -86,6 +85,15 @@ impl<'a> dyn Erased<'a> {
     pub fn downcast_mut<T: tags::Type<'a>>(&mut self) -> Option<&mut TaggedOption<'a, T>> {
         if self.is::<T>() {
             Some(unsafe { &mut *(self as *mut Self as *mut TaggedOption<'a, T>) })
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub fn downcast_ref<T: tags::Type<'a>>(&self) -> Option<&TaggedOption<'a, T>> {
+        if self.is::<T>() {
+            Some(unsafe { &*(self as *const Self as *const TaggedOption<'a, T>) })
         } else {
             None
         }
