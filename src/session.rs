@@ -79,7 +79,7 @@ impl<V: Validation> Session<V> {
         mechanism: Box<dyn Authentication>,
         mechanism_desc: Mechanism,
         side: Side,
-        channel_binding_cb: Option<Box<dyn ChannelBindingCallback>>,
+        _channel_binding_cb: Option<Box<dyn ChannelBindingCallback>>,
     ) -> Self {
         Self {
             callback,
@@ -200,7 +200,6 @@ impl<'a> MechanismData<'a> {
             session_data: SessionData::new(mechanism_desc, side),
         }
     }
-
 }
 
 impl MechanismData<'_> {

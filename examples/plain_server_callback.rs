@@ -15,9 +15,11 @@ struct OurCallback;
 #[derive(Debug, Error)]
 enum OurCallbackError {}
 impl OurCallback {
-    fn test_validate(&self, session_data: &SessionData, context: &Context)
-        -> Result<String, OurCallbackError>
-    {
+    fn test_validate(
+        &self,
+        session_data: &SessionData,
+        context: &Context,
+    ) -> Result<String, OurCallbackError> {
         let authzid = context.get_ref::<AuthzId>();
         let authid = context
             .get_ref::<AuthId>()
@@ -101,17 +103,22 @@ pub fn main() {
     }
 }
 
-fn print_outcome(step_result: &Result<(Option<String>, Option<usize>), SessionError>, buffer: Vec<u8>) {
+fn print_outcome(
+    step_result: &Result<(Option<String>, Option<usize>), SessionError>,
+    buffer: Vec<u8>,
+) {
     match step_result {
         Ok((Some(name), Some(_))) => {
             println!(
                 "Authentication successful, bytes to return to client: {:?} (name: {})",
-                buffer,
-                name
+                buffer, name
             );
         }
         Ok((Some(name), None)) => {
-            println!("Authentication successful, no data to return (name: {})", name);
+            println!(
+                "Authentication successful, no data to return (name: {})",
+                name
+            );
         }
         Ok((None, _)) => assert!(false, "PLAIN exchange took more than one step"),
         Err(SessionError::AuthenticationFailure) => {

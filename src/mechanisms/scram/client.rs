@@ -17,9 +17,9 @@ use crate::mechanisms::scram::parser::{
 };
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, hash_password, DOutput};
 use crate::session::{MechanismData, State, StepResult};
+use crate::validate::ValidationOutcome;
 use crate::vectored_io::VectoredWriter;
 use crate::Authentication;
-use crate::validate::ValidationOutcome;
 
 pub type ScramSha256Client<const N: usize> = ScramClient<sha2::Sha256, N>;
 pub type ScramSha512Client<const N: usize> = ScramClient<sha2::Sha512, N>;
@@ -88,7 +88,9 @@ impl<const N: usize> ScramState<StateClientFirst<N>> {
     }
 }
 
-impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> ScramState<WaitingServerFirst<D, N>> {
+impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize>
+    ScramState<WaitingServerFirst<D, N>>
+{
     pub fn step(
         self,
         password: &[u8],
