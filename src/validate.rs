@@ -1,8 +1,7 @@
-use thiserror::Error;
 use crate::property::Property;
 use crate::typed::{tags, Erased, TaggedOption};
 use std::any::TypeId;
-use std::marker::PhantomData;
+use thiserror::Error;
 
 pub trait Validation: Property {}
 impl<'a, V: Validation> tags::Type<'a> for V {
@@ -39,7 +38,7 @@ impl<'a> Validate<'a> {
     where
         T: Validation,
         F: FnOnce() -> Result<T::Value, E>,
-        E: std::error::Error + Send + Sync + 'static
+        E: std::error::Error + Send + Sync + 'static,
     {
         if let Some(result @ TaggedOption(Option::None)) = self.0.downcast_mut::<T>() {
             match f() {

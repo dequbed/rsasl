@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::sync::Arc;
 
-use crate::callback::{CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, Action};
+use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy};
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::context::{build_context, Provider};
 use crate::error::SessionError;
@@ -176,7 +176,8 @@ impl MechanismData {
         let mut tagged_option = TaggedOption::<'_, V>(None);
         let context = build_context(provider);
         let validate = Validate::new::<V>(&mut tagged_option);
-        self.callback.validate(&self.session_data, context, validate)?;
+        self.callback
+            .validate(&self.session_data, context, validate)?;
         tagged_option.0.ok_or(ValidationError::NoValidation)
     }
 
@@ -191,7 +192,7 @@ impl MechanismData {
 
     pub fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), CallbackError>
     where
-        T: MaybeSizedProperty
+        T: MaybeSizedProperty,
     {
         let mut tagged_option = TaggedOption::<'_, tags::Ref<Action<T>>>(Some(value));
         self.callback(provider, Request::new_action::<T>(&mut tagged_option))

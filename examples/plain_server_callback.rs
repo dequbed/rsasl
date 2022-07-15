@@ -1,4 +1,3 @@
-use thiserror::Error;
 use rsasl::callback::SessionCallback;
 use rsasl::context::Context;
 use rsasl::error::SessionError;
@@ -10,12 +9,11 @@ use rsasl::validate::{Validate, ValidationError, ValidationOutcome};
 use rsasl::SASL;
 use std::io::Cursor;
 use std::sync::Arc;
+use thiserror::Error;
 
 struct OurCallback;
 #[derive(Debug, Error)]
-enum OurCallbackError {
-
-}
+enum OurCallbackError {}
 impl OurCallback {
     fn validate_simple(&self, context: &Context) -> Result<ValidationOutcome, OurCallbackError> {
         let authzid = context.get_ref::<AuthzId>();

@@ -19,7 +19,6 @@ impl Provider for () {
 #[doc(hidden)]
 pub struct TOKEN(PhantomData<()>);
 
-
 /// Control-flow utility to help shortcut [`Demand::provide`]
 ///
 /// This type allows to easily chain calls to [`provide`](Demand::provide) while exiting as soon

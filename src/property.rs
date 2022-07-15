@@ -3,8 +3,6 @@
 //! If the existing properties in this module are not sufficient for your mechanism, you can
 //! define additional properties to be queried.
 
-use std::marker::PhantomData;
-
 pub trait Property: 'static {
     type Value: 'static;
 }
