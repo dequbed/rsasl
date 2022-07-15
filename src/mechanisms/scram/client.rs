@@ -17,7 +17,7 @@ use crate::mechanisms::scram::parser::{
 };
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, hash_password, DOutput};
 use crate::session::Step::NeedsMore;
-use crate::session::{MechanismData, Step, StepResult};
+use crate::session::{MechanismData, State, Step, StepResult2};
 use crate::vectored_io::VectoredWriter;
 use crate::Authentication;
 
@@ -34,30 +34,30 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> ScramClient<D, N>
     pub fn new() -> Self {
         Self {
             plus: false,
-            state: Some(ScramClientState::Initial(State::new(None))),
+            state: Some(ScramClientState::Initial(ScramState::new(None))),
         }
     }
 
     pub fn new_plus() -> Self {
         Self {
             plus: true,
-            state: Some(ScramClientState::Initial(State::new(None))),
+            state: Some(ScramClientState::Initial(ScramState::new(None))),
         }
     }
 }
 
 enum ScramClientState<D: Digest + BlockSizeUser, const N: usize> {
-    Initial(State<StateClientFirst<N>>),
-    ClientFirst(State<WaitingServerFirst<D, N>>, Vec<u8>),
-    ServerFirst(State<WaitingServerFinal<D>>),
+    Initial(ScramState<StateClientFirst<N>>),
+    ClientFirst(ScramState<WaitingServerFirst<D, N>>, Vec<u8>),
+    ServerFirst(ScramState<WaitingServerFinal<D>>),
 }
 
-struct State<S> {
+struct ScramState<S> {
     cbdata: Option<(&'static str, Box<[u8]>)>,
     state: S,
 }
 
-impl<const N: usize> State<StateClientFirst<N>> {
+impl<const N: usize> ScramState<StateClientFirst<N>> {
     pub fn new(cbdata: Option<(&'static str, Box<[u8]>)>) -> Self {
         Self {
             cbdata,
@@ -72,7 +72,7 @@ impl<const N: usize> State<StateClientFirst<N>> {
         username: String,
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<State<WaitingServerFirst<D, N>>, SessionError> {
+    ) -> Result<ScramState<WaitingServerFirst<D, N>>, SessionError> {
         let cbflag = if let Some((name, _)) = self.cbdata.as_ref() {
             GS2CBindFlag::Used(name)
         } else {
@@ -81,33 +81,33 @@ impl<const N: usize> State<StateClientFirst<N>> {
         let state = self
             .state
             .send_client_first(rng, cbflag, authzid, username, writer, written)?;
-        Ok(State {
+        Ok(ScramState {
             state,
             cbdata: self.cbdata,
         })
     }
 }
 
-impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> State<WaitingServerFirst<D, N>> {
+impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> ScramState<WaitingServerFirst<D, N>> {
     pub fn step(
         self,
         password: &[u8],
         server_first: &[u8],
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<State<WaitingServerFinal<D>>, SessionError> {
+    ) -> Result<ScramState<WaitingServerFinal<D>>, SessionError> {
         let cbdata = self.cbdata.map(|(_, b)| b);
         let state =
             self.state
                 .handle_server_first(password, cbdata, server_first, writer, written)?;
-        Ok(State {
+        Ok(ScramState {
             state,
             cbdata: None,
         })
     }
 }
 
-impl<D: Digest + BlockSizeUser> State<WaitingServerFinal<D>> {
+impl<D: Digest + BlockSizeUser> ScramState<WaitingServerFinal<D>> {
     pub fn step(self, server_final: &[u8]) -> Result<(), SessionError> {
         match self.state.handle_server_final(server_final) {
             Ok(StateServerFinal { .. }) => Ok(()),
@@ -323,7 +323,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> StepResult2 {
         use ScramClientState::*;
         match self.state.take() {
             Some(Initial(state)) => {
@@ -363,7 +363,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
                 let new_state = state.step(&mut rng, authzid, username, writer, &mut written)?;
                 self.state = Some(ClientFirst(new_state, password));
 
-                Ok(NeedsMore(Some(written)))
+                Ok((State::Running, Some(written)))
             }
             Some(ClientFirst(state, password)) => {
                 let server_first = input.ok_or(SessionError::InputDataRequired)?;
@@ -372,12 +372,12 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
                 let new_state = state.step(&password, server_first, writer, &mut written)?;
                 self.state = Some(ServerFirst(new_state));
 
-                Ok(NeedsMore(Some(written)))
+                Ok((State::Running, Some(written)))
             }
             Some(ServerFirst(state)) => {
                 let server_final = input.ok_or(SessionError::InputDataRequired)?;
                 state.step(server_final)?;
-                Ok(Step::Done(None))
+                Ok((State::Finished, None))
             }
             None => panic!("State machine in invalid state"),
         }

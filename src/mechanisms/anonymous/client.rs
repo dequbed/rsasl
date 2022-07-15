@@ -1,7 +1,7 @@
 use crate::mechanism::Authentication;
 use crate::property::MaybeSizedProperty;
 use crate::session::Step::Done;
-use crate::session::{MechanismData, StepResult};
+use crate::session::{MechanismData, State, StepResult2};
 use std::io::Write;
 
 pub struct AnonymousToken;
@@ -17,7 +17,7 @@ impl Authentication for Anonymous {
         session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> StepResult2 {
         let mut write_out = Ok(());
         let mut len = None;
         session.need_with::<AnonymousToken, _>(&(), &mut |token| {
@@ -26,6 +26,6 @@ impl Authentication for Anonymous {
             len = Some(buf.len());
         })?;
         write_out?;
-        Ok(Done(len))
+        Ok((State::Finished, len))
     }
 }
