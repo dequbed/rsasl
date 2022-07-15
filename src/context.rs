@@ -1,7 +1,8 @@
-use crate::property::MaybeSizedProperty;
+use crate::property::{MaybeSizedProperty, Property};
 use crate::typed::{tags, Erased, TaggedOption};
 use std::marker::PhantomData;
 use std::ops::ControlFlow;
+use crate::typed::tags::{MaybeSizedType, Type};
 
 pub trait Provider {
     fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()>;
@@ -43,6 +44,14 @@ pub struct TOKEN(PhantomData<()>);
 /// ```
 pub type DemandReply<T> = ControlFlow<TOKEN, T>;
 
+struct DemandTag<T>(PhantomData<T>);
+impl<'a, T: MaybeSizedProperty> MaybeSizedType<'a> for DemandTag<T> {
+    type Reified = T::Value;
+}
+impl<'a, T: Property> Type<'a> for DemandTag<T> {
+    type Reified = T::Value;
+}
+
 #[repr(transparent)]
 /// A type-erased demand for a Property
 ///
@@ -72,13 +81,13 @@ impl<'a> Demand<'a> {
         &mut self,
         value: &'a T::Value,
     ) -> DemandReply<&mut Self> {
-        self.provide::<tags::Ref<tags::MaybeSizedValue<T::Value>>>(value)
+        self.provide::<tags::Ref<DemandTag<T>>>(value)
     }
     pub fn provide_mut<T: MaybeSizedProperty>(
         &mut self,
         value: &'a mut T::Value,
     ) -> DemandReply<&mut Self> {
-        self.provide::<tags::RefMut<tags::MaybeSizedValue<T::Value>>>(value)
+        self.provide::<tags::RefMut<DemandTag<T>>>(value)
     }
 }
 
@@ -96,11 +105,11 @@ impl Context {
     }
     #[inline]
     pub fn get_ref<P: MaybeSizedProperty>(&self) -> Option<&P::Value> {
-        self.get_by_tag::<tags::Ref<tags::MaybeSizedValue<P::Value>>>()
+        self.get_by_tag::<tags::Ref<DemandTag<P>>>()
     }
     #[inline]
     pub fn get_mut<P: MaybeSizedProperty>(&self) -> Option<&mut P::Value> {
-        self.get_by_tag::<tags::RefMut<tags::MaybeSizedValue<P::Value>>>()
+        self.get_by_tag::<tags::RefMut<DemandTag<P>>>()
     }
 }
 

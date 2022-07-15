@@ -116,15 +116,13 @@ pub enum SessionError {
     #[error("no security layer is installed")]
     NoSecurityLayer,
 
-    #[error("authentication failed")]
-    /// Authentication exchange as syntactically valid but failed. Returned e.g. if the provided
-    /// password didn't match the provided user.
-    AuthenticationFailure,
-
     #[error("input data was required but not provided")]
     // Common Mechanism Errors:
     /// Mechanism was called without input data when requiring some
     InputDataRequired,
+
+    #[error("step was called after mechanism finished")]
+    MechanismDone,
 
     #[error("internal mechanism error: {0}")]
     MechanismError(Box<dyn MechanismError>),
@@ -146,9 +144,6 @@ pub enum SessionError {
     #[error("callback did not validate the authentication exchange")]
     NoValidate,
 
-    #[error("step was called after mechanism finished")]
-    MechanismDone,
-
     #[error(transparent)]
     Gsasl(Gsasl),
 }
@@ -162,13 +157,6 @@ impl SessionError {
     pub fn is_mechanism_error(&self) -> bool {
         match self {
             Self::MechanismError(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_authentication_failure(&self) -> bool {
-        match self {
-            Self::AuthenticationFailure => true,
             _ => false,
         }
     }

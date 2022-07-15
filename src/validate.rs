@@ -62,8 +62,6 @@ impl<'a> Validate<'a> {
 
 #[derive(Debug, Error)]
 pub enum ValidationError {
-    #[error("validation callback is not implemented for this validation type")]
-    NoValidation,
     #[error(transparent)]
     Boxed(Box<dyn std::error::Error + Send + Sync>),
 }
