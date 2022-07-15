@@ -8,13 +8,12 @@ use stringprep::saslprep;
 
 use crate::error::{MechanismError, MechanismErrorKind};
 
-use crate::session::Step::Done;
 use crate::session::{MechanismData, State, StepResult};
 
 use crate::context::{Demand, DemandReply, Provider};
 use crate::mechanisms::common::properties::ValidateSimple;
 use crate::property::{AuthId, AuthzId, Password, Property};
-use crate::validate::Validation;
+use crate::validate::{Validation, ValidationOutcome};
 use crate::Authentication;
 
 #[derive(Debug, Error)]
@@ -106,8 +105,7 @@ impl Authentication for Plain {
             password: password.as_bytes(),
         };
 
-        // FIXME: check for this error and for validation in general.
-        let _ = session.validate::<ValidateSimple>(&provider);
+        session.validate(&provider)?;
         Ok((State::Finished, None))
     }
 }

@@ -136,6 +136,16 @@ pub enum SessionError {
         CallbackError,
     ),
 
+    #[error("validation error: {0}")]
+    ValidationError(
+        #[from]
+        #[source]
+        ValidationError,
+    ),
+
+    #[error("callback did not validate the authentication exchange")]
+    NoValidate,
+
     #[error("step was called after mechanism finished")]
     MechanismDone,
 

@@ -8,10 +8,16 @@ impl<'a, V: Validation> tags::Type<'a> for V {
     type Reified = V::Value;
 }
 
+pub struct NoValidation;
+impl Property for NoValidation {
+    type Value = ();
+}
+impl Validation for NoValidation {}
+
 #[repr(transparent)]
 pub struct Validate<'a>(dyn Erased<'a> + 'a);
-impl<'a> Validate<'a> {
-    pub(crate) fn new<'o, V: Validation>(opt: &'o mut TaggedOption<'a, V>) -> &'o mut Self {
+impl Validate<'_> {
+    pub(crate) fn new<'opt, V: Validation>(opt: &'opt mut TaggedOption<'_, V>) -> &'opt mut Self {
         unsafe { std::mem::transmute(opt as &mut dyn Erased) }
     }
 }
@@ -67,6 +73,7 @@ pub enum ValidationError {
 // *requested by the protocol implementation*, to allow more complex error types in the protocol
 // (think HTTP 401 vs 403 [auth failed, auth successful but with invalid authzid])
 pub enum ValidationOutcome {
+    NotValidated,
     Successful,
     AuthenticationFailed,
     AuthorizationFailed,
