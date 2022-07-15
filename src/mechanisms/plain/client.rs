@@ -1,13 +1,9 @@
 use crate::mechanism::Authentication;
 use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
-use crate::vectored_io::VectoredWriter;
-use std::io::Write;
-use crate::callback::CallbackError;
-use crate::error::SessionError;
-use crate::error::SessionError::MechanismError;
 
-use crate::mechanisms::common::properties::{Credentials, SimpleCredentials};
+use std::io::Write;
+
 use crate::property::{AuthId, AuthzId, Password};
 
 #[derive(Copy, Clone, Debug)]
@@ -18,30 +14,30 @@ impl Authentication for Plain {
         &mut self,
         session: &mut MechanismData,
         _input: Option<&[u8]>,
-        mut writer: &mut dyn Write,
+        writer: &mut dyn Write,
     ) -> StepResult {
         let mut len = 0usize;
         let mut out = Ok(());
-        session.need_with::<'_, AuthzId, _, _>(&(), &mut |authzid| {
+        session.need_with::<AuthzId, _>(&(), &mut |authzid| {
             out = writer.write_all(authzid.as_bytes());
             len += authzid.len();
-        });
+        })?;
         out?;
         len += writer.write(&[0])?;
 
         let mut out = Ok(());
-        session.need_with::<'_, AuthId, _, _>(&(), &mut |authid| {
+        session.need_with::<AuthId, _>(&(), &mut |authid| {
             out = writer.write_all(authid.as_bytes());
             len += authid.len();
-        });
+        })?;
         out?;
         len += writer.write(&[0])?;
 
         let mut out = Ok(());
-        session.need_with::<'_, Password, _, _>(&(), &mut |password| {
+        session.need_with::<Password, _>(&(), &mut |password| {
             out = writer.write_all(password);
             len += password.len();
-        });
+        })?;
         out?;
 
         Ok(Done(Some(len)))

@@ -1,23 +1,28 @@
+use rsasl::callback::{CallbackError, Request, SessionCallback};
+use rsasl::context::Context;
+use rsasl::mechname::Mechname;
+use rsasl::property::{AuthId, Password};
+use rsasl::session::SessionData;
+use rsasl::session::Step::{Done, NeedsMore};
+use rsasl::SASL;
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
-use rsasl::callback::{CallbackError, Request, SessionCallback};
-use rsasl::context::Context;
-use rsasl::mechanisms::common::properties::{Credentials, SimpleCredentials};
-use rsasl::mechname::Mechname;
-use rsasl::property::{AuthId, Password};
-use rsasl::SASL;
-use rsasl::session::SessionData;
-use rsasl::session::Step::{Done, NeedsMore};
 
 struct Properties {
     username: String,
     password: String,
 }
 impl SessionCallback for Properties {
-    fn callback(&self, session_data: &SessionData, context: &Context, request: &mut Request<'_>) -> Result<(), CallbackError> {
-        request.satisfy::<AuthId>(self.username.trim());
-        request.satisfy::<Password>(self.password.trim().as_bytes());
+    fn callback(
+        &self,
+        _session_data: &SessionData,
+        _context: &Context,
+        request: &mut Request<'_>,
+    ) -> Result<(), CallbackError> {
+        request
+            .satisfy::<AuthId>(self.username.trim())?
+            .satisfy::<Password>(self.password.trim().as_bytes())?;
         Ok(())
     }
 }
@@ -46,7 +51,10 @@ pub fn main() {
 
     // Usually you would first agree on a mechanism with the server, for demostration purposes
     // we directly start a PLAIN "exchange"
-    let mut session = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap().without_channel_binding();
+    let mut session = sasl
+        .client_start(Mechname::new(b"PLAIN").unwrap())
+        .unwrap()
+        .without_channel_binding();
 
     // Do an authentication step. In a PLAIN exchange there is only one step, with no data.
     let mut out = Cursor::new(Vec::new());

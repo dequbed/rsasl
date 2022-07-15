@@ -2,44 +2,6 @@
 //!
 //! If the existing properties in this module are not sufficient for your mechanism, you can
 //! define additional properties to be queried.
-//! This consists of two parts:
-//! 1. A type indicating your property
-//! 2. A `const Property` that is used to query this property
-//!
-//! **Note: To enable custom mechanisms you have to enable the feature `unstable_custom_mechanism`**
-//! ```ignore
-//! #use std::marker::PhantomData;
-//! use rsasl::property::{Property, PropertyQ, PropertyDefinition};
-//! // All Property types must implement Debug.
-//! #[derive(Debug)]
-//! // The `PhantomData` in the constructor is only used so external crates can't construct this type.
-//! pub struct MyCoolNewProperty(PhantomData<()>);
-//! impl PropertyQ for MyCoolNewProperty {
-//!     // This is the type stored for this property. This could also be the struct itself if you
-//!     // so choose
-//!     type Item = usize;
-//!     // You need to return the constant you define below here for things to work properly
-//!     fn property() -> Property {
-//!         MYCOOLPROPERTY
-//!     }
-//! }
-//! // This const is used by your mechanism to query and by your users to set your property. It
-//! // thus needs to be exported from your crate
-//! pub const MYCOOLPROPERTY: Property = Property::new(&PropertyDefinition::new(
-//!     // Short name, used in `Debug` output
-//!     "mycoolnewproperty",
-//!     // A longer user-facing name used in `Display` output
-//!     "a cool property you should definitely set!"
-//! ));
-//! ```
-
-
-use std::any::{Any, TypeId};
-use std::collections::HashMap;
-use std::marker::PhantomData;
-use std::ptr::NonNull;
-use crate::SessionCallback;
-use crate::session::SessionData;
 
 pub trait Property: 'static {
     type Value: 'static;
@@ -53,70 +15,76 @@ impl<P: Property> MaybeSizedProperty for P {
 }
 
 #[derive(Debug)]
-pub struct AuthId(PhantomData<()>);
+pub struct AuthId;
 impl MaybeSizedProperty for AuthId {
     type Value = str;
 }
 
 #[derive(Debug)]
-pub struct AuthzId(PhantomData<()>);
+pub struct AuthzId;
 impl MaybeSizedProperty for AuthzId {
     type Value = str;
 }
 
 #[derive(Debug)]
-pub struct OpenID20AuthenticateInBrowser(PhantomData<()>);
+pub struct OpenID20AuthenticateInBrowser;
 
 #[derive(Debug)]
-pub struct Saml20AuthenticateInBrowser(PhantomData<()>);
+pub struct Saml20AuthenticateInBrowser;
 
 #[derive(Debug)]
-pub struct OpenID20OutcomeData(PhantomData<()>);
+pub struct OpenID20OutcomeData;
 
 #[derive(Debug)]
-pub struct OpenID20RedirectUrl(PhantomData<()>);
+pub struct OpenID20RedirectUrl;
 
 #[derive(Debug)]
-pub struct SAML20RedirectUrl(PhantomData<()>);
+pub struct SAML20RedirectUrl;
 
 #[derive(Debug)]
-pub struct SAML20IDPIdentifier(PhantomData<()>);
+pub struct SAML20IDPIdentifier;
 
 #[derive(Debug)]
-pub struct CBTlsUnique(PhantomData<()>);
+pub struct Qop;
 
 #[derive(Debug)]
-pub struct Qop(PhantomData<()>);
+pub struct Qops;
 
 #[derive(Debug)]
-pub struct Qops(PhantomData<()>);
+pub struct DigestMD5HashedPassword;
 
 #[derive(Debug)]
-pub struct DigestMD5HashedPassword(PhantomData<()>);
+pub struct Realm;
+impl MaybeSizedProperty for Realm {
+    type Value = str;
+}
 
 #[derive(Debug)]
-pub struct Realm(PhantomData<()>);
+pub struct Pin;
 
 #[derive(Debug)]
-pub struct Pin(PhantomData<()>);
+pub struct SuggestedPin;
 
 #[derive(Debug)]
-pub struct SuggestedPin(PhantomData<()>);
+pub struct Passcode;
 
 #[derive(Debug)]
-pub struct Passcode(PhantomData<()>);
+pub struct GssapiDisplayName;
 
 #[derive(Debug)]
-pub struct GssapiDisplayName(PhantomData<()>);
+pub struct Hostname;
+impl MaybeSizedProperty for Hostname {
+    type Value = str;
+}
 
 #[derive(Debug)]
-pub struct Hostname(PhantomData<()>);
+pub struct Service;
+impl MaybeSizedProperty for Service {
+    type Value = str;
+}
 
 #[derive(Debug)]
-pub struct Service(PhantomData<()>);
-
-#[derive(Debug)]
-pub struct Password(PhantomData<()>);
+pub struct Password;
 impl MaybeSizedProperty for Password {
     type Value = [u8];
 }

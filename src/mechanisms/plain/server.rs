@@ -1,20 +1,21 @@
-use std::borrow::{Borrow, Cow};
-use std::fmt::{Display, Formatter};
+use std::borrow::Cow;
+
 use std::io::Write;
 use std::str::Utf8Error;
 use thiserror::Error;
 
-use stringprep::{saslprep, Error};
+use stringprep::saslprep;
 
 use crate::error::{MechanismError, MechanismErrorKind};
 
-use crate::session::Step::{Done, NeedsMore};
+use crate::session::Step::Done;
 use crate::session::{MechanismData, StepResult};
 
+use crate::context::{Demand, DemandReply, Provider};
+use crate::mechanisms::common::properties::ValidateSimple;
 use crate::property::{AuthId, AuthzId, Password, Property};
 use crate::validate::Validation;
 use crate::Authentication;
-use crate::context::{Demand, Provider};
 
 #[derive(Debug, Error)]
 enum PlainError {
@@ -48,13 +49,15 @@ pub struct PlainProvider<'a> {
     pub password: &'a [u8],
 }
 impl<'b> Provider for PlainProvider<'b> {
-    fn provide<'a>(&'a self, req: &mut Demand<'a>) {
-        req.provide_ref::<AuthId>(&self.authcid);
-        req.provide_ref::<Password>(&self.password);
+    fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
+        req.provide_ref::<AuthId>(&self.authcid)?
+            .provide_ref::<Password>(&self.password)?;
 
         if let Some(authzid) = self.authzid.as_ref() {
-            req.provide_ref::<AuthzId>(authzid);
+            req.provide_ref::<AuthzId>(authzid)?;
         }
+
+        req.done()
     }
 }
 
@@ -71,8 +74,8 @@ impl Authentication for Plain {
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
     ) -> StepResult {
-        if input.map(|buf| buf.len()).unwrap_or(0) == 0 {
-            return Ok(NeedsMore(None));
+        if input.map(|buf| buf.len()).unwrap_or(0) < 4 {
+            return Err(PlainError::BadFormat.into());
         }
 
         let input = input.unwrap();
@@ -102,9 +105,9 @@ impl Authentication for Plain {
             authcid,
             password: password.as_bytes(),
         };
-        session
-            .validate::<PlainValidation, _>(&provider)
-            .map_err(|_| PlainError::BadFormat /* FIXME!! */)?;
+
+        // FIXME: check for this error and for validation in general.
+        let _ = session.validate::<ValidateSimple>(&provider);
         Ok(Done(None))
     }
 }

@@ -17,7 +17,7 @@ use hmac::SimpleHmac;
 use rand::{thread_rng, Rng, RngCore};
 use std::io::Write;
 use std::marker::PhantomData;
-use stringprep::saslprep;
+
 use crate::context::ThisProvider;
 
 const DEFAULT_ITERATIONS: u32 = 2u32.pow(14); // 16384, TODO check if still reasonable
@@ -82,7 +82,7 @@ impl<const N: usize> WaitingClientFirst<N> {
         // If the callback doesn't return a password (usually because the user does not exist) we
         // proceed with the authentication exchange with randomly generated data, since SCRAM
         // only indicates failure like that in the last step.
-        if let Err(_) = session_data.need_with::<'_, ScramSaltedPasswordQuery, _, _>(
+        if let Err(_) = session_data.need_with::<ScramSaltedPasswordQuery, _>(
             &ThisProvider::<AuthId>::with(username),
             &mut |(ScramPassParams { salt, iterations }, password)| {
                 if password.len() == <SimpleHmac<D> as OutputSizeUser>::output_size() {

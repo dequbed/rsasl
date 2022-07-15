@@ -1,5 +1,5 @@
 use std::convert::TryFrom;
-use std::fmt;
+
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use thiserror::Error;

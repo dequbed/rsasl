@@ -560,8 +560,6 @@ impl<'scram> ServerFinal<'scram> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vectored_io::VectoredWriter;
-    use std::io::Cursor;
 
     #[test]
     fn test_parse_gs2_cbind_flag() {
