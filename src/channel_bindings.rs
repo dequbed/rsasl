@@ -31,7 +31,7 @@ impl ChannelBindingCallback for ThisCb {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::callback::tests::EmptyCallback;
+    use crate::callback::EmptyCallback;
     use crate::session::Session;
     use std::sync::Arc;
     use crate::mechanisms::plain::mechinfo::PLAIN;

@@ -60,12 +60,6 @@ impl<'b> Provider for PlainProvider<'b> {
     }
 }
 
-pub struct PlainValidation;
-impl Property for PlainValidation {
-    type Value = bool;
-}
-impl Validation for PlainValidation {}
-
 impl Authentication for Plain {
     fn step(
         &mut self,

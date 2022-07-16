@@ -1,9 +1,9 @@
-use crate::error::SessionError;
+use thiserror::Error;
+use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanisms::scram::client::SCRAMError;
 use crate::mechanisms::scram::parser::{
     ClientFinal, ClientFirstMessage, ServerErrorValue, ServerFinal, ServerFirst,
 };
-use crate::mechanisms::scram::properties::{ScramPassParams, ScramSaltedPasswordQuery};
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, DOutput};
 use crate::session::{MechanismData, State, StepResult};
 use crate::vectored_io::VectoredWriter;
@@ -17,6 +17,7 @@ use std::io::Write;
 use std::marker::PhantomData;
 
 use crate::context::ThisProvider;
+use crate::mechanisms::scram::properties::{HashIterations, PasswordHash, Salt};
 use crate::property::AuthId;
 
 const DEFAULT_ITERATIONS: u32 = 2u32.pow(14); // 16384, TODO check if still reasonable
@@ -25,6 +26,17 @@ const DEFAULT_SALT_LEN: usize = 32;
 pub type ScramSha1Server<const N: usize> = ScramServer<sha1::Sha1, N>;
 pub type ScramSha256Server<const N: usize> = ScramServer<sha2::Sha256, N>;
 pub type ScramSha512Server<const N: usize> = ScramServer<sha2::Sha512, N>;
+
+#[derive(Debug, Error)]
+pub enum ScramServerError {
+    #[error("provided password hash is wrong size for selected algorithm")]
+    PasswordHashInvalid
+}
+impl MechanismError for ScramServerError {
+    fn kind(&self) -> MechanismErrorKind {
+        MechanismErrorKind::Parse
+    }
+}
 
 pub struct ScramServer<D: Digest + BlockSizeUser, const N: usize> {
     plus: bool,
@@ -73,33 +85,27 @@ impl<const N: usize> WaitingClientFirst<N> {
 
         // FIXME: Escape Username from SCRAM format to whatever
 
-        let mut outer_iterations: Option<u32> = None;
-        let mut outer_password: Option<GenericArray<u8, D::OutputSize>> = None;
-        let mut outer_salt = None;
+        let provider = ThisProvider::<AuthId>::with(username);
+        let password: Option<GenericArray<u8, D::OutputSize>>;
 
         // Retrieve the password for the given user via callback.
         // If the callback doesn't return a password (usually because the user does not exist) we
         // proceed with the authentication exchange with randomly generated data, since SCRAM
         // only indicates failure like that in the last step.
-        if let Err(_) = session_data.need_with::<ScramSaltedPasswordQuery, _, _>(
-            &ThisProvider::<AuthId>::with(username),
-            &mut |(ScramPassParams { salt, iterations }, password)| {
-                if password.len() == <SimpleHmac<D> as OutputSizeUser>::output_size() {
-                    // FIXME: Sorta kinda actually does needs error reporting. Hmm meh :I
-                    outer_password = Some(GenericArray::clone_from_slice(password));
-                }
-                outer_iterations = Some(*iterations);
-                outer_salt = Some(Vec::from(*salt));
-                Ok(())
-            },
-        ) {
-            let (iterations, salt) = self.gen_rand_pw_params();
-            outer_iterations = Some(iterations);
-            outer_salt = Some(salt);
-        }
+        password = session_data.maybe_need_with::<PasswordHash, _, _>(&provider, &mut |password| {
+            if password.len() != <SimpleHmac<D> as OutputSizeUser>::output_size() {
+                return Err(SessionError::MechanismError(Box::new(ScramServerError::PasswordHashInvalid)))
+            }
+            Ok(GenericArray::clone_from_slice(password))
+        })?;
 
-        let iterations = outer_iterations.unwrap();
-        let salt = outer_salt.unwrap();
+        let (iterations, salt) = if password.is_some() {
+            let iterations = session_data.need_with::<HashIterations, _, _>(&provider, &mut |iterations| Ok(*iterations))?;
+            let salt = session_data.need_with::<Salt, _, _>(&provider, &mut |salt| Ok(salt.to_vec()))?;
+            (iterations, salt)
+        } else {
+            self.gen_rand_pw_params()
+        };
 
         let server_nonce: [u8; N] = generate_nonce(rng);
 
@@ -112,7 +118,7 @@ impl<const N: usize> WaitingClientFirst<N> {
         common_nonce.extend_from_slice(&client_nonce);
         common_nonce.extend_from_slice(&server_nonce);
 
-        if let Some(salted_password) = outer_password {
+        if let Some(salted_password) = password {
             let gs2header = client_first.build_gs2_header_vec();
             let gs2headerb64 = base64::encode(gs2header);
 

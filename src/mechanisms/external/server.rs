@@ -18,13 +18,6 @@ impl MechanismError for ParseError {
     }
 }
 
-pub struct ExternalValidation;
-
-impl Property for ExternalValidation {
-    type Value = bool;
-}
-impl Validation for ExternalValidation {}
-
 #[derive(Copy, Clone, Debug)]
 pub struct External;
 
