@@ -1,6 +1,8 @@
+use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::marker::PhantomData;
+use std::ops::Deref;
 use thiserror::Error;
 
 use digest::crypto_common::BlockSizeUser;
@@ -9,6 +11,7 @@ use digest::Digest;
 
 use rand::Rng;
 
+use crate::context::EmptyProvider;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanisms::common::properties::{Credentials, SimpleCredentials};
 use crate::mechanisms::scram::parser::{
@@ -16,6 +19,7 @@ use crate::mechanisms::scram::parser::{
     ServerFirst,
 };
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, hash_password, DOutput};
+use crate::property::{AuthId, AuthzId, OverrideCBType, Password};
 use crate::session::{MechanismData, State, StepResult};
 use crate::validate::ValidationOutcome;
 use crate::vectored_io::VectoredWriter;
@@ -25,23 +29,29 @@ pub type ScramSha256Client<const N: usize> = ScramClient<sha2::Sha256, N>;
 pub type ScramSha512Client<const N: usize> = ScramClient<sha2::Sha512, N>;
 pub type ScramSha1Client<const N: usize> = ScramClient<sha1::Sha1, N>;
 
+enum CbSupport {
+    ClientNoSupport,
+    ServerNoSupport,
+    Supported,
+}
 pub struct ScramClient<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> {
-    plus: bool,
+    plus: CbSupport,
     state: Option<ScramClientState<D, N>>,
 }
 
 impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> ScramClient<D, N> {
     pub fn new() -> Self {
         Self {
-            plus: false,
-            state: Some(ScramClientState::Initial(ScramState::new(None))),
+            // TODO: Actually, how *do* we figure this out?
+            plus: CbSupport::ClientNoSupport,
+            state: Some(ScramClientState::Initial(ScramState::new())),
         }
     }
 
     pub fn new_plus() -> Self {
         Self {
-            plus: true,
-            state: Some(ScramClientState::Initial(ScramState::new(None))),
+            plus: CbSupport::Supported,
+            state: Some(ScramClientState::Initial(ScramState::new())),
         }
     }
 }
@@ -53,14 +63,12 @@ enum ScramClientState<D: Digest + BlockSizeUser, const N: usize> {
 }
 
 struct ScramState<S> {
-    cbdata: Option<(&'static str, Box<[u8]>)>,
     state: S,
 }
 
 impl<const N: usize> ScramState<StateClientFirst<N>> {
-    pub fn new(cbdata: Option<(&'static str, Box<[u8]>)>) -> Self {
+    pub fn new() -> Self {
         Self {
-            cbdata,
             state: StateClientFirst::new(),
         }
     }
@@ -68,23 +76,17 @@ impl<const N: usize> ScramState<StateClientFirst<N>> {
     pub fn step<D: Digest + BlockSizeUser + Clone + Sync>(
         self,
         rng: &mut impl Rng,
+        cbflag: GS2CBindFlag<'_>,
+        cbdata: Option<String>,
         authzid: Option<String>,
         username: String,
         writer: impl Write,
         written: &mut usize,
     ) -> Result<ScramState<WaitingServerFirst<D, N>>, SessionError> {
-        let cbflag = if let Some((name, _)) = self.cbdata.as_ref() {
-            GS2CBindFlag::Used(name)
-        } else {
-            GS2CBindFlag::NotSupported
-        };
         let state = self
             .state
-            .send_client_first(rng, cbflag, authzid, username, writer, written)?;
-        Ok(ScramState {
-            state,
-            cbdata: self.cbdata,
-        })
+            .send_client_first(rng, cbflag, cbdata, authzid, username, writer, written)?;
+        Ok(ScramState { state })
     }
 }
 
@@ -98,14 +100,10 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize>
         writer: impl Write,
         written: &mut usize,
     ) -> Result<ScramState<WaitingServerFinal<D>>, SessionError> {
-        let cbdata = self.cbdata.map(|(_, b)| b);
         let state =
             self.state
-                .handle_server_first(password, cbdata, server_first, writer, written)?;
-        Ok(ScramState {
-            state,
-            cbdata: None,
-        })
+                .handle_server_first(password, server_first, writer, written)?;
+        Ok(ScramState { state })
     }
 }
 
@@ -145,6 +143,7 @@ impl<const N: usize> StateClientFirst<N> {
         self,
         rng: &mut impl Rng,
         cbflag: GS2CBindFlag<'_>,
+        cbdata: Option<String>,
         authzid: Option<String>,
         username: String,
         writer: impl Write,
@@ -173,7 +172,7 @@ impl<const N: usize> StateClientFirst<N> {
         // b","
         gs2_header.extend_from_slice(b",");
 
-        Ok(WaitingServerFirst::new(gs2_header, client_nonce, username))
+        Ok(WaitingServerFirst::new(cbdata, gs2_header, client_nonce, username))
     }
 }
 
@@ -181,7 +180,7 @@ impl<const N: usize> StateClientFirst<N> {
 struct WaitingServerFirst<D: Digest + BlockSizeUser, const N: usize> {
     // Provided user password to be hashed with salt & iteration count from Server First Message
     //password: &'static str,
-    //cbdata: Option<&[u8]>
+    cbdata: Option<String>,
 
     // State <= gs2_header, client_nonce, username
     gs2_header: Vec<u8>,
@@ -203,8 +202,14 @@ struct WaitingServerFirst<D: Digest + BlockSizeUser, const N: usize> {
 }
 
 impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirst<D, N> {
-    pub fn new(gs2_header: Vec<u8>, client_nonce: [u8; N], username: String) -> Self {
+    pub fn new(
+        cbdata: Option<String>,
+        gs2_header: Vec<u8>,
+        client_nonce: [u8; N],
+        username: String,
+    ) -> Self {
         Self {
+            cbdata,
             gs2_header,
             client_nonce,
             username,
@@ -215,13 +220,11 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
     pub fn handle_server_first_salted(
         mut self,
         salted_password: &DOutput<D>,
-        cbdata: Option<Box<[u8]>>,
         server_first: ServerFirst,
         writer: impl Write,
         written: &mut usize,
     ) -> Result<WaitingServerFinal<D>, SessionError> {
-        self.gs2_header
-            .extend_from_slice(cbdata.as_ref().map(|b| b.as_ref()).unwrap_or(&[]));
+        self.cbdata.take().map(|cbdata| self.gs2_header.extend_from_slice(cbdata.as_bytes()));
         let gs2headerb64 = base64::encode(self.gs2_header);
 
         let (client_proof, server_signature) = find_proofs::<D>(
@@ -250,7 +253,6 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
     pub fn handle_server_first(
         self,
         password: &[u8],
-        cbdata: Option<Box<[u8]>>,
         server_first: &[u8],
         writer: impl Write,
         written: &mut usize,
@@ -279,7 +281,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
         let mut salted_password = GenericArray::default();
         hash_password::<D>(password, iterations, &salt[..], &mut salted_password);
 
-        self.handle_server_first_salted(&salted_password, cbdata, server_first, writer, written)
+        self.handle_server_first_salted(&salted_password, server_first, writer, written)
     }
 }
 
@@ -329,40 +331,62 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
         use ScramClientState::*;
         match self.state.take() {
             Some(Initial(state)) => {
-                /*
-                let (_cbflag, _cbdata) = if self.plus {
-                    let (name, value) = session
-                        .get_cb_data()
-                        // TODO: fix
-                        .expect("CB data required");
-                    (GS2CBindFlag::Used(name), Some(base64::encode(value)))
-                } else {
-                    (GS2CBindFlag::NotSupported, None)
-                };
-                 */
+                let mut cbname = Cow::Borrowed("tls-unique");
+                let mut cbdata = None;
+                let cbflag = match self.plus {
+                    CbSupport::Supported => {
+                        let res = session.need_with::<OverrideCBType, _, _>(
+                            &EmptyProvider,
+                            &mut |i_cbname| {
+                                session.need_cb_data(
+                                    i_cbname,
+                                    &EmptyProvider,
+                                    &mut |i_cbdata| {
+                                        cbdata = Some(base64::encode(i_cbdata));
+                                        Ok(())
+                                    },
+                                )?;
+                                cbname = Cow::Owned(i_cbname.into());
+                                Ok(())
+                            },
+                        );
+                        match res {
+                            Ok(()) => {}
+                            Err(e) if e.is_missing_prop() => {
+                                session.need_cb_data(
+                                    "tls-unique",
+                                    &EmptyProvider,
+                                    &mut |i_cbdata| {
+                                        cbdata = Some(base64::encode(i_cbdata));
+                                        Ok(())
+                                    },
+                                )?;
+                            }
+                            Err(other) => return Err(other.into()),
+                        }
 
-                let mut username = None;
-                let mut outer_authzid = None;
-                let mut outer_passwd: Option<Vec<u8>> = None;
-                session.need_with::<SimpleCredentials, _>(
-                    &(),
-                    &mut |Credentials {
-                              authid,
-                              authzid,
-                              password,
-                          }| {
-                        username = Some(SaslName::escape(authid).unwrap().into_owned());
-                        outer_authzid = authzid.map(|s| s.to_string());
-                        outer_passwd = Some((*password).to_owned())
-                    },
-                )?;
-                let username = username.unwrap();
-                let authzid = outer_authzid;
-                let password = outer_passwd.unwrap();
+                        GS2CBindFlag::Used(&cbname)
+                    }
+                    CbSupport::ServerNoSupport => GS2CBindFlag::SupportedNotUsed,
+                    CbSupport::ClientNoSupport => GS2CBindFlag::NotSupported,
+                };
+
+                let provider = EmptyProvider;
+                let username = session.need_with::<AuthId, _, _>(&provider, &mut |authid| {
+                    Ok(SaslName::escape(authid)?.into_owned())
+                })?;
+                let authzid = session
+                    .maybe_need_with::<AuthzId, _, _>(&provider, &mut |authzid| {
+                        Ok(SaslName::escape(authzid)?.into_owned())
+                    })?;
+                let password = session.need_with::<Password, _, _>(&provider, &mut |password| {
+                    Ok(password.to_vec())
+                })?;
 
                 let mut rng = rand::thread_rng();
                 let mut written = 0;
-                let new_state = state.step(&mut rng, authzid, username, writer, &mut written)?;
+                let new_state =
+                    state.step(&mut rng, cbflag, cbdata, authzid, username, writer, &mut written)?;
                 self.state = Some(ClientFirst(new_state, password));
 
                 Ok((State::Running, Some(written)))

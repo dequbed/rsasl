@@ -13,6 +13,7 @@ use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
 use crate::context::Context;
+use crate::error::SessionError;
 use crate::property::MaybeSizedProperty;
 
 use crate::session::SessionData;
@@ -63,8 +64,8 @@ pub trait SessionCallback {
         _session_data: &SessionData,
         _context: &Context,
         _request: &mut Request<'_>,
-    ) -> Result<(), CallbackError> {
-        Err(CallbackError::NoCallback)
+    ) -> Result<(), SessionError> {
+        Err(CallbackError::NoCallback.into())
     }
 
     /// Validate an authentication exchange
@@ -90,6 +91,14 @@ pub enum CallbackError {
     #[doc(hidden)]
     EarlyReturn(PhantomData<()>),
 }
+impl CallbackError {
+    pub fn is_no_callback(&self) -> bool {
+        match self {
+            Self::NoCallback => true,
+            _ => false,
+        }
+    }
+}
 impl Display for CallbackError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -109,30 +118,47 @@ impl Error for CallbackError {
 }
 
 pub trait CallbackRequest<Answer: ?Sized> {
-    fn satisfy(&mut self, answer: &Answer);
+    fn satisfy(&mut self, answer: &Answer) -> Result<(), SessionError>;
 }
 
+
+enum ClosureCRState<'f, F, G> {
+    Open(&'f mut F),
+    Satisfied(G)
+}
 #[repr(transparent)]
-pub struct ClosureCR<T, F> {
-    closure: F,
+pub struct ClosureCR<'f, T, F, G> {
+    closure: ClosureCRState<'f, F, G>,
     _marker: PhantomData<T>,
 }
-impl<T, F> ClosureCR<T, F>
+impl<'f, T, F, G> ClosureCR<'f, T, F, G>
 where
     T: MaybeSizedProperty,
-    F: FnMut(&T::Value),
+    F: FnMut(&T::Value) -> Result<G, SessionError>,
 {
-    pub fn wrap(closure: &mut F) -> &mut Self {
-        unsafe { std::mem::transmute(closure) }
+    pub fn wrap(closure: &'f mut F) -> ClosureCR<'f, T, F, G>
+    {
+        ClosureCR { closure: ClosureCRState::Open(closure), _marker: PhantomData }
+    }
+    pub fn try_unwrap(self) -> Option<G> {
+        if let ClosureCRState::Satisfied(val) = self.closure {
+            Some(val)
+        } else {
+            None
+        }
     }
 }
-impl<T, F> CallbackRequest<T::Value> for ClosureCR<T, F>
+impl<T, F, G> CallbackRequest<T::Value> for ClosureCR<'_, T, F, G>
 where
     T: MaybeSizedProperty,
-    F: FnMut(&T::Value),
+    F: FnMut(&T::Value) -> Result<G, SessionError>,
 {
-    fn satisfy(&mut self, answer: &T::Value) {
-        (self.closure)(answer)
+    fn satisfy(&mut self, answer: &T::Value) -> Result<(), SessionError> {
+        if let ClosureCRState::Open(closure) = &mut self.closure {
+            let reply = closure(answer)?;
+            std::mem::replace(&mut self.closure, ClosureCRState::Satisfied(reply));
+        }
+        Ok(())
     }
 }
 
@@ -223,14 +249,24 @@ impl<'a> Request<'a> {
     pub fn satisfy<P: MaybeSizedProperty>(
         &mut self,
         answer: &P::Value,
-    ) -> Result<&mut Self, CallbackError> {
+    ) -> Result<&mut Self, SessionError> {
         if let Some(TaggedOption(Some(mech))) =
-            self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>().take()
+            self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>()
         {
-            mech.satisfy(answer);
-            Err(CallbackError::EarlyReturn(PhantomData))
+            mech.satisfy(answer)?;
+            Err(CallbackError::EarlyReturn(PhantomData).into())
         } else {
             Ok(self)
         }
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+
+    pub struct EmptyCallback;
+    impl SessionCallback for EmptyCallback {
+
     }
 }

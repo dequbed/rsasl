@@ -3,13 +3,24 @@ use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use std::str::Utf8Error;
 use thiserror::Error;
+use crate::error::{MechanismError, MechanismErrorKind};
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(Debug, Error, Copy, Clone, Eq, PartialEq)]
 pub enum SaslNameError {
+    #[error("empty string is invalid for name")]
     Empty,
-    InvalidUtf8,
+    #[error("name contains invalid utf-8: {0}")]
+    InvalidUtf8(Utf8Error),
+    #[error("name contains invalid char {0}")]
     InvalidChar(u8),
+    #[error("name contains invalid escape sequence")]
     InvalidEscape,
+}
+
+impl MechanismError for SaslNameError {
+    fn kind(&self) -> MechanismErrorKind {
+        MechanismErrorKind::Parse
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -116,13 +127,13 @@ impl<'a> SaslName<'a> {
         if let Some(bad) = input.bytes().position(|b| matches!(b, b'=')) {
             let mut out = String::with_capacity(input.len());
             let good = std::str::from_utf8(&input.as_bytes()[..bad])
-                .map_err(|_| SaslNameError::InvalidUtf8)?;
+                .map_err(SaslNameError::InvalidUtf8)?;
             out.push_str(good);
             let mut input = &input[bad..];
 
             while let Some(bad) = input.bytes().position(|b| matches!(b, b'=')) {
                 let good = std::str::from_utf8(&input.as_bytes()[..bad])
-                    .map_err(|_| SaslNameError::InvalidUtf8)?;
+                    .map_err(SaslNameError::InvalidUtf8)?;
                 out.push_str(good);
                 let c = match &input.as_bytes()[bad + 1..bad + 3] {
                     b"2C" => ',',
@@ -174,6 +185,11 @@ pub enum ParseError {
 pub enum GS2CBindFlag<'scram> {
     SupportedNotUsed,
     NotSupported,
+    /// Channel bindings of the given name are used
+    ///
+    /// RFC 5056 Section 7 limits the channel binding name to "any string composed of US-ASCII
+    /// alphanumeric characters, period ('.'), and dash ('-')", which is always valid UTF-8
+    /// making the use of `str` here correct.
     Used(&'scram str),
 }
 impl<'scram> GS2CBindFlag<'scram> {

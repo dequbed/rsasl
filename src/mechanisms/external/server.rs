@@ -3,8 +3,7 @@ use crate::mechanism::Authentication;
 use thiserror::Error;
 
 use crate::context::ThisProvider;
-use crate::mechanisms::external::client::AuthId;
-use crate::property::Property;
+use crate::property::{AuthId, Property};
 use crate::session::{MechanismData, State, StepResult};
 use std::io::Write;
 
