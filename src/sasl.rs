@@ -59,7 +59,7 @@ impl SASL {
     /// feature since the builtin mechanisms are registered at compile time then. However the
     /// optimizer may strip modules that it deems are unused so a call may still be necessary but
     /// it then extremely cheap.
-    pub fn init(&mut self) {
+    fn init(&mut self) {
         init::register_builtin(self);
     }
 }
