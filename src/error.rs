@@ -128,6 +128,7 @@ pub enum SessionError {
     MechanismError(Box<dyn MechanismError>),
 
     #[error("callback error: {0}")]
+    // TODO: Make it so "required data not provided" is handled specifically
     CallbackError(
         #[from]
         #[source]
@@ -157,6 +158,13 @@ impl SessionError {
     pub fn is_mechanism_error(&self) -> bool {
         match self {
             Self::MechanismError(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_missing_prop(&self) -> bool {
+        match self {
+            Self::CallbackError(CallbackError::NoCallback) => true,
             _ => false,
         }
     }

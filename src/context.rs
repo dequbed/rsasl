@@ -11,8 +11,34 @@ pub trait Provider {
     }
 }
 
+// TODO: Remove
 impl Provider for () {
     fn provide<'a>(&'a self, _: &mut Demand<'a>) -> DemandReply<()> {
+        DemandReply::Continue(())
+    }
+}
+
+#[derive(Debug)]
+pub struct EmptyProvider;
+impl Provider for EmptyProvider {
+    fn provide<'a>(&'a self, _: &mut Demand<'a>) -> DemandReply<()> {
+        DemandReply::Continue(())
+    }
+}
+
+pub struct And<LHS,RHS> {
+    left: LHS,
+    right: RHS,
+}
+impl<LHS: Provider, RHS: Provider> Provider for And<LHS,RHS> {
+    fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
+        self.left.provide(req)?;
+        self.right.provide(req)?;
+        DemandReply::Continue(())
+    }
+    fn provide_mut<'a>(&'a mut self, req: &mut Demand<'a>) -> DemandReply<()> {
+        self.left.provide_mut(req)?;
+        self.right.provide_mut(req)?;
         DemandReply::Continue(())
     }
 }

@@ -17,14 +17,13 @@ impl Authentication for Anonymous {
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
     ) -> StepResult {
-        let mut write_out = Ok(());
         let mut len = None;
-        session.need_with::<AnonymousToken, _>(&(), &mut |token| {
+        session.need_with::<AnonymousToken, _, ()>(&(), &mut |token| {
             let buf = token.as_bytes();
-            write_out = writer.write_all(buf);
+            writer.write_all(buf)?;
             len = Some(buf.len());
+            Ok(())
         })?;
-        write_out?;
         Ok((State::Finished, len))
     }
 }

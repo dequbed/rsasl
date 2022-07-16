@@ -1,10 +1,11 @@
 use crate::{init, registry, SessionCallback, SASL};
 
-use crate::callback::{CallbackError, Request};
+use crate::callback::Request;
 use crate::context::Context;
 use crate::property::{AuthId, AuthzId, Password};
 use crate::session::SessionData;
 use std::sync::Arc;
+use crate::error::SessionError;
 
 pub struct CredentialsProvider {
     authid: String,
@@ -17,7 +18,7 @@ impl SessionCallback for CredentialsProvider {
         _session_data: &SessionData,
         _context: &Context,
         request: &mut Request<'_>,
-    ) -> Result<(), CallbackError> {
+    ) -> Result<(), SessionError> {
         request
             .satisfy::<AuthId>(self.authid.as_str())?
             .satisfy::<Password>(self.password.as_bytes())?;

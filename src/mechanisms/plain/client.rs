@@ -2,6 +2,8 @@ use crate::mechanism::Authentication;
 use crate::session::{MechanismData, State, StepResult};
 
 use std::io::Write;
+use crate::callback::CallbackError;
+use crate::error::SessionError;
 
 use crate::property::{AuthId, AuthzId, Password};
 
@@ -17,28 +19,30 @@ impl Authentication for Plain {
         writer: &mut dyn Write,
     ) -> StepResult {
         let mut len = 0usize;
-        let mut out = Ok(());
-        session.need_with::<AuthzId, _>(&(), &mut |authzid| {
-            out = writer.write_all(authzid.as_bytes());
+        let res = session.need_with::<AuthzId, _, _>(&(), &mut |authzid| {
+            writer.write_all(authzid.as_bytes())?;
             len += authzid.len();
-        })?;
-        out?;
+            Ok(())
+        });
+        match res {
+            Ok(_) => {}
+            Err(SessionError::CallbackError(CallbackError::NoCallback)) => {},
+            Err(other) => return Err(other.into()),
+        }
         len += writer.write(&[0])?;
 
-        let mut out = Ok(());
-        session.need_with::<AuthId, _>(&(), &mut |authid| {
-            out = writer.write_all(authid.as_bytes());
+        session.need_with::<AuthId, _, _>(&(), &mut |authid| {
+            writer.write_all(authid.as_bytes())?;
             len += authid.len();
+            Ok(())
         })?;
-        out?;
         len += writer.write(&[0])?;
 
-        let mut out = Ok(());
-        session.need_with::<Password, _>(&(), &mut |password| {
-            out = writer.write_all(password);
+        session.need_with::<Password, _, _>(&(), &mut |password| {
+            writer.write_all(password)?;
             len += password.len();
+            Ok(())
         })?;
-        out?;
 
         Ok((State::Finished, Some(len)))
     }
