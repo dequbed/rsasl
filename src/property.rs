@@ -4,7 +4,6 @@
 //! define additional properties to be queried.
 
 
-
 pub trait Property: 'static {
     type Value: 'static;
 }
@@ -12,6 +11,7 @@ pub trait Property: 'static {
 pub trait MaybeSizedProperty: 'static {
     type Value: ?Sized + 'static;
 }
+
 impl<P: Property> MaybeSizedProperty for P {
     type Value = P::Value;
 }

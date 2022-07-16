@@ -130,6 +130,7 @@ impl Context {
         tagged_option.0
     }
     #[inline]
+    // TODO: this should probably return a Result to make it's use in callbacks easier?
     pub fn get_ref<P: MaybeSizedProperty>(&self) -> Option<&P::Value> {
         self.get_by_tag::<tags::Ref<DemandTag<P>>>()
     }

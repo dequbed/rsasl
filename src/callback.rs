@@ -261,12 +261,7 @@ impl<'a> Request<'a> {
     }
 }
 
-#[cfg(test)]
-pub(crate) mod tests {
-    use super::*;
+pub struct EmptyCallback;
+impl SessionCallback for EmptyCallback {
 
-    pub struct EmptyCallback;
-    impl SessionCallback for EmptyCallback {
-
-    }
 }
