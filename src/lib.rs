@@ -82,7 +82,7 @@
 //! - [I'm both/either/none of those but I have to implement a custom SASL mechanism!](#custom-mechanisms)
 //!
 //!
-//! ## Protocol Implementations
+//! # Protocol Implementations
 //!
 //! The main contact point between a protocol implementation crate and its user regarding
 //! authentication is the [`SASL`] struct. This struct is constructed by the users letting them
@@ -122,7 +122,7 @@
 //!     Bonus minus points: sasl.wrap(data) and sasl.unwrap(data) for security layers. Prefer to
 //!     not and instead do TLS. Needs better explanation I fear.
 //!
-//! ## Application Code
+//! # Application Code
 //!
 //! Application code needs to construct a [`SASL`] struct that can then be passed to the protocol
 //! handler to perform authentication exchanges. You need to provide this [`SASL`] struct with
@@ -140,7 +140,7 @@
 //     - Static vs Dynamic Registry
 //     - Explicit dependency because feature unification
 //!
-//! ## Custom Mechanisms
+//! # Custom Mechanisms
 //!
 //! The system to add custom mechanisms is in flux and does not observe the same stability
 //! guarantees as the rest of the crate. Breaking changes in this system may happen even for
@@ -168,8 +168,6 @@
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
-
-pub use libc;
 
 pub mod callback;
 pub mod error;
