@@ -1,9 +1,9 @@
-use std::sync::Arc;
 use rsasl::callback::EmptyCallback;
 use rsasl::mechname::Mechname;
+use std::sync::Arc;
 
-use rsasl::SASL;
 use rsasl::validate::NoValidation;
+use rsasl::SASL;
 
 fn main() {
     let sasl = SASL::new(Arc::new(EmptyCallback));

@@ -1,14 +1,14 @@
-use rsasl::callback::{CallbackError, Request, SessionCallback};
+use rsasl::callback::{Request, SessionCallback};
 use rsasl::context::Context;
+use rsasl::error::SessionError;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
 use rsasl::session::{SessionData, State};
+use rsasl::validate::NoValidation;
 use rsasl::SASL;
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
-use rsasl::error::SessionError;
-use rsasl::validate::NoValidation;
 
 struct Properties {
     username: String,

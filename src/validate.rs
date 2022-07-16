@@ -1,4 +1,3 @@
-use crate::property::Property;
 use crate::typed::{tags, Erased, TaggedOption};
 use std::any::TypeId;
 use thiserror::Error;

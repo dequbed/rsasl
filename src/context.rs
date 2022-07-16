@@ -1,8 +1,8 @@
 use crate::property::{MaybeSizedProperty, Property};
+use crate::typed::tags::{MaybeSizedType, Type};
 use crate::typed::{tags, Erased, TaggedOption};
 use std::marker::PhantomData;
 use std::ops::ControlFlow;
-use crate::typed::tags::{MaybeSizedType, Type};
 
 pub trait Provider {
     fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()>;
@@ -26,11 +26,11 @@ impl Provider for EmptyProvider {
     }
 }
 
-pub struct And<LHS,RHS> {
+pub struct And<LHS, RHS> {
     left: LHS,
     right: RHS,
 }
-impl<LHS: Provider, RHS: Provider> Provider for And<LHS,RHS> {
+impl<LHS: Provider, RHS: Provider> Provider for And<LHS, RHS> {
     fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
         self.left.provide(req)?;
         self.right.provide(req)?;

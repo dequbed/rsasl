@@ -1,3 +1,4 @@
+use rsasl::callback::EmptyCallback;
 use rsasl::error::SASLError;
 use rsasl::mechanism::Authentication;
 use rsasl::mechname::Mechname;
@@ -6,7 +7,6 @@ use rsasl::SASL;
 use std::io::Write;
 use std::mem;
 use std::sync::Arc;
-use rsasl::callback::EmptyCallback;
 
 struct CustomMechanism {
     client: bool,

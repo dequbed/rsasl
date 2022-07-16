@@ -2,7 +2,6 @@
 //!
 
 use crate::property::Property;
-use crate::validate::{Validation, ValidationOutcome};
 
 #[derive(Debug)]
 /// Plaintext credentials

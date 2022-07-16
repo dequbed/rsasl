@@ -123,10 +123,9 @@ pub trait CallbackRequest<Answer: ?Sized> {
     fn satisfy(&mut self, answer: &Answer) -> Result<(), SessionError>;
 }
 
-
 enum ClosureCRState<'f, F, G> {
     Open(&'f mut F),
-    Satisfied(G)
+    Satisfied(G),
 }
 #[repr(transparent)]
 pub struct ClosureCR<'f, T, F, G> {
@@ -138,9 +137,11 @@ where
     T: MaybeSizedProperty,
     F: FnMut(&T::Value) -> Result<G, SessionError>,
 {
-    pub fn wrap(closure: &'f mut F) -> ClosureCR<'f, T, F, G>
-    {
-        ClosureCR { closure: ClosureCRState::Open(closure), _marker: PhantomData }
+    pub fn wrap(closure: &'f mut F) -> ClosureCR<'f, T, F, G> {
+        ClosureCR {
+            closure: ClosureCRState::Open(closure),
+            _marker: PhantomData,
+        }
     }
     pub fn try_unwrap(self) -> Option<G> {
         if let ClosureCRState::Satisfied(val) = self.closure {
@@ -158,7 +159,7 @@ where
     fn satisfy(&mut self, answer: &T::Value) -> Result<(), SessionError> {
         if let ClosureCRState::Open(closure) = &mut self.closure {
             let reply = closure(answer)?;
-            std::mem::replace(&mut self.closure, ClosureCRState::Satisfied(reply));
+            let _ = std::mem::replace(&mut self.closure, ClosureCRState::Satisfied(reply));
         }
         Ok(())
     }
@@ -253,9 +254,7 @@ impl<'a> Request<'a> {
         &mut self,
         answer: &P::Value,
     ) -> Result<&mut Self, SessionError> {
-        if let Some(TaggedOption(Some(mech))) =
-            self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>()
-        {
+        if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
             mech.satisfy(answer)?;
             Err(CallbackError::EarlyReturn(PhantomData).into())
         } else {
@@ -265,6 +264,4 @@ impl<'a> Request<'a> {
 }
 
 pub struct EmptyCallback;
-impl SessionCallback for EmptyCallback {
-
-}
+impl SessionCallback for EmptyCallback {}

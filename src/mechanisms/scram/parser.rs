@@ -1,9 +1,9 @@
+use crate::error::{MechanismError, MechanismErrorKind};
 use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use std::str::Utf8Error;
 use thiserror::Error;
-use crate::error::{MechanismError, MechanismErrorKind};
 
 #[derive(Debug, Error, Copy, Clone, Eq, PartialEq)]
 pub enum SaslNameError {

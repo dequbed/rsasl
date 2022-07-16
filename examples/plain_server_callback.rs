@@ -2,9 +2,9 @@ use rsasl::callback::SessionCallback;
 use rsasl::context::Context;
 use rsasl::error::SessionError;
 use rsasl::mechname::Mechname;
-use rsasl::property::{AuthId, AuthzId, Password, Property};
-use rsasl::session::{SessionData, State, StepResult};
-use rsasl::validate::{Validate, Validation, ValidationError, ValidationOutcome};
+use rsasl::property::{AuthId, AuthzId, Password};
+use rsasl::session::{SessionData, State};
+use rsasl::validate::{Validate, Validation, ValidationError};
 use rsasl::SASL;
 use std::io::Cursor;
 use std::sync::Arc;
@@ -16,7 +16,7 @@ enum OurCallbackError {}
 impl OurCallback {
     fn test_validate(
         &self,
-        session_data: &SessionData,
+        _session_data: &SessionData,
         context: &Context,
     ) -> Result<Result<String, AuthError>, OurCallbackError> {
         let authzid = context.get_ref::<AuthzId>();
@@ -71,7 +71,7 @@ impl Validation for TestValidation {
 }
 
 pub fn main() {
-    let mut sasl = SASL::new(Arc::new(OurCallback));
+    let sasl = SASL::new(Arc::new(OurCallback));
 
     // Authentication exchange 1
     {
@@ -139,10 +139,7 @@ pub fn main() {
     }
 }
 
-fn print_outcome(
-    step_result: &Result<(State, Option<usize>), SessionError>,
-    buffer: Vec<u8>,
-) {
+fn print_outcome(step_result: &Result<(State, Option<usize>), SessionError>, buffer: Vec<u8>) {
     match step_result {
         Ok((State::Finished, Some(_))) => {
             println!(
