@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::marker::PhantomData;
-use std::ops::Deref;
+
 use thiserror::Error;
 
 use digest::crypto_common::BlockSizeUser;
@@ -13,7 +13,7 @@ use rand::Rng;
 
 use crate::context::EmptyProvider;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
-use crate::mechanisms::common::properties::{Credentials, SimpleCredentials};
+
 use crate::mechanisms::scram::parser::{
     ClientFinal, ClientFirstMessage, GS2CBindFlag, SaslName, ServerErrorValue, ServerFinal,
     ServerFirst,
@@ -100,9 +100,9 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize>
         writer: impl Write,
         written: &mut usize,
     ) -> Result<ScramState<WaitingServerFinal<D>>, SessionError> {
-        let state =
-            self.state
-                .handle_server_first(password, server_first, writer, written)?;
+        let state = self
+            .state
+            .handle_server_first(password, server_first, writer, written)?;
         Ok(ScramState { state })
     }
 }
@@ -172,7 +172,12 @@ impl<const N: usize> StateClientFirst<N> {
         // b","
         gs2_header.extend_from_slice(b",");
 
-        Ok(WaitingServerFirst::new(cbdata, gs2_header, client_nonce, username))
+        Ok(WaitingServerFirst::new(
+            cbdata,
+            gs2_header,
+            client_nonce,
+            username,
+        ))
     }
 }
 
@@ -224,7 +229,9 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
         writer: impl Write,
         written: &mut usize,
     ) -> Result<WaitingServerFinal<D>, SessionError> {
-        self.cbdata.take().map(|cbdata| self.gs2_header.extend_from_slice(cbdata.as_bytes()));
+        self.cbdata
+            .take()
+            .map(|cbdata| self.gs2_header.extend_from_slice(cbdata.as_bytes()));
         let gs2headerb64 = base64::encode(self.gs2_header);
 
         let (client_proof, server_signature) = find_proofs::<D>(
@@ -385,8 +392,15 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
 
                 let mut rng = rand::thread_rng();
                 let mut written = 0;
-                let new_state =
-                    state.step(&mut rng, cbflag, cbdata, authzid, username, writer, &mut written)?;
+                let new_state = state.step(
+                    &mut rng,
+                    cbflag,
+                    cbdata,
+                    authzid,
+                    username,
+                    writer,
+                    &mut written,
+                )?;
                 self.state = Some(ClientFirst(new_state, password));
 
                 Ok((State::Running, Some(written)))

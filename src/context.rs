@@ -1,8 +1,8 @@
 use crate::property::{MaybeSizedProperty, Property};
+use crate::typed::tags::{MaybeSizedType, Type};
 use crate::typed::{tags, Erased, TaggedOption};
 use std::marker::PhantomData;
 use std::ops::ControlFlow;
-use crate::typed::tags::{MaybeSizedType, Type};
 
 pub trait Provider {
     fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()>;
@@ -26,11 +26,11 @@ impl Provider for EmptyProvider {
     }
 }
 
-pub struct And<LHS,RHS> {
+pub struct And<LHS, RHS> {
     left: LHS,
     right: RHS,
 }
-impl<LHS: Provider, RHS: Provider> Provider for And<LHS,RHS> {
+impl<LHS: Provider, RHS: Provider> Provider for And<LHS, RHS> {
     fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
         self.left.provide(req)?;
         self.right.provide(req)?;
@@ -60,7 +60,7 @@ pub struct TOKEN(PhantomData<()>);
 ///     req.provide_ref::<AuthId>("exampleuser")?
 ///         // If `AuthId` is requested the `?` operator will immediately shortcut to a return and
 ///         // not execute any of the following `provide_ref`
-///        .provide_ref::<Password>("secret")?
+///        .provide_ref::<Password>(b"secret")?
 ///        .provide_ref::<AuthzId>("root")?
 ///        .done()
 ///         // The final call to `done()` returns the expected `DemandReply<()>` if none of the

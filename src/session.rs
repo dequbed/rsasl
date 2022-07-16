@@ -12,7 +12,7 @@ use crate::mechanism::Authentication;
 use crate::property::{ChannelBindings, MaybeSizedProperty};
 use crate::typed::{tags, TaggedOption};
 use crate::validate::*;
-use crate::{Mechanism, SessionCallback};
+use crate::{Mechanism, Mechname, SessionCallback};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -95,6 +95,10 @@ impl<V: Validation> Session<V> {
     #[inline(always)]
     pub fn are_we_first(&self) -> bool {
         self.side == self.mechanism_desc.first
+    }
+
+    pub fn get_mechname(&self) -> &Mechname {
+        self.mechanism_desc.mechanism
     }
 }
 
@@ -195,12 +199,16 @@ impl<V: Validation> Session<V> {
 
 #[cfg(test)]
 impl<V: Validation> Session<V> {
-    pub fn get_cb_data<'a, F, G>(&'a self, cbname: &str, validate: &'a mut Validate<'a>, f: &mut F)
-        -> Result<G, SessionError>
+    pub fn get_cb_data<'a, F, G>(
+        &'a self,
+        cbname: &str,
+        validate: &'a mut Validate<'a>,
+        f: &mut F,
+    ) -> Result<G, SessionError>
     where
-        F: FnMut(&[u8]) -> Result<G, SessionError>
+        F: FnMut(&[u8]) -> Result<G, SessionError>,
     {
-        let mut mechanism_data = MechanismData::new(
+        let mechanism_data = MechanismData::new(
             self.callback.as_ref(),
             self.chanbind_cb.as_ref(),
             validate,
@@ -291,14 +299,13 @@ impl MechanismData<'_> {
         provider: &dyn Provider,
         closure: &mut F,
     ) -> Result<Option<G>, SessionError>
-        where
-            T: MaybeSizedProperty,
-            F: FnMut(&T::Value) -> Result<G, SessionError>,
+    where
+        T: MaybeSizedProperty,
+        F: FnMut(&T::Value) -> Result<G, SessionError>,
     {
         let mut closurecr = ClosureCR::<T, _, _>::wrap(closure);
         self.need::<T, _>(provider, &mut closurecr)?;
-        Ok(closurecr
-            .try_unwrap())
+        Ok(closurecr.try_unwrap())
     }
 
     pub fn need_cb_data<F, G>(

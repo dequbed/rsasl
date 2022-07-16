@@ -32,11 +32,11 @@ impl ChannelBindingCallback for ThisCb {
 mod tests {
     use super::*;
     use crate::callback::EmptyCallback;
-    use crate::session::Session;
+
     use std::sync::Arc;
-    use crate::mechanisms::plain::mechinfo::PLAIN;
+
     use crate::{Mechname, SASL};
-    use crate::context::EmptyProvider;
+
     use crate::typed::TaggedOption;
     use crate::validate::{NoValidation, Validate};
 
@@ -46,22 +46,26 @@ mod tests {
         let thiscb = ThisCb::new("this-cb", cbdata.to_vec().into_boxed_slice());
         let sasl = SASL::new(Arc::new(EmptyCallback));
         let builder = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
-        let mut session = builder.with_channel_binding::<NoValidation>(Box::new(thiscb));
+        let session = builder.with_channel_binding::<NoValidation>(Box::new(thiscb));
 
         let mut tagged_option = TaggedOption::<'_, NoValidation>(None);
 
         let validate = Validate::new::<NoValidation>(&mut tagged_option);
-        session.get_cb_data("this-cb", validate, &mut |cb| {
-            println!("got {:?}", cb);
-            assert_eq!(cb, cbdata);
-            Ok(())
-        }).unwrap();
+        session
+            .get_cb_data("this-cb", validate, &mut |cb| {
+                println!("got {:?}", cb);
+                assert_eq!(cb, cbdata);
+                Ok(())
+            })
+            .unwrap();
 
         let validate = Validate::new::<NoValidation>(&mut tagged_option);
-        let e = session.get_cb_data("blahblubb", validate, &mut |cb| {
-            panic!("returned cbdata that should not be there!");
-            Ok(())
-        }).unwrap_err();
+        let e = session
+            .get_cb_data("blahblubb", validate, &mut |_cb| {
+                panic!("returned cbdata that should not be there!");
+                Ok(())
+            })
+            .unwrap_err();
         assert!(e.is_missing_prop())
     }
 }

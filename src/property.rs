@@ -3,7 +3,6 @@
 //! If the existing properties in this module are not sufficient for your mechanism, you can
 //! define additional properties to be queried.
 
-
 pub trait Property: 'static {
     type Value: 'static;
 }
@@ -30,6 +29,9 @@ impl MaybeSizedProperty for AuthzId {
 
 #[derive(Debug)]
 pub struct OpenID20AuthenticateInBrowser;
+impl MaybeSizedProperty for OpenID20AuthenticateInBrowser {
+    type Value = str;
+}
 
 #[derive(Debug)]
 pub struct Saml20AuthenticateInBrowser;
