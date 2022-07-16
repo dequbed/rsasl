@@ -21,7 +21,6 @@ use crate::mechanisms::scram::parser::{
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, hash_password, DOutput};
 use crate::property::{AuthId, AuthzId, OverrideCBType, Password};
 use crate::session::{MechanismData, State, StepResult};
-use crate::validate::ValidationOutcome;
 use crate::vectored_io::VectoredWriter;
 use crate::Authentication;
 
@@ -108,9 +107,9 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize>
 }
 
 impl<D: Digest + BlockSizeUser> ScramState<WaitingServerFinal<D>> {
-    pub fn step(self, server_final: &[u8]) -> Result<ValidationOutcome, SessionError> {
+    pub fn step(self, server_final: &[u8]) -> Result<(), SessionError> {
         match self.state.handle_server_final(server_final) {
-            Ok(StateServerFinal { .. }) => Ok(ValidationOutcome::Successful),
+            Ok(StateServerFinal { .. }) => Ok(()),
             Err(e) => Err(e.into()),
         }
     }
