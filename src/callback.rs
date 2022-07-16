@@ -24,22 +24,23 @@ pub trait SessionCallback {
     /// Query by a mechanism implementation to provide some information or do some action
     ///
     /// ```rust
-    /// # use std::sync::Arc;
-    /// # use rsasl::callback::{Callback, Context, Request, CallbackError};
-    /// # use rsasl::Property;
-    /// use rsasl::property::{properties, Password, CallbackQ, AuthId, OpenID20AuthenticateInBrowser, Realm};
+    /// # use rsasl::callback::{Request, SessionCallback};
+    /// # use rsasl::context::Context;
+    /// # use rsasl::error::SessionError;
+    /// # use rsasl::property::{AuthId, Password, AuthzId, OpenID20AuthenticateInBrowser, Realm};
     /// # use rsasl::session::SessionData;
     /// # struct CB;
-    /// # impl Callback for CB {
+    /// # fn open_browser_and_go_to(url: &str) { }
+    /// # impl SessionCallback for CB {
     /// fn callback(&self, session: &SessionData, context: &Context, request: &mut Request<'_>)
-    ///     -> Result<(), CallbackError>
+    ///     -> Result<(), SessionError>
     /// {
     ///     // Some requests are to provide a value for the given property by calling `satisfy`.
     ///     request
     ///         // satisfy calls can be chained, making use of short-circuiting
     ///         .satisfy::<AuthId>("exampleuser")?
     ///         .satisfy::<Password>(b"password")?
-    ///         .satisfy::<Authzid>("authzid")?;
+    ///         .satisfy::<AuthzId>("authzid")?;
     ///
     ///     // Other requests are to do a given action:
     ///     if let Some(url) = request.get_action::<OpenID20AuthenticateInBrowser>() {
@@ -51,7 +52,8 @@ pub trait SessionCallback {
     ///         // Special handling
     ///     }
     ///
-    ///     Err(CallbackError::NoCallback)
+    ///     // While there exists an error `NoCallback`, returning `Ok` here is correct too.
+    ///     Ok(())
     /// }
     /// # }
     /// ```
@@ -236,14 +238,15 @@ impl<'a> Request<'a> {
     /// easily chain multiple calls to `satisfy` but shortcutting on the first successful one:
     ///
     /// ```rust
-    /// # use rsasl::callback::{CallbackError, Request};
-    /// # use rsasl::property::{AuthId, Password};
-    /// # fn example(request: &mut Request<'_>) -> Result<(), CallbackError> {
+    /// # use rsasl::callback::Request;
+    /// # use rsasl::error::SessionError;
+    /// # use rsasl::property::{AuthId, AuthzId, Password};
+    /// # fn example(request: &mut Request<'_>) -> Result<(), SessionError> {
     /// request
     ///     .satisfy::<AuthId>("authid")? // if `P` is AuthId this will immediately return
     ///     .satisfy::<Password>(b"password")?
-    ///     .satisfy::<Authzid>("authzid")?;
-    /// Ok(()) // If no error occured, but the request was also not satisfied,
+    ///     .satisfy::<AuthzId>("authzid")?;
+    /// # Ok(())
     /// # }
     /// ```
     pub fn satisfy<P: MaybeSizedProperty>(
