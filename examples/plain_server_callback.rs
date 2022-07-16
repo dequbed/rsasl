@@ -1,7 +1,6 @@
 use rsasl::callback::SessionCallback;
 use rsasl::context::Context;
 use rsasl::error::SessionError;
-use rsasl::mechanisms::common::properties::ValidateSimple;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, AuthzId, Password, Property};
 use rsasl::session::{SessionData, State, StepResult};
@@ -67,10 +66,9 @@ enum AuthError {
 }
 
 struct TestValidation;
-impl Property for TestValidation {
+impl Validation for TestValidation {
     type Value = Result<String, AuthError>;
 }
-impl Validation for TestValidation {}
 
 pub fn main() {
     let mut sasl = SASL::new(Arc::new(OurCallback));
