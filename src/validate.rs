@@ -3,16 +3,17 @@ use crate::typed::{tags, Erased, TaggedOption};
 use std::any::TypeId;
 use thiserror::Error;
 
-pub trait Validation: Property {}
+pub trait Validation: 'static {
+    type Value: 'static;
+}
 impl<'a, V: Validation> tags::Type<'a> for V {
     type Reified = V::Value;
 }
 
 pub struct NoValidation;
-impl Property for NoValidation {
+impl Validation for NoValidation {
     type Value = ();
 }
-impl Validation for NoValidation {}
 
 #[repr(transparent)]
 pub struct Validate<'a>(dyn Erased<'a> + 'a);
