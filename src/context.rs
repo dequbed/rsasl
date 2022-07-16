@@ -60,7 +60,7 @@ pub struct TOKEN(PhantomData<()>);
 ///     req.provide_ref::<AuthId>("exampleuser")?
 ///         // If `AuthId` is requested the `?` operator will immediately shortcut to a return and
 ///         // not execute any of the following `provide_ref`
-///        .provide_ref::<Password>("secret")?
+///        .provide_ref::<Password>(b"secret")?
 ///        .provide_ref::<AuthzId>("root")?
 ///        .done()
 ///         // The final call to `done()` returns the expected `DemandReply<()>` if none of the

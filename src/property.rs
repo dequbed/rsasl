@@ -30,6 +30,9 @@ impl MaybeSizedProperty for AuthzId {
 
 #[derive(Debug)]
 pub struct OpenID20AuthenticateInBrowser;
+impl MaybeSizedProperty for OpenID20AuthenticateInBrowser {
+    type Value = str;
+}
 
 #[derive(Debug)]
 pub struct Saml20AuthenticateInBrowser;
