@@ -1,46 +1,55 @@
-use rsasl::callback::Callback;
-use rsasl::error::SessionError;
-use rsasl::mechname::Mechname;
-use rsasl::property::{properties, AuthId, Password};
-use rsasl::session::MechanismData;
-use rsasl::session::Step::{Done, NeedsMore};
-use rsasl::{Property, SASL};
-
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
+use rsasl::callback::{CallbackError, Request, SessionCallback};
+use rsasl::context::Context;
+use rsasl::error::SessionError;
+use rsasl::mechname::Mechname;
+use rsasl::property::{AuthId, AuthzId, Property};
+use rsasl::SASL;
+use rsasl::session::{MechanismData, SessionData};
+use rsasl::validate::{NoValidation, Validate, Validation, ValidationError};
 
 // Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
+impl SessionCallback for OurCallback {
+    fn callback(&self, _session_data: &SessionData, context: &Context, request: &mut Request<'_>) -> Result<(), SessionError> {
+        let authid = context.get_ref::<AuthId>()
+            .ok_or(SessionError::CallbackError(CallbackError::NoCallback))?;
 
-impl Callback for OurCallback {
-    fn callback(
-        &self,
-        session: &mut MechanismData,
-        property: Property,
-    ) -> Result<(), SessionError> {
-        match property {
-            properties::PASSWORD => {
-                // Access the authentication id, i.e. the username to check the password for
-                let _authcid = session.get_property_or_callback::<AuthId>()?;
+        Ok(())
+    }
+    fn validate(&self, _session_data: &SessionData, context: &Context, validate: &mut Validate<'_>) -> Result<(), ValidationError> {
+        let authid = context.get_ref::<AuthId>().unwrap();
 
-                session.set_property::<Password>(Arc::new("secret".to_string()));
-
-                Ok(())
+        if let Some(authzid) = context.get_ref::<AuthzId>() {
+            if authzid == authid {
+                validate.finalize::<TestValidation>(User { name: authzid.to_string() });
+                return Ok(())
             }
-            _ => Err(SessionError::NoCallback { property }),
+        } else {
+            validate.finalize::<TestValidation>(User { name: authid.to_string() });
+            return Ok(())
         }
+
+        Ok(())
     }
 }
 
-pub fn main() {
-    let mut sasl = SASL::new();
+struct User {
+    name: String,
+}
 
-    sasl.install_callback(Arc::new(OurCallback));
+struct TestValidation;
+impl Validation for TestValidation { type Value = User; }
+
+pub fn main() {
+    let mut sasl = SASL::new(Arc::new(OurCallback));
 
     let mut session = sasl
         .server_start(Mechname::new(b"SCRAM-SHA-1").unwrap())
-        .unwrap();
+        .unwrap()
+        .without_channel_binding::<NoValidation>();
 
     loop {
         // Read data from STDIN
@@ -51,20 +60,7 @@ pub fn main() {
         }
         in_data.pop(); // Remove the newline char at the end of the string
 
-        let data = Some(in_data.into_boxed_str().into_boxed_bytes());
-
         let mut out = Cursor::new(Vec::new());
-        let step_result = session.step64(data.as_ref(), &mut out);
-
-        match step_result {
-            Ok(Done(buffer)) => {
-                println!("Done: {:?}", buffer.as_ref());
-                break;
-            }
-            Ok(NeedsMore(buffer)) => {
-                println!("Data to send: {:?}", buffer.as_ref());
-            }
-            Err(e) => println!("{}", e),
-        }
+        let (state, written) = session.step64(Some(in_data.as_ref()), &mut out).unwrap();
     }
 }

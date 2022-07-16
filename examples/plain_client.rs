@@ -2,12 +2,13 @@ use rsasl::callback::{CallbackError, Request, SessionCallback};
 use rsasl::context::Context;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
-use rsasl::session::SessionData;
-use rsasl::session::Step::{Done, NeedsMore};
+use rsasl::session::{SessionData, State};
 use rsasl::SASL;
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
+use rsasl::error::SessionError;
+use rsasl::validate::NoValidation;
 
 struct Properties {
     username: String,
@@ -19,7 +20,7 @@ impl SessionCallback for Properties {
         _session_data: &SessionData,
         _context: &Context,
         request: &mut Request<'_>,
-    ) -> Result<(), CallbackError> {
+    ) -> Result<(), SessionError> {
         request
             .satisfy::<AuthId>(self.username.trim())?
             .satisfy::<Password>(self.password.trim().as_bytes())?;
@@ -54,22 +55,23 @@ pub fn main() {
     let mut session = sasl
         .client_start(Mechname::new(b"PLAIN").unwrap())
         .unwrap()
-        .without_channel_binding();
+        .without_channel_binding::<NoValidation>();
 
     // Do an authentication step. In a PLAIN exchange there is only one step, with no data.
     let mut out = Cursor::new(Vec::new());
     let data: Option<&[u8]> = None;
-    let step_result = session.step(data, &mut out).unwrap();
+    let (state, written) = session.step(data, &mut out).unwrap();
 
-    match step_result {
-        Done(Some(_)) => {
-            let buffer = out.into_inner();
-            println!("Encoded bytes: {:?}", buffer);
-            println!("As string: {:?}", std::str::from_utf8(&buffer.as_ref()));
+    match state {
+        State::Running => panic!("PLAIN exchange took more than one step"),
+        State::Finished => {
+            if written.is_some() {
+                let buffer = out.into_inner();
+                println!("Encoded bytes: {:?}", buffer);
+                println!("As string: {:?}", std::str::from_utf8(&buffer.as_ref()));
+            } else {
+                panic!("PLAIN exchange produced no output")
+            }
         }
-        Done(None) => {
-            panic!("PLAIN exchange produced no output")
-        }
-        NeedsMore(_) => assert!(false, "PLAIN exchange took more than one step"),
     }
 }

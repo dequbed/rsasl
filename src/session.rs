@@ -12,7 +12,7 @@ use crate::mechanism::Authentication;
 use crate::property::{ChannelBindings, MaybeSizedProperty};
 use crate::typed::{tags, TaggedOption};
 use crate::validate::*;
-use crate::{Mechanism, SessionCallback};
+use crate::{Mechanism, Mechname, SessionCallback};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -95,6 +95,10 @@ impl<V: Validation> Session<V> {
     #[inline(always)]
     pub fn are_we_first(&self) -> bool {
         self.side == self.mechanism_desc.first
+    }
+
+    pub fn get_mechname(&self) -> &Mechname {
+        self.mechanism_desc.mechanism
     }
 }
 
