@@ -4,12 +4,12 @@ use std::io::Write;
 use std::sync::Arc;
 
 use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy};
-use crate::channel_bindings::ChannelBindingCallback;
-use crate::context::{build_context, Provider};
+use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
+use crate::context::{build_context, EmptyProvider, Provider};
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
 use crate::mechanism::Authentication;
-use crate::property::MaybeSizedProperty;
+use crate::property::{ChannelBindings, MaybeSizedProperty};
 use crate::typed::{tags, TaggedOption};
 use crate::validate::*;
 use crate::{Mechanism, SessionCallback};
@@ -50,7 +50,7 @@ impl SessionBuilder {
             self.mechanism,
             self.mechanism_desc,
             self.side,
-            Some(channel_binding_cb),
+            channel_binding_cb,
         )
     }
 
@@ -60,13 +60,14 @@ impl SessionBuilder {
             self.mechanism,
             self.mechanism_desc,
             self.side,
-            None,
+            Box::new(NoChannelBindings),
         )
     }
 }
 
 pub struct Session<V: Validation> {
     callback: Arc<dyn SessionCallback>,
+    chanbind_cb: Box<dyn ChannelBindingCallback>,
     mechanism: Box<dyn Authentication>,
     mechanism_desc: Mechanism,
     side: Side,
@@ -79,10 +80,11 @@ impl<V: Validation> Session<V> {
         mechanism: Box<dyn Authentication>,
         mechanism_desc: Mechanism,
         side: Side,
-        _channel_binding_cb: Option<Box<dyn ChannelBindingCallback>>,
+        channel_binding_cb: Box<dyn ChannelBindingCallback>,
     ) -> Self {
         Self {
             callback,
+            chanbind_cb: channel_binding_cb,
             mechanism,
             mechanism_desc,
             side,
@@ -130,6 +132,7 @@ impl<V: Validation> Session<V> {
             let validate = Validate::new::<V>(&mut tagged_option);
             let mut mechanism_data = MechanismData::new(
                 self.callback.as_ref(),
+                self.chanbind_cb.as_ref(),
                 validate,
                 self.mechanism_desc,
                 self.side,
@@ -190,8 +193,27 @@ impl<V: Validation> Session<V> {
     }
 }
 
+#[cfg(test)]
+impl<V: Validation> Session<V> {
+    pub fn get_cb_data<'a, F, G>(&'a self, cbname: &str, validate: &'a mut Validate<'a>, f: &mut F)
+        -> Result<G, SessionError>
+    where
+        F: FnMut(&[u8]) -> Result<G, SessionError>
+    {
+        let mut mechanism_data = MechanismData::new(
+            self.callback.as_ref(),
+            self.chanbind_cb.as_ref(),
+            validate,
+            self.mechanism_desc,
+            self.side,
+        );
+        mechanism_data.need_cb_data(cbname, &EmptyProvider, f)
+    }
+}
+
 pub struct MechanismData<'a> {
     callback: &'a dyn SessionCallback,
+    chanbind_cb: &'a dyn ChannelBindingCallback,
     validator: &'a mut Validate<'a>,
     session_data: SessionData,
 }
@@ -199,12 +221,14 @@ pub struct MechanismData<'a> {
 impl<'a> MechanismData<'a> {
     pub(crate) fn new(
         callback: &'a dyn SessionCallback,
+        chanbind_cb: &'a dyn ChannelBindingCallback,
         validator: &'a mut Validate<'a>,
         mechanism_desc: Mechanism,
         side: Side,
     ) -> Self {
         Self {
             callback,
+            chanbind_cb,
             validator,
             session_data: SessionData::new(mechanism_desc, side),
         }
@@ -222,12 +246,12 @@ impl MechanismData<'_> {
         &'b self,
         provider: &'b dyn Provider,
         request: &'b mut Request<'a>,
-    ) -> Result<(), CallbackError> {
+    ) -> Result<(), SessionError> {
         let context = build_context(provider);
         self.callback.callback(&self.session_data, context, request)
     }
 
-    pub fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), CallbackError>
+    pub fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), SessionError>
     where
         T: MaybeSizedProperty,
     {
@@ -235,7 +259,7 @@ impl MechanismData<'_> {
         self.callback(provider, Request::new_action::<T>(&mut tagged_option))
     }
 
-    pub fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(), CallbackError>
+    pub fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(), SessionError>
     where
         T: MaybeSizedProperty,
         C: CallbackRequest<T::Value>,
@@ -243,19 +267,54 @@ impl MechanismData<'_> {
         let mut tagged_option = TaggedOption::<'_, tags::RefMut<Satisfy<T>>>(Some(mechcb));
         self.callback(provider, Request::new_satisfy::<T>(&mut tagged_option))?;
         if tagged_option.is_some() {
-            Err(CallbackError::NoCallback)
+            Err(SessionError::CallbackError(CallbackError::NoCallback))
         } else {
             Ok(())
         }
     }
 
-    pub fn need_with<T: MaybeSizedProperty, F: FnMut(&T::Value)>(
+    pub fn need_with<T, F, G>(
         &self,
         provider: &dyn Provider,
         closure: &mut F,
-    ) -> Result<(), CallbackError> {
-        let closurecr = ClosureCR::<T, F>::wrap(closure);
-        self.need::<T, _>(provider, closurecr)
+    ) -> Result<G, SessionError>
+    where
+        T: MaybeSizedProperty,
+        F: FnMut(&T::Value) -> Result<G, SessionError>,
+    {
+        self.maybe_need_with::<T, F, G>(provider, closure)?
+            .ok_or(SessionError::CallbackError(CallbackError::NoCallback))
+    }
+
+    pub fn maybe_need_with<T, F, G>(
+        &self,
+        provider: &dyn Provider,
+        closure: &mut F,
+    ) -> Result<Option<G>, SessionError>
+        where
+            T: MaybeSizedProperty,
+            F: FnMut(&T::Value) -> Result<G, SessionError>,
+    {
+        let mut closurecr = ClosureCR::<T, _, _>::wrap(closure);
+        self.need::<T, _>(provider, &mut closurecr)?;
+        Ok(closurecr
+            .try_unwrap())
+    }
+
+    pub fn need_cb_data<F, G>(
+        &self,
+        cbname: &str,
+        provider: &dyn Provider,
+        f: &mut F,
+    ) -> Result<G, SessionError>
+    where
+        F: FnMut(&[u8]) -> Result<G, SessionError>,
+    {
+        if let Some(cbdata) = self.chanbind_cb.get_cb_data(cbname) {
+            f(cbdata)
+        } else {
+            self.need_with::<ChannelBindings, F, G>(provider, f)
+        }
     }
 
     // Legacy bs:

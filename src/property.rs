@@ -4,7 +4,6 @@
 //! define additional properties to be queried.
 
 
-
 pub trait Property: 'static {
     type Value: 'static;
 }
@@ -12,6 +11,7 @@ pub trait Property: 'static {
 pub trait MaybeSizedProperty: 'static {
     type Value: ?Sized + 'static;
 }
+
 impl<P: Property> MaybeSizedProperty for P {
     type Value = P::Value;
 }
@@ -86,13 +86,39 @@ impl MaybeSizedProperty for Service {
 }
 
 #[derive(Debug)]
+/// A plain text password
+///
+/// Additional constraints may be put on this property by some mechanisms, refer to their
+/// documentation for further details.
 pub struct Password;
 impl MaybeSizedProperty for Password {
     type Value = [u8];
 }
 
 #[derive(Debug)]
+/// Provide channel binding data
+///
+/// Channel binding data can be used by some mechanisms to cryptographically bind the
+/// authentication to the encrypted transport layer (e.g. TLS or IPsec), usually indicated by the
+/// mechanism name ending in `-PLUS`. Since this channel binding data may be only be available to
+/// the protocol crate it will be requested from both the protocol crate and the user callback.
 pub struct ChannelBindings;
-impl Property for ChannelBindings {
-    type Value = ();
+impl MaybeSizedProperty for ChannelBindings {
+    type Value = [u8];
+}
+
+#[derive(Debug)]
+/// Override the type of channel bindings to be used.
+///
+/// Some mechanisms such as the `SCRAM-` family define that specific channel binding types are to
+/// be used (e.g. `tls-unique` for `SCRAM-SHA-1`). If it is known that a different channel
+/// binding type is to be used (e.g. because TLS-1.3 is in use that does not allow for
+/// `tls-unique`) a user callback should satisfy a request for this property with the name of
+/// alternative channel binding. The actual channel binding data will be requested using the
+/// [`ChannelBinding`] property from both the protocol crate and the user callback.
+///
+/// Refer to the documentation of the [`ChannelBinding`] property for further information.
+pub struct OverrideCBType;
+impl MaybeSizedProperty for OverrideCBType {
+    type Value = str;
 }

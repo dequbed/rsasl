@@ -18,12 +18,6 @@ impl MechanismError for ParseError {
     }
 }
 
-pub struct AnonymousValidation;
-impl Property for AnonymousValidation {
-    type Value = bool;
-}
-impl Validation for AnonymousValidation {}
-
 #[derive(Copy, Clone, Debug)]
 pub struct Anonymous;
 impl Authentication for Anonymous {
