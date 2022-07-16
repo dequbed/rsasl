@@ -10,6 +10,7 @@ use std::ops::{Deref, DerefMut};
 
 pub(crate) mod tags {
     use std::marker::PhantomData;
+    
 
     pub trait Type<'a>: 'static + Sized {
         type Reified: 'a;
@@ -17,19 +18,6 @@ pub(crate) mod tags {
 
     pub trait MaybeSizedType<'a>: 'static + Sized {
         type Reified: 'a + ?Sized;
-    }
-    impl<'a, T: Type<'a>> MaybeSizedType<'a> for T {
-        type Reified = T::Reified;
-    }
-
-    pub struct Value<T: 'static>(PhantomData<T>);
-    impl<'a, T: 'static> Type<'a> for Value<T> {
-        type Reified = T;
-    }
-
-    pub struct MaybeSizedValue<T: 'static + ?Sized>(PhantomData<T>);
-    impl<'a, T: 'static + ?Sized> MaybeSizedType<'a> for MaybeSizedValue<T> {
-        type Reified = T;
     }
 
     pub struct Ref<T>(PhantomData<T>);

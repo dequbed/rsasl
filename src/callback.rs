@@ -78,14 +78,13 @@ pub trait SessionCallback {
         _context: &Context,
         _validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
-        Err(ValidationError::NoValidation)
+        Ok(())
     }
 }
 
 #[derive(Debug)]
 pub enum CallbackError {
     NoCallback,
-    NoAnswer,
     Boxed(Box<dyn Error + Send + Sync>),
 
     #[doc(hidden)]
@@ -95,7 +94,6 @@ impl Display for CallbackError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             CallbackError::NoCallback => f.write_str("Callback does not handle that query type"),
-            CallbackError::NoAnswer => f.write_str("Callback failed to provide an answer"),
             CallbackError::Boxed(e) => Display::fmt(e, f),
             CallbackError::EarlyReturn(_) => f.write_str("callback returned early"),
         }

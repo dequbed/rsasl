@@ -2,7 +2,6 @@ use crate::error::Gsasl;
 use crate::error::SessionError;
 use crate::gsasl::consts::{GSASL_NEEDS_MORE, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
 use crate::mechanism::Authentication;
-use crate::session::Step::{Done, NeedsMore};
 use crate::session::{MechanismData, State, StepResult};
 use crate::{SASLError, Shared};
 use libc::{c_char, size_t};

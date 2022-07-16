@@ -1,5 +1,6 @@
 use std::fmt::{Debug, Formatter};
 use std::io::Write;
+
 use std::sync::Arc;
 
 use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy};
@@ -40,10 +41,10 @@ impl SessionBuilder {
         }
     }
 
-    pub fn with_channel_binding(
+    pub fn with_channel_binding<V: Validation>(
         self,
         channel_binding_cb: Box<dyn ChannelBindingCallback>,
-    ) -> Session {
+    ) -> Session<V> {
         Session::new(
             self.callback,
             self.mechanism,
@@ -53,7 +54,7 @@ impl SessionBuilder {
         )
     }
 
-    pub fn without_channel_binding(self) -> Session {
+    pub fn without_channel_binding<V: Validation>(self) -> Session<V> {
         Session::new(
             self.callback,
             self.mechanism,
@@ -64,34 +65,39 @@ impl SessionBuilder {
     }
 }
 
-pub struct Session {
+pub struct Session<V: Validation> {
+    callback: Arc<dyn SessionCallback>,
     mechanism: Box<dyn Authentication>,
-    mechanism_data: MechanismData,
+    mechanism_desc: Mechanism,
+    side: Side,
+    validation: Option<V::Value>,
 }
 
-impl Session {
+impl<V: Validation> Session<V> {
     pub(crate) fn new(
         callback: Arc<dyn SessionCallback>,
         mechanism: Box<dyn Authentication>,
         mechanism_desc: Mechanism,
         side: Side,
-        channel_binding_cb: Option<Box<dyn ChannelBindingCallback>>,
+        _channel_binding_cb: Option<Box<dyn ChannelBindingCallback>>,
     ) -> Self {
         Self {
+            callback,
             mechanism,
-            mechanism_data: MechanismData::new(callback, channel_binding_cb, mechanism_desc, side),
+            mechanism_desc,
+            side,
+            validation: None,
         }
     }
 
     #[inline(always)]
     pub fn are_we_first(&self) -> bool {
-        self.mechanism_data.session_data.side
-            == self.mechanism_data.session_data.mechanism_desc.first
+        self.side == self.mechanism_desc.first
     }
 }
 
 #[cfg(feature = "provider")]
-impl Session {
+impl<V: Validation> Session<V> {
     /// Perform one step of SASL authentication.
     ///
     /// *requires feature `provider`*
@@ -113,18 +119,49 @@ impl Session {
     ///
     /// Keep in mind that SASL makes a distinction between zero-sized data to send (a Step
     /// containing `Some(0)`) and no data to send (a `Step` containing `None`).
-    pub fn step(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult {
-        if let Some(input) = input {
-            self.mechanism
-                .step(&mut self.mechanism_data, Some(input.as_ref()), writer)
-        } else {
-            self.mechanism.step(&mut self.mechanism_data, None, writer)
+    pub fn step(
+        &mut self,
+        input: Option<&[u8]>,
+        writer: &mut impl Write,
+    ) -> Result<(State, Option<usize>), SessionError> {
+        let mut tagged_option = TaggedOption::<'_, V>(None);
+
+        let (state, written) = {
+            let validate = Validate::new::<V>(&mut tagged_option);
+            let mut mechanism_data = MechanismData::new(
+                self.callback.as_ref(),
+                validate,
+                self.mechanism_desc,
+                self.side,
+            );
+            if let Some(input) = input {
+                self.mechanism
+                    .step(&mut mechanism_data, Some(input.as_ref()), writer)
+            } else {
+                self.mechanism.step(&mut mechanism_data, None, writer)
+            }?
+        };
+
+        if state == State::Finished {
+            self.validation = tagged_option.0.take();
         }
+        Ok((state, written))
+    }
+
+    /// Extract the Validation result of the exchange, if any
+    ///
+    /// Validation results are provided by a call to [`validate`](SessionCallback::validate) of the
+    /// user-supplied callback. They thus allow to send information from the callback to the
+    /// crate implementing the protocol using a type defined by the latter crate.
+    /// They are useful to e.g. indicate success or failure of the authentication exchange and
+    /// supply the protocol crate with information about the user that was authenticated.
+    pub fn validation(&mut self) -> Option<V::Value> {
+        self.validation.take()
     }
 }
 
 #[cfg(feature = "provider_base64")]
-impl Session {
+impl<V: Validation> Session<V> {
     /// Perform one step of SASL authentication, base64 encoded.
     ///
     /// *requires feature `provider_base64`*
@@ -136,7 +173,11 @@ impl Session {
     /// Requiring base64-encoded SASL data is common in line-based or textual formats, such as
     /// SMTP, IMAP, XMPP and IRCv3.
     /// Refer to your protocol documentation if SASL data needs to be base64 encoded.
-    pub fn step64(&mut self, input: Option<&[u8]>, writer: &mut impl Write) -> StepResult {
+    pub fn step64(
+        &mut self,
+        input: Option<&[u8]>,
+        writer: &mut impl Write,
+    ) -> Result<(State, Option<usize>), SessionError> {
         use base64::write::EncoderWriter;
         let mut writer64 = EncoderWriter::new(writer, base64::STANDARD);
 
@@ -149,36 +190,32 @@ impl Session {
     }
 }
 
-pub struct MechanismData {
-    callback: Arc<dyn SessionCallback>,
-    channel_binding_cb: Option<Box<dyn ChannelBindingCallback>>,
+pub struct MechanismData<'a> {
+    callback: &'a dyn SessionCallback,
+    validator: &'a mut Validate<'a>,
     session_data: SessionData,
 }
 
-impl MechanismData {
+impl<'a> MechanismData<'a> {
     pub(crate) fn new(
-        callback: Arc<dyn SessionCallback>,
-        channel_binding_cb: Option<Box<dyn ChannelBindingCallback>>,
+        callback: &'a dyn SessionCallback,
+        validator: &'a mut Validate<'a>,
         mechanism_desc: Mechanism,
         side: Side,
     ) -> Self {
         Self {
             callback,
-            channel_binding_cb,
+            validator,
             session_data: SessionData::new(mechanism_desc, side),
         }
     }
+}
 
-    pub fn validate<V>(&self, provider: &dyn Provider) -> Result<V::Value, ValidationError>
-    where
-        V: Validation,
-    {
-        let mut tagged_option = TaggedOption::<'_, V>(None);
+impl MechanismData<'_> {
+    pub fn validate(&mut self, provider: &dyn Provider) -> Result<(), ValidationError> {
         let context = build_context(provider);
-        let validate = Validate::new::<V>(&mut tagged_option);
         self.callback
-            .validate(&self.session_data, context, validate)?;
-        tagged_option.0.ok_or(ValidationError::NoValidation)
+            .validate(&self.session_data, context, self.validator)
     }
 
     pub fn callback<'a, 'b>(
@@ -240,20 +277,10 @@ pub struct SessionData {
     side: Side,
 }
 
-impl Debug for MechanismData {
+impl Debug for MechanismData<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SessionData").finish()
     }
-}
-
-#[derive(Debug, Eq, PartialEq)]
-/// The outcome of a single step in the authentication exchange
-///
-/// Since SASL is multi-step each step can either complete the exchange or require more steps to be
-/// performed. In both cases however it may provide data that has to be forwarded to the other end.
-pub enum Step {
-    Done(Option<usize>),
-    NeedsMore(Option<usize>),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -1,6 +1,5 @@
 use crate::mechanism::Authentication;
 use crate::property::MaybeSizedProperty;
-use crate::session::Step::Done;
 use crate::session::{MechanismData, State, StepResult};
 use std::io::Write;
 

@@ -3,6 +3,8 @@
 //! If the existing properties in this module are not sufficient for your mechanism, you can
 //! define additional properties to be queried.
 
+
+
 pub trait Property: 'static {
     type Value: 'static;
 }
@@ -87,4 +89,10 @@ impl MaybeSizedProperty for Service {
 pub struct Password;
 impl MaybeSizedProperty for Password {
     type Value = [u8];
+}
+
+#[derive(Debug)]
+pub struct ChannelBindings;
+impl Property for ChannelBindings {
+    type Value = ();
 }
