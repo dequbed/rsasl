@@ -5,7 +5,9 @@ use rsasl::registry::Mechanism;
 use rsasl::session::{MechanismData, Side, StepResult};
 use rsasl::SASL;
 
+use rsasl::callback::EmptyCallback;
 use std::io::Write;
+use std::sync::Arc;
 
 struct Test;
 impl Authentication for Test {
@@ -20,7 +22,7 @@ impl Authentication for Test {
 }
 
 const TEST: Mechanism = Mechanism {
-    mechanism: Mechname::const_new_unvalidated(b"X-TEST"),
+    mechanism: unsafe { Mechname::const_new_unchecked(b"X-TEST") },
     priority: 500,
     client: Some(|_sasl| Ok(Box::new(Test))),
     server: None,
@@ -28,7 +30,7 @@ const TEST: Mechanism = Mechanism {
 };
 
 pub fn main() {
-    let mut sasl = SASL::new();
+    let mut sasl = SASL::new(Arc::new(EmptyCallback));
     sasl.init();
     sasl.register(&TEST);
 

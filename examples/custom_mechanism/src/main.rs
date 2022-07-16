@@ -1,3 +1,4 @@
+use rsasl::callback::EmptyCallback;
 use rsasl::error::SASLError;
 use rsasl::mechanism::Authentication;
 use rsasl::mechname::Mechname;
@@ -5,6 +6,7 @@ use rsasl::session::{MechanismData, Side, StepResult};
 use rsasl::SASL;
 use std::io::Write;
 use std::mem;
+use std::sync::Arc;
 
 struct CustomMechanism {
     client: bool,
@@ -56,7 +58,7 @@ impl Authentication for CustomMechanism {
     }
 }
 
-const MECHNAME: &'static Mechname = &Mechname::const_new_unvalidated(b"X-CUSTOMMECH");
+const MECHNAME: &'static Mechname = unsafe { &Mechname::const_new_unchecked(b"X-CUSTOMMECH") };
 
 use rsasl::registry::{Mechanism, MECHANISMS};
 
@@ -73,7 +75,7 @@ pub static CUSTOMMECH: Mechanism = Mechanism {
 };
 
 pub fn main() {
-    let mut rsasl = SASL::new();
+    let mut rsasl = SASL::new(Arc::new(EmptyCallback));
     rsasl.register(&CUSTOMMECH);
     let available_mechanisms: Vec<&'static Mechanism> = rsasl
         .client_mech_list()

@@ -49,7 +49,7 @@
 //! // It is *crucial* that these `static`s are marked `pub` and reachable by dependent crates, see
 //! // the Note below.
 //! pub static MYCOOLMECHANISM: Mechanism = Mechanism {
-//!     mechanism: Mechname::const_new_unvalidated(b"X-MYCOOLMECHANISM"),
+//!     mechanism: unsafe { Mechname::const_new_unchecked(b"X-MYCOOLMECHANISM") },
 //!     priority: 1100,
 //!     client: Some(|_sasl| Ok(Box::new(MyCoolMechanism))),
 //!     // In this case only the client side is implemented

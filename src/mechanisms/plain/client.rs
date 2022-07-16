@@ -1,12 +1,11 @@
 use crate::mechanism::Authentication;
 use crate::session::{MechanismData, State, StepResult};
 
-use std::io::Write;
 use crate::callback::CallbackError;
 use crate::error::SessionError;
+use std::io::Write;
 
 use crate::property::{AuthId, AuthzId, Password};
-
 
 #[derive(Copy, Clone, Debug)]
 pub struct Plain;
@@ -26,7 +25,7 @@ impl Authentication for Plain {
         });
         match res {
             Ok(_) => {}
-            Err(SessionError::CallbackError(CallbackError::NoCallback)) => {},
+            Err(SessionError::CallbackError(CallbackError::NoCallback)) => {}
             Err(other) => return Err(other.into()),
         }
         len += writer.write(&[0])?;
