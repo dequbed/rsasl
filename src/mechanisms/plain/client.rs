@@ -1,10 +1,10 @@
 use crate::mechanism::Authentication;
-use crate::session::Step::Done;
 use crate::session::{MechanismData, State, StepResult};
 
 use std::io::Write;
 
 use crate::property::{AuthId, AuthzId, Password};
+
 
 #[derive(Copy, Clone, Debug)]
 pub struct Plain;

@@ -1,11 +1,10 @@
-use crate::error::{MechanismError, MechanismErrorKind, SessionError};
+use crate::error::{MechanismError, MechanismErrorKind};
 use crate::mechanism::Authentication;
 use thiserror::Error;
 
 use crate::context::ThisProvider;
 use crate::mechanisms::external::client::AuthId;
 use crate::property::Property;
-use crate::session::Step::Done;
 use crate::session::{MechanismData, State, StepResult};
 use std::io::Write;
 
@@ -37,23 +36,17 @@ impl Authentication for External {
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
     ) -> StepResult {
-        let outcome = if let Some(input) = input {
+        if let Some(input) = input {
             if let Ok(authid) = std::str::from_utf8(input) {
                 let provider = ThisProvider::<AuthId>::with(authid);
-                session.validate::<ExternalValidation>(&provider)
+                session.validate(&provider)?;
             } else {
                 return Err(ParseError.into());
             }
         } else {
-            session.validate::<ExternalValidation>(&())
-        };
-
-        let outcome = outcome.map_err(|_| ParseError /* FIXME!! */)?;
-
-        if outcome {
-            Ok((State::Finished, None))
-        } else {
-            Err(SessionError::AuthenticationFailure)
+            session.validate(&())?;
         }
+
+        Ok((State::Finished, None))
     }
 }

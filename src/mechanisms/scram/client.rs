@@ -16,8 +16,8 @@ use crate::mechanisms::scram::parser::{
     ServerFirst,
 };
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, hash_password, DOutput};
-use crate::session::Step::NeedsMore;
-use crate::session::{MechanismData, State, Step, StepResult};
+use crate::session::{MechanismData, State, StepResult};
+use crate::validate::ValidationOutcome;
 use crate::vectored_io::VectoredWriter;
 use crate::Authentication;
 
@@ -88,7 +88,9 @@ impl<const N: usize> ScramState<StateClientFirst<N>> {
     }
 }
 
-impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> ScramState<WaitingServerFirst<D, N>> {
+impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize>
+    ScramState<WaitingServerFirst<D, N>>
+{
     pub fn step(
         self,
         password: &[u8],
@@ -108,9 +110,9 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> ScramState<Waitin
 }
 
 impl<D: Digest + BlockSizeUser> ScramState<WaitingServerFinal<D>> {
-    pub fn step(self, server_final: &[u8]) -> Result<(), SessionError> {
+    pub fn step(self, server_final: &[u8]) -> Result<ValidationOutcome, SessionError> {
         match self.state.handle_server_final(server_final) {
-            Ok(StateServerFinal { .. }) => Ok(()),
+            Ok(StateServerFinal { .. }) => Ok(ValidationOutcome::Successful),
             Err(e) => Err(e.into()),
         }
     }
