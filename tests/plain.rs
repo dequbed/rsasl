@@ -1,18 +1,8 @@
-use std::io::Cursor;
-use std::sync::Arc;
-use rsasl::callback::EmptyCallback;
-use rsasl::mechname::Mechname;
-use rsasl::SASL;
+#[test]
+fn plain_client() {}
 
 #[test]
-fn plain_client() {
-
-}
-
-#[test]
-fn plain_server() {
-
-}
+fn plain_server() {}
 
 /*
 #[test]

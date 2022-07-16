@@ -3,11 +3,9 @@ use crate::mechanism::Authentication;
 use thiserror::Error;
 
 use crate::context::ThisProvider;
-use crate::property::{AuthId, Property};
+use crate::property::AuthId;
 use crate::session::{MechanismData, State, StepResult};
 use std::io::Write;
-
-use crate::validate::Validation;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]
 #[error("the given external token is invalid UTF-8")]

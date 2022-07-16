@@ -5,9 +5,9 @@ use rsasl::registry::Mechanism;
 use rsasl::session::{MechanismData, Side, StepResult};
 use rsasl::SASL;
 
+use rsasl::callback::EmptyCallback;
 use std::io::Write;
 use std::sync::Arc;
-use rsasl::callback::EmptyCallback;
 
 struct Test;
 impl Authentication for Test {

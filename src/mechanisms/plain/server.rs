@@ -12,8 +12,8 @@ use crate::session::{MechanismData, State, StepResult};
 
 use crate::context::{Demand, DemandReply, Provider};
 
-use crate::property::{AuthId, AuthzId, Password, Property};
-use crate::validate::{Validation};
+use crate::property::{AuthId, AuthzId, Password};
+
 use crate::Authentication;
 
 #[derive(Debug, Error)]

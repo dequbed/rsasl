@@ -10,7 +10,6 @@ use std::ops::{Deref, DerefMut};
 
 pub(crate) mod tags {
     use std::marker::PhantomData;
-    
 
     pub trait Type<'a>: 'static + Sized {
         type Reified: 'a;

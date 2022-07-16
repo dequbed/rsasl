@@ -2,10 +2,10 @@ use crate::{init, registry, SessionCallback, SASL};
 
 use crate::callback::Request;
 use crate::context::Context;
+use crate::error::SessionError;
 use crate::property::{AuthId, AuthzId, Password};
 use crate::session::SessionData;
 use std::sync::Arc;
-use crate::error::SessionError;
 
 pub struct CredentialsProvider {
     authid: String,
