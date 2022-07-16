@@ -10,36 +10,6 @@ use std::io::Write;
 /// symmetric but has different behaviour depending on the side an Implementation should define two
 /// distinct types representing the client and server side:
 ///
-/// ```rust
-/// # use std::io::Write;
-/// # use rsasl::mechanism::Authentication;
-/// # use rsasl::session::{MechanismData, StepResult};
-/// // Data required for both sides
-/// struct Common {
-///     step: usize,
-///     hash: [u8; 64],
-/// }
-/// #[repr(transparent)]
-/// pub struct Client(Common);
-/// #[repr(transparent)]
-/// pub struct Server(Common);
-///
-/// impl Authentication for Client {
-///     fn step(&mut self, session: &mut MechanismData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
-///         match self.0.step {
-///             0 => { }
-///             _ => { }
-///         }
-///         # unimplemented!()
-///     }
-/// }
-/// impl Authentication for Server {
-///     fn step(&mut self, session: &mut MechanismData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
-///         # unimplemented!()
-///     }
-/// }
-/// ```
-///
 /// and register the two types separately
 pub trait Authentication {
     /// Do a single step of authentication with the other party

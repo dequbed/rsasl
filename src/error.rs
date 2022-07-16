@@ -17,8 +17,6 @@ use std::fmt::{Debug, Display, Formatter};
 //      * Callback error should be handled specifically?
 //      * Includes Authentication error. Mechanism stepped to completion, authentication *failed*.
 
-pub type Result<T> = std::result::Result<T, SASLError>;
-
 static UNKNOWN_ERROR: &'static str = "The given error code is unknown to gsasl";
 
 /// Different high-level kinds of errors that can happen in mechanisms
@@ -56,46 +54,6 @@ impl MechanismError for Gsasl {
         // TODO: match self and return proper type
         MechanismErrorKind::Protocol
     }
-}
-
-#[derive(Debug, Error)]
-pub enum StepError {
-    #[error("IO error occurred: {source}")]
-    Io {
-        #[from]
-        source: std::io::Error,
-    },
-
-    #[cfg(feature = "provider_base64")]
-    #[error("base64 wrapping failed: {source}")]
-    Base64 {
-        #[from]
-        source: base64::DecodeError,
-    },
-
-    #[error("input data was required but not provided")]
-    /// Mechanism was called without input data when requiring some
-    InputDataRequired,
-
-    #[error("step was called after mechanism finished")]
-    MechanismDone,
-
-    #[error("internal mechanism error: {0}")]
-    MechanismError(Box<dyn MechanismError>),
-
-    #[error("callback error: {0}")]
-    CallbackError(
-        #[from]
-        #[source]
-        CallbackError,
-    ),
-
-    #[error("validation error: {0}")]
-    ValidationError(
-        #[from]
-        #[source]
-        ValidationError,
-    ),
 }
 
 #[derive(Debug, Error)]
@@ -204,7 +162,7 @@ impl SASLError {
 }
 
 /// Convert an error code to a human readable description of that error
-pub fn rsasl_err_to_str(err: libc::c_uint) -> Option<&'static str> {
+fn rsasl_err_to_str(err: libc::c_uint) -> Option<&'static str> {
     // gsasl returns the normal zero-terminated string
     let cstr = unsafe {
         let ptr = gsasl_strerror(err as libc::c_int);
@@ -224,7 +182,7 @@ pub fn rsasl_err_to_str(err: libc::c_uint) -> Option<&'static str> {
 
 /// Convert an error code to a human readable description of that error
 #[deprecated(since = "1.1.0", note = "Use rsasl_err_to_str as replacement")]
-pub fn gsasl_err_to_str(err: libc::c_uint) -> &'static str {
+fn gsasl_err_to_str(err: libc::c_uint) -> &'static str {
     gsasl_err_to_str_internal(err)
 }
 
@@ -247,7 +205,7 @@ fn gsasl_err_to_str_internal(err: libc::c_uint) -> &'static str {
 /// Convert an error type to the human readable name of that error.
 /// i.e. rsasl_errname_to_str(GSASL_OK) -> "GSASL_OK". Returns `None` when an invalid libc::c_int is
 /// passed.
-pub fn rsasl_errname_to_str(err: libc::c_uint) -> Option<&'static str> {
+fn rsasl_errname_to_str(err: libc::c_uint) -> Option<&'static str> {
     // gsasl returns the normal zero-terminated string
     let cstr = unsafe {
         let ptr = gsasl_strerror_name(err as libc::c_int);
@@ -268,7 +226,7 @@ pub fn rsasl_errname_to_str(err: libc::c_uint) -> Option<&'static str> {
 /// Convert an error code to the human readable name of that error.
 /// i.e. gsasl_errname_to_str(GSASL_OK) -> "GSASL_OK"
 #[deprecated]
-pub fn gsasl_errname_to_str(err: libc::c_uint) -> &'static str {
+fn gsasl_errname_to_str(err: libc::c_uint) -> &'static str {
     // gsasl returns the normal zero-terminated string
     let cstr = unsafe {
         let ptr = gsasl_strerror_name(err as libc::c_int);

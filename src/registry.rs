@@ -166,7 +166,7 @@ mod registry_static {
 
 #[cfg(feature = "registry_dynamic")]
 impl SASL {
-    pub fn register(&mut self, mechanism: &'static Mechanism) {
+    fn register(&mut self, mechanism: &'static Mechanism) {
         self.dynamic_mechs.push(mechanism)
     }
 }

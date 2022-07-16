@@ -169,23 +169,23 @@ use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
-pub mod callback;
+mod callback;
 pub mod error;
-pub mod sasl;
-pub mod session;
+mod sasl;
+mod session;
 
 mod gsasl;
-pub mod init;
-pub mod mechanism;
-pub mod mechanisms;
-pub mod mechname;
-pub mod registry;
+mod init;
+mod mechanism;
+mod mechanisms;
+mod mechname;
+mod registry;
 
-pub mod channel_bindings;
-pub mod context;
-pub mod property;
+mod channel_bindings;
+mod context;
+mod property;
 mod typed;
-pub mod validate;
+mod validate;
 
 mod vectored_io;
 
@@ -349,7 +349,7 @@ impl SASL {
     /// You should not call this function to filter supported mechanisms if you intend to start a
     /// session right away since this function only calls `self.client_start()` with the given
     /// Mechanism name and throws away the Session.
-    pub fn client_supports(&self, mech: &mechname::Mechname) -> bool {
+    fn client_supports(&self, mech: &mechname::Mechname) -> bool {
         self.client_start(mech).is_ok()
     }
 
@@ -358,7 +358,7 @@ impl SASL {
     /// You should not call this function to filter supported mechanisms if you intend to start a
     /// session right away since this function only calls `self.server_start()` with the given
     /// Mechanism name and throws away the Session.
-    pub fn server_supports(&self, mech: &mechname::Mechname) -> bool {
+    fn server_supports(&self, mech: &mechname::Mechname) -> bool {
         self.server_start(mech).is_ok()
     }
 
@@ -366,7 +366,7 @@ impl SASL {
     ///
     /// This function should rarely be necessary, see [`SASL::client_start`] and
     /// [`SASL::server_start`] for more ergonomic alternatives.
-    pub fn new_session(
+    fn new_session(
         &self,
         mechdesc: &'static Mechanism,
         mechanism: Box<dyn Authentication>,
@@ -414,7 +414,7 @@ impl SASL {
     /// an authcid, optional authzid and password for PLAIN. To provide that data an application
     /// has to either call `set_property` before running the step that requires the data, or
     /// install a callback.
-    pub fn client_start(&self, mech: &mechname::Mechname) -> Result<SessionBuilder, SASLError> {
+    fn client_start(&self, mech: &mechname::Mechname) -> Result<SessionBuilder, SASLError> {
         self.start_inner(
             mech,
             self.client_mech_list(),
@@ -429,7 +429,7 @@ impl SASL {
     /// authentication data provided by the user.
     ///
     /// See [Callback](Callback) on how to implement callbacks.
-    pub fn server_start(&self, mech: &mechname::Mechname) -> Result<SessionBuilder, SASLError> {
+    fn server_start(&self, mech: &mechname::Mechname) -> Result<SessionBuilder, SASLError> {
         self.start_inner(
             mech,
             self.server_mech_list(),
