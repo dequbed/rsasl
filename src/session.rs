@@ -272,13 +272,17 @@ impl MechanismData<'_> {
         self.callback.callback(&self.session_data, context, request)
     }
 
-    pub(crate) fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(),
-        SessionError>
+    pub(crate) fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), SessionError>
     where
         T: MaybeSizedProperty,
     {
         let mut tagged_option = TaggedOption::<'_, tags::Ref<Action<T>>>(Some(value));
-        self.callback(provider, Request::new_action::<T>(&mut tagged_option))
+        self.callback(provider, Request::new_action::<T>(&mut tagged_option))?;
+        if tagged_option.is_some() {
+            Err(SessionError::CallbackError(CallbackError::NoCallback))
+        } else {
+            Ok(())
+        }
     }
 
     pub(crate) fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(),
