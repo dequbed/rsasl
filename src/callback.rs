@@ -17,14 +17,33 @@ use crate::typed::{tags, Erased, TaggedOption};
 use crate::validate::{Validate, ValidationError};
 
 pub trait SessionCallback {
-    /// Query by a mechanism implementation to provide some information or do some action
+    /// Answer requests by mechanism implementation for some Properties
     ///
+    /// These requests come in one of two flavours: 'Satisfiable' requests asking that a value for
+    /// some [`Property`] is provided, and 'Actionable' requests that instead need a specific
+    /// action to be taken, usually performing sideband authentication to a users SSO IdP.
+    ///
+    /// Since it's not possible for the compiler to know at compile time which mechanism will be
+    /// in use callbacks makes use of runtime reflection. This reflection is implemented by
+    /// the [`Request`] type.
+    ///
+    /// Callbacks are also passed a [`SessionData`] and a [`Context`], providing access to data from
+    /// the current [`Session`] and from the mechanism implementation. The data that can be
+    /// provided via the `Context` is different for each mechanism and side, and may also change
+    /// depending on the step the authentication is in, refer to the documentation of each
+    /// mechanism that is planned to be supported for details.
+    ///
+    /// The callback is used when doing either a server-side or a client-side authentication. An
+    /// example for an implementation on the client-side could look like so:
     /// ```rust
     /// # use rsasl::callback::{Request, SessionCallback, Context};
     /// # use rsasl::error::SessionError;
     /// # use rsasl::property::{AuthId, Password, AuthzId, OpenID20AuthenticateInBrowser, Realm};
     /// # use rsasl::session::SessionData;
     /// # struct CB;
+    /// # impl CB {
+    /// # fn interactive_get_username(&self) -> &str { unimplemented!() }
+    /// # }
     /// # fn open_browser_and_go_to(url: &str) { }
     /// # impl SessionCallback for CB {
     /// fn callback(&self, session: &SessionData, context: &Context, request: &mut Request<'_>)
@@ -32,8 +51,9 @@ pub trait SessionCallback {
     /// {
     ///     // Some requests are to provide a value for the given property by calling `satisfy`.
     ///     request
+    ///         // satisfy_with only runs the provided closure if the type is correct
+    ///         .satisfy_with::<AuthId, _>(|| self.interactive_get_username())?
     ///         // satisfy calls can be chained, making use of short-circuiting
-    ///         .satisfy::<AuthId>("exampleuser")?
     ///         .satisfy::<Password>(b"password")?
     ///         .satisfy::<AuthzId>("authzid")?;
     ///
@@ -53,9 +73,6 @@ pub trait SessionCallback {
     /// # }
     /// ```
     ///
-    /// In some cases (e.g. [`OpenID20AuthenticateInBrowser`](crate::property::OpenID20AuthenticateInBrowser))
-    /// the mechanism expects that a certain action is taken by the user instead of an explicit
-    /// property being provided (in this case to authenticate to the users IdP using a web browser).
     fn callback(
         &self,
         session_data: &SessionData,
@@ -173,11 +190,16 @@ impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for Action<T> {
 }
 
 #[repr(transparent)]
-/// A type-erased callback request for some potentially context-specific values.
+/// A type-erased request for the value or action defined by [`Property`]
 ///
-/// Since the actual type of the request is erased callbacks must first specify a type when
-/// wanting to satisfy the request. This is done with the type parameter `T` on the
-/// [`satisfy_with`] method.
+/// Requests can be either a 'Satisfiable' request for a value, in which case the methods
+/// [`satisfy`] and [`satisfy_with`] can be used.
+///
+/// Alternatively they may be an 'Actionable' request, in which case [`get_action`] returns an
+/// associated value.
+///
+/// Whether a request is 'Actionable' or 'Satisfiable' depends on the property, mechanism and
+/// side and is documented in the documentation of the mechanism implementation in question.
 pub struct Request<'a>(dyn Erased<'a>);
 impl<'a> Request<'a> {
     pub(crate) fn new_satisfy<'o, P: MaybeSizedProperty>(
@@ -202,36 +224,60 @@ impl<'a> Request<'a> {
 
     /// Returns true iff this Request is for the Property `P`.
     ///
-    /// Properties can be either requests to provide an appropriate value, or to perform a
-    /// specific (usually sideband) action, e.g. opening a web browser and letting the user log
-    /// in to their OpenID Connect / SAML / OAuth2 SSO-system.
-    ///
+    /// Using this method is generally not necessary as [`satisfy`], [`satisfy_with`] and
+    /// [`get_action`] can used as efficiently without.
     pub fn is<P: MaybeSizedProperty>(&self) -> bool {
         self.is_satisfy::<P>() || self.is_action::<P>()
     }
 
-    /// Get a reference to the value of a Request `P`.
+    /// Get a reference to [the associated value](Property::Value) of an 'Actionable' Request for `P`.
     ///
-    /// This method does not work for all Requests, even if `Self::is` returned true for the
-    /// same `P`, as e.g. a request to provide an Authentication ID can't return a reference to
-    /// an value that wasn't provided yet.
+    /// This method does not work for all requests, even if `Self::is` returned true for the
+    /// given `P`, as 'Satisfiable' requests are instead **requesting** a value for `P`.
     ///
-    /// Refer to the documentation of a property on how to handle requests regarding it and whether
-    /// it will generate actionable or satisfiable requests.
-    pub fn get_action<P: MaybeSizedProperty>(&self) -> Option<&P::Value> {
-        if let Some(TaggedOption(Some(value))) = self.0.downcast_ref::<tags::Ref<Action<P>>>() {
+    /// `get_action` will return `None` if the request is not an `Actionable` request for the
+    /// given `P`, or if called for the same `P` multiple times.
+    ///
+    /// ```rust
+    /// # use rsasl::callback::Request;
+    /// # use rsasl::error::SessionError;
+    /// # use rsasl::property::{OpenID20AuthenticateInBrowser, Saml20AuthenticateInBrowser};
+    /// # fn do_something(url: &str) {}
+    /// # fn do_something_else(url: &str) {}
+    /// # fn example(request: &mut Request) -> Result<(), SessionError> {
+    /// // Since get_action returns `None` if P doesn't match, `if let` constructs are a nice way
+    /// // to check for the different options
+    /// if let Some(url) = request.get_action::<OpenID20AuthenticateInBrowser>() {
+    ///     do_something(url);
+    ///     return Ok(());
+    /// }
+    /// if let Some(url) = request.get_action::<Saml20AuthenticateInBrowser>() {
+    ///     do_something_else(url);
+    ///     return Ok(());
+    /// }
+    /// Ok(())
+    /// # }
+    /// ```
+    pub fn get_action<P: MaybeSizedProperty>(&mut self) -> Option<&P::Value> {
+        if let Some(TaggedOption(Some(value))) =
+            self.0.downcast_mut::<tags::Ref<Action<P>>>().take()
+        {
             Some(*value)
         } else {
             None
         }
     }
 
-    /// Satisfy the given Request type `P` using the provided closure.
+    #[must_use]
+    /// Satisfy a 'Satisfiable' request using the provided value.
     ///
-    /// # Shortcutting behaviour
-    /// Iff the type of the request is `P` and the request was not yet satisfied, this method
-    /// will return an `Err`, otherwise it will return `Ok(&mut Self)`. This behaviour allows to
-    /// easily chain multiple calls to `satisfy` but shortcutting on the first successful one:
+    /// If the type of the request is `P` and the request was not yet satisfied, this method
+    /// will satisfy the request and return an opaque `Err` that must be bubbled up.
+    ///
+    /// If the request is not for the property `P`, already satisfied or not a 'Satisfiable'
+    /// request this method will *always* return `Ok(&mut Self)`.
+    ///
+    /// This behaviour allows to easily chain multiple calls using the `?` operator:
     ///
     /// ```rust
     /// # use rsasl::callback::Request;
@@ -241,15 +287,118 @@ impl<'a> Request<'a> {
     /// request
     ///     .satisfy::<AuthId>("authid")? // if `P` is AuthId this will immediately return
     ///     .satisfy::<Password>(b"password")?
+    ///     // It's important that errors are returned so the last call should have a `?` too.
     ///     .satisfy::<AuthzId>("authzid")?;
     /// # Ok(())
     /// # }
     /// ```
+    ///
+    /// # faulty use of `satisfy`/`satisfy_with`
+    ///
+    /// It's important to note that calls will succeed if the request is **not for this property**.
+    /// Thus care must be taken when satisfying requests to prevent bugs:
+    ///
+    /// ```should_panic
+    /// # use rsasl::callback::Request;
+    /// # use rsasl::error::SessionError;
+    /// # use rsasl::property::{AuthId, AuthzId, Password};
+    /// # fn ask_user_for_password<'a>() -> &'a [u8] { &[] }
+    /// # fn try_get_cached_password<'a>() -> Option<&'a [u8]> { Some(&[]) }
+    /// # fn example(request: &mut Request<'_>) -> Result<(), SessionError> {
+    /// if let Some(password) = try_get_cached_password() {
+    ///     request.satisfy::<Password>(password)?;
+    ///     // This is wrong, as the above call will *succeed* if `AuthId` was requested but this
+    ///     // return may prevent the `satisfy` below from ever being evaluated.
+    ///     return Ok(());
+    /// }
+    /// request.satisfy_with::<Password, _>(|| ask_user_for_password())?;
+    /// request.satisfy::<AuthId>("foobar")?;
+    /// # Ok(())
+    /// # }
+    /// # panic!("request for 'AuthId' is implemented but was not satisfied");
+    /// ```
+    ///
+    /// If generating the value is expensive or requires interactivity using the method
+    /// [`satisfy_with`] may be preferable.
     pub fn satisfy<P: MaybeSizedProperty>(
         &mut self,
         answer: &P::Value,
     ) -> Result<&mut Self, SessionError> {
         if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
+            mech.satisfy(answer)?;
+            Err(CallbackError::EarlyReturn(PhantomData).into())
+        } else {
+            Ok(self)
+        }
+    }
+
+    #[must_use]
+    /// Satisfy a 'Satisfiable' request using the provided closure.
+    ///
+    /// If the type of the request is `P` and the request was not yet satisfied, this method
+    /// will evaluate the closure and satisfy the request, returning an opaque `Err` that must be
+    /// bubbled up.
+    ///
+    /// If the request is not for the property `P`, already satisfied or not a 'Satisfiable'
+    /// request this method will is guaranteed to not evaluate the provided closure and return an
+    /// `Ok(&mut Self)`.
+    ///
+    /// This behaviour allows to easily chain multiple calls using the `?` operator:
+    ///
+    /// ```rust
+    /// # use rsasl::callback::Request;
+    /// # use rsasl::error::SessionError;
+    /// # use rsasl::property::{AuthId, AuthzId, Password};
+    /// # fn ask_user_for_authid<'a>() -> &'a str { unimplemented!() }
+    /// # fn ask_user_for_password<'a>() -> &'a [u8] { unimplemented!() }
+    /// # fn try_get_cached_password<'a>() -> Option<&'a [u8]> { unimplemented!() }
+    /// # fn example(request: &mut Request<'_>) -> Result<(), SessionError> {
+    /// // Skipping the interactive asking if the password was cached previously
+    /// if let Some(password) = try_get_cached_password() {
+    ///     // Several calls for satisfy may exist, but only the first value set will ever be used.
+    ///     request.satisfy::<Password>(password)?;
+    /// }
+    ///
+    /// request
+    ///     .satisfy_with::<AuthId, _>(|| ask_user_for_authid())?
+    ///     .satisfy_with::<Password, _>(|| ask_user_for_password())?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # faulty use of `satisfy`/`satisfy_with`
+    ///
+    /// It's important to note that calls will succeed if the request is **not for this property**.
+    /// Thus care must be taken when satisfying requests to prevent bugs:
+    ///
+    /// ```should_panic
+    /// # use rsasl::callback::Request;
+    /// # use rsasl::error::SessionError;
+    /// # use rsasl::property::{AuthId, AuthzId, Password};
+    /// # fn ask_user_for_password<'a>() -> &'a [u8] { &[] }
+    /// # fn try_get_cached_password<'a>() -> Option<&'a [u8]> { Some(&[]) }
+    /// # fn example(request: &mut Request<'_>) -> Result<(), SessionError> {
+    /// if let Some(password) = try_get_cached_password() {
+    ///     request.satisfy::<Password>(password)?;
+    ///     // This is wrong, as the above call will *succeed* if `AuthId` was requested but this
+    ///     // return may prevent the `satisfy` below from ever being evaluated.
+    ///     return Ok(());
+    /// }
+    /// request.satisfy_with::<Password, _>(|| ask_user_for_password())?;
+    /// request.satisfy::<AuthId>("foobar")?;
+    /// # Ok(())
+    /// # }
+    /// # panic!("request for 'AuthId' is implemented but was not satisfied");
+    /// ```
+    ///
+    /// If the value for a property is static or readily available using [`satisfy`] may be
+    /// preferable.
+    pub fn satisfy_with<'b, P: MaybeSizedProperty, F: FnOnce() -> &'b P::Value>(
+        &mut self,
+        closure: F,
+    ) -> Result<&mut Self, SessionError> {
+        if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
+            let answer = closure();
             mech.satisfy(answer)?;
             Err(CallbackError::EarlyReturn(PhantomData).into())
         } else {

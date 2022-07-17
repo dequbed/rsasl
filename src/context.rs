@@ -50,24 +50,6 @@ pub struct TOKEN(PhantomData<()>);
 ///
 /// This type allows to easily chain calls to [`provide`](Demand::provide) while exiting as soon
 /// as possible by using [`std::ops::ControlFlow`].
-///
-/// ```rust
-/// # use rsasl::context::{Demand, DemandReply, Provider};
-/// use rsasl::property::{AuthId, Password, AuthzId};
-/// # struct CB;
-/// # impl Provider for CB {
-/// fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
-///     req.provide_ref::<AuthId>("exampleuser")?
-///         // If `AuthId` is requested the `?` operator will immediately shortcut to a return and
-///         // not execute any of the following `provide_ref`
-///        .provide_ref::<Password>(b"secret")?
-///        .provide_ref::<AuthzId>("root")?
-///        .done()
-///         // The final call to `done()` returns the expected `DemandReply<()>` if none of the
-///         // `provide_ref` previously matched.
-/// }
-/// # }
-/// ```
 pub type DemandReply<T> = ControlFlow<TOKEN, T>;
 
 struct DemandTag<T>(PhantomData<T>);
