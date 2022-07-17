@@ -79,6 +79,7 @@ pub trait SessionCallback {
         context: &Context,
         request: &mut Request<'_>,
     ) -> Result<(), SessionError> {
+        let _ = (session_data, context, request);
         Err(CallbackError::NoCallback.into())
     }
 
@@ -93,6 +94,7 @@ pub trait SessionCallback {
         context: &Context,
         validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
+        let _ = (session_data, context, validate);
         Ok(())
     }
 }
