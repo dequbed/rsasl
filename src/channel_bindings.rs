@@ -35,7 +35,8 @@ mod tests {
 
     use std::sync::Arc;
 
-    use crate::{Mechname, SASL};
+    use crate::{Mechname};
+    use crate::sasl::SASL;
 
     use crate::typed::TaggedOption;
     use crate::validate::{NoValidation, Validate};

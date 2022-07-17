@@ -1,3 +1,6 @@
+//! Mechanism traits *only available with feature `unstable_custom_mechanism`*
+//!
+//!
 use crate::error::SessionError;
 use crate::error::SessionError::NoSecurityLayer;
 use crate::session::{MechanismData, StepResult};
