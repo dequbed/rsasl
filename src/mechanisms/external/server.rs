@@ -2,7 +2,7 @@ use crate::error::{MechanismError, MechanismErrorKind};
 use crate::mechanism::Authentication;
 use thiserror::Error;
 
-use crate::context::ThisProvider;
+use crate::context::{EmptyProvider, ThisProvider};
 use crate::property::AuthId;
 use crate::session::{MechanismData, State, StepResult};
 use std::io::Write;
@@ -34,7 +34,7 @@ impl Authentication for External {
                 return Err(ParseError.into());
             }
         } else {
-            session.validate(&())?;
+            session.validate(&EmptyProvider)?;
         }
 
         Ok((State::Finished, None))

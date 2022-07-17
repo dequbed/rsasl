@@ -11,13 +11,6 @@ pub trait Provider {
     }
 }
 
-// TODO: Remove
-impl Provider for () {
-    fn provide<'a>(&'a self, _: &mut Demand<'a>) -> DemandReply<()> {
-        DemandReply::Continue(())
-    }
-}
-
 #[derive(Debug)]
 pub struct EmptyProvider;
 impl Provider for EmptyProvider {
