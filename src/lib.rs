@@ -163,6 +163,7 @@
 
 pub mod error;
 pub mod callback;
+pub mod builder;
 pub mod sasl;
 pub mod session;
 pub mod property;
