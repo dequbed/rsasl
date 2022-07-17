@@ -34,8 +34,9 @@ mod tests {
     use crate::callback::EmptyCallback;
 
     use std::sync::Arc;
+    use crate::mechname::Mechname;
 
-    use crate::{Mechname, SASL};
+    use crate::sasl::SASL;
 
     use crate::typed::TaggedOption;
     use crate::validate::{NoValidation, Validate};

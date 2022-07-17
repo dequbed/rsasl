@@ -1,10 +1,10 @@
 use crate::mechanism::Authentication;
-use crate::property::MaybeSizedProperty;
+use crate::property::Property;
 use crate::session::{MechanismData, State, StepResult};
 use std::io::Write;
 
 pub struct AnonymousToken;
-impl MaybeSizedProperty for AnonymousToken {
+impl Property for AnonymousToken {
     type Value = str;
 }
 

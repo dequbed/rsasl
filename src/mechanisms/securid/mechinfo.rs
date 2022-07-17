@@ -3,7 +3,9 @@ use crate::mechanisms::securid::client::{
     _gsasl_securid_client_finish, _gsasl_securid_client_start, _gsasl_securid_client_step,
 };
 use crate::mechanisms::securid::server::_gsasl_securid_server_step;
-use crate::{Mechanism, Mechname, Side};
+use crate::mechname::Mechname;
+use crate::registry::Mechanism;
+use crate::session::Side;
 
 #[cfg(feature = "registry_static")]
 use crate::registry::{distributed_slice, MECHANISMS};

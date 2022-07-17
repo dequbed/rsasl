@@ -65,14 +65,3 @@ pub enum ValidationError {
     #[error(transparent)]
     Boxed(Box<dyn std::error::Error + Send + Sync>),
 }
-
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-// Validation really is for the protocol implementation. So it should if anything return a type
-// *requested by the protocol implementation*, to allow more complex error types in the protocol
-// (think HTTP 401 vs 403 [auth failed, auth successful but with invalid authzid])
-pub enum ValidationOutcome {
-    NotValidated,
-    Successful,
-    AuthenticationFailed,
-    AuthorizationFailed,
-}
