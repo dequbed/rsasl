@@ -1,5 +1,4 @@
-use rsasl::callback::{CallbackError, Request, SessionCallback};
-use rsasl::context::Context;
+use rsasl::callback::{CallbackError, Request, SessionCallback, Context};
 use rsasl::error::SessionError;
 use rsasl::mechanisms::scram::properties::PasswordHash;
 use rsasl::mechname::Mechname;

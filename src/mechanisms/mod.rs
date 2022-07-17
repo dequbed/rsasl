@@ -26,7 +26,7 @@
 
 #[cfg(feature = "anonymous")]
 pub mod anonymous {
-    //! `ANONYMOUS` *mechanism. Requires feature "anonymous"*
+    //! `ANONYMOUS` *mechanism. Requires feature `anonymous`*
     pub mod client;
     pub mod mechinfo;
     pub mod server;

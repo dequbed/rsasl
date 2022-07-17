@@ -163,12 +163,12 @@ pub mod sasl;
 pub mod session;
 pub mod property;
 pub mod validate;
+pub mod mechanisms;
+pub mod mechname;
 
 mod gsasl;
 mod init;
 mod mechanism;
-pub mod mechanisms;
-mod mechname;
 mod registry;
 
 mod channel_bindings;
@@ -405,7 +405,7 @@ impl SASL {
     /// an authcid, optional authzid and password for PLAIN. To provide that data an application
     /// has to either call `set_property` before running the step that requires the data, or
     /// install a callback.
-    fn client_start(&self, mech: &mechname::Mechname) -> Result<SessionBuilder, SASLError> {
+    pub fn client_start(&self, mech: &mechname::Mechname) -> Result<SessionBuilder, SASLError> {
         self.start_inner(
             mech,
             self.client_mech_list(),
@@ -420,7 +420,7 @@ impl SASL {
     /// authentication data provided by the user.
     ///
     /// See [Callback](Callback) on how to implement callbacks.
-    fn server_start(&self, mech: &mechname::Mechname) -> Result<SessionBuilder, SASLError> {
+    pub fn server_start(&self, mech: &mechname::Mechname) -> Result<SessionBuilder, SASLError> {
         self.start_inner(
             mech,
             self.server_mech_list(),
