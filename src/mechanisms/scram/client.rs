@@ -13,6 +13,7 @@ use rand::Rng;
 
 use crate::context::EmptyProvider;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
+use crate::mechanism::Authentication;
 
 use crate::mechanisms::scram::parser::{
     ClientFinal, ClientFirstMessage, GS2CBindFlag, SaslName, ServerErrorValue, ServerFinal,
@@ -22,7 +23,6 @@ use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, hash_password
 use crate::property::{AuthId, AuthzId, OverrideCBType, Password};
 use crate::session::{MechanismData, State, StepResult};
 use crate::vectored_io::VectoredWriter;
-use crate::Authentication;
 
 pub type ScramSha256Client<const N: usize> = ScramClient<sha2::Sha256, N>;
 pub type ScramSha512Client<const N: usize> = ScramClient<sha2::Sha512, N>;

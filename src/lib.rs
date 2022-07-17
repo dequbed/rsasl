@@ -161,10 +161,6 @@
 //! about how to add a custom mechanism is found in the [`registry module documentation`](registry).
 //!
 
-use std::cmp::Ordering;
-use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
-
 pub mod error;
 pub mod callback;
 pub mod sasl;
@@ -193,15 +189,17 @@ mod typed;
 
 mod vectored_io;
 
-use crate::error::SASLError;
-use crate::mechanism::Authentication;
-use crate::mechname::Mechname;
-use crate::registry::Mechanism;
-use crate::session::{SessionBuilder, Side};
-
-pub use session::Session;
-pub use callback::SessionCallback;
-pub use property::SizedProperty;
+pub mod prelude {
+    //! prelude exporting the most commonly used types
+    pub use crate::sasl::SASL;
+    pub use crate::session::Session;
+    pub use crate::mechname::Mechname;
+    pub use crate::property::Property;
+    pub use crate::error::{
+        SASLError,
+        SessionError
+    };
+}
 
 struct Shared;
 

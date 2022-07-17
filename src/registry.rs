@@ -26,12 +26,13 @@
 
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
-use crate::{SASLError, Side};
 use std::fmt::{Debug, Display, Formatter};
 
 #[cfg(feature = "registry_static")]
 pub use registry_static::*;
+use crate::error::SASLError;
 use crate::sasl::SASL;
+use crate::session::Side;
 
 pub type MatchFn = fn(name: &Mechname) -> bool;
 

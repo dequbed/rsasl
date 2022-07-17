@@ -1,6 +1,6 @@
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 
-use crate::Mechname;
+use crate::mechname::Mechname;
 use thiserror::Error;
 
 use crate::callback::CallbackError;

@@ -3,16 +3,17 @@ use std::io::Write;
 
 use std::sync::Arc;
 
-use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy};
+use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, SessionCallback};
 use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
-use crate::context::{build_context, EmptyProvider, Provider};
+use crate::context::{build_context, Provider};
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
 use crate::mechanism::Authentication;
+use crate::mechname::Mechname;
 use crate::property::{ChannelBindings, Property};
+use crate::registry::Mechanism;
 use crate::typed::{tags, TaggedOption};
 use crate::validate::*;
-use crate::{Mechanism, Mechname, SessionCallback};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -210,28 +211,6 @@ impl<V: Validation> Session<V> {
     }
 }
 
-#[cfg(test)]
-impl<V: Validation> Session<V> {
-    pub fn get_cb_data<'a, F, G>(
-        &'a self,
-        cbname: &str,
-        validate: &'a mut Validate<'a>,
-        f: &mut F,
-    ) -> Result<G, SessionError>
-    where
-        F: FnMut(&[u8]) -> Result<G, SessionError>,
-    {
-        let mechanism_data = MechanismData::new(
-            self.callback.as_ref(),
-            self.chanbind_cb.as_ref(),
-            validate,
-            self.mechanism_desc,
-            self.side,
-        );
-        mechanism_data.need_cb_data(cbname, &EmptyProvider, f)
-    }
-}
-
 pub struct MechanismData<'a> {
     callback: &'a dyn SessionCallback,
     chanbind_cb: &'a dyn ChannelBindingCallback,
@@ -412,6 +391,34 @@ impl SessionData {
         Self {
             mechanism_desc,
             side,
+        }
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use crate::context::EmptyProvider;
+    use super::*;
+    use crate::validate::Validation;
+
+    impl<V: Validation> Session<V> {
+        pub fn get_cb_data<'a, F, G>(
+            &'a self,
+            cbname: &str,
+            validate: &'a mut Validate<'a>,
+            f: &mut F,
+        ) -> Result<G, SessionError>
+            where
+                F: FnMut(&[u8]) -> Result<G, SessionError>,
+        {
+            let mechanism_data = MechanismData::new(
+                self.callback.as_ref(),
+                self.chanbind_cb.as_ref(),
+                validate,
+                self.mechanism_desc,
+                self.side,
+            );
+            mechanism_data.need_cb_data(cbname, &EmptyProvider, f)
         }
     }
 }

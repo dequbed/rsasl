@@ -1,13 +1,13 @@
-use crate::error::Gsasl;
+use crate::error::{Gsasl, SASLError};
 use crate::error::SessionError;
 use crate::gsasl::consts::{GSASL_NEEDS_MORE, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
 use crate::mechanism::Authentication;
 use crate::session::{MechanismData, State, StepResult};
-use crate::{SASLError, Shared};
 use libc::{c_char, size_t};
 use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::ptr::NonNull;
+use crate::Shared;
 
 #[derive(Copy, Clone)]
 pub struct Gsasl_mechanism {

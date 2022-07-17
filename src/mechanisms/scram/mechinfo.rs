@@ -1,5 +1,7 @@
 use crate::mechanisms::scram::{client, server};
-use crate::{Mechanism, Mechname, Side};
+use crate::mechname::Mechname;
+use crate::registry::Mechanism;
+use crate::session::Side;
 
 const NONCE_LEN: usize = 24;
 
