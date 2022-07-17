@@ -16,13 +16,13 @@
 //! SASL implements this by abstracting all authentication into so called 'mechanisms' that
 //! authenticate in a number of 'steps', with each step consisting of some amount of data being
 //! sent from the client to the server and from the server to the client.
-//! This data is explicitly opaque to the outer protocol (e.g. SMTP, IMAP, …), it simply has to
-//! define a way to transport this opaque data to the respective other end. The way this is done
-//! differs between protocols, but the format of the opaque data is always the same for any given
-//! mechanism, so any mechanism can work with any protocol out of the box.
+//! This data is explicitly opaque to the outer protocol (e.g. SMTP, IMAP, …). The protocol only
+//! needs to define a way to transport this data to the respective other end. The way this is done
+//! differs between protocols, but the format of the authentication data is always the same for any
+//! given mechanism, so any mechanism can work with any protocol out of the box.
 //!
 //! One of the best known mechanism for example, `PLAIN`, always transports the username and
-//! password separated by singular NULL bytes. The very same plain authentication using the
+//! password separated by singular NULL bytes. Yet the very same plain authentication using the
 //! username "username" and password "secret" looks very different in different protocols:
 //!
 //! IMAP:
@@ -63,20 +63,20 @@
 //! C: </auth>
 //! ```
 //!
-//! But the inner authentication **data** (here in base64-encoded as `AHVzZXJuYW1lAHNlY3JldAo=`
-//! since these are text-based protocols) is always the same.
+//! But the inner authentication **data** (here base64 encoded as `AHVzZXJuYW1lAHNlY3JldAo=`)
+//! is always the same.
 //!
-//! This modularity becomes an even bigger advantage if combined with cryptographically strong
-//! authentication or single-sign-on technologies. Instead of every protocol and their
-//! implementations having to juggle cryptographic proofs or figure out the latest SSO mechanism
-//! by themselves they can share their implementations.
+//! This modularity becomes an even bigger advantage when combined with cryptographically strong
+//! authentication (like SCRAM) or single-sign-on technologies (like OpenID Connect or Kerberos).
+//! Instead of every protocol and their implementations having to juggle cryptographic proofs or
+//! figure out the latest SSO mechanism by themselves they can share their implementations.
 //!
-//! Of course a final client or server for those protocols still has to worry about
-//! authentication on some level but this crate is meant to help with that, and also enable
-//! middleware-style protocol crates that are entirely authentication-agnostic and defer those
-//! decisions entirely to their users.
+//! Of course a client or server application for those protocols still has to worry about
+//! authentication and authorization on some level. Which is why rsasl is designed to make
+//! authentication pluggable and enable middleware-style protocol crates that are entirely
+//! authentication-agnostic, deferring the details entirely to their downstream users.
 //!
-//! # Where to start
+//! # Where to start using this crate
 //! - [I'm implementing some network protocol and I need to add SASL authentication to it!](#protocol-implementations)
 //! - [I'm an user of such a protocol crate and I need to configure my credentials!](#application-code)
 //! - [I'm both/either/none of those but I have to implement a custom SASL mechanism!](#custom-mechanisms)
@@ -84,17 +84,22 @@
 //!
 //! # Protocol Implementations
 //!
-//! The main contact point between a protocol implementation crate and its user regarding
-//! authentication is the [`SASL`] struct. This struct is constructed by the users letting them
-//! configure which mechanisms are enabled, their order of preference, and install callbacks used
-//! by mechanisms to retrieve required data (e.g. username/password for PLAIN) from the user.
+//! Authentication in rsasl is done using [`Session`], by calling [`Session::step`] or
+//! [`Session::step64`] until [`State::Finished`] is returned.
 //!
-//! Protocol crates can then call methods like [`SASL::client_start_suggested()`] or
-//! [`SASL::server_start_suggested()`] to start an authentication with the best shared mechanism
-//! available, returning a [`Session`] which will be used for the rest of this authentication
-//! exchange
+//! These Sessions are constructed using the [`SASL`] struct.
+//! This struct is configured by the user with the list of enabled mechanisms and their preference,
+//! and with a callback used by mechanisms to retrieve required data (e.g. username/password for
+//! PLAIN) without involvement of the protocol crate.
 //!
-//! In addition protocol implementations should depend on rsasl like this:
+//! The `SASL` struct is instantiated by the user and provided to the protocol crate which can then
+//! call either [`SASL::client_start_suggested()`] or [`SASL::server_start_suggested()`] to start
+//! an authentication with the best mechanism available on both sides.
+//!
+//! Both of these methods return a [`SessionBuilder`] which needs to be finalized into a [`Session`]
+//! to be used for the entire authentication exchange.
+//!
+//! To minimize dependencies protocol implementations should always depend on rsasl as follows:
 //! ```toml
 //! [dependencies]
 //! rsasl = { version = "2", default-features = false, features = ["provider"]}
@@ -106,38 +111,39 @@
 //! ```
 //!
 //! This makes use of [feature unification](https://doc.rust-lang.org/cargo/reference/features.html#feature-unification)
-//! to make rsasl a (nearly) zero-dependency crate and putting all decisions about compiled-in
-//! support and features into the hand of the final user.
-//! Specifically when depended on this way rsasl does not compile code for *any mechanisms* and
-//! most of the selection internals to minimize the compile-time and code size impact of this
-//! dependency. Re-enabling required mechanisms and selection system is deferred to the user of
+//! to make rsasl a (near-)zero dependency crate. All decisions about compiled-in mechanism support
+//! and other features are put into the hand of the final user.
+//!
+//! Specifically when depended on this way rsasl does not compile code for *any mechanism* or
+//! most of the selection internals, minimizing the compile-time and code size impact.
+//! Re-enabling required mechanisms and selection system is deferred to the user of
 //! the protocol implementation who will have their own dependency on rsasl if they want to make
 //! use of SASL authentication.
+//!
 //! To this end a protocol crate **should not** re-export anything from the rsasl crate! Doing so
 //! may lead to a situation where users can't use any mechanisms since they only depend on
 //! rsasl via a transient dependency that has no mechanism features enabled.
 //!
-//! TODO: How to handle EXTERNAL?
-//! TODO:
-//!     Bonus minus points: sasl.wrap(data) and sasl.unwrap(data) for security layers. Prefer to
-//!     not and instead do TLS. Needs better explanation I fear.
+// TODO: How to handle EXTERNAL?
+// TODO:
+//     Bonus minus points: sasl.wrap(data) and sasl.unwrap(data) for security layers. Prefer to
+//     not and instead do TLS. Needs better explanation I fear.
 //!
 //! # Application Code
 //!
-//! Application code needs to construct a [`SASL`] struct that can then be passed to the protocol
-//! handler to perform authentication exchanges. You need to provide this [`SASL`] struct with
-//! either all required information such as username and password beforehand (this is usually
-//! the best approach if you know all information beforehand) or by adding a [`Callback`] that
-//! can request information piece by piece (this is the best approach if you have an interactive
-//! client and want to be able to query your users or if you're implementing a server that has to
-//! validate a provided password).
+//! Applications needs to construct a [`SASL`] struct to be passed to the protocol crate to perform
+//! authentication exchanges.
 //!
-//! Applications can explicitly enable and disable mechanism support using features, with the
-//! default being to add all IANA-registered mechanisms.
+//! This [`SASL`] struct must be configured with a [`SessionCallback`] that can request required
+//! [`Property`]s during the authentication exchange.
+//!
+//! Applications can enable and disable mechanism support at compile time using features, with the
+//! default being to add all IANA-registered mechanisms in `COMMON` use.
 //! See the module documentation for [`mechanisms`] for details.
 //!
 // TODO:
 //     - Static vs Dynamic Registry
+//     - Enable/Disable mechanisms at runtime
 //     - Explicit dependency because feature unification
 //!
 //! # Custom Mechanisms
@@ -146,24 +152,6 @@
 //! guarantees as the rest of the crate. Breaking changes in this system may happen even for
 //! minor changes of the crate version.
 //!
-// TODO:
-//     - Explain Upstream or separate crate
-//     - Explain registry_static / registry_dynamic features => what *must* mech crates export?
-//     - Steps to mechanism:
-//         0. Depend on rsasl with `custom_mechanism` feature
-//         1. Write impl MechanismBuilder & impl Mechanism
-//         2. Add to Registry
-//         3. Done?
-
-// SASL Mech:
-// I need to add a Mechanism
-// 1. init() -> Global constructor, called once per SASLProvider.
-// 2. start() -> Instance initializer. validate that required things are present, construct a struct
-//      impl Mechanism containing all state you'll carry around. This function is also used to check
-//      if the current context can support your mechanism so don't do too volatile things.
-// 3. step(input: Option<&[u8]>, output: impl Write) -> process input, write output, indicate new
-//      state (containing how much you've written too!)
-// 4. encode()/decode() security layer stuff. Please don't.
 
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
@@ -179,7 +167,7 @@ pub mod validate;
 mod gsasl;
 mod init;
 mod mechanism;
-mod mechanisms;
+pub mod mechanisms;
 mod mechname;
 mod registry;
 
@@ -189,7 +177,10 @@ mod typed;
 
 mod vectored_io;
 
-use crate::callback::SessionCallback;
+pub use session::{Session, State};
+pub use callback::SessionCallback;
+pub use property::Property;
+
 use crate::error::SASLError;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
