@@ -18,10 +18,7 @@
 //!
 //! ## Static compile-time registry using dtolnay's `linkme` crate
 //!
-//! When compiled with the `registry_static` feature flag rsasl has a static registry collecting
-//! all available mechanisms at linking time. To submit a crate you need to define a pub `static`
-//! [`MechanismClient`] and/or [`MechanismServer`] that are annotated with the
-//! [`distributed_slice`] proc-macro (re-exported from `linkme` by this module):
+// TODO: Explain static registry
 //!
 //! Note: Due to [rustc issue #47384](https://github.com/rust-lang/rust/issues/47384) the static(s)
 //! for your Mechanism MUST be marked `pub` and be reachable by dependent crates, otherwise they

@@ -9,8 +9,8 @@
 //! rsasl allows the final end-user to decide which mechanisms are required to be implemented.
 //! To this end each mechanism in the rsasl crate can be disabled using feature flags.
 //!
-//! By default **all** mechanisms are compiled into the crate and a subset can be selected at
-//! runtime using [`Registry::filter`].
+//! By default **all** implemented mechanisms are compiled into the crate.
+//!
 //! However if you know certain mechanisms will never be used you can select the mechanisms by
 //! depending on `rsasl` with `default-features` set to `false`:
 //! ```toml
