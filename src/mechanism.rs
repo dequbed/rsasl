@@ -26,10 +26,10 @@ pub trait Authentication {
     // TODO: Document the problems with SASL security layers before release
     // TODO: Split Authentication & Security Layer stuff?
     // TODO: `fn is_security_layer_installed(&self) -> bool`?
-    fn encode(&mut self, _input: &[u8]) -> Result<Box<[u8]>, SessionError> {
+    fn encode(&mut self, _input: &[u8], _writer: &mut dyn Write) -> Result<usize, SessionError> {
         Err(NoSecurityLayer)
     }
-    fn decode(&mut self, _input: &[u8]) -> Result<Box<[u8]>, SessionError> {
+    fn decode(&mut self, _input: &[u8], _writer: &mut dyn Write) -> Result<usize, SessionError> {
         Err(NoSecurityLayer)
     }
 }
