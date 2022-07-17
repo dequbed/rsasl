@@ -4,7 +4,7 @@
 //! in `COMMON` use.
 //! The implementations of these mechanisms can be found in this module
 //!
-//! ## Mechanism selection and conditional compilation
+//! # Mechanism selection and conditional compilation
 //!
 //! rsasl allows the final end-user to decide which mechanisms are required to be implemented.
 //! To this end each mechanism in the rsasl crate can be disabled using feature flags.
@@ -23,11 +23,6 @@
 //! Protocol implementations should always depend on rsasl with `default-features` set to `false`
 //! making use of [feature unification](https://doc.rust-lang.org/cargo/reference/features.html#feature-unification)
 //! to not compile in mechanisms that aren't needed.
-
-pub mod common {
-    pub mod error;
-    pub mod properties;
-}
 
 #[cfg(feature = "anonymous")]
 pub mod anonymous {
