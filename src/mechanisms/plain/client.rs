@@ -4,6 +4,7 @@ use crate::session::{MechanismData, State, StepResult};
 use crate::callback::CallbackError;
 use crate::error::SessionError;
 use std::io::Write;
+use crate::context::EmptyProvider;
 
 use crate::property::{AuthId, AuthzId, Password};
 
@@ -18,7 +19,7 @@ impl Authentication for Plain {
         writer: &mut dyn Write,
     ) -> StepResult {
         let mut len = 0usize;
-        let res = session.need_with::<AuthzId, _, _>(&(), &mut |authzid| {
+        let res = session.need_with::<AuthzId, _, _>(&EmptyProvider, &mut |authzid| {
             writer.write_all(authzid.as_bytes())?;
             len += authzid.len();
             Ok(())
@@ -30,14 +31,14 @@ impl Authentication for Plain {
         }
         len += writer.write(&[0])?;
 
-        session.need_with::<AuthId, _, _>(&(), &mut |authid| {
+        session.need_with::<AuthId, _, _>(&EmptyProvider, &mut |authid| {
             writer.write_all(authid.as_bytes())?;
             len += authid.len();
             Ok(())
         })?;
         len += writer.write(&[0])?;
 
-        session.need_with::<Password, _, _>(&(), &mut |password| {
+        session.need_with::<Password, _, _>(&EmptyProvider, &mut |password| {
             writer.write_all(password)?;
             len += password.len();
             Ok(())
