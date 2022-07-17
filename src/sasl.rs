@@ -21,7 +21,7 @@ use crate::registry::Mechanism;
 /// authentication exchanges in parallel, e.g. in a server context, you can wrap it in an
 /// [`std::sync::Arc`] to add cheap cloning, or initialize it as a global value.
 pub struct SASL {
-    pub callback: Arc<dyn SessionCallback>,
+    pub(crate) callback: Arc<dyn SessionCallback>,
 
     #[cfg(feature = "registry_dynamic")]
     pub(crate) dynamic_mechs: Vec<&'static Mechanism>,
@@ -32,7 +32,9 @@ pub struct SASL {
 }
 
 impl SASL {
-    pub fn new(callback: Arc<dyn SessionCallback>) -> Self {
+    /// Construct a sasl context with a given callback
+    pub fn new<CB: SessionCallback + 'static>(callback: Arc<CB>) -> Self {
+        let callback = callback as Arc<dyn SessionCallback>;
         Self {
             callback,
 
@@ -192,24 +194,6 @@ impl SASL {
             .max_by(|(a, _), (b, _)| (self.sort_fn)(a, b))
             .map(|(m, auth)| self.new_session(m, auth, Side::Server))
             .ok_or(SASLError::NoSharedMechanism)
-    }
-
-    /// Returns whether there is client-side support for the given mechanism.
-    ///
-    /// You should not call this function to filter supported mechanisms if you intend to start a
-    /// session right away since this function only calls `self.client_start()` with the given
-    /// Mechanism name and throws away the Session.
-    fn client_supports(&self, mech: &Mechname) -> bool {
-        self.client_start(mech).is_ok()
-    }
-
-    /// Returns whether there is server-side support for the specified mechanism
-    ///
-    /// You should not call this function to filter supported mechanisms if you intend to start a
-    /// session right away since this function only calls `self.server_start()` with the given
-    /// Mechanism name and throws away the Session.
-    fn server_supports(&self, mech: &Mechname) -> bool {
-        self.server_start(mech).is_ok()
     }
 
     /// Start a new session with the given [`Authentication`] implementation
