@@ -85,7 +85,7 @@
 //! # Protocol Implementations
 //!
 //! Authentication in rsasl is done using [`Session`], by calling [`Session::step`] or
-//! [`Session::step64`] until [`State::Finished`] is returned.
+//! [`Session::step64`] until [`State::Finished`](session::State::Finished) is returned.
 //!
 //! These Sessions are constructed using the [`SASL`] struct.
 //! This struct is configured by the user with the list of enabled mechanisms and their preference,
@@ -177,7 +177,7 @@ mod typed;
 
 mod vectored_io;
 
-pub use session::{Session, State};
+pub use session::Session;
 pub use callback::SessionCallback;
 pub use property::SizedProperty;
 
