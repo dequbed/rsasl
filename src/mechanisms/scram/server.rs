@@ -6,7 +6,6 @@ use crate::mechanisms::scram::parser::{
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, DOutput};
 use crate::session::{MechanismData, State, StepResult};
 use crate::vectored_io::VectoredWriter;
-use crate::Authentication;
 use digest::crypto_common::BlockSizeUser;
 use digest::generic_array::GenericArray;
 use digest::{Digest, OutputSizeUser};
@@ -17,6 +16,7 @@ use std::marker::PhantomData;
 use thiserror::Error;
 
 use crate::context::ThisProvider;
+use crate::mechanism::Authentication;
 use crate::mechanisms::scram::properties::{HashIterations, PasswordHash, Salt};
 use crate::property::AuthId;
 

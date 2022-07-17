@@ -7,7 +7,9 @@ use crate::mechanisms::digest_md5::server::{
     _gsasl_digest_md5_server_decode, _gsasl_digest_md5_server_encode,
     _gsasl_digest_md5_server_finish, _gsasl_digest_md5_server_start, _gsasl_digest_md5_server_step,
 };
-use crate::{Mechanism, Mechname, Side};
+use crate::mechname::Mechname;
+use crate::registry::Mechanism;
+use crate::session::Side;
 
 #[cfg(feature = "registry_static")]
 use crate::registry::{distributed_slice, MECHANISMS};

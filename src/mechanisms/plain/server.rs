@@ -11,10 +11,9 @@ use crate::error::{MechanismError, MechanismErrorKind};
 use crate::session::{MechanismData, State, StepResult};
 
 use crate::context::{Demand, DemandReply, Provider};
+use crate::mechanism::Authentication;
 
 use crate::property::{AuthId, AuthzId, Password};
-
-use crate::Authentication;
 
 #[derive(Debug, Error)]
 enum PlainError {

@@ -3,7 +3,9 @@ use crate::mechanisms::cram_md5::client::_gsasl_cram_md5_client_step;
 use crate::mechanisms::cram_md5::server::{
     _gsasl_cram_md5_server_finish, _gsasl_cram_md5_server_start, _gsasl_cram_md5_server_step,
 };
-use crate::{Mechanism, Mechname, Side};
+use crate::mechname::Mechname;
+use crate::registry::Mechanism;
+use crate::session::Side;
 
 #[cfg(feature = "registry_static")]
 use crate::registry::{distributed_slice, MECHANISMS};

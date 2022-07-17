@@ -1,13 +1,15 @@
-use crate::{init, registry, SessionCallback, Mechanism, Mechname, SessionBuilder, SASLError, Side, Authentication};
-
-use crate::callback::Request;
+use crate::callback::{Request, SessionCallback};
 use crate::context::Context;
-use crate::error::SessionError;
+use crate::error::{SASLError, SessionError};
 use crate::property::{AuthId, AuthzId, Password};
-use crate::session::SessionData;
+use crate::session::{SessionBuilder, SessionData, Side};
 use std::sync::Arc;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
+use crate::{init, registry};
+use crate::mechanism::Authentication;
+use crate::mechname::Mechname;
+use crate::registry::Mechanism;
 
 /// A [`SessionCallback`] implementation returning preconfigured values
 struct CredentialsProvider {
@@ -220,7 +222,7 @@ impl SASL {
     /// You should not call this function to filter supported mechanisms if you intend to start a
     /// session right away since this function only calls `self.client_start()` with the given
     /// Mechanism name and throws away the Session.
-    fn client_supports(&self, mech: &crate::Mechname) -> bool {
+    fn client_supports(&self, mech: &Mechname) -> bool {
         self.client_start(mech).is_ok()
     }
 
@@ -229,7 +231,7 @@ impl SASL {
     /// You should not call this function to filter supported mechanisms if you intend to start a
     /// session right away since this function only calls `self.server_start()` with the given
     /// Mechanism name and throws away the Session.
-    fn server_supports(&self, mech: &crate::Mechname) -> bool {
+    fn server_supports(&self, mech: &Mechname) -> bool {
         self.server_start(mech).is_ok()
     }
 
@@ -285,7 +287,7 @@ impl SASL {
     /// an authcid, optional authzid and password for PLAIN. To provide that data an application
     /// has to either call `set_property` before running the step that requires the data, or
     /// install a callback.
-    pub fn client_start(&self, mech: &crate::Mechname) -> Result<SessionBuilder, SASLError> {
+    pub fn client_start(&self, mech: &Mechname) -> Result<SessionBuilder, SASLError> {
         self.start_inner(
             mech,
             self.client_mech_list(),
@@ -300,7 +302,7 @@ impl SASL {
     /// authentication data provided by the user.
     ///
     /// See [SessionCallback] on how to implement callbacks.
-    pub fn server_start(&self, mech: &crate::Mechname) -> Result<SessionBuilder, SASLError> {
+    pub fn server_start(&self, mech: &Mechname) -> Result<SessionBuilder, SASLError> {
         self.start_inner(
             mech,
             self.server_mech_list(),
