@@ -7,7 +7,8 @@ use crate::property::{AuthId, AuthzId, Password};
 use crate::session::SessionData;
 use std::sync::Arc;
 
-pub struct CredentialsProvider {
+/// A [`SessionCallback`] implementation returning preconfigured values
+struct CredentialsProvider {
     authid: String,
     authzid: Option<String>,
     password: String,

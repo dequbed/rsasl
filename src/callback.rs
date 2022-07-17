@@ -3,16 +3,12 @@
 //! Make very generic data go from user to mechanism and vice versa through the protocol impl
 //! that should not need to care about the shape of this data.
 //! Yeah, *all* the runtime reflection.
-//!
-//! ## Why not just return the requested value from a callback?
-//! Because that would devolve to basically `fn callback(query: Box<dyn Any>) -> Box<dyn Any>`
-//! with exactly zero type-level protection against accidentally not providing some required data.
 
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
-use crate::context::Context;
+pub use crate::context::Context;
 use crate::error::SessionError;
 use crate::property::MaybeSizedProperty;
 
@@ -24,8 +20,7 @@ pub trait SessionCallback {
     /// Query by a mechanism implementation to provide some information or do some action
     ///
     /// ```rust
-    /// # use rsasl::callback::{Request, SessionCallback};
-    /// # use rsasl::context::Context;
+    /// # use rsasl::callback::{Request, SessionCallback, Context};
     /// # use rsasl::error::SessionError;
     /// # use rsasl::property::{AuthId, Password, AuthzId, OpenID20AuthenticateInBrowser, Realm};
     /// # use rsasl::session::SessionData;
@@ -58,14 +53,14 @@ pub trait SessionCallback {
     /// # }
     /// ```
     ///
-    /// In some cases (e.g. [`OpenID20AuthenticateInBrowser`] the mechanism expects that a certain
-    /// action is taken by the user instead of an explicit property being provided (e.g. to
-    /// authenticate to their OIDC IdP using the system's web browser).
+    /// In some cases (e.g. [`OpenID20AuthenticateInBrowser`](crate::property::OpenID20AuthenticateInBrowser))
+    /// the mechanism expects that a certain action is taken by the user instead of an explicit
+    /// property being provided (in this case to authenticate to the users IdP using a web browser).
     fn callback(
         &self,
-        _session_data: &SessionData,
-        _context: &Context,
-        _request: &mut Request<'_>,
+        session_data: &SessionData,
+        context: &Context,
+        request: &mut Request<'_>,
     ) -> Result<(), SessionError> {
         Err(CallbackError::NoCallback.into())
     }
@@ -77,9 +72,9 @@ pub trait SessionCallback {
     ///
     fn validate(
         &self,
-        _session_data: &SessionData,
-        _context: &Context,
-        _validate: &mut Validate<'_>,
+        session_data: &SessionData,
+        context: &Context,
+        validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
         Ok(())
     }
@@ -119,7 +114,7 @@ impl Error for CallbackError {
     }
 }
 
-pub trait CallbackRequest<Answer: ?Sized> {
+pub(crate) trait CallbackRequest<Answer: ?Sized> {
     fn satisfy(&mut self, answer: &Answer) -> Result<(), SessionError>;
 }
 
@@ -128,7 +123,7 @@ enum ClosureCRState<'f, F, G> {
     Satisfied(G),
 }
 #[repr(transparent)]
-pub struct ClosureCR<'f, T, F, G> {
+pub(crate) struct ClosureCR<'f, T, F, G> {
     closure: ClosureCRState<'f, F, G>,
     _marker: PhantomData<T>,
 }

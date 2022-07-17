@@ -244,13 +244,13 @@ impl<'a> MechanismData<'a> {
 }
 
 impl MechanismData<'_> {
-    pub fn validate(&mut self, provider: &dyn Provider) -> Result<(), ValidationError> {
+    pub(crate) fn validate(&mut self, provider: &dyn Provider) -> Result<(), ValidationError> {
         let context = build_context(provider);
         self.callback
             .validate(&self.session_data, context, self.validator)
     }
 
-    pub fn callback<'a, 'b>(
+    pub(crate) fn callback<'a, 'b>(
         &'b self,
         provider: &'b dyn Provider,
         request: &'b mut Request<'a>,
@@ -259,7 +259,8 @@ impl MechanismData<'_> {
         self.callback.callback(&self.session_data, context, request)
     }
 
-    pub fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), SessionError>
+    pub(crate) fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(),
+        SessionError>
     where
         T: MaybeSizedProperty,
     {
@@ -267,7 +268,8 @@ impl MechanismData<'_> {
         self.callback(provider, Request::new_action::<T>(&mut tagged_option))
     }
 
-    pub fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(), SessionError>
+    pub(crate) fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(),
+        SessionError>
     where
         T: MaybeSizedProperty,
         C: CallbackRequest<T::Value>,
@@ -281,7 +283,7 @@ impl MechanismData<'_> {
         }
     }
 
-    pub fn need_with<T, F, G>(
+    pub(crate) fn need_with<T, F, G>(
         &self,
         provider: &dyn Provider,
         closure: &mut F,
@@ -294,7 +296,7 @@ impl MechanismData<'_> {
             .ok_or(SessionError::CallbackError(CallbackError::NoCallback))
     }
 
-    pub fn maybe_need_with<T, F, G>(
+    pub(crate) fn maybe_need_with<T, F, G>(
         &self,
         provider: &dyn Provider,
         closure: &mut F,
@@ -308,7 +310,7 @@ impl MechanismData<'_> {
         Ok(closurecr.try_unwrap())
     }
 
-    pub fn need_cb_data<F, G>(
+    pub(crate) fn need_cb_data<F, G>(
         &self,
         cbname: &str,
         provider: &dyn Provider,
