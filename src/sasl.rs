@@ -11,27 +11,24 @@ use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 use crate::registry::Mechanism;
 
-/// A [`SessionCallback`] implementation returning preconfigured values
-struct CredentialsProvider {
-    authid: String,
-    authzid: Option<String>,
-    password: String,
-}
-impl SessionCallback for CredentialsProvider {
-    fn callback(
-        &self,
-        _session_data: &SessionData,
-        _context: &Context,
-        request: &mut Request<'_>,
-    ) -> Result<(), SessionError> {
-        request
-            .satisfy::<AuthId>(self.authid.as_str())?
-            .satisfy::<Password>(self.password.as_bytes())?;
-        if let Some(authzid) = self.authzid.as_deref() {
-            request.satisfy::<AuthzId>(authzid)?;
-        }
-        Ok(())
-    }
+/// SASL Provider context
+///
+/// This is the central type required to use SASL both for protocol implementations requiring the
+/// use of SASL and for users wanting to provide SASL authentication to such implementations.
+///
+/// This struct is neither `Clone` nor `Copy`, but all functions required for authentication
+/// exchanges only need a non-mutable reference to it. If you want to be able to do several
+/// authentication exchanges in parallel, e.g. in a server context, you can wrap it in an
+/// [`std::sync::Arc`] to add cheap cloning, or initialize it as a global value.
+pub struct SASL {
+    pub callback: Arc<dyn SessionCallback>,
+
+    #[cfg(feature = "registry_dynamic")]
+    pub(crate) dynamic_mechs: Vec<&'static Mechanism>,
+    #[cfg(feature = "registry_static")]
+    static_mechs: &'static [Mechanism],
+
+    sort_fn: fn(a: &&Mechanism, b: &&Mechanism) -> Ordering,
 }
 
 impl SASL {
@@ -67,26 +64,6 @@ impl SASL {
     fn init(&mut self) {
         init::register_builtin(self);
     }
-}
-
-/// SASL Provider context
-///
-/// This is the central type required to use SASL both for protocol implementations requiring the
-/// use of SASL and for users wanting to provide SASL authentication to such implementations.
-///
-/// This struct is neither `Clone` nor `Copy`, but all functions required for authentication
-/// exchanges only need a non-mutable reference to it. If you want to be able to do several
-/// authentication exchanges in parallel, e.g. in a server context, you can wrap it in an
-/// [`std::sync::Arc`] to add cheap cloning, or initialize it as a global value.
-pub struct SASL {
-    pub callback: Arc<dyn SessionCallback>,
-
-    #[cfg(feature = "registry_dynamic")]
-    pub(crate) dynamic_mechs: Vec<&'static Mechanism>,
-    #[cfg(feature = "registry_static")]
-    static_mechs: &'static [Mechanism],
-
-    sort_fn: fn(a: &&Mechanism, b: &&Mechanism) -> Ordering,
 }
 
 impl Debug for SASL {
@@ -309,5 +286,28 @@ impl SASL {
             |mechanism| mechanism.server(&self),
             Side::Server,
         )
+    }
+}
+
+/// A [`SessionCallback`] implementation returning preconfigured values
+struct CredentialsProvider {
+    authid: String,
+    authzid: Option<String>,
+    password: String,
+}
+impl SessionCallback for CredentialsProvider {
+    fn callback(
+        &self,
+        _session_data: &SessionData,
+        _context: &Context,
+        request: &mut Request<'_>,
+    ) -> Result<(), SessionError> {
+        request
+            .satisfy::<AuthId>(self.authid.as_str())?
+            .satisfy::<Password>(self.password.as_bytes())?;
+        if let Some(authzid) = self.authzid.as_deref() {
+            request.satisfy::<AuthzId>(authzid)?;
+        }
+        Ok(())
     }
 }
