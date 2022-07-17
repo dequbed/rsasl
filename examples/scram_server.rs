@@ -1,5 +1,5 @@
 use rsasl::callback::{CallbackError, Request, SessionCallback};
-use rsasl::context::Context;
+use rsasl::callback::Context;
 use rsasl::error::SessionError;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, AuthzId};

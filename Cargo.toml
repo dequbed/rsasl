@@ -73,6 +73,3 @@ static_assertions = "1.1.0"
 
 [package.metadata.cargo-all-features]
 skip_optional_dependencies = true
-
-[workspace]
-members = ["examples/custom_mechanism", "examples/protocol*"]
