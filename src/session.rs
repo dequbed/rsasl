@@ -9,7 +9,7 @@ use crate::context::{build_context, EmptyProvider, Provider};
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
 use crate::mechanism::Authentication;
-use crate::property::{ChannelBindings, MaybeSizedProperty};
+use crate::property::{ChannelBindings, Property};
 use crate::typed::{tags, TaggedOption};
 use crate::validate::*;
 use crate::{Mechanism, Mechname, SessionCallback};
@@ -274,7 +274,7 @@ impl MechanismData<'_> {
 
     pub(crate) fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), SessionError>
     where
-        T: MaybeSizedProperty,
+        T: Property,
     {
         let mut tagged_option = TaggedOption::<'_, tags::Ref<Action<T>>>(Some(value));
         self.callback(provider, Request::new_action::<T>(&mut tagged_option))?;
@@ -288,7 +288,7 @@ impl MechanismData<'_> {
     pub(crate) fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(),
         SessionError>
     where
-        T: MaybeSizedProperty,
+        T: Property,
         C: CallbackRequest<T::Value>,
     {
         let mut tagged_option = TaggedOption::<'_, tags::RefMut<Satisfy<T>>>(Some(mechcb));
@@ -306,7 +306,7 @@ impl MechanismData<'_> {
         closure: &mut F,
     ) -> Result<G, SessionError>
     where
-        T: MaybeSizedProperty,
+        T: Property,
         F: FnMut(&T::Value) -> Result<G, SessionError>,
     {
         self.maybe_need_with::<T, F, G>(provider, closure)?
@@ -319,7 +319,7 @@ impl MechanismData<'_> {
         closure: &mut F,
     ) -> Result<Option<G>, SessionError>
     where
-        T: MaybeSizedProperty,
+        T: Property,
         F: FnMut(&T::Value) -> Result<G, SessionError>,
     {
         let mut closurecr = ClosureCR::<T, _, _>::wrap(closure);

@@ -179,7 +179,7 @@ mod vectored_io;
 
 pub use session::{Session, State};
 pub use callback::SessionCallback;
-pub use property::Property;
+pub use property::SizedProperty;
 
 use crate::error::SASLError;
 use crate::mechanism::Authentication;
