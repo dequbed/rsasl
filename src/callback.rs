@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 
 pub use crate::context::Context;
 use crate::error::SessionError;
-use crate::property::MaybeSizedProperty;
+use crate::property::Property;
 
 use crate::session::SessionData;
 use crate::typed::{tags, Erased, TaggedOption};
@@ -146,7 +146,7 @@ pub(crate) struct ClosureCR<'f, T, F, G> {
 }
 impl<'f, T, F, G> ClosureCR<'f, T, F, G>
 where
-    T: MaybeSizedProperty,
+    T: Property,
     F: FnMut(&T::Value) -> Result<G, SessionError>,
 {
     pub fn wrap(closure: &'f mut F) -> ClosureCR<'f, T, F, G> {
@@ -165,7 +165,7 @@ where
 }
 impl<T, F, G> CallbackRequest<T::Value> for ClosureCR<'_, T, F, G>
 where
-    T: MaybeSizedProperty,
+    T: Property,
     F: FnMut(&T::Value) -> Result<G, SessionError>,
 {
     fn satisfy(&mut self, answer: &T::Value) -> Result<(), SessionError> {
@@ -179,13 +179,13 @@ where
 
 #[repr(transparent)]
 pub(crate) struct Satisfy<T>(PhantomData<T>);
-impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for Satisfy<T> {
+impl<'a, T: Property> tags::MaybeSizedType<'a> for Satisfy<T> {
     type Reified = dyn CallbackRequest<T::Value> + 'a;
 }
 
 #[repr(transparent)]
 pub(crate) struct Action<T>(PhantomData<T>);
-impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for Action<T> {
+impl<'a, T: Property> tags::MaybeSizedType<'a> for Action<T> {
     type Reified = T::Value;
 }
 
@@ -202,23 +202,23 @@ impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for Action<T> {
 /// side and is documented in the documentation of the mechanism implementation in question.
 pub struct Request<'a>(dyn Erased<'a>);
 impl<'a> Request<'a> {
-    pub(crate) fn new_satisfy<'o, P: MaybeSizedProperty>(
+    pub(crate) fn new_satisfy<'o, P: Property>(
         opt: &'o mut TaggedOption<'a, tags::RefMut<Satisfy<P>>>,
     ) -> &'o mut Self {
         unsafe { std::mem::transmute(opt as &mut dyn Erased) }
     }
 
-    pub(crate) fn new_action<'o, P: MaybeSizedProperty>(
+    pub(crate) fn new_action<'o, P: Property>(
         val: &'o mut TaggedOption<'a, tags::Ref<Action<P>>>,
     ) -> &'o mut Self {
         unsafe { std::mem::transmute(val as &mut dyn Erased) }
     }
 }
 impl<'a> Request<'a> {
-    fn is_satisfy<P: MaybeSizedProperty>(&self) -> bool {
+    fn is_satisfy<P: Property>(&self) -> bool {
         self.0.is::<tags::RefMut<Satisfy<P>>>()
     }
-    fn is_action<P: MaybeSizedProperty>(&self) -> bool {
+    fn is_action<P: Property>(&self) -> bool {
         self.0.is::<tags::Ref<Action<P>>>()
     }
 
@@ -227,7 +227,7 @@ impl<'a> Request<'a> {
     /// Using this method is generally not necessary as [`satisfy`](Request::satisfy),
     /// [`satisfy_with`](Request::satisfy_with) and [`get_action`](Request::get_action) can used
     /// efficiently without.
-    pub fn is<P: MaybeSizedProperty>(&self) -> bool {
+    pub fn is<P: Property>(&self) -> bool {
         self.is_satisfy::<P>() || self.is_action::<P>()
     }
 
@@ -259,7 +259,7 @@ impl<'a> Request<'a> {
     /// Ok(())
     /// # }
     /// ```
-    pub fn get_action<P: MaybeSizedProperty>(&mut self) -> Option<&P::Value> {
+    pub fn get_action<P: Property>(&mut self) -> Option<&P::Value> {
         if let Some(TaggedOption(Some(value))) =
             self.0.downcast_mut::<tags::Ref<Action<P>>>().take()
         {
@@ -321,7 +321,7 @@ impl<'a> Request<'a> {
     ///
     /// If generating the value is expensive or requires interactivity using the method
     /// [`satisfy_with`](Request::satisfy_with) may be preferable.
-    pub fn satisfy<P: MaybeSizedProperty>(
+    pub fn satisfy<P: Property>(
         &mut self,
         answer: &P::Value,
     ) -> Result<&mut Self, SessionError> {
@@ -394,7 +394,7 @@ impl<'a> Request<'a> {
     ///
     /// If the value for a property is static or readily available using
     /// [`satisfy`](Request::satisfy) may be preferable.
-    pub fn satisfy_with<'b, P: MaybeSizedProperty, F: FnOnce() -> &'b P::Value>(
+    pub fn satisfy_with<'b, P: Property, F: FnOnce() -> &'b P::Value>(
         &mut self,
         closure: F,
     ) -> Result<&mut Self, SessionError> {

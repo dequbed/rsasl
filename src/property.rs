@@ -3,39 +3,39 @@
 //! If the existing properties in this module are not sufficient for your mechanism, you can
 //! define additional properties to be queried.
 
-pub trait Property: 'static {
+pub trait SizedProperty: 'static {
     type Value: 'static;
 }
 
-pub trait MaybeSizedProperty: 'static {
+pub trait Property: 'static {
     type Value: ?Sized + 'static;
 }
 
-impl<P: Property> MaybeSizedProperty for P {
+impl<P: SizedProperty> Property for P {
     type Value = P::Value;
 }
 
 #[derive(Debug)]
 pub struct AuthId;
-impl MaybeSizedProperty for AuthId {
+impl Property for AuthId {
     type Value = str;
 }
 
 #[derive(Debug)]
 pub struct AuthzId;
-impl MaybeSizedProperty for AuthzId {
+impl Property for AuthzId {
     type Value = str;
 }
 
 #[derive(Debug)]
 pub struct OpenID20AuthenticateInBrowser;
-impl MaybeSizedProperty for OpenID20AuthenticateInBrowser {
+impl Property for OpenID20AuthenticateInBrowser {
     type Value = str;
 }
 
 #[derive(Debug)]
 pub struct Saml20AuthenticateInBrowser;
-impl MaybeSizedProperty for Saml20AuthenticateInBrowser {
+impl Property for Saml20AuthenticateInBrowser {
     type Value = str;
 }
 
@@ -62,7 +62,7 @@ pub struct DigestMD5HashedPassword;
 
 #[derive(Debug)]
 pub struct Realm;
-impl MaybeSizedProperty for Realm {
+impl Property for Realm {
     type Value = str;
 }
 
@@ -80,13 +80,13 @@ pub struct GssapiDisplayName;
 
 #[derive(Debug)]
 pub struct Hostname;
-impl MaybeSizedProperty for Hostname {
+impl Property for Hostname {
     type Value = str;
 }
 
 #[derive(Debug)]
 pub struct Service;
-impl MaybeSizedProperty for Service {
+impl Property for Service {
     type Value = str;
 }
 
@@ -96,7 +96,7 @@ impl MaybeSizedProperty for Service {
 /// Additional constraints may be put on this property by some mechanisms, refer to their
 /// documentation for further details.
 pub struct Password;
-impl MaybeSizedProperty for Password {
+impl Property for Password {
     type Value = [u8];
 }
 
@@ -108,7 +108,7 @@ impl MaybeSizedProperty for Password {
 /// mechanism name ending in `-PLUS`. Since this channel binding data may be only be available to
 /// the protocol crate it will be requested from both the protocol crate and the user callback.
 pub struct ChannelBindings;
-impl MaybeSizedProperty for ChannelBindings {
+impl Property for ChannelBindings {
     type Value = [u8];
 }
 
@@ -124,6 +124,6 @@ impl MaybeSizedProperty for ChannelBindings {
 ///
 /// Refer to the documentation of the [`ChannelBindings`] property for further information.
 pub struct OverrideCBType;
-impl MaybeSizedProperty for OverrideCBType {
+impl Property for OverrideCBType {
     type Value = str;
 }
