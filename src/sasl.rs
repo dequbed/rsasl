@@ -27,6 +27,13 @@ impl<State: Debug> Debug for ConfigBuilder<State> {
     }
 }
 
+fn default_filter(a: &&Mechanism) -> bool {
+    true
+}
+fn default_sorter(a: &&Mechanism, b: &&Mechanism) -> Ordering {
+    a.priority.cmp(&b.priority)
+}
+
 #[derive(Clone, Debug)]
 pub struct WantMechanisms(());
 impl ConfigBuilder<WantMechanisms> {
@@ -34,7 +41,17 @@ impl ConfigBuilder<WantMechanisms> {
         ConfigBuilder {
             state: WantFilter {
                 #[cfg(feature = "registry_dynamic")]
-                dynamic_mechs: Vec::new()
+                dynamic_mechs: vec![],
+            }
+        }
+    }
+    pub fn with_defaults(self) -> ConfigBuilder<WantCallback> {
+        ConfigBuilder {
+            state: WantCallback {
+                #[cfg(feature = "registry_dynamic")]
+                dynamic_mechs: vec![],
+                filter: default_filter,
+                sorter: default_sorter,
             }
         }
     }
@@ -51,7 +68,7 @@ impl ConfigBuilder<WantFilter> {
             state: WantSorter {
                 #[cfg(feature = "registry_dynamic")]
                 dynamic_mechs: self.state.dynamic_mechs,
-                filter: |_| true,
+                filter: default_filter,
             }
         }
     }
@@ -70,7 +87,7 @@ impl ConfigBuilder<WantSorter> {
                 #[cfg(feature = "registry_dynamic")]
                 dynamic_mechs: self.state.dynamic_mechs,
                 filter: self.state.filter,
-                sorter: |a, b| a.priority.cmp(&b.priority),
+                sorter: default_sorter,
             }
         }
     }
