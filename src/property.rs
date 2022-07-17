@@ -120,9 +120,9 @@ impl MaybeSizedProperty for ChannelBindings {
 /// binding type is to be used (e.g. because TLS-1.3 is in use that does not allow for
 /// `tls-unique`) a user callback should satisfy a request for this property with the name of
 /// alternative channel binding. The actual channel binding data will be requested using the
-/// [`ChannelBinding`] property from both the protocol crate and the user callback.
+/// [`ChannelBindings`] property from both the protocol crate and the user callback.
 ///
-/// Refer to the documentation of the [`ChannelBinding`] property for further information.
+/// Refer to the documentation of the [`ChannelBindings`] property for further information.
 pub struct OverrideCBType;
 impl MaybeSizedProperty for OverrideCBType {
     type Value = str;

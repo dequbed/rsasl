@@ -419,7 +419,7 @@ impl SASL {
     /// An application acting as server will most likely need to implement a callback to check the
     /// authentication data provided by the user.
     ///
-    /// See [Callback](Callback) on how to implement callbacks.
+    /// See [SessionCallback] on how to implement callbacks.
     pub fn server_start(&self, mech: &mechname::Mechname) -> Result<SessionBuilder, SASLError> {
         self.start_inner(
             mech,

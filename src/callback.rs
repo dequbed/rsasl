@@ -28,10 +28,10 @@ pub trait SessionCallback {
     /// the [`Request`] type.
     ///
     /// Callbacks are also passed a [`SessionData`] and a [`Context`], providing access to data from
-    /// the current [`Session`] and from the mechanism implementation. The data that can be
-    /// provided via the `Context` is different for each mechanism and side, and may also change
-    /// depending on the step the authentication is in, refer to the documentation of each
-    /// mechanism that is planned to be supported for details.
+    /// the current [`Session`](crate::Session) and from the mechanism implementation. The data
+    /// that can be provided via the `Context` is different for each mechanism and side, and may
+    /// also change depending on the step the authentication is in, refer to the documentation of
+    /// each mechanism that is planned to be supported for details.
     ///
     /// The callback is used when doing either a server-side or a client-side authentication. An
     /// example for an implementation on the client-side could look like so:
@@ -193,10 +193,10 @@ impl<'a, T: MaybeSizedProperty> tags::MaybeSizedType<'a> for Action<T> {
 /// A type-erased request for the value or action defined by [`Property`]
 ///
 /// Requests can be either a 'Satisfiable' request for a value, in which case the methods
-/// [`satisfy`] and [`satisfy_with`] can be used.
+/// [`satisfy`](Request::satisfy) and [`satisfy_with`](Request::satisfy_with) can be used.
 ///
-/// Alternatively they may be an 'Actionable' request, in which case [`get_action`] returns an
-/// associated value.
+/// Alternatively they may be an 'Actionable' request, in which case
+/// [`get_action`](Request::get_action) returns an associated value.
 ///
 /// Whether a request is 'Actionable' or 'Satisfiable' depends on the property, mechanism and
 /// side and is documented in the documentation of the mechanism implementation in question.
@@ -224,8 +224,9 @@ impl<'a> Request<'a> {
 
     /// Returns true iff this Request is for the Property `P`.
     ///
-    /// Using this method is generally not necessary as [`satisfy`], [`satisfy_with`] and
-    /// [`get_action`] can used as efficiently without.
+    /// Using this method is generally not necessary as [`satisfy`](Request::satisfy),
+    /// [`satisfy_with`](Request::satisfy_with) and [`get_action`](Request::get_action) can used
+    /// efficiently without.
     pub fn is<P: MaybeSizedProperty>(&self) -> bool {
         self.is_satisfy::<P>() || self.is_action::<P>()
     }
@@ -319,7 +320,7 @@ impl<'a> Request<'a> {
     /// ```
     ///
     /// If generating the value is expensive or requires interactivity using the method
-    /// [`satisfy_with`] may be preferable.
+    /// [`satisfy_with`](Request::satisfy_with) may be preferable.
     pub fn satisfy<P: MaybeSizedProperty>(
         &mut self,
         answer: &P::Value,
@@ -391,8 +392,8 @@ impl<'a> Request<'a> {
     /// # panic!("request for 'AuthId' is implemented but was not satisfied");
     /// ```
     ///
-    /// If the value for a property is static or readily available using [`satisfy`] may be
-    /// preferable.
+    /// If the value for a property is static or readily available using
+    /// [`satisfy`](Request::satisfy) may be preferable.
     pub fn satisfy_with<'b, P: MaybeSizedProperty, F: FnOnce() -> &'b P::Value>(
         &mut self,
         closure: F,
