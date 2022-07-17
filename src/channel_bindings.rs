@@ -42,6 +42,7 @@ mod tests {
     use crate::validate::{NoValidation, Validate};
 
     #[test]
+    #[allow(unreachable_code)]
     fn test_this_cb() {
         let cbdata = b"foobar";
         let thiscb = ThisCb::new("this-cb", cbdata.to_vec().into_boxed_slice());

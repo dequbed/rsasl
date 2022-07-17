@@ -2,6 +2,7 @@ use crate::mechanism::Authentication;
 use crate::property::Property;
 use crate::session::{MechanismData, State, StepResult};
 use std::io::Write;
+use crate::context::EmptyProvider;
 
 pub struct AnonymousToken;
 impl Property for AnonymousToken {
@@ -18,7 +19,7 @@ impl Authentication for Anonymous {
         writer: &mut dyn Write,
     ) -> StepResult {
         let mut len = None;
-        session.need_with::<AnonymousToken, _, ()>(&(), &mut |token| {
+        session.need_with::<AnonymousToken, _, ()>(&EmptyProvider, &mut |token| {
             let buf = token.as_bytes();
             writer.write_all(buf)?;
             len = Some(buf.len());
