@@ -473,7 +473,8 @@ mod tests {
     use std::io::Cursor;
     use std::sync::Arc;
 
-    use crate::{Mechanism, Mechname, Side, SASL};
+    use crate::{Mechanism, Mechname, Side};
+    use crate::sasl::SASL;
 
     use super::*;
 

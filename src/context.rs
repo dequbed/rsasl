@@ -26,23 +26,6 @@ impl Provider for EmptyProvider {
     }
 }
 
-pub struct And<LHS, RHS> {
-    left: LHS,
-    right: RHS,
-}
-impl<LHS: Provider, RHS: Provider> Provider for And<LHS, RHS> {
-    fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
-        self.left.provide(req)?;
-        self.right.provide(req)?;
-        DemandReply::Continue(())
-    }
-    fn provide_mut<'a>(&'a mut self, req: &mut Demand<'a>) -> DemandReply<()> {
-        self.left.provide_mut(req)?;
-        self.right.provide_mut(req)?;
-        DemandReply::Continue(())
-    }
-}
-
 #[doc(hidden)]
 pub struct TOKEN(PhantomData<()>);
 

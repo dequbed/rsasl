@@ -1,4 +1,4 @@
-use crate::SASL;
+use crate::sasl::SASL;
 
 pub(crate) fn register_builtin(_ctx: &mut SASL) {
     #[cfg(feature = "plain")]

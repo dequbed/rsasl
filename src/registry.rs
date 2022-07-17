@@ -1,4 +1,4 @@
-//! # Mechanism registry
+//! Mechanism registry *only available with feature `unstable_custom_mechanism`*
 //!
 //! The Registry allows users to configure which mechanisms are enabled and their order of
 //! importance.
@@ -26,11 +26,12 @@
 
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
-use crate::{SASLError, Side, SASL};
+use crate::{SASLError, Side};
 use std::fmt::{Debug, Display, Formatter};
 
 #[cfg(feature = "registry_static")]
 pub use registry_static::*;
+use crate::sasl::SASL;
 
 pub type MatchFn = fn(name: &Mechname) -> bool;
 
