@@ -13,6 +13,7 @@ use rand::Rng;
 
 use crate::context::EmptyProvider;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
+use crate::mechanism::Authentication;
 
 use crate::mechanisms::scram::parser::{
     ClientFinal, ClientFirstMessage, GS2CBindFlag, SaslName, ServerErrorValue, ServerFinal,
@@ -21,9 +22,7 @@ use crate::mechanisms::scram::parser::{
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, hash_password, DOutput};
 use crate::property::{AuthId, AuthzId, OverrideCBType, Password};
 use crate::session::{MechanismData, State, StepResult};
-use crate::validate::ValidationOutcome;
 use crate::vectored_io::VectoredWriter;
-use crate::Authentication;
 
 pub type ScramSha256Client<const N: usize> = ScramClient<sha2::Sha256, N>;
 pub type ScramSha512Client<const N: usize> = ScramClient<sha2::Sha512, N>;
@@ -108,9 +107,9 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize>
 }
 
 impl<D: Digest + BlockSizeUser> ScramState<WaitingServerFinal<D>> {
-    pub fn step(self, server_final: &[u8]) -> Result<ValidationOutcome, SessionError> {
+    pub fn step(self, server_final: &[u8]) -> Result<(), SessionError> {
         match self.state.handle_server_final(server_final) {
-            Ok(StateServerFinal { .. }) => Ok(ValidationOutcome::Successful),
+            Ok(StateServerFinal { .. }) => Ok(()),
             Err(e) => Err(e.into()),
         }
     }
@@ -474,7 +473,8 @@ mod tests {
     use std::io::Cursor;
     use std::sync::Arc;
 
-    use crate::{Mechanism, Mechname, Side, SASL};
+    use crate::{Mechanism, Mechname, Side};
+    use crate::sasl::SASL;
 
     use super::*;
 

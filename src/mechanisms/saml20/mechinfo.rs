@@ -5,7 +5,9 @@ use crate::mechanisms::saml20::client::{
 use crate::mechanisms::saml20::server::{
     _gsasl_saml20_server_finish, _gsasl_saml20_server_start, _gsasl_saml20_server_step,
 };
-use crate::{Mechanism, Mechname, Side};
+use crate::mechname::Mechname;
+use crate::registry::Mechanism;
+use crate::session::Side;
 
 #[cfg(feature = "registry_static")]
 use crate::registry::{distributed_slice, MECHANISMS};

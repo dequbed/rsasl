@@ -1,16 +1,16 @@
-use crate::property::{MaybeSizedProperty, Property};
+use crate::property::{Property, SizedProperty};
 
 pub struct HashIterations;
-impl Property for HashIterations {
+impl SizedProperty for HashIterations {
     type Value = u32;
 }
 
 pub struct Salt;
-impl MaybeSizedProperty for Salt {
+impl Property for Salt {
     type Value = [u8];
 }
 
 pub struct PasswordHash;
-impl MaybeSizedProperty for PasswordHash {
+impl Property for PasswordHash {
     type Value = [u8];
 }

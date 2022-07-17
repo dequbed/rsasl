@@ -3,7 +3,7 @@ use rsasl::mechname::Mechname;
 use std::sync::Arc;
 
 use rsasl::validate::NoValidation;
-use rsasl::SASL;
+use rsasl::sasl::SASL;
 
 fn main() {
     let sasl = SASL::new(Arc::new(EmptyCallback));

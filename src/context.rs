@@ -1,4 +1,4 @@
-use crate::property::{MaybeSizedProperty, Property};
+use crate::property::{Property, SizedProperty};
 use crate::typed::tags::{MaybeSizedType, Type};
 use crate::typed::{tags, Erased, TaggedOption};
 use std::marker::PhantomData;
@@ -26,23 +26,6 @@ impl Provider for EmptyProvider {
     }
 }
 
-pub struct And<LHS, RHS> {
-    left: LHS,
-    right: RHS,
-}
-impl<LHS: Provider, RHS: Provider> Provider for And<LHS, RHS> {
-    fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
-        self.left.provide(req)?;
-        self.right.provide(req)?;
-        DemandReply::Continue(())
-    }
-    fn provide_mut<'a>(&'a mut self, req: &mut Demand<'a>) -> DemandReply<()> {
-        self.left.provide_mut(req)?;
-        self.right.provide_mut(req)?;
-        DemandReply::Continue(())
-    }
-}
-
 #[doc(hidden)]
 pub struct TOKEN(PhantomData<()>);
 
@@ -50,31 +33,13 @@ pub struct TOKEN(PhantomData<()>);
 ///
 /// This type allows to easily chain calls to [`provide`](Demand::provide) while exiting as soon
 /// as possible by using [`std::ops::ControlFlow`].
-///
-/// ```rust
-/// # use rsasl::context::{Demand, DemandReply, Provider};
-/// use rsasl::property::{AuthId, Password, AuthzId};
-/// # struct CB;
-/// # impl Provider for CB {
-/// fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
-///     req.provide_ref::<AuthId>("exampleuser")?
-///         // If `AuthId` is requested the `?` operator will immediately shortcut to a return and
-///         // not execute any of the following `provide_ref`
-///        .provide_ref::<Password>(b"secret")?
-///        .provide_ref::<AuthzId>("root")?
-///        .done()
-///         // The final call to `done()` returns the expected `DemandReply<()>` if none of the
-///         // `provide_ref` previously matched.
-/// }
-/// # }
-/// ```
 pub type DemandReply<T> = ControlFlow<TOKEN, T>;
 
 struct DemandTag<T>(PhantomData<T>);
-impl<'a, T: MaybeSizedProperty> MaybeSizedType<'a> for DemandTag<T> {
+impl<'a, T: Property> MaybeSizedType<'a> for DemandTag<T> {
     type Reified = T::Value;
 }
-impl<'a, T: Property> Type<'a> for DemandTag<T> {
+impl<'a, T: SizedProperty> Type<'a> for DemandTag<T> {
     type Reified = T::Value;
 }
 
@@ -103,13 +68,13 @@ impl<'a> Demand<'a> {
         }
     }
 
-    pub fn provide_ref<T: MaybeSizedProperty>(
+    pub fn provide_ref<T: Property>(
         &mut self,
         value: &'a T::Value,
     ) -> DemandReply<&mut Self> {
         self.provide::<tags::Ref<DemandTag<T>>>(value)
     }
-    pub fn provide_mut<T: MaybeSizedProperty>(
+    pub fn provide_mut<T: Property>(
         &mut self,
         value: &'a mut T::Value,
     ) -> DemandReply<&mut Self> {
@@ -131,18 +96,18 @@ impl Context {
     }
     #[inline]
     // TODO: this should probably return a Result to make it's use in callbacks easier?
-    pub fn get_ref<P: MaybeSizedProperty>(&self) -> Option<&P::Value> {
+    pub fn get_ref<P: Property>(&self) -> Option<&P::Value> {
         self.get_by_tag::<tags::Ref<DemandTag<P>>>()
     }
     #[inline]
-    pub fn get_mut<P: MaybeSizedProperty>(&self) -> Option<&mut P::Value> {
+    pub fn get_mut<P: Property>(&self) -> Option<&mut P::Value> {
         self.get_by_tag::<tags::RefMut<DemandTag<P>>>()
     }
 }
 
 #[repr(transparent)]
-pub struct ThisProvider<'a, P: MaybeSizedProperty>(&'a P::Value);
-impl<P: MaybeSizedProperty> ThisProvider<'_, P> {
+pub struct ThisProvider<'a, P: Property>(&'a P::Value);
+impl<P: Property> ThisProvider<'_, P> {
     pub fn with(value: &P::Value) -> ThisProvider<'_, P> {
         ThisProvider(value)
     }
@@ -150,7 +115,7 @@ impl<P: MaybeSizedProperty> ThisProvider<'_, P> {
         self.0
     }
 }
-impl<P: MaybeSizedProperty> Provider for ThisProvider<'_, P> {
+impl<P: Property> Provider for ThisProvider<'_, P> {
     fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
         req.provide_ref::<P>(self.back())?.done()
     }
@@ -163,7 +128,7 @@ mod tests {
     #[test]
     fn test_thisprovider() {
         struct TestTag;
-        impl MaybeSizedProperty for TestTag {
+        impl Property for TestTag {
             type Value = str;
         }
         let value = "hello ";

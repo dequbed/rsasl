@@ -3,16 +3,17 @@ use std::io::Write;
 
 use std::sync::Arc;
 
-use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy};
+use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, SessionCallback};
 use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
-use crate::context::{build_context, EmptyProvider, Provider};
+use crate::context::{build_context, Provider};
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
 use crate::mechanism::Authentication;
-use crate::property::{ChannelBindings, MaybeSizedProperty};
+use crate::mechname::Mechname;
+use crate::property::{ChannelBindings, Property};
+use crate::registry::Mechanism;
 use crate::typed::{tags, TaggedOption};
 use crate::validate::*;
-use crate::{Mechanism, Mechname, SessionCallback};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -93,10 +94,25 @@ impl<V: Validation> Session<V> {
     }
 
     #[inline(always)]
+    /// Return `true` if this side of the authentication exchange should go first.
+    ///
+    /// Mechanisms in SASL may be either "server-first" or "client-first" indicating which side
+    /// needs to send the first message in an authentication exchange.
+    ///
+    /// For example:
+    /// `PLAIN` is a client-first mechanism. The client sends the first message, containing the
+    /// username and password in plain text. `DIGEST-MD5` on the other hand is server-first, an
+    /// authentication begins with a server sending a 'challenge' to the client.
+    ///
+    /// This method returns if the current side must go first, i.e. if this method returns `true`
+    /// then `step` or `step64` must be called with no input data to begin the authentication. If
+    /// this method returns `false` then the first call to `step` or `step64` can only be
+    /// performed after input data was received from the other party.
     pub fn are_we_first(&self) -> bool {
         self.side == self.mechanism_desc.first
     }
 
+    /// Return the name of the mechanism in use
     pub fn get_mechname(&self) -> &Mechname {
         self.mechanism_desc.mechanism
     }
@@ -108,23 +124,21 @@ impl<V: Validation> Session<V> {
     ///
     /// *requires feature `provider`*
     ///
-    /// A protocol implementation calls this method with any data provided by the other party,
-    /// returning any response data written to the other party until after a Ok([`Step::Done`]) or
-    /// [`StepResult::Err`] is returned.
+    /// A protocol implementation calls this method with data provided by the other party,
+    /// returning response data written to the other party until after a [`State::Finished`] is
+    /// returned.
     ///
-    /// To generate the first batch of data call this method with an input of `None`. If a `Step`
-    /// with a value of Some (i.e. `Step::Done(Some(_))` or `Step::NeedsMore(Some(_))`) is
-    /// returned the selected mechanism is initiated by your side and you can provide this data
-    /// to the other party.
-    /// If the Step contains a `None` the other party has to provide the initial batch of data.
+    /// If the current side is going first, generate the first batch of data by calling this
+    /// method with an input of `None`.
     ///
-    /// Not all protocols support both ClientFirst and ServerFirst Mechanisms, i.e. mechanisms in
+    /// Not all protocols support both client-first and server-first Mechanisms, i.e. mechanisms in
     /// which the client sends the first batch of data and mechanisms in which the server sends
     /// the first batch of data. Refer to the documentation of the protocol in question on how to
     /// indicate to the other party that they have to provide the first batch of data.
     ///
-    /// Keep in mind that SASL makes a distinction between zero-sized data to send (a Step
-    /// containing `Some(0)`) and no data to send (a `Step` containing `None`).
+    /// Keep in mind that SASL makes a distinction between zero-sized data to send and no data to
+    /// send. In the former case the second element of the return tuple is `Some(0)`, in the
+    /// latter case it is `None`.
     pub fn step(
         &mut self,
         input: Option<&[u8]>,
@@ -159,7 +173,7 @@ impl<V: Validation> Session<V> {
     ///
     /// Validation results are provided by a call to [`validate`](SessionCallback::validate) of the
     /// user-supplied callback. They thus allow to send information from the callback to the
-    /// crate implementing the protocol using a type defined by the latter crate.
+    /// crate implementing the protocol using a type defined by said crate.
     /// They are useful to e.g. indicate success or failure of the authentication exchange and
     /// supply the protocol crate with information about the user that was authenticated.
     pub fn validation(&mut self) -> Option<V::Value> {
@@ -197,28 +211,6 @@ impl<V: Validation> Session<V> {
     }
 }
 
-#[cfg(test)]
-impl<V: Validation> Session<V> {
-    pub fn get_cb_data<'a, F, G>(
-        &'a self,
-        cbname: &str,
-        validate: &'a mut Validate<'a>,
-        f: &mut F,
-    ) -> Result<G, SessionError>
-    where
-        F: FnMut(&[u8]) -> Result<G, SessionError>,
-    {
-        let mechanism_data = MechanismData::new(
-            self.callback.as_ref(),
-            self.chanbind_cb.as_ref(),
-            validate,
-            self.mechanism_desc,
-            self.side,
-        );
-        mechanism_data.need_cb_data(cbname, &EmptyProvider, f)
-    }
-}
-
 pub struct MechanismData<'a> {
     callback: &'a dyn SessionCallback,
     chanbind_cb: &'a dyn ChannelBindingCallback,
@@ -244,13 +236,13 @@ impl<'a> MechanismData<'a> {
 }
 
 impl MechanismData<'_> {
-    pub fn validate(&mut self, provider: &dyn Provider) -> Result<(), ValidationError> {
+    pub(crate) fn validate(&mut self, provider: &dyn Provider) -> Result<(), ValidationError> {
         let context = build_context(provider);
         self.callback
             .validate(&self.session_data, context, self.validator)
     }
 
-    pub fn callback<'a, 'b>(
+    pub(crate) fn callback<'a, 'b>(
         &'b self,
         provider: &'b dyn Provider,
         request: &'b mut Request<'a>,
@@ -259,17 +251,23 @@ impl MechanismData<'_> {
         self.callback.callback(&self.session_data, context, request)
     }
 
-    pub fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), SessionError>
+    pub(crate) fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), SessionError>
     where
-        T: MaybeSizedProperty,
+        T: Property,
     {
         let mut tagged_option = TaggedOption::<'_, tags::Ref<Action<T>>>(Some(value));
-        self.callback(provider, Request::new_action::<T>(&mut tagged_option))
+        self.callback(provider, Request::new_action::<T>(&mut tagged_option))?;
+        if tagged_option.is_some() {
+            Err(SessionError::CallbackError(CallbackError::NoCallback))
+        } else {
+            Ok(())
+        }
     }
 
-    pub fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(), SessionError>
+    pub(crate) fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(),
+        SessionError>
     where
-        T: MaybeSizedProperty,
+        T: Property,
         C: CallbackRequest<T::Value>,
     {
         let mut tagged_option = TaggedOption::<'_, tags::RefMut<Satisfy<T>>>(Some(mechcb));
@@ -281,26 +279,26 @@ impl MechanismData<'_> {
         }
     }
 
-    pub fn need_with<T, F, G>(
+    pub(crate) fn need_with<T, F, G>(
         &self,
         provider: &dyn Provider,
         closure: &mut F,
     ) -> Result<G, SessionError>
     where
-        T: MaybeSizedProperty,
+        T: Property,
         F: FnMut(&T::Value) -> Result<G, SessionError>,
     {
         self.maybe_need_with::<T, F, G>(provider, closure)?
             .ok_or(SessionError::CallbackError(CallbackError::NoCallback))
     }
 
-    pub fn maybe_need_with<T, F, G>(
+    pub(crate) fn maybe_need_with<T, F, G>(
         &self,
         provider: &dyn Provider,
         closure: &mut F,
     ) -> Result<Option<G>, SessionError>
     where
-        T: MaybeSizedProperty,
+        T: Property,
         F: FnMut(&T::Value) -> Result<G, SessionError>,
     {
         let mut closurecr = ClosureCR::<T, _, _>::wrap(closure);
@@ -308,7 +306,7 @@ impl MechanismData<'_> {
         Ok(closurecr.try_unwrap())
     }
 
-    pub fn need_cb_data<F, G>(
+    pub(crate) fn need_cb_data<F, G>(
         &self,
         cbname: &str,
         provider: &dyn Provider,
@@ -393,6 +391,34 @@ impl SessionData {
         Self {
             mechanism_desc,
             side,
+        }
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use crate::context::EmptyProvider;
+    use super::*;
+    use crate::validate::Validation;
+
+    impl<V: Validation> Session<V> {
+        pub fn get_cb_data<'a, F, G>(
+            &'a self,
+            cbname: &str,
+            validate: &'a mut Validate<'a>,
+            f: &mut F,
+        ) -> Result<G, SessionError>
+            where
+                F: FnMut(&[u8]) -> Result<G, SessionError>,
+        {
+            let mechanism_data = MechanismData::new(
+                self.callback.as_ref(),
+                self.chanbind_cb.as_ref(),
+                validate,
+                self.mechanism_desc,
+                self.side,
+            );
+            mechanism_data.need_cb_data(cbname, &EmptyProvider, f)
         }
     }
 }

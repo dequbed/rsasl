@@ -1,11 +1,10 @@
-use rsasl::callback::{Request, SessionCallback};
-use rsasl::context::Context;
+use rsasl::callback::{Request, SessionCallback, Context};
 use rsasl::error::SessionError;
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, Password};
 use rsasl::session::{SessionData, State};
 use rsasl::validate::NoValidation;
-use rsasl::SASL;
+use rsasl::sasl::SASL;
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;

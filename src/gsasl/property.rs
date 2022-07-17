@@ -5,7 +5,7 @@ use libc::{size_t, strlen};
 use std::ffi::CString;
 use std::sync::Arc;
 
-pub unsafe fn gsasl_property_set(
+pub(crate) unsafe fn gsasl_property_set(
     mut sctx: &mut MechanismData,
     mut prop: Gsasl_property,
     mut data: *const libc::c_char,
@@ -22,7 +22,7 @@ pub unsafe fn gsasl_property_set(
     );
 }
 
-pub unsafe fn gsasl_property_set_raw(
+pub(crate) unsafe fn gsasl_property_set_raw(
     mut sctx: &mut MechanismData,
     mut prop: Gsasl_property,
     mut data: *const libc::c_char,
@@ -65,7 +65,7 @@ unsafe fn gsasl_property_fast(
     todo!()
 }
 
-pub unsafe fn gsasl_property_get(
+pub(crate) unsafe fn gsasl_property_get(
     _sctx: &mut MechanismData,
     _prop: Gsasl_property,
 ) -> *const libc::c_char {

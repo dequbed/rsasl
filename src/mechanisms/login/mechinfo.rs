@@ -5,7 +5,9 @@ use crate::mechanisms::login::client::{
 use crate::mechanisms::login::server::{
     _gsasl_login_server_finish, _gsasl_login_server_start, _gsasl_login_server_step,
 };
-use crate::{Mechanism, Mechname, Side};
+use crate::mechname::Mechname;
+use crate::registry::Mechanism;
+use crate::session::Side;
 
 #[cfg(feature = "registry_static")]
 use crate::registry::{distributed_slice, MECHANISMS};
