@@ -169,10 +169,12 @@ use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
-mod callback;
 pub mod error;
-mod sasl;
-mod session;
+pub mod callback;
+pub mod sasl;
+pub mod session;
+pub mod property;
+pub mod validate;
 
 mod gsasl;
 mod init;
@@ -183,9 +185,7 @@ mod registry;
 
 mod channel_bindings;
 mod context;
-mod property;
 mod typed;
-mod validate;
 
 mod vectored_io;
 
