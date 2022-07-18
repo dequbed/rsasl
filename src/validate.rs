@@ -5,7 +5,9 @@
 //!
 //! [`Validation`] provide a facility to enable exactly that, by enabling the user-provided
 //! callback to send data to the protocol implementation (i.e. the code calling `Session::step`
-//! or `step64`). The type of this data can be freely selected by the protocol implementation.
+//! or `step64`) while having access to the entire context of the authentication exchange.
+//!
+//! The type of this data can be freely selected by the protocol implementation.
 //!
 //! To do so a protocol implementation needs to implement the `Validation` trait on a marker type
 //! and binds it on the `SASLServer` used. This marker type and the associated Value must both be
