@@ -28,18 +28,17 @@ pub trait SessionCallback {
     /// the [`Request`] type.
     ///
     /// Callbacks are also passed a [`SessionData`] and a [`Context`], providing access to data from
-    /// the current [`Session`](crate::Session) and from the mechanism implementation. The data
-    /// that can be provided via the `Context` is different for each mechanism and side, and may
-    /// also change depending on the step the authentication is in, refer to the documentation of
-    /// each mechanism that is planned to be supported for details.
+    /// the current [`Session`](crate::session::Session) and from the mechanism implementation. The
+    /// data that can be provided via the `Context` is different for each mechanism and side, and
+    /// may also change depending on the step the authentication is in, refer to the documentation
+    /// of each mechanism that is planned to be supported for details.
     ///
     /// The callback is used when doing either a server-side or a client-side authentication. An
     /// example for an implementation on the client-side could look like so:
     /// ```rust
     /// # use rsasl::callback::{Request, SessionCallback, Context};
-    /// # use rsasl::error::SessionError;
+    /// # use rsasl::prelude::*;
     /// # use rsasl::property::{AuthId, Password, AuthzId, OpenID20AuthenticateInBrowser, Realm};
-    /// # use rsasl::session::SessionData;
     /// # struct CB;
     /// # impl CB {
     /// # fn interactive_get_username(&self) -> &str { unimplemented!() }

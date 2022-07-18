@@ -32,7 +32,7 @@ use std::fmt::{Debug, Display, Formatter};
 pub use registry_static::*;
 use crate::config::{ClientSide, SASLConfig, ServerSide};
 use crate::error::SASLError;
-use crate::session::Side;
+pub use crate::session::Side;
 
 pub type MatchFn = fn(name: &Mechname) -> bool;
 

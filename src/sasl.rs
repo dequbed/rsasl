@@ -170,13 +170,15 @@ impl<Side: ConfigSide> SASL<Side> {
      */
 }
 
-pub struct SASLClient {
+pub struct SASLClient<V = NoValidation> {
     inner: SASL<ClientSide>,
+    _validate: PhantomData<V>,
 }
-impl SASLClient {
+impl<V: Validation> SASLClient<V> {
     pub fn new(config: Arc<ClientConfig>) -> Self {
         Self {
             inner: SASL::new(config),
+            _validate: PhantomData,
         }
     }
 
@@ -184,23 +186,22 @@ impl SASLClient {
         &self,
         cb: CB,
         offered: impl Iterator<Item = &'a Mechname>,
-    ) -> Result<ClientSession<CB>, SASLError>
+    ) -> Result<ClientSession<V, CB>, SASLError>
     where
         CB: ChannelBindingCallback,
     {
         self.inner.start_suggested_cb(cb, offered)
     }
-}
-impl SASLClient {
+
     pub fn start_suggested<'a>(
         &self,
         offered: impl Iterator<Item = &'a Mechname>,
-    ) -> Result<ClientSession, SASLError> {
+    ) -> Result<ClientSession<V>, SASLError> {
         self.inner.start_suggested(offered)
     }
 }
 
-pub struct SASLServer<V = NoValidation> {
+pub struct SASLServer<V> {
     inner: SASL<ServerSide>,
     _validate: PhantomData<V>,
 }
@@ -245,25 +246,3 @@ impl<V: Validation> SASLServer<V> {
     }
 }
 
-/// A [`SessionCallback`] implementation returning preconfigured values
-struct CredentialsProvider {
-    authid: String,
-    authzid: Option<String>,
-    password: String,
-}
-impl SessionCallback for CredentialsProvider {
-    fn callback(
-        &self,
-        _session_data: &SessionData,
-        _context: &Context,
-        request: &mut Request<'_>,
-    ) -> Result<(), SessionError> {
-        request
-            .satisfy::<AuthId>(self.authid.as_str())?
-            .satisfy::<Password>(self.password.as_bytes())?;
-        if let Some(authzid) = self.authzid.as_deref() {
-            request.satisfy::<AuthzId>(authzid)?;
-        }
-        Ok(())
-    }
-}

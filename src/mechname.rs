@@ -1,3 +1,5 @@
+//! Utilities for handling and validating names of Mechanisms
+//!
 use std::convert::TryFrom;
 
 use std::fmt::{Debug, Display, Formatter};
