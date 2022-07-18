@@ -1,15 +1,15 @@
-use crate::callback::{Request, SessionCallback};
+
 use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
 use crate::config::{ClientConfig, ClientSide, ConfigSide, SASLConfig, ServerConfig, ServerSide};
-use crate::context::Context;
-use crate::error::{SASLError, SessionError};
-use crate::mechanism::Authentication;
+
+use crate::error::{SASLError};
+
 use crate::mechname::Mechname;
-use crate::property::{AuthId, AuthzId, Password};
+
 use crate::registry::Mechanism;
-use crate::session::{ClientSession, ServerSession, Session, SessionData, Side};
+use crate::session::{ClientSession, ServerSession, Session};
 use crate::validate::{NoValidation, Validation};
-use crate::{init, registry, session};
+
 use std::marker::PhantomData;
 use std::sync::Arc;
 
@@ -32,14 +32,14 @@ impl<Side: ConfigSide> SASL<Side> {
         Self { config }
     }
 
-    fn get_mechlist(&self, channel_binding_support: bool) -> impl Iterator<Item = &Mechanism> {
+    fn get_mechlist(&self, _channel_binding_support: bool) -> impl Iterator<Item = &Mechanism> {
         [].iter()
     }
 
     fn start_suggested_cb<'a, V, CB>(
         &self,
-        cb: CB,
-        offered: impl Iterator<Item = &'a Mechname>,
+        _cb: CB,
+        _offered: impl Iterator<Item = &'a Mechname>,
     ) -> Result<Session<Side, V, CB>, SASLError>
     where
         CB: ChannelBindingCallback,
@@ -50,7 +50,7 @@ impl<Side: ConfigSide> SASL<Side> {
 
     fn start_suggested<'a, V: Validation>(
         &self,
-        offered: impl Iterator<Item = &'a Mechname>,
+        _offered: impl Iterator<Item = &'a Mechname>,
     ) -> Result<Session<Side, V, NoChannelBindings>, SASLError> {
         todo!()
     }
