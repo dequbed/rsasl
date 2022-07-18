@@ -1,10 +1,12 @@
 use std::fmt::{Debug, Formatter};
 use std::io::Write;
+use std::marker::PhantomData;
 
 use std::sync::Arc;
 
 use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, SessionCallback};
 use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
+use crate::config::{ClientSide, ConfigSide, SASLConfig, ServerSide};
 use crate::context::{build_context, Provider};
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
@@ -13,7 +15,7 @@ use crate::mechname::Mechname;
 use crate::property::{ChannelBindings, Property};
 use crate::registry::Mechanism;
 use crate::typed::{tags, TaggedOption};
-use crate::validate::*;
+use crate::validate::{Validate, Validation, ValidationError};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -21,76 +23,48 @@ pub enum Side {
     Server,
 }
 
-pub struct SessionBuilder {
-    callback: Arc<dyn SessionCallback>,
+pub type ClientSession<V, CB = NoChannelBindings> = Session<ClientSide, V, CB>;
+pub type ServerSession<V, CB = NoChannelBindings> = Session<ServerSide, V, CB>;
+
+/// This represents a single authentication exchange
+///
+/// An authentication exchange may have multiple steps, with each step potentially sending data
+/// to the other party and/or receiving data from the other party.
+///
+/// A step is performed using either the [`Session::step`] method, or — base64-wrapped — using
+/// [`Session::step64`]. These methods will return [`State::Running`] if another call to `step`
+/// is expected, or [`State::Finished`] when the exchange has concluded and no more calls to
+/// `step` are necessary. After a `Finished` is received calling `step` again is undefined
+/// behaviour. Mechanisms may write garbage data, hang forever or return an `Err`.
+///
+/// However, `Finished` only indicates that no further calls to `step`
+/// are possible, mechanisms will have likely generated data that must still be forwarded to the
+/// other party.
+///
+/// Similarly, a return of `Finished` does *not* indicate that the authentication was
+/// **successful**, only that it was completed. SASL mechanisms usually have no provisions for
+/// returning authentication results inline, meaning the outcome of the authentication is
+/// indicated by the outer protocol using SASL in some protocol-specific way.
+///
+/// On a server-side session after a `Finished` is received validation data from the user
+/// callback may be extracted with a call to [`Session::validation`].
+pub struct Session<Side: ConfigSide, V: Validation, C> {
+    config: Arc<SASLConfig<Side>>,
+    chanbind_cb: C,
     mechanism: Box<dyn Authentication>,
     mechanism_desc: Mechanism,
-    side: Side,
-}
-impl SessionBuilder {
-    pub fn new(
-        callback: Arc<dyn SessionCallback>,
-        mechanism: Box<dyn Authentication>,
-        mechanism_desc: Mechanism,
-        side: Side,
-    ) -> Self {
-        Self {
-            callback,
-            mechanism,
-            mechanism_desc,
-            side,
-        }
-    }
-
-    pub fn with_channel_binding<V: Validation>(
-        self,
-        channel_binding_cb: Box<dyn ChannelBindingCallback>,
-    ) -> Session<V> {
-        Session::new(
-            self.callback,
-            self.mechanism,
-            self.mechanism_desc,
-            self.side,
-            channel_binding_cb,
-        )
-    }
-
-    pub fn without_channel_binding<V: Validation>(self) -> Session<V> {
-        Session::new(
-            self.callback,
-            self.mechanism,
-            self.mechanism_desc,
-            self.side,
-            Box::new(NoChannelBindings),
-        )
-    }
-}
-
-pub struct Session<V: Validation> {
-    callback: Arc<dyn SessionCallback>,
-    chanbind_cb: Box<dyn ChannelBindingCallback>,
-    mechanism: Box<dyn Authentication>,
-    mechanism_desc: Mechanism,
-    side: Side,
     validation: Option<V::Value>,
 }
 
-impl<V: Validation> Session<V> {
+#[cfg(feature = "provider")]
+impl<Side: ConfigSide, V: Validation, C: ChannelBindingCallback> Session<Side, V, C> {
     pub(crate) fn new(
-        callback: Arc<dyn SessionCallback>,
+        config: Arc<SASLConfig<Side>>,
+        chanbind_cb: C,
         mechanism: Box<dyn Authentication>,
         mechanism_desc: Mechanism,
-        side: Side,
-        channel_binding_cb: Box<dyn ChannelBindingCallback>,
     ) -> Self {
-        Self {
-            callback,
-            chanbind_cb: channel_binding_cb,
-            mechanism,
-            mechanism_desc,
-            side,
-            validation: None,
-        }
+        Self { config, chanbind_cb, mechanism, mechanism_desc, validation: None }
     }
 
     #[inline(always)]
@@ -109,17 +83,14 @@ impl<V: Validation> Session<V> {
     /// this method returns `false` then the first call to `step` or `step64` can only be
     /// performed after input data was received from the other party.
     pub fn are_we_first(&self) -> bool {
-        self.side == self.mechanism_desc.first
+        Side::SIDE == self.mechanism_desc.first
     }
 
     /// Return the name of the mechanism in use
     pub fn get_mechname(&self) -> &Mechname {
         self.mechanism_desc.mechanism
     }
-}
 
-#[cfg(feature = "provider")]
-impl<V: Validation> Session<V> {
     /// Perform one step of SASL authentication.
     ///
     /// *requires feature `provider`*
@@ -149,11 +120,11 @@ impl<V: Validation> Session<V> {
         let (state, written) = {
             let validate = Validate::new::<V>(&mut tagged_option);
             let mut mechanism_data = MechanismData::new(
-                self.callback.as_ref(),
-                self.chanbind_cb.as_ref(),
+                self.config.callback.as_ref(),
+                &self.chanbind_cb,
                 validate,
                 self.mechanism_desc,
-                self.side,
+                Side::SIDE,
             );
             if let Some(input) = input {
                 self.mechanism
@@ -166,23 +137,30 @@ impl<V: Validation> Session<V> {
         if state == State::Finished {
             self.validation = tagged_option.0.take();
         }
+
         Ok((state, written))
     }
 
-    /// Extract the Validation result of the exchange, if any
+    /// Extract the [`Validation`] result of an authentication exchange
     ///
-    /// Validation results are provided by a call to [`validate`](SessionCallback::validate) of the
-    /// user-supplied callback. They thus allow to send information from the callback to the
-    /// crate implementing the protocol using a type defined by said crate.
-    /// They are useful to e.g. indicate success or failure of the authentication exchange and
+    /// This are useful to e.g. indicate success or failure of the authentication exchange and
     /// supply the protocol crate with information about the user that was authenticated.
+    ///
+    /// Validation results are generated by the user-supplied callback. They thus allow to send
+    /// information from the callback to the protocol implementation. The type of this information
+    /// can be freely defined by said implementation, but due to required type erasure inside rsasl
+    /// the type must be exposed to the downstream user. Further details regarding this mechanic
+    /// can be found in the [`validate`](crate::validate) module documentation.
+    ///
+    /// This method will most likely return `None` until `step` has returned with
+    /// `State::Finished`, but it not guaranteed to do so.
     pub fn validation(&mut self) -> Option<V::Value> {
         self.validation.take()
     }
 }
 
 #[cfg(feature = "provider_base64")]
-impl<V: Validation> Session<V> {
+impl<Side: ConfigSide, V: Validation, C: ChannelBindingCallback> Session<Side, V, C> {
     /// Perform one step of SASL authentication, base64 encoded.
     ///
     /// *requires feature `provider_base64`*
