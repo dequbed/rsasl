@@ -66,13 +66,30 @@ impl SessionBuilder {
     }
 }
 
-pub struct Session<V: Validation> {
+pub struct ClientSession<C = NoChannelBindings> {
+    inner: Session<NoValidation, C>,
+}
+impl<C: ChannelBindingCallback> ClientSession {
+    pub(crate) fn new(inner: Session<NoValidation, C>) -> Self {
+        Self { inner }
+    }
+}
+
+pub struct ServerSession<V: Validation, C = NoChannelBindings> {
+    inner: Session<V, C>
+}
+impl<V: Validation, C: ChannelBindingCallback> ServerSession<V,C> {
+    pub(crate) fn new(inner: Session<V,C>) -> Self {
+        Self { inner }
+    }
+}
+
+pub struct Session<V: Validation = NoValidation, C = NoChannelBindings> {
     callback: Arc<dyn SessionCallback>,
     chanbind_cb: Box<dyn ChannelBindingCallback>,
     mechanism: Box<dyn Authentication>,
     mechanism_desc: Mechanism,
     side: Side,
-    validation: Option<V::Value>,
 }
 
 impl<V: Validation> Session<V> {
@@ -89,7 +106,6 @@ impl<V: Validation> Session<V> {
             mechanism,
             mechanism_desc,
             side,
-            validation: None,
         }
     }
 

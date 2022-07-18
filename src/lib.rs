@@ -84,10 +84,13 @@
 //!
 //! # Protocol Implementations
 //!
+// TODO: user goes ConfigBuilder -> SASLConfig. Prot goes SASLConfig -> SASL -> Session. explain
+//!
 //! Authentication in rsasl is done using [`Session`], by calling [`Session::step`] or
 //! [`Session::step64`] until [`State::Finished`](session::State::Finished) is returned.
 //!
-//! These Sessions are constructed using the [`SASL`] struct.
+//! These Sessions are constructed from a [`SASL`] struct, generally using
+//! [`SASL::client_start_suggested()`] or [`SASL::server_start_suggested()`].
 //! This struct is configured by the user with the list of enabled mechanisms and their preference,
 //! and with a callback used by mechanisms to retrieve required data (e.g. username/password for
 //! PLAIN) without involvement of the protocol crate.
@@ -164,6 +167,7 @@
 pub mod error;
 pub mod callback;
 pub mod builder;
+pub mod config;
 pub mod sasl;
 pub mod session;
 pub mod property;
@@ -192,7 +196,7 @@ mod vectored_io;
 
 pub mod prelude {
     //! prelude exporting the most commonly used types
-    pub use crate::sasl::SASL;
+    pub use crate::sasl::{SASLClient, SASLServer};
     pub use crate::session::Session;
     pub use crate::mechname::Mechname;
     pub use crate::property::Property;
