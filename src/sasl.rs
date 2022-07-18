@@ -2,85 +2,22 @@ use crate::callback::{Request, SessionCallback};
 use crate::context::Context;
 use crate::error::{SASLError, SessionError};
 use crate::property::{AuthId, AuthzId, Password};
-use crate::session::{SessionBuilder, SessionData, Side};
+use crate::session::{ClientSession, ServerSession, Session, SessionBuilder, SessionData, Side};
 use std::sync::Arc;
-use std::cmp::Ordering;
-use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
-use crate::{init, registry};
+use crate::{init, registry, session};
 use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
+use crate::config::{ClientConfig, ClientSide, ConfigSide, SASLConfig, ServerConfig, ServerSide};
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 use crate::registry::Mechanism;
-use crate::validate::Validation;
+use crate::validate::{NoValidation, Validation};
 
-
+#[derive(Debug)]
 /// SASL Provider context
 ///
-/// This is the central type required to use SASL both for protocol implementations requiring the
-/// use of SASL and for users wanting to provide SASL authentication to such implementations.
-///
-/// This struct is neither `Clone` nor `Copy`, but all functions required for authentication
-/// exchanges only need a non-mutable reference to it. If you want to be able to do several
-/// authentication exchanges in parallel, e.g. in a server context, you can wrap it in an
-/// [`std::sync::Arc`] to add cheap cloning, or initialize it as a global value.
-pub struct SASL {
-    pub(crate) callback: Arc<dyn SessionCallback>,
-
-    #[cfg(feature = "registry_dynamic")]
-    pub(crate) dynamic_mechs: Vec<&'static Mechanism>,
-    #[cfg(feature = "registry_static")]
-    static_mechs: &'static [Mechanism],
-
-    sort_fn: fn(a: &&Mechanism, b: &&Mechanism) -> Ordering,
-}
-
-impl SASL {
-    /// Construct a sasl context with a given callback
-    pub fn new<CB: SessionCallback + 'static>(callback: Arc<CB>) -> Self {
-        let callback = callback as Arc<dyn SessionCallback>;
-        Self {
-            callback,
-
-            #[cfg(feature = "registry_dynamic")]
-            dynamic_mechs: Vec::new(),
-
-            #[cfg(feature = "registry_static")]
-            static_mechs: &registry::MECHANISMS,
-
-            sort_fn: |a, b| a.priority.cmp(&b.priority),
-        }
-    }
-
-    /// Construct a rsasl context with preconfigured Credentials
-    pub fn with_credentials(authid: String, authzid: Option<String>, password: String) -> Self {
-        Self::new(Arc::new(CredentialsProvider {
-            authid,
-            authzid,
-            password,
-        }))
-    }
-
-    /// Initialize this SASL with the builtin Mechanisms
-    ///
-    /// Calling this function is usually not necessary if you're using the `registry_static`
-    /// feature since the builtin mechanisms are registered at compile time then. However the
-    /// optimizer may strip modules that it deems are unused so a call may still be necessary but
-    /// it then extremely cheap.
-    fn init(&mut self) {
-        init::register_builtin(self);
-    }
-}
-
-impl Debug for SASL {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut s = f.debug_struct("SASL");
-        #[cfg(feature = "registry_dynamic")]
-        s.field("registered mechanisms", &self.dynamic_mechs);
-        #[cfg(feature = "registry_static")]
-        s.field("collected mechanisms", &self.static_mechs);
-        s.finish()
-    }
+pub(crate) struct SASL<Side: ConfigSide> {
+    config: Arc<SASLConfig<Side>>,
 }
 
 #[cfg(feature = "provider")]
@@ -90,36 +27,30 @@ impl Debug for SASL {
 /// or `provider_base64` (enabled by default).
 /// They are mainly relevant for protocol implementations wanting to start an
 /// authentication exchange.
-impl SASL {
-    /// Return all mechanisms supported on the client side by this provider.
-    ///
-    /// An interactive client "logging in" to some server application would use this method. The
-    /// server application would use [`SASL::server_mech_list()`].
-    pub fn client_mech_list(&self) -> impl IntoIterator<Item = &'static Mechanism> + '_ {
-        #[cfg(feature = "registry_static")]
-        {
-            #[cfg(feature = "registry_dynamic")]
-            {
-                registry::MECHANISMS
-                    .into_iter()
-                    .chain(self.dynamic_mechs.iter().map(|m| *m))
-                    .filter(|mechanism| mechanism.client.is_some())
-            }
-            #[cfg(not(feature = "registry_dynamic"))]
-            {
-                registry::MECHANISMS
-                    .into_iter()
-                    .filter(|mechanism| mechanism.client.is_some())
-            }
-        }
-        #[cfg(all(not(feature = "registry_static"), feature = "registry_dynamic"))]
-        {
-            self.dynamic_mechs.iter().map(|m| *m)
-        }
-        #[cfg(not(any(feature = "registry_static", feature = "registry_dynamic")))]
-        {
-            []
-        }
+impl<Side: ConfigSide> SASL<Side> {
+    pub fn new(config: Arc<SASLConfig<Side>>) -> Self {
+        Self { config }
+    }
+
+    fn get_mechlist(&self, channel_binding_support: bool) -> impl Iterator<Item=&Mechanism> {
+        todo!()
+    }
+
+    fn start_suggested_cb<'a, V, CB>(&self, cb: CB, offered: impl Iterator<Item=&'a Mechname>)
+        -> Result<Session<V,CB>, SASLError>
+        where CB: ChannelBindingCallback
+    {
+        todo!()
+    }
+
+    fn start_suggested<'a, V>(&self, offered: impl Iterator<Item=&'a Mechname>)
+        -> Result<Session<V, NoChannelBindings>, SASLError>
+    {
+        todo!()
+    }
+
+    pub fn client_mech_list(&self) -> impl Iterator<Item = &Mechanism> {
+        self.config.client_mech_list()
     }
 
     /// Return all mechanisms supported on the server side by this provider.
@@ -276,6 +207,76 @@ impl SASL {
         )
     }
 }
+
+pub struct SASLClient {
+    inner: SASL<ClientSide>,
+}
+impl SASLClient {
+    pub fn new(config: Arc<ClientConfig>) -> Self {
+        Self {
+            inner: SASL::new(config),
+        }
+    }
+
+    pub fn start_suggested_cb<'a, CB>(&self, cb: CB, offered: impl Iterator<Item=&'a Mechname>)
+        -> Result<ClientSession<CB>, SASLError>
+        where CB: ChannelBindingCallback
+    {
+        let session = self.inner.start_suggested_cb(cb, offered)?;
+        Ok(ClientSession::new(session))
+    }
+}
+impl SASLClient {
+    pub fn start_suggested<'a>(&self, offered: impl Iterator<Item=&'a Mechname>)
+        -> Result<ClientSession, SASLError>
+    {
+        let session = self.inner.start_suggested(offered)?;
+        Ok(ClientSession::new(session))
+    }
+}
+
+pub struct SASLServer<V = NoValidation> {
+    inner: SASL<ServerSide>,
+    _validate: PhantomData<V>,
+}
+impl<V: Validation> SASLServer<V> {
+    pub fn new(config: Arc<ServerConfig>) -> Self {
+        Self {
+            inner: SASL::new(config),
+            _validate: PhantomData,
+        }
+    }
+
+    /// Return all mechanisms supported by this provider in the current configuration
+    ///
+    /// The parameter `channel_binding_support` should be set to `true` if the user of the
+    /// `SASLServer` can provide channel bindings and will call [`Self::start_suggested_cb`].
+    /// It should be set to `false` if channel bindings are not supported or if
+    /// [`Self::start_suggested`] is going to be used.
+    ///
+    /// Setting `channel_binding_support` to `false` will not necessarily disable the use of
+    /// channel bindings, as the supplied `SASLConfig` may support channel bindings irrespective
+    /// of the protocol crate in use.
+    pub fn get_mechlist(&self, channel_binding_support: bool) -> impl Iterator<Item=&Mechanism> {
+        self.inner.get_mechlist(channel_binding_support)
+    }
+
+    pub fn start_suggested_cb<'a, CB>(&self, cb: CB, offered: impl Iterator<Item=&'a Mechname>)
+        -> Result<ServerSession<V, CB>, SASLError>
+        where CB: ChannelBindingCallback
+    {
+        let session = self.inner.start_suggested_cb(cb, offered)?;
+        Ok(ServerSession::new(session))
+    }
+
+    pub fn start_suggested<'a>(&self, offered: impl Iterator<Item=&'a Mechname>)
+        -> Result<ServerSession<V>, SASLError>
+    {
+        let session = self.inner.start_suggested(offered)?;
+        Ok(ServerSession::new(session))
+    }
+}
+
 
 /// A [`SessionCallback`] implementation returning preconfigured values
 struct CredentialsProvider {
