@@ -111,12 +111,13 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantCallback> {
     pub fn with_callback<CB: SessionCallback + 'static>(self, callback: Box<CB>) -> SASLConfig<Side>
     {
         let callback = callback as Box<dyn SessionCallback>;
-        SASLConfig {
+        SASLConfig::new(
+            self.side,
             callback,
-            filter: self.state.filter,
-            sorter: self.state.sorter,
+            self.state.filter,
+            self.state.sorter,
             #[cfg(feature = "registry_dynamic")]
-            dynamic_mechs: self.state.dynamic_mechs,
-        }
+            self.state.dynamic_mechs,
+)
     }
 }
