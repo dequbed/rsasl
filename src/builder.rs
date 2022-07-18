@@ -1,10 +1,17 @@
+
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
 use crate::callback::SessionCallback;
 use crate::config::{ClientSide, ConfigSide, SASLConfig, ServerSide};
+use crate::error::SASLError;
 use crate::registry::Mechanism;
 
 #[derive(Clone)]
+/// Type-checking Builder for a [`ClientConfig`](crate::config::ClientConfig) or
+/// [`ServerConfig`](crate::config::ServerConfig)
+///
+/// This builder allows to construct sided [`SASLConfig`]s using the type system to ensure all
+/// relevant information is provided.
 pub struct ConfigBuilder<Side: ConfigSide, State> {
     side: Side,
     pub(crate) state: State,
@@ -32,6 +39,7 @@ fn default_sorter(a: &&Mechanism, b: &&Mechanism) -> Ordering {
 }
 
 #[derive(Clone, Debug)]
+#[doc(hidden)]
 pub struct WantMechanisms(());
 impl<Side: ConfigSide> ConfigBuilder<Side, WantMechanisms> {
     pub(crate) fn new(side: Side) -> Self {
@@ -63,6 +71,7 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantMechanisms> {
 }
 
 #[derive(Clone, Debug)]
+#[doc(hidden)]
 pub struct WantFilter {
     #[cfg(feature = "registry_dynamic")]
     dynamic_mechs: Vec<&'static Mechanism>,
@@ -81,6 +90,7 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantFilter> {
 }
 
 #[derive(Clone)]
+#[doc(hidden)]
 pub struct WantSorter {
     #[cfg(feature = "registry_dynamic")]
     dynamic_mechs: Vec<&'static Mechanism>,
@@ -101,6 +111,7 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantSorter> {
 }
 
 #[derive(Clone)]
+#[doc(hidden)]
 pub struct WantCallback {
     #[cfg(feature = "registry_dynamic")]
     dynamic_mechs: Vec<&'static Mechanism>,
@@ -108,7 +119,8 @@ pub struct WantCallback {
     sorter: fn(a: &&Mechanism, b: &&Mechanism) -> Ordering,
 }
 impl<Side: ConfigSide> ConfigBuilder<Side, WantCallback> {
-    pub fn with_callback<CB: SessionCallback + 'static>(self, callback: Box<CB>) -> SASLConfig<Side>
+    pub fn with_callback<CB: SessionCallback + 'static>(self, callback: Box<CB>)
+        -> Result<SASLConfig<Side>, SASLError>
     {
         let callback = callback as Box<dyn SessionCallback>;
         SASLConfig::new(
@@ -118,6 +130,6 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantCallback> {
             self.state.sorter,
             #[cfg(feature = "registry_dynamic")]
             self.state.dynamic_mechs,
-)
+        )
     }
 }
