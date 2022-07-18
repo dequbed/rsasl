@@ -84,22 +84,84 @@
 //!
 //! # Protocol Implementations
 //!
-//! Authentication in rsasl is done using [`Session`], by calling [`Session::step`] or
-//! [`Session::step64`] until [`State::Finished`](session::State::Finished) is returned.
+//! The starting point of rsasl for protocol implementations is the
+//! sided [`SASLConfig`](prelude::SASLConfig) struct, usually as
+//! [`ClientConfig`](prelude::ClientConfig) or [`ServerConfig`](prelude::ServerConfig).
+//! These structs are created by the downstream user of the protocol crate and contain all
+//! required configuration and data in an opaque and easily storable way.
+//! The `SASLConfig` type is designed to be long-lived and to be valid for multiple contexts and
+//! authentication exchanges.
 //!
-//! These Sessions are constructed using the [`SASL`] struct.
-//! This struct is configured by the user with the list of enabled mechanisms and their preference,
-//! and with a callback used by mechanisms to retrieve required data (e.g. username/password for
-//! PLAIN) without involvement of the protocol crate.
+//! To start an authentication a [`SASLClient`](prelude::SASLClient) or
+//! [`SASLServer`](prelude::SASLServer) is constructed from this config, allowing a
+//! protocol crate to provide additional, context-specific, data.
 //!
-//! The `SASL` struct is instantiated by the user and provided to the protocol crate which can then
-//! call either [`SASL::client_start_suggested()`] or [`SASL::server_start_suggested()`] to start
-//! an authentication with the best mechanism available on both sides.
+//! The produced `SASLClient` / `SASLServer` are thus themselves context-specific and usually not
+//! readily reusable, for example channel bindings are specific to a single TLS session requiring a
+//! new `SASLClient` or `SASLServer` to be constructed for every connection.
 //!
-//! Both of these methods return a [`SessionBuilder`] which needs to be finalized into a [`Session`]
-//! to be used for the entire authentication exchange.
+//! To finally start an authentication exchange a [`Session`](session::Session) is
+//! constructed by selecting the best shared authentication Mechanism, and the methods
+//! [`Session::step`](session::Session::step) or [`Session::step64`](session::Session::step64) are
+//! called until [`State::Finished`](session::State::Finished) is returned:
 //!
-//! To minimize dependencies protocol implementations should always depend on rsasl as follows:
+//! ```rust
+//! # use std::io;
+//! # use std::sync::Arc;
+//! use rsasl::prelude::*;
+//!
+//! # fn get_initial_auth_data(_: &Mechname) -> Vec<u8> { unimplemented!() }
+//! # fn tell_other_side_which(_: &Mechname) {}
+//! # fn get_more_auth_data() -> Option<Vec<u8>> { unimplemented!() }
+//! // the `config` is provided by the user of this crate. The `writer` is a stand-in for sending
+//! // data to other side of the authentication exchange.
+//! fn sasl_authenticate(config: Arc<ClientConfig>, writer: &mut impl io::Write) {
+//!     let sasl = SASLClient::new(config);
+//!     // These would normally be provided via the protocol in question
+//!     let offered_mechs = [Mechname::new(b"PLAIN").unwrap(), Mechname::new(b"GSSAPI").unwrap()];
+//!
+//!     // select the best offered mechanism that the user enabled in the `config`
+//!     let mut session = sasl.start_suggested(offered_mechs.iter()).expect("no shared mechanisms");
+//!
+//!     // Access to the name of the selected mechanism
+//!     let selected_mechanism = session.get_mechname();
+//!
+//!     let mut data: Option<Vec<u8>> = None;
+//!     // Which side needs to send the first bit of data depends on the mechanism
+//!     if !session.are_we_first() {
+//!         // Tell the other side which mechanism we selected and receive initial auth data
+//!         data = Some(get_initial_auth_data(selected_mechanism));
+//!     } else {
+//!         // If we *are* going first we still need to inform the other party of the selected
+//!         // mechanism. Many protocols allow sending the selected mechanism with the initial
+//!         // batch of data, but we're not doing that here for simplicities sake.
+//!         tell_other_side_which(selected_mechanism);
+//!     }
+//!
+//!     // stepping the authentication exchange to completion
+//!     while {
+//!         // each call to step writes the generated auth data into the provided writer.
+//!         // Normally this data would then have to be sent to the other party, but this goes
+//!         // beyond the scope of this example
+//!         let (state, _) = session.step(data.as_deref(), writer).expect("step errored!");
+//!         // returns `true` if step needs to be called again with another batch of data
+//!         state.is_running()
+//!     } {
+//!         // While we aren't finished, receive more data from the other party
+//!         data = get_more_auth_data()
+//!     }
+//!     // Wohoo, we're done!
+//!     // rsasl can in most cases not tell if the authentication was successful, this would have
+//!     // to be checked in a protocol-specific way.
+//! }
+//! ```
+//!
+//! After an authentication exchange has finished [`Session::validation`](session::Session::validation)
+//! may be used in server contexts to extract a `Validation` type from the authentication exchange.
+//! Further details about `Validation` can be found in the [`validate`] module documentation.
+//!
+//! To minimize dependencies protocol implementations should always depend on rsasl with the
+//! least amount of features enabled:
 //! ```toml
 //! [dependencies]
 //! rsasl = { version = "2", default-features = false, features = ["provider"]}
@@ -131,15 +193,36 @@
 //!
 //! # Application Code
 //!
-//! Applications needs to construct a [`SASL`] struct to be passed to the protocol crate to perform
-//! authentication exchanges.
+//! To allow protocol implementations to use SASL authentication Applications needs to construct a
+//! [`ClientConfig`](prelude::ClientConfig) or [`ServerConfig`](prelude::ServerConfig) to be used
+//! by the protocol implementation.
 //!
-//! This [`SASL`] struct must be configured with a [`SessionCallback`] that can request required
-//! [`Property`]s during the authentication exchange.
+//! This config selects the mechanisms that will be available, the priority of mechanisms, and
+//! provides required authentication data.
 //!
-//! Applications can enable and disable mechanism support at compile time using features, with the
-//! default being to add all IANA-registered mechanisms in `COMMON` use.
-//! See the module documentation for [`mechanisms`] for details.
+//! This authentication data is accessed using [`Property`](property::Property)s and can be either
+//! provided preemptively or on demand via a [`SessionCallback`](callback::SessionCallback). The
+//! use of a callback is the more
+//! flexible
+//! as [`SessionCallback::callback`](callback::SessionCallback::callback) has access to
+//! context-specific data from the ongoing
+//! authentication exchange, and as some mechanisms will always require the use of a user callback.
+//!
+//! Additionally callbacks can implement the
+//! [`SessionCallback::validate`](callback::SessionCallback::validate) method to return data
+//! from the authentication to the protocol implementation, e.g. to return the user that was just
+//! authenticated. Details for this use-case are found in the [`validate`] module documentation.
+//!
+//! Additionally to selecting mechanisms at runtime, available mechanisms can also be limited at
+//! compile time using feature flags, with the default being to enable all IANA-registered
+//! mechanisms in `COMMON` use that are implemented. See the module documentation for
+//! [`mechanisms`] for further details.
+//!
+//! To ensure that authentication can proceed all required `Property`s must be provided. The
+//! documentation for each mechanism will list the required `Property` and any additional
+//! limitations that may be put their values. Currently no discovery of queryable properties is
+//! done, so it is the responsibility of the downstream user to limit mechanisms to those they
+//! are providing all properties for.
 //!
 // TODO:
 //     - Static vs Dynamic Registry
@@ -156,32 +239,33 @@
 //! implement a custom mechanism implementation the feature `unstable_custom_mechanism` must be
 //! enabled.
 //!
-//! A custom mechanism must implement the trait [`Authentication`] and define a
-//! [`Mechanism`](registry::Mechanism) struct describing the implemented mechanism. Documentation
-//! about how to add a custom mechanism is found in the [`registry module documentation`](registry).
-//!
+//! A custom mechanism must implement the trait [`Authentication`](mechanism::Authentication) and
+//! define a [`Mechanism`](registry::Mechanism) struct describing the implemented mechanism.
+//! Documentation about how to add a custom mechanism is found in the [`registry module documentation`](registry).
 
-pub mod error;
+mod builder;
 pub mod callback;
-pub mod sasl;
-pub mod session;
-pub mod property;
-pub mod validate;
+pub mod config;
+mod error;
 pub mod mechanisms;
 pub mod mechname;
+pub mod property;
+mod sasl;
+mod session;
+pub mod validate;
 
 mod gsasl;
 mod init;
 
 #[cfg(not(any(doc, feature = "unstable_custom_mechanism")))]
-mod registry;
-#[cfg(not(any(doc, feature = "unstable_custom_mechanism")))]
 mod mechanism;
+#[cfg(not(any(doc, feature = "unstable_custom_mechanism")))]
+mod registry;
 
 #[cfg(any(doc, feature = "unstable_custom_mechanism"))]
-pub mod registry;
-#[cfg(any(doc, feature = "unstable_custom_mechanism"))]
 pub mod mechanism;
+#[cfg(any(doc, feature = "unstable_custom_mechanism"))]
+pub mod registry;
 
 mod channel_bindings;
 mod context;
@@ -191,14 +275,15 @@ mod vectored_io;
 
 pub mod prelude {
     //! prelude exporting the most commonly used types
-    pub use crate::sasl::SASL;
-    pub use crate::session::Session;
+    pub use crate::config::{ClientConfig, SASLConfig, ServerConfig};
+    pub use crate::error::{SASLError, SessionError};
     pub use crate::mechname::Mechname;
     pub use crate::property::Property;
-    pub use crate::error::{
-        SASLError,
-        SessionError
+    pub use crate::sasl::{SASLClient, SASLServer};
+    pub use crate::session::{
+        ClientSession, ServerSession, Session, SessionData, State, StepResult,
     };
+    pub use crate::validate::Validation;
 }
 
 struct Shared;
