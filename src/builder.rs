@@ -2,7 +2,7 @@
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
 use crate::callback::SessionCallback;
-use crate::config::{ClientSide, ConfigSide, SASLConfig, ServerSide};
+use crate::config::{ClientConfig, ClientSide, ConfigSide, SASLConfig, ServerConfig, ServerSide};
 use crate::error::SASLError;
 use crate::registry::Mechanism;
 
@@ -119,17 +119,17 @@ pub struct WantCallback {
     sorter: fn(a: &&Mechanism, b: &&Mechanism) -> Ordering,
 }
 impl<Side: ConfigSide> ConfigBuilder<Side, WantCallback> {
-    pub fn with_callback<CB: SessionCallback + 'static>(self, callback: Box<CB>)
-        -> Result<SASLConfig<Side>, SASLError>
+    pub fn with_callback<CB: SessionCallback + 'static>(self, callback: Box<CB>, provides_channel_bindings: bool)
+        -> Result<SASLConfig, SASLError>
     {
         let callback = callback as Box<dyn SessionCallback>;
         SASLConfig::new(
-            self.side,
             callback,
             self.state.filter,
             self.state.sorter,
             #[cfg(feature = "registry_dynamic")]
-            self.state.dynamic_mechs,
+                self.state.dynamic_mechs,
+            provides_channel_bindings,
         )
     }
 }

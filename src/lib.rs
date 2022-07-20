@@ -250,9 +250,10 @@ mod error;
 pub mod mechanisms;
 pub mod mechname;
 pub mod property;
-mod sasl;
 mod session;
 pub mod validate;
+
+mod sasl;
 
 mod gsasl;
 mod init;
@@ -279,7 +280,7 @@ pub mod prelude {
     pub use crate::error::{SASLError, SessionError};
     pub use crate::mechname::Mechname;
     pub use crate::property::Property;
-    pub use crate::sasl::{SASLClient, SASLServer};
+    pub use crate::sasl::SASL;
     pub use crate::session::{
         ClientSession, ServerSession, Session, SessionData, State, StepResult,
     };

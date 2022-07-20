@@ -2,11 +2,10 @@ pub trait ChannelBindingCallback {
     fn get_cb_data(&self, cbname: &str) -> Option<&[u8]>;
 }
 
+#[derive(Debug)]
 pub struct NoChannelBindings;
 impl ChannelBindingCallback for NoChannelBindings {
-    fn get_cb_data(&self, _cbname: &str) -> Option<&[u8]> {
-        None
-    }
+    fn get_cb_data(&self, _cbname: &str) -> Option<&[u8]> { None }
 }
 
 pub struct ThisCb {
@@ -34,9 +33,10 @@ mod tests {
     use crate::callback::EmptyCallback;
 
     use std::sync::Arc;
+    use crate::config::SASLConfig;
     use crate::mechname::Mechname;
 
-    use crate::sasl::SASL;
+    use crate::sasl::{SASL, SASLClient};
 
     use crate::typed::TaggedOption;
     use crate::validate::{NoValidation, Validate};
@@ -46,9 +46,12 @@ mod tests {
     fn test_this_cb() {
         let cbdata = b"foobar";
         let thiscb = ThisCb::new("this-cb", cbdata.to_vec().into_boxed_slice());
-        let sasl = SASL::new(Arc::new(EmptyCallback));
-        let builder = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
-        let session = builder.with_channel_binding::<NoValidation>(Box::new(thiscb));
+        let config = SASLConfig::with_credentials(None, String::new(), String::new()).unwrap();
+        let sasl = SASLClient::new(Arc::new(config));
+        let session = sasl.start_suggested_cb(
+            thiscb,
+            [&Mechname::new(b"PLAIN").unwrap()].iter()
+        ).unwrap();
 
         let mut tagged_option = TaggedOption::<'_, NoValidation>(None);
 
