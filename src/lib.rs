@@ -115,13 +115,13 @@
 //! # fn get_more_auth_data() -> Option<Vec<u8>> { unimplemented!() }
 //! // the `config` is provided by the user of this crate. The `writer` is a stand-in for sending
 //! // data to other side of the authentication exchange.
-//! fn sasl_authenticate(config: Arc<ClientConfig>, writer: &mut impl io::Write) {
+//! fn sasl_authenticate(config: Arc<SASLConfig>, writer: &mut impl io::Write) {
 //!     let sasl = SASLClient::new(config);
 //!     // These would normally be provided via the protocol in question
-//!     let offered_mechs = [Mechname::new(b"PLAIN").unwrap(), Mechname::new(b"GSSAPI").unwrap()];
+//!     let offered_mechs = &[Mechname::new(b"PLAIN").unwrap(), Mechname::new(b"GSSAPI").unwrap()];
 //!
 //!     // select the best offered mechanism that the user enabled in the `config`
-//!     let mut session = sasl.start_suggested(offered_mechs.iter()).expect("no shared mechanisms");
+//!     let mut session = sasl.start_suggested(offered_mechs).expect("no shared mechanisms");
 //!
 //!     // Access to the name of the selected mechanism
 //!     let selected_mechanism = session.get_mechname();

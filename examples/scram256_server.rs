@@ -1,11 +1,11 @@
 use rsasl::callback::{CallbackError, Request, SessionCallback, Context};
-use rsasl::error::SessionError;
+use rsasl::prelude::{ServerConfig, SessionError};
 use rsasl::mechanisms::scram::properties::PasswordHash;
 use rsasl::mechname::Mechname;
 use rsasl::property::AuthId;
-use rsasl::session::SessionData;
+use rsasl::prelude::SessionData;
 use rsasl::validate::NoValidation;
-use rsasl::sasl::SASL;
+use rsasl::prelude::SASLServer;
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
@@ -33,12 +33,12 @@ impl SessionCallback for OurCallback {
 }
 
 pub fn main() {
-    let sasl = SASL::new(Arc::new(OurCallback));
+    let config = ServerConfig::builder().with_defaults().with_callback(Box::new(OurCallback), false).unwrap();
+    let sasl = SASLServer::<NoValidation>::new(Arc::new(config));
 
     let mut session = sasl
-        .server_start(Mechname::new(b"SCRAM-SHA-256").unwrap())
-        .unwrap()
-        .without_channel_binding::<NoValidation>();
+        .start_suggested(&[Mechname::new(b"SCRAM-SHA-256").unwrap()])
+        .unwrap();
 
     loop {
         // Read data from STDIN

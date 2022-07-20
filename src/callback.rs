@@ -350,7 +350,7 @@ impl<'a> Request<'a> {
     ///
     /// ```rust
     /// # use rsasl::callback::Request;
-    /// # use rsasl::error::SessionError;
+    /// # use rsasl::prelude::SessionError;
     /// # use rsasl::property::{AuthId, AuthzId, Password};
     /// # fn ask_user_for_authid<'a>() -> &'a str { unimplemented!() }
     /// # fn ask_user_for_password<'a>() -> &'a [u8] { unimplemented!() }
@@ -376,7 +376,7 @@ impl<'a> Request<'a> {
     ///
     /// ```should_panic
     /// # use rsasl::callback::Request;
-    /// # use rsasl::error::SessionError;
+    /// # use rsasl::prelude::SessionError;
     /// # use rsasl::property::{AuthId, AuthzId, Password};
     /// # fn ask_user_for_password<'a>() -> &'a [u8] { &[] }
     /// # fn try_get_cached_password<'a>() -> Option<&'a [u8]> { Some(&[]) }

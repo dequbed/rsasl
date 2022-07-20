@@ -2,7 +2,7 @@ use std::sync::Arc;
 use rsasl::prelude::*;
 
 fn main() {
-    let config = SASLConfig::with_credentials(None, String::new(), String::new()).unwrap();
+    let config = ClientConfig::with_credentials(None, String::new(), String::new()).unwrap();
     let sasl = SASLClient::new(Arc::new(config));
 
     let presented = &[
@@ -14,7 +14,7 @@ fn main() {
     ];
 
     let suggested = sasl
-        .start_suggested(presented.iter().map(|m| *m))
+        .start_suggested(presented)
         .unwrap();
     println!("Suggested: {}", suggested.get_mechname());
     assert_eq!(suggested.get_mechname().as_str(), "SCRAM-SHA-256");

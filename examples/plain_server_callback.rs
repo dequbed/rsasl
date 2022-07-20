@@ -1,10 +1,10 @@
 use rsasl::callback::{Context, SessionCallback};
-use rsasl::error::SessionError;
+use rsasl::prelude::{ServerConfig, SessionError};
 use rsasl::mechname::Mechname;
 use rsasl::property::{AuthId, AuthzId, Password};
-use rsasl::session::{SessionData, State};
+use rsasl::prelude::{SessionData, State};
 use rsasl::validate::{Validate, Validation, ValidationError};
-use rsasl::sasl::SASL;
+use rsasl::prelude::SASLServer;
 use std::io::Cursor;
 use std::sync::Arc;
 use thiserror::Error;
@@ -70,16 +70,17 @@ impl Validation for TestValidation {
 }
 
 pub fn main() {
-    let sasl = SASL::new(Arc::new(OurCallback));
+    let config = ServerConfig::builder().with_defaults().with_callback(Box::new(OurCallback), false).unwrap();
+    let config = Arc::new(config);
 
     // Authentication exchange 1
     {
+        let sasl = SASLServer::<TestValidation>::new(config.clone());
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with correct password:\n   ");
         let mut session = sasl
-            .server_start(Mechname::new(b"PLAIN").unwrap())
-            .unwrap()
-            .without_channel_binding::<TestValidation>();
+            .start_suggested(&[Mechname::new(b"PLAIN").unwrap()])
+            .unwrap();
         let step_result = session.step(Some(b"\0username\0secret"), &mut out);
         print_outcome(&step_result, out.into_inner());
         assert_eq!(step_result.unwrap(), (State::Finished, None));
@@ -87,12 +88,12 @@ pub fn main() {
     }
     // Authentication exchange 2
     {
+        let sasl = SASLServer::<TestValidation>::new(config.clone());
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with wrong password:\n   ");
         let mut session = sasl
-            .server_start(Mechname::new(b"PLAIN").unwrap())
-            .unwrap()
-            .without_channel_binding::<TestValidation>();
+            .start_suggested(&[Mechname::new(b"PLAIN").unwrap()])
+            .unwrap();
         let step_result = session.step(Some(b"\0username\0badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());
         assert_eq!(step_result.unwrap(), (State::Finished, None));
@@ -100,12 +101,12 @@ pub fn main() {
     }
 
     {
+        let sasl = SASLServer::<TestValidation>::new(config.clone());
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with unknown user:\n   ");
         let mut session = sasl
-            .server_start(Mechname::new(b"PLAIN").unwrap())
-            .unwrap()
-            .without_channel_binding::<TestValidation>();
+            .start_suggested(&[Mechname::new(b"PLAIN").unwrap()])
+            .unwrap();
         let step_result = session.step(Some(b"\0somebody\0somepass"), &mut out);
         print_outcome(&step_result, out.into_inner());
         assert_eq!(step_result.unwrap(), (State::Finished, None));
@@ -113,12 +114,12 @@ pub fn main() {
     }
 
     {
+        let sasl = SASLServer::<TestValidation>::new(config.clone());
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with bad authzid:\n   ");
         let mut session = sasl
-            .server_start(Mechname::new(b"PLAIN").unwrap())
-            .unwrap()
-            .without_channel_binding::<TestValidation>();
+            .start_suggested(&[Mechname::new(b"PLAIN").unwrap()])
+            .unwrap();
         let step_result = session.step(Some(b"username\0somebody\0badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());
         assert_eq!(step_result.unwrap(), (State::Finished, None));
@@ -126,12 +127,12 @@ pub fn main() {
     }
     // Authentication exchange 2
     {
+        let sasl = SASLServer::<TestValidation>::new(config.clone());
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with malformed data:\n   ");
         let mut session = sasl
-            .server_start(Mechname::new(b"PLAIN").unwrap())
-            .unwrap()
-            .without_channel_binding::<TestValidation>();
+            .start_suggested(&[Mechname::new(b"PLAIN").unwrap()])
+            .unwrap();
         let step_result = session.step(Some(b"\0username badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());
         assert!(step_result.unwrap_err().is_mechanism_error());
