@@ -377,7 +377,7 @@ pub(crate) mod tests {
     use super::*;
     use crate::validate::Validation;
 
-    impl<Side: ConfigSide, V: Validation, CB: CBProvider> Session<Side, V, CB> {
+    impl<V: Validation, CB: ChannelBindingCallback> Session<V, CB> {
         pub fn get_cb_data<'a, F, G>(
             &'a self,
             cbname: &str,
@@ -388,11 +388,11 @@ pub(crate) mod tests {
                 F: FnMut(&[u8]) -> Result<G, SessionError>,
         {
             let mut mechanism_data = MechanismData::new(
-                self.config.callback.as_ref(),
-                &self.chanbind_cb,
+                self.sasl.config.callback.as_ref(),
+                &self.sasl.cb,
                 validate,
                 self.mechanism_desc,
-                Side::SIDE,
+                self.side,
             );
             mechanism_data.need_cb_data(cbname, &EmptyProvider, f)
         }

@@ -33,7 +33,7 @@ mod tests {
     use crate::callback::EmptyCallback;
 
     use std::sync::Arc;
-    use crate::config::SASLConfig;
+    use crate::config::{ClientConfig, SASLConfig};
     use crate::mechname::Mechname;
 
     use crate::sasl::{SASL, SASLClient};
@@ -46,11 +46,10 @@ mod tests {
     fn test_this_cb() {
         let cbdata = b"foobar";
         let thiscb = ThisCb::new("this-cb", cbdata.to_vec().into_boxed_slice());
-        let config = SASLConfig::with_credentials(None, String::new(), String::new()).unwrap();
-        let sasl = SASLClient::new(Arc::new(config));
-        let session = sasl.start_suggested_cb(
-            thiscb,
-            [&Mechname::new(b"PLAIN").unwrap()].iter()
+        let config = ClientConfig::with_credentials(None, String::new(), String::new()).unwrap();
+        let sasl = SASLClient::with_cb(Arc::new(config), thiscb);
+        let session = sasl.start_suggested(
+            &[&Mechname::new(b"PLAIN").unwrap()]
         ).unwrap();
 
         let mut tagged_option = TaggedOption::<'_, NoValidation>(None);

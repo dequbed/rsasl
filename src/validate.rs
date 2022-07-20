@@ -30,10 +30,10 @@
 //! }
 //!
 //! # const MECHS: &[&'static Mechname] = &[];
-//! fn do_auth(config: Arc<ServerConfig>) {
+//! fn do_auth(config: Arc<SASLConfig>) {
 //!     let sasl = SASLServer::<MyValidation>::new(config);
 //!
-//!     let mut session = sasl.start_suggested(MECHS.iter()).unwrap();
+//!     let mut session = sasl.start_suggested(MECHS).unwrap();
 //!     // do authenthentication stepping and so on
 //!
 //!     // Since `SASLServer` was constructed with `MyValidation`, calling `validation()` returns
