@@ -10,7 +10,7 @@ use crate::registry::{distributed_slice, MECHANISMS};
 pub static ANONYMOUS: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unvalidated(b"ANONYMOUS"),
     priority: 100,
-    client: Some(|_sasl| Ok(Box::new(client::Anonymous))),
-    server: Some(|_sasl| Ok(Box::new(server::Anonymous))),
+    client: Some(|_sasl, _offered| Ok(Box::new(client::Anonymous))),
+    server: Some(|_sasl, _offered| Ok(Box::new(server::Anonymous))),
     first: Side::Client,
 };

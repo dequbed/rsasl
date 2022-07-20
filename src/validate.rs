@@ -53,6 +53,7 @@ impl<'a, V: Validation> tags::Type<'a> for V {
     type Reified = V::Value;
 }
 
+#[derive(Debug)]
 /// A default "Validation" that expects no data to be set.
 ///
 /// You will rarely use this type explicitly as it's rather useless.

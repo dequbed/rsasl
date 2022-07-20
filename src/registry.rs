@@ -30,7 +30,7 @@ use std::fmt::{Debug, Display, Formatter};
 
 #[cfg(feature = "registry_static")]
 pub use registry_static::*;
-use crate::config::{ClientSide, SASLConfig, ServerSide};
+use crate::config::SASLConfig;
 use crate::error::SASLError;
 pub use crate::session::Side;
 
@@ -40,21 +40,22 @@ pub type MatchFn = fn(name: &Mechname) -> bool;
 //        mechanism name. Required for GS2-* to figure out what GSSAPI mechanism to use. Nice to
 //        have for SCRAM so that SHA-1, SHA-256, SHA-512 with -PLUS variant don't result in 6
 //        separate registrations.
-pub type StartFn<Side> = fn(sasl: &SASLConfig<Side>) -> Result<Box<dyn Authentication>, SASLError>;
+pub type StartFn = fn(sasl: &SASLConfig, offered: &[&Mechname])
+    -> Result<Box<dyn Authentication>, SASLError>;
 
 #[derive(Copy, Clone)]
 /// Mechanism Implementation
 ///
-/// All mechanisms need to export a `static Mechanism` to be usable by rsasl, see the [module
-/// documentation][crate::registry] for details.
+/// All mechanisms need to export a `static Mechanism` to be usable by rsasl, see the
+/// [registry module documentation][crate::registry] for details.
 pub struct Mechanism {
     /// The Mechanism served by this implementation.
     pub mechanism: &'static Mechname,
 
     pub priority: usize,
 
-    pub client: Option<StartFn<ClientSide>>,
-    pub server: Option<StartFn<ServerSide>>,
+    pub client: Option<StartFn>,
+    pub server: Option<StartFn>,
 
     pub first: Side,
 }
@@ -94,12 +95,16 @@ pub struct MechanismSecurityFactors {
 }
 
 impl Mechanism {
-    pub fn client(&self, sasl: &SASLConfig<ClientSide>) -> Option<Result<Box<dyn Authentication>, SASLError>> {
-        self.client.map(|f| f(sasl))
+    pub fn client(&self, sasl: &SASLConfig, offered: &[&Mechname])
+        -> Option<Result<Box<dyn Authentication>, SASLError>>
+    {
+        self.client.map(|f| f(sasl, offered))
     }
 
-    pub fn server(&self, sasl: &SASLConfig<ServerSide>) -> Option<Result<Box<dyn Authentication>, SASLError>> {
-        self.server.map(|f| f(sasl))
+    pub fn server(&self, sasl: &SASLConfig, offered: &[&Mechname])
+        -> Option<Result<Box<dyn Authentication>, SASLError>>
+    {
+        self.server.map(|f| f(sasl, offered))
     }
 }
 
@@ -126,4 +131,9 @@ mod registry_static {
 
     #[distributed_slice]
     pub static MECHANISMS: [Mechanism] = [..];
+}
+#[cfg(not(feature = "registry_static"))]
+mod registry_static {
+    use super::Mechanism;
+    pub static MECHANISMS: [Mechanism] = [];
 }

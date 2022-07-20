@@ -242,7 +242,7 @@ impl<'a> Request<'a> {
     ///
     /// ```rust
     /// # use rsasl::callback::Request;
-    /// # use rsasl::error::SessionError;
+    /// # use rsasl::prelude::SessionError;
     /// # use rsasl::property::{OpenID20AuthenticateInBrowser, Saml20AuthenticateInBrowser};
     /// # fn do_something(url: &str) {}
     /// # fn do_something_else(url: &str) {}
@@ -283,7 +283,7 @@ impl<'a> Request<'a> {
     ///
     /// ```rust
     /// # use rsasl::callback::Request;
-    /// # use rsasl::error::SessionError;
+    /// # use rsasl::prelude::SessionError;
     /// # use rsasl::property::{AuthId, AuthzId, Password};
     /// # fn example(request: &mut Request<'_>) -> Result<(), SessionError> {
     /// request
@@ -302,7 +302,7 @@ impl<'a> Request<'a> {
     ///
     /// ```should_panic
     /// # use rsasl::callback::Request;
-    /// # use rsasl::error::SessionError;
+    /// # use rsasl::prelude::SessionError;
     /// # use rsasl::property::{AuthId, AuthzId, Password};
     /// # fn ask_user_for_password<'a>() -> &'a [u8] { &[] }
     /// # fn try_get_cached_password<'a>() -> Option<&'a [u8]> { Some(&[]) }
@@ -326,7 +326,8 @@ impl<'a> Request<'a> {
         &mut self,
         answer: &P::Value,
     ) -> Result<&mut Self, SessionError> {
-        if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
+        if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>()
+        {
             mech.satisfy(answer)?;
             Err(CallbackError::EarlyReturn(PhantomData).into())
         } else {

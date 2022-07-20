@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, SessionCallback};
 use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
-use crate::config::{ClientSide, ConfigSide, SASLConfig, ServerSide};
+use crate::config::{ConfigSide, SASLConfig};
 use crate::context::{build_context, Provider};
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
@@ -14,8 +14,9 @@ use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 use crate::property::{ChannelBindings, Property};
 use crate::registry::Mechanism;
+use crate::sasl::SASL;
 use crate::typed::{tags, TaggedOption};
-use crate::validate::{Validate, Validation, ValidationError};
+use crate::validate::{NoValidation, Validate, Validation, ValidationError};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -23,8 +24,8 @@ pub enum Side {
     Server,
 }
 
-pub type ClientSession<V, CB = NoChannelBindings> = Session<ClientSide, V, CB>;
-pub type ServerSession<V, CB = NoChannelBindings> = Session<ServerSide, V, CB>;
+pub type ClientSession<CB = NoChannelBindings> = Session<NoValidation, CB>;
+pub type ServerSession<V, CB = NoChannelBindings> = Session<V, CB>;
 
 /// This represents a single authentication exchange
 ///
@@ -48,23 +49,22 @@ pub type ServerSession<V, CB = NoChannelBindings> = Session<ServerSide, V, CB>;
 ///
 /// On a server-side session after a `Finished` is received validation data from the user
 /// callback may be extracted with a call to [`Session::validation`].
-pub struct Session<Side: ConfigSide, V: Validation, C> {
-    config: Arc<SASLConfig<Side>>,
-    chanbind_cb: C,
+pub struct Session<V: Validation, C> {
+    sasl: SASL<V, C>,
+    side: Side,
     mechanism: Box<dyn Authentication>,
     mechanism_desc: Mechanism,
-    validation: Option<V::Value>,
 }
 
 #[cfg(feature = "provider")]
-impl<Side: ConfigSide, V: Validation, C: ChannelBindingCallback> Session<Side, V, C> {
+impl<V: Validation, C: ChannelBindingCallback> Session<V, C> {
     pub(crate) fn new(
-        config: Arc<SASLConfig<Side>>,
-        chanbind_cb: C,
+        sasl: SASL<V, C>,
+        side: Side,
         mechanism: Box<dyn Authentication>,
         mechanism_desc: Mechanism,
     ) -> Self {
-        Self { config, chanbind_cb, mechanism, mechanism_desc, validation: None }
+        Self { sasl, side, mechanism, mechanism_desc }
     }
 
     #[inline(always)]
@@ -83,7 +83,7 @@ impl<Side: ConfigSide, V: Validation, C: ChannelBindingCallback> Session<Side, V
     /// this method returns `false` then the first call to `step` or `step64` can only be
     /// performed after input data was received from the other party.
     pub fn are_we_first(&self) -> bool {
-        Side::SIDE == self.mechanism_desc.first
+        self.side == self.mechanism_desc.first
     }
 
     /// Return the name of the mechanism in use
@@ -120,11 +120,11 @@ impl<Side: ConfigSide, V: Validation, C: ChannelBindingCallback> Session<Side, V
         let (state, written) = {
             let validate = Validate::new::<V>(&mut tagged_option);
             let mut mechanism_data = MechanismData::new(
-                self.config.callback.as_ref(),
-                &self.chanbind_cb,
+                self.sasl.config.callback.as_ref(),
+                &self.sasl.cb,
                 validate,
                 self.mechanism_desc,
-                Side::SIDE,
+                self.side,
             );
             if let Some(input) = input {
                 self.mechanism
@@ -135,7 +135,7 @@ impl<Side: ConfigSide, V: Validation, C: ChannelBindingCallback> Session<Side, V
         };
 
         if state == State::Finished {
-            self.validation = tagged_option.0.take();
+            self.sasl.validation = tagged_option.0.take();
         }
 
         Ok((state, written))
@@ -155,12 +155,12 @@ impl<Side: ConfigSide, V: Validation, C: ChannelBindingCallback> Session<Side, V
     /// This method will most likely return `None` until `step` has returned with
     /// `State::Finished`, but it not guaranteed to do so.
     pub fn validation(&mut self) -> Option<V::Value> {
-        self.validation.take()
+        self.sasl.validation.take()
     }
 }
 
 #[cfg(feature = "provider_base64")]
-impl<Side: ConfigSide, V: Validation, C: ChannelBindingCallback> Session<Side, V, C> {
+impl<V: Validation, C: ChannelBindingCallback> Session<V, C> {
     /// Perform one step of SASL authentication, base64 encoded.
     ///
     /// *requires feature `provider_base64`*
@@ -226,7 +226,11 @@ impl MechanismData<'_> {
         request: &'b mut Request<'a>,
     ) -> Result<(), SessionError> {
         let context = build_context(provider);
-        self.callback.callback(&self.session_data, context, request)
+        match self.callback.callback(&self.session_data, context, request) {
+            Ok(()) => Ok(()),
+            Err(SessionError::CallbackError(CallbackError::EarlyReturn(_))) => Ok(()),
+            Err(e) => Err(e),
+        }
     }
 
     pub(crate) fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), SessionError>
@@ -242,19 +246,13 @@ impl MechanismData<'_> {
         }
     }
 
-    pub(crate) fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(),
-        SessionError>
+    pub(crate) fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(), SessionError>
     where
         T: Property,
         C: CallbackRequest<T::Value>,
     {
         let mut tagged_option = TaggedOption::<'_, tags::RefMut<Satisfy<T>>>(Some(mechcb));
-        self.callback(provider, Request::new_satisfy::<T>(&mut tagged_option))?;
-        if tagged_option.is_some() {
-            Err(SessionError::CallbackError(CallbackError::NoCallback))
-        } else {
-            Ok(())
-        }
+        self.callback(provider, Request::new_satisfy::<T>(&mut tagged_option))
     }
 
     pub(crate) fn need_with<T, F, G>(
@@ -379,7 +377,7 @@ pub(crate) mod tests {
     use super::*;
     use crate::validate::Validation;
 
-    impl<V: Validation> Session<V> {
+    impl<Side: ConfigSide, V: Validation, CB: CBProvider> Session<Side, V, CB> {
         pub fn get_cb_data<'a, F, G>(
             &'a self,
             cbname: &str,
@@ -389,12 +387,12 @@ pub(crate) mod tests {
             where
                 F: FnMut(&[u8]) -> Result<G, SessionError>,
         {
-            let mechanism_data = MechanismData::new(
-                self.callback.as_ref(),
-                self.chanbind_cb.as_ref(),
+            let mut mechanism_data = MechanismData::new(
+                self.config.callback.as_ref(),
+                &self.chanbind_cb,
                 validate,
                 self.mechanism_desc,
-                self.side,
+                Side::SIDE,
             );
             mechanism_data.need_cb_data(cbname, &EmptyProvider, f)
         }

@@ -1,31 +1,8 @@
-use rsasl::callback::{Request, SessionCallback, Context};
-use rsasl::error::SessionError;
-use rsasl::mechname::Mechname;
-use rsasl::property::{AuthId, Password};
-use rsasl::session::{SessionData, State};
-use rsasl::validate::NoValidation;
-use rsasl::sasl::SASL;
+use rsasl::prelude::*;
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
-
-struct Properties {
-    username: String,
-    password: String,
-}
-impl SessionCallback for Properties {
-    fn callback(
-        &self,
-        _session_data: &SessionData,
-        _context: &Context,
-        request: &mut Request<'_>,
-    ) -> Result<(), SessionError> {
-        request
-            .satisfy::<AuthId>(self.username.trim())?
-            .satisfy::<Password>(self.password.trim().as_bytes())?;
-        Ok(())
-    }
-}
+use rsasl::validate::NoValidation;
 
 pub fn main() {
     // Read the "authcid" from stdin
@@ -44,17 +21,20 @@ pub fn main() {
         return;
     }
     print!("\n");
+    let config = ClientConfig::with_credentials(None, username, password).unwrap();
 
     // Create an untyped SASL because we won't store/retrieve information in the context since
     // we don't use callbacks.
-    let sasl = SASL::new(Arc::new(Properties { username, password }));
+    let sasl = SASL::client(Arc::new(config));
 
+    println!("{:?}", &sasl);
+
+    let offered = [Mechname::new(b"PLAIN").unwrap()];
     // Usually you would first agree on a mechanism with the server, for demostration purposes
     // we directly start a PLAIN "exchange"
     let mut session = sasl
-        .client_start(Mechname::new(b"PLAIN").unwrap())
-        .unwrap()
-        .without_channel_binding::<NoValidation>();
+        .client_start_suggested(&offered)
+        .unwrap();
 
     // Do an authentication step. In a PLAIN exchange there is only one step, with no data.
     let mut out = Cursor::new(Vec::new());

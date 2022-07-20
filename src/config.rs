@@ -38,7 +38,26 @@ pub struct ClientSide {
 /// Configuration for a client-side SASL authentication
 ///
 /// This is an easier to use type shortcut for the sided [`SASLConfig`] type.
-pub type ClientConfig = SASLConfig<ClientSide>;
+pub struct ClientConfig;
+impl ClientConfig {
+    pub fn builder() -> ConfigBuilder<ClientSide, WantMechanisms> {
+        ConfigBuilder::new(ClientSide { _marker: PhantomData })
+    }
+
+    /// Construct a SASLConfig with static credentials
+    ///
+    ///
+    pub fn with_credentials(authzid: Option<String>, authid: String, password: String)
+        -> Result<SASLConfig, SASLError>
+    {
+        let callback = CredentialsProvider {
+            authid, password, authzid
+        };
+        Self::builder()
+            .with_defaults()
+            .with_callback(Box::new(callback), false)
+    }
+}
 
 pub struct ServerSide {
     _marker: PhantomData<()>,
@@ -47,7 +66,18 @@ pub struct ServerSide {
 /// Configuration for a server-side SASL authentication
 ///
 /// This is an easier to use type shortcut for the sided [`SASLConfig`] type.
-pub type ServerConfig = SASLConfig<ServerSide>;
+pub struct ServerConfig {
+    config: SASLConfig,
+}
+
+impl ServerConfig {
+    pub fn builder() -> ConfigBuilder<ServerSide, WantMechanisms> {
+        ConfigBuilder::new(ServerSide { _marker: PhantomData })
+    }
+    pub(crate) fn new(config: SASLConfig) -> Self {
+        Self { config }
+    }
+}
 
 /// Sided shareable configuration for a SASL provider
 ///
@@ -57,83 +87,66 @@ pub type ServerConfig = SASLConfig<ServerSide>;
 ///
 /// A config is pinned to either the client or server side of an authentication, with the typedefs
 /// [`ClientConfig`] and [`ServerConfig`] being provided as convenience shorthands.
-pub struct SASLConfig<Side: ConfigSide> {
-    side: Side,
+pub struct SASLConfig {
     pub(crate) callback: Box<dyn SessionCallback>,
 
-    filter: fn(a: &&Mechanism) -> bool,
-    sorter: fn(a: &&Mechanism, b: &&Mechanism) -> Ordering,
+    pub(crate) filter: fn(a: &&Mechanism) -> bool,
+    pub(crate) sorter: fn(a: &&Mechanism, b: &&Mechanism) -> Ordering,
 
     #[cfg(feature = "registry_dynamic")]
     dynamic_mechs: Vec<&'static Mechanism>,
+
+    pub(crate) provides_channel_bindings: bool,
 }
-impl<Side: ConfigSide> fmt::Debug for SASLConfig<Side> {
+impl fmt::Debug for SASLConfig {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         let mut d = f.debug_struct("SASLConfig");
+        d.field("static mechanisms", &crate::registry::MECHANISMS.as_ref());
         #[cfg(feature = "registry_dynamic")]
         d.field("dynamic mechanisms", &self.dynamic_mechs);
         d.finish()
     }
 }
 
-impl SASLConfig<ClientSide> {
-    pub fn builder() -> ConfigBuilder<ClientSide, WantMechanisms> {
-        ConfigBuilder::new(ClientSide { _marker: PhantomData })
-    }
-
-    /// Construct a SASLConfig with static credentials
-    ///
-    ///
-    pub fn with_credentials(authzid: Option<String>, authid: String, password: String)
-        -> Result<Self, SASLError>
-    {
-        let callback = CredentialsProvider {
-            authid, password, authzid
-        };
-        Self::builder()
-            .with_defaults()
-            .with_callback(Box::new(callback))
-    }
-}
-impl SASLConfig<ServerSide> {
-    pub fn builder() -> ConfigBuilder<ServerSide, WantMechanisms> {
-        ConfigBuilder::new(ServerSide { _marker: PhantomData })
-    }
-}
-impl<Side: ConfigSide> SASLConfig<Side> {
+impl SASLConfig {
     #[cfg(not(feature = "registry_dynamic"))]
     pub(crate) fn new(
-        side: Side,
         callback: Box<dyn SessionCallback>,
         filter: FilterFn,
         sorter: SorterFn,
+        provides_channel_bindings: bool,
     ) -> Result<Self, SASLError> {
         Ok(Self {
             side,
             callback,
             filter,
             sorter,
+            provides_channel_bindings,
         })
     }
     #[cfg(feature = "registry_dynamic")]
     pub(crate) fn new(
-        side: Side,
         callback: Box<dyn SessionCallback>,
         filter: FilterFn,
         sorter: SorterFn,
         dynamic_mechs: Vec<&'static Mechanism>,
+        provides_channel_bindings: bool,
     ) -> Result<Self, SASLError> {
         Ok(Self {
-            side,
             callback,
             filter,
             sorter,
             dynamic_mechs,
+            provides_channel_bindings,
         })
     }
 
-    fn mech_list(&self) -> impl Iterator<Item = &Mechanism> {
-        [].iter()
+    pub(crate) fn mech_list(&self) -> impl Iterator<Item = &Mechanism> {
+        crate::registry::MECHANISMS.iter()
+    }
+
+    pub fn init(&mut self) {
+        crate::init::register_builtin(self)
     }
 }
 

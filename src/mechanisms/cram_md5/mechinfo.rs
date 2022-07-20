@@ -13,7 +13,7 @@ use crate::registry::{distributed_slice, MECHANISMS};
 pub static CRAM_MD5: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unvalidated(b"CRAM-MD5"),
     priority: 0,
-    client: Some(|_sasl| {
+    client: Some(|_sasl, _offered| {
         CMechanismStateKeeper::build(MechanismVTable {
             init: None,
             done: None,
@@ -24,7 +24,7 @@ pub static CRAM_MD5: Mechanism = Mechanism {
             decode: None,
         })
     }),
-    server: Some(|_sasl| {
+    server: Some(|_sasl, _offered| {
         CMechanismStateKeeper::build(MechanismVTable {
             init: None,
             done: None,
