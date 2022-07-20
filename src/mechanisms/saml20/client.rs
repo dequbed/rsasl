@@ -77,8 +77,7 @@ pub unsafe fn _gsasl_saml20_client_step(
     match (*state).step {
         0 => {
             let authzid: *const libc::c_char = gsasl_property_get(sctx, GSASL_AUTHZID);
-            let idp: *const libc::c_char =
-                gsasl_property_get(sctx, GSASL_SAML20_IDP_IDENTIFIER);
+            let idp: *const libc::c_char = gsasl_property_get(sctx, GSASL_SAML20_IDP_IDENTIFIER);
             if idp.is_null() || *idp == 0 {
                 return GSASL_NO_SAML20_IDP_IDENTIFIER as libc::c_int;
             }

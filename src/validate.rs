@@ -1,185 +1,120 @@
-use std::fmt::{Debug, Display, Formatter};
-use crate::callback::Query;
+//! Extracting information from authentication exchanges
+//!
+//! For the server side of an authentication it is usually required to be able to extract some
+//! meaningful information from the authentication, e.g. the user that was just authenticated.
+//!
+//! [`Validation`] provide a facility to enable exactly that, by enabling the user-provided
+//! callback to send data to the protocol implementation (i.e. the code calling `Session::step`
+//! or `step64`) while having access to the entire context of the authentication exchange.
+//!
+//! The type of this data can be freely selected by the protocol implementation.
+//!
+//! To do so a protocol implementation needs to implement the `Validation` trait on a marker type
+//! and binds it on the `SASLServer` used. This marker type and the associated Value must both be
+//! visible to the user providing the callback.
+//!
+//! ```
+//! # use std::sync::Arc;
+//! use rsasl::prelude::*;
+//! use rsasl::validate::Validation;
+//!
+//! pub struct MyDataType {
+//!     pub username: String,
+//!     pub authzid: Option<String>
+//! }
+//!
+//! pub struct MyValidation;
+//! impl Validation for MyValidation {
+//!     // The Value can be any type that's `Sized` and `'static`.
+//!     type Value = MyDataType;
+//! }
+//!
+//! # const MECHS: &[&'static Mechname] = &[];
+//! fn do_auth(config: Arc<ServerConfig>) {
+//!     let sasl = SASLServer::<MyValidation>::new(config);
+//!
+//!     let mut session = sasl.start_suggested(MECHS.iter()).unwrap();
+//!     // do authenthentication stepping and so on
+//!
+//!     // Since `SASLServer` was constructed with `MyValidation`, calling `validation()` returns
+//!     // `Option<MyDataType>`
+//!     let my_data_type: MyDataType = session.validation().expect("user callback didn't validate");
+//! }
+//! ```
 
+use crate::typed::{tags, Erased, TaggedOption};
+use std::any::TypeId;
+use thiserror::Error;
+
+pub trait Validation: 'static {
+    type Value: 'static;
+}
+impl<'a, V: Validation> tags::Type<'a> for V {
+    type Reified = V::Value;
+}
 
 #[derive(Debug)]
-pub struct ValidationDefinition {
-    pub name: &'static str,
-    pub display: &'static str,
-}
-impl ValidationDefinition {
-    pub const fn new(name: &'static str, display: &'static str) -> Self {
-        Self { name, display }
-    }
+/// A default "Validation" that expects no data to be set.
+///
+/// You will rarely use this type explicitly as it's rather useless.
+pub struct NoValidation;
+impl Validation for NoValidation {
+    type Value = ();
 }
 
-pub trait ValidationQ: Query {
-    fn validation() -> Validation where Self: Sized;
+#[repr(transparent)]
+/// A type-erased validation request from a protocol crate
+///
+/// `Validate` behave very similar to the usual `Request`, but can only store 'Sized' values.
+/// Additionally their data types are defined by the protocol implementation instead of the
+/// mechanism.
+pub struct Validate<'a>(dyn Erased<'a> + 'a);
+impl Validate<'_> {
+    pub(crate) fn new<'opt, V: Validation>(opt: &'opt mut TaggedOption<'_, V>) -> &'opt mut Self {
+        unsafe { std::mem::transmute(opt as &mut dyn Erased) }
+    }
 }
+impl<'a> Validate<'a> {
+    #[inline(always)]
+    pub fn is<T: Validation>(&self) -> bool {
+        self.0.tag_id() == TypeId::of::<T>()
+    }
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Validation {
-    name: &'static str,
-    display: &'static str,
-}
-impl Debug for Validation {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("Validation").field(&self.name).finish()
-    }
-}
-impl Display for Validation {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.display)
-    }
-}
-impl Validation {
-    pub const fn new(definition: &'static ValidationDefinition) -> Self {
-        Self {
-            name: definition.name,
-            display: definition.display,
+    /// Finalize the authentication exchange by providing a last value to the mechanism
+    ///
+    /// The requested value of a [`Validation`] depends on the protocol implementation. It's
+    /// usually designed to extract relevant information out of the authentication exchange.
+    pub fn finalize<T: Validation>(&mut self, outcome: T::Value) -> Result<&mut Self, ()> {
+        if let Some(result @ TaggedOption(Option::None)) = self.0.downcast_mut::<T>() {
+            *result = TaggedOption(Some(outcome));
+            Err(())
+        } else {
+            Ok(self)
         }
     }
-}
 
-pub mod validations {
-    use super::*;
-
-    /// Validation using Username/Password combination
-    ///
-    /// An application MUST in this case check if the given [`Password`] matches the given
-    /// [`AuthId`] and SHOULD check if the [`AuthzId`] is empty (if authorization id handling is not
-    /// implemented) or if the given user is allowed to authorize as the given authorization id (if
-    /// handling is implemented).
-    pub const SIMPLE: Validation = Validation::new(&ValidationDefinition::new(
-        "simple",
-        "username/password based authentication",
-    ));
-
-    pub const OPENID20: Validation = Validation::new(&ValidationDefinition::new(
-        "openid20",
-        "validate the users oidc token",
-    ));
-
-    pub const SAML20: Validation = Validation::new(&ValidationDefinition::new(
-        "saml20",
-        "validate the users saml token",
-    ));
-
-    pub const SECURID: Validation = Validation::new(&ValidationDefinition::new(
-        "securid",
-        "validate the user using SecurID",
-    ));
-
-    /// GSSAPI validation
-    ///
-    /// This validation is called at the end of a GSSAPI validation. The properties available depend
-    /// on the exact GSSAPI mechanism but with Kerberos V5 (the ubiquitous default) [`Authzid`] and
-    /// [`GssapiDisplayName`] should be checked containing the authZid and principal name respectively.
-    pub const GSSAPI: Validation = Validation::new(&ValidationDefinition::new(
-        "gssapi",
-        "validate the users gssapi authentication",
-    ));
-
-    /// Anonymous validation
-    ///
-    /// The anonymous authentication allows clients to specify a "token" of 0-255 utf-8 code points
-    /// to be provided to the server. This token can be accessed using the [`AnonymousToken`] property.
-    pub const ANONYMOUS: Validation = Validation::new(&ValidationDefinition::new(
-        "anonymous",
-        "validate the provided anonymous token",
-    ));
-
-    /// External validation
-    ///
-    /// This validation relies on external information outside the protocol connection itself, e.g.
-    /// TLS client certificates, originating UID/GID of an UNIX socket connection, or source IP. No
-    /// properties are provided.
-    pub const EXTERNAL: Validation = Validation::new(&ValidationDefinition::new(
-        "external",
-        "validate the connection using External information",
-    ));
-}
-
-#[cfg(testn)]
-mod tests {
-    use super::*;
-    use crate::error::SessionError;
-    use crate::error::SessionError::NoValidate;
-    use crate::session::SessionData;
-    use crate::validate::validations::{OPENID20, SIMPLE};
-    use crate::{Callback, Mechname};
-    use std::ptr::{NonNull};
-
-    #[test]
-    fn test_validation_callback() {
-        struct TestCallback;
-        impl Callback for TestCallback {
-            fn validate(
-                &self,
-                _session: &mut SessionData,
-                validation: Validation,
-            ) -> Result<(), SessionError> {
-                match validation {
-                    SIMPLE => {
-                        println!("Hey I know how to validate simple!");
-                        Ok(())
-                    }
-                    _ => {
-                        println!(
-                            "Huh, I don't know how to validate {} ({:?})",
-                            validation, validation
-                        );
-                        Err(NoValidate { validation })
-                    }
+    pub fn with<T, F, E>(&mut self, f: F) -> Result<&mut Self, ValidationError>
+    where
+        T: Validation,
+        F: FnOnce() -> Result<T::Value, E>,
+        E: std::error::Error + Send + Sync + 'static,
+    {
+        if let Some(result @ TaggedOption(Option::None)) = self.0.downcast_mut::<T>() {
+            match f() {
+                Ok(outcome) => {
+                    *result = TaggedOption(Some(outcome));
+                    Ok(self)
                 }
+                Err(error) => Err(ValidationError::Boxed(Box::new(error).into())),
             }
+        } else {
+            Ok(self)
         }
-
-        let cb = TestCallback;
-        let s = unsafe { &mut *NonNull::dangling().as_ptr() as &mut SessionData };
-        let mech = Mechname::new(b"LOGIN").unwrap();
-        cb.validate(s, SIMPLE, mech).unwrap();
-        cb.validate(s, OPENID20, mech).unwrap_err();
     }
+}
 
-    #[test]
-    fn test_matchable() {
-        // This is an alternative idea for how to do Validation and possibly Property. To be
-        // evaluated
-        trait Foo {}
-        #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
-        struct MatchTest {
-            inner: *const dyn Foo,
-        }
-        struct FooI;
-        impl Foo for FooI {}
-        struct FooJ;
-        impl Foo for FooJ {}
-        struct FooK;
-        impl Foo for FooK {}
-        const FOOC: &'static dyn Foo = &FooI;
-        const FOOD: &'static dyn Foo = &FooJ;
-        const FOOE: &'static dyn Foo = &FooK;
-        const FOOI: MatchTest = MatchTest {
-            inner: FOOC as *const dyn Foo,
-        };
-        const FOOJ: MatchTest = MatchTest {
-            inner: FOOD as *const dyn Foo,
-        };
-        const FOOK: MatchTest = MatchTest {
-            inner: FOOE as *const dyn Foo,
-        };
-
-        fn t(t: MatchTest) {
-            match t {
-                FOOI => println!("known, fooi!"),
-                FOOJ => println!("known, fooj!"),
-                _ => println!("other"),
-            }
-        }
-
-        t(FOOI);
-        t(FOOJ);
-        t(FOOK)
-    }
+#[derive(Debug, Error)]
+pub enum ValidationError {
+    #[error(transparent)]
+    Boxed(Box<dyn std::error::Error + Send + Sync>),
 }

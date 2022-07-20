@@ -1,11 +1,12 @@
-
 use crate::mechanism::Authentication;
-use crate::session::Step::Done;
-use crate::session::{MechanismData, StepResult};
-use crate::vectored_io::VectoredWriter;
-use std::io::Write;
+use crate::session::{MechanismData, State, StepResult};
 
-use crate::mechanisms::common::properties::{Credentials, SimpleCredentials};
+use crate::callback::CallbackError;
+use crate::error::SessionError;
+use std::io::Write;
+use crate::context::EmptyProvider;
+
+use crate::property::{AuthId, AuthzId, Password};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Plain;
@@ -17,26 +18,33 @@ impl Authentication for Plain {
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
     ) -> StepResult {
-        let Credentials { authid, authzid, password } = session.need::<SimpleCredentials>(())?;
+        let mut len = 0usize;
+        let res = session.need_with::<AuthzId, _, _>(&EmptyProvider, &mut |authzid| {
+            writer.write_all(authzid.as_bytes())?;
+            len += authzid.len();
+            Ok(())
+        });
+        match res {
+            Ok(_) => {}
+            Err(SessionError::CallbackError(CallbackError::NoCallback)) => {}
+            Err(other) => return Err(other.into()),
+        }
+        len += writer.write(&[0])?;
 
-        let authzidbuf = if let Some(authz) = &authzid {
-            authz.as_bytes()
-        } else {
-            &[]
-        };
+        session.need_with::<AuthId, _, _>(&EmptyProvider, &mut |authid| {
+            writer.write_all(authid.as_bytes())?;
+            len += authid.len();
+            Ok(())
+        })?;
+        len += writer.write(&[0])?;
 
-        let data: [&[u8]; 5] = [
-            authzidbuf,
-            &[0],
-            authid.as_bytes(),
-            &[0],
-            password.as_bytes(),
-        ];
-        let mut vecw = VectoredWriter::new(data);
+        session.need_with::<Password, _, _>(&EmptyProvider, &mut |password| {
+            writer.write_all(password)?;
+            len += password.len();
+            Ok(())
+        })?;
 
-        let written = vecw.write_all_vectored(writer)?;
-
-        Ok(Done(Some(written)))
+        Ok((State::Finished, Some(len)))
     }
 }
 
@@ -49,7 +57,6 @@ mod test {
     use crate::Side;
     use std::io::Cursor;
     use std::sync::Arc;
-
 
     #[test]
     fn split_writer() {

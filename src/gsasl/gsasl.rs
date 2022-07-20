@@ -1,14 +1,13 @@
-use crate::error::Gsasl;
+use crate::error::{Gsasl, SASLError};
 use crate::error::SessionError;
 use crate::gsasl::consts::{GSASL_NEEDS_MORE, GSASL_OK, GSASL_UNKNOWN_MECHANISM};
 use crate::mechanism::Authentication;
-use crate::session::Step::{Done, NeedsMore};
-use crate::session::{MechanismData, StepResult};
-use crate::{SASLError, Shared};
+use crate::session::{MechanismData, State, StepResult};
 use libc::{c_char, size_t};
 use std::fmt::{Debug, Formatter};
 use std::io::Write;
 use std::ptr::NonNull;
+use crate::Shared;
 
 #[derive(Copy, Clone)]
 pub struct Gsasl_mechanism {
@@ -86,7 +85,7 @@ impl CMechanismStateKeeper {
         if let Some(start) = vtable.start {
             let rc = unsafe { start(&Shared, &mut mech_data) };
             if rc != GSASL_OK as i32 {
-                return Err(SASLError::Gsasl(rc as libc::c_uint));
+                return Err(SASLError::Gsasl(Gsasl(rc as libc::c_uint)));
             }
         }
 
@@ -135,9 +134,9 @@ impl Authentication for CMechanismStateKeeper {
                     &mut outlen,
                 );
                 if res == GSASL_OK as libc::c_int {
-                    Ok(Done(write_output(writer, output, outlen)?))
+                    Ok((State::Finished, write_output(writer, output, outlen)?))
                 } else if res == GSASL_NEEDS_MORE as libc::c_int {
-                    Ok(NeedsMore(write_output(writer, output, outlen)?))
+                    Ok((State::Running, write_output(writer, output, outlen)?))
                 } else {
                     Err(Gsasl(res as libc::c_uint).into())
                 }

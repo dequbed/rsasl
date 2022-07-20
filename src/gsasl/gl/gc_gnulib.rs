@@ -1,6 +1,6 @@
 use ::libc;
-use digest::{Digest, Mac};
 use digest::generic_array::GenericArray;
+use digest::{Digest, Mac};
 use libc::{__errno_location, getrandom, size_t, ssize_t};
 use md5::Md5;
 use sha1::Sha1;

@@ -1,4 +1,4 @@
-//! # Mechanism registry
+//! Mechanism registry *only available with feature `unstable_custom_mechanism`*
 //!
 //! The Registry allows users to configure which mechanisms are enabled and their order of
 //! importance.
@@ -18,45 +18,7 @@
 //!
 //! ## Static compile-time registry using dtolnay's `linkme` crate
 //!
-//! When compiled with the `registry_static` feature flag rsasl has a static registry collecting
-//! all available mechanisms at linking time. To submit a crate you need to define a pub `static`
-//! [`MechanismClient`] and/or [`MechanismServer`] that are annotated with the
-//! [`distributed_slice`] proc-macro (re-exported from `linkme` by this module):
-//!
-//! ```rust
-//! # use std::io::Write;
-//! # use rsasl::mechanism::Authentication;
-//! use rsasl::session::{MechanismData, StepResult, Side};
-//! # use rsasl::mechname::Mechname;
-//!
-//! // X-MYCOOLMECHANISM doesn't store any data between steps so it's an empty struct here
-//! pub struct MyCoolMechanism;
-//! impl Authentication for MyCoolMechanism {
-//! # fn step(&mut self, session: &mut MechanismData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
-//! #     unimplemented!()
-//! # }
-//! }
-//!
-//! use rsasl::registry::Mechanism;
-//!
-//! // Since the static registry requires a feature flag, downstream crates should gate
-//! // automatic registration the same way. Either by matching on `feature = "rsasl/registry_static"
-//! // or by adding a feature flag that enables "rsasl/registry_static".
-//! #[cfg(feature = "rsasl/registry_static")]
-//! use rsasl::registry::{distributed_slice, MECHANISMS};
-//!
-//! #[cfg_attr(feature = "rsasl/registry_static", distributed_slice(MECHANISMS))]
-//! // It is *crucial* that these `static`s are marked `pub` and reachable by dependent crates, see
-//! // the Note below.
-//! pub static MYCOOLMECHANISM: Mechanism = Mechanism {
-//!     mechanism: Mechname::const_new_unvalidated(b"X-MYCOOLMECHANISM"),
-//!     priority: 1100,
-//!     client: Some(|_sasl| Ok(Box::new(MyCoolMechanism))),
-//!     // In this case only the client side is implemented
-//!     server: None,
-//!     first: Side::Client,
-//! };
-//! ```
+// TODO: Explain static registry
 //!
 //! Note: Due to [rustc issue #47384](https://github.com/rust-lang/rust/issues/47384) the static(s)
 //! for your Mechanism MUST be marked `pub` and be reachable by dependent crates, otherwise they
@@ -64,11 +26,13 @@
 
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
-use crate::{SASLError, Side, SASL};
 use std::fmt::{Debug, Display, Formatter};
 
 #[cfg(feature = "registry_static")]
 pub use registry_static::*;
+use crate::config::SASLConfig;
+use crate::error::SASLError;
+pub use crate::session::Side;
 
 pub type MatchFn = fn(name: &Mechname) -> bool;
 
@@ -76,13 +40,14 @@ pub type MatchFn = fn(name: &Mechname) -> bool;
 //        mechanism name. Required for GS2-* to figure out what GSSAPI mechanism to use. Nice to
 //        have for SCRAM so that SHA-1, SHA-256, SHA-512 with -PLUS variant don't result in 6
 //        separate registrations.
-pub type StartFn = fn(sasl: &SASL) -> Result<Box<dyn Authentication>, SASLError>;
+pub type StartFn = fn(sasl: &SASLConfig, offered: &[&Mechname])
+    -> Result<Box<dyn Authentication>, SASLError>;
 
 #[derive(Copy, Clone)]
 /// Mechanism Implementation
 ///
-/// All mechanisms need to export a `static Mechanism` to be usable by rsasl, see the [module
-/// documentation][crate::registry] for details.
+/// All mechanisms need to export a `static Mechanism` to be usable by rsasl, see the
+/// [registry module documentation][crate::registry] for details.
 pub struct Mechanism {
     /// The Mechanism served by this implementation.
     pub mechanism: &'static Mechname,
@@ -130,12 +95,16 @@ pub struct MechanismSecurityFactors {
 }
 
 impl Mechanism {
-    pub fn client(&self, sasl: &SASL) -> Option<Result<Box<dyn Authentication>, SASLError>> {
-        self.client.map(|f| f(sasl))
+    pub fn client(&self, sasl: &SASLConfig, offered: &[&Mechname])
+        -> Option<Result<Box<dyn Authentication>, SASLError>>
+    {
+        self.client.map(|f| f(sasl, offered))
     }
 
-    pub fn server(&self, sasl: &SASL) -> Option<Result<Box<dyn Authentication>, SASLError>> {
-        self.server.map(|f| f(sasl))
+    pub fn server(&self, sasl: &SASLConfig, offered: &[&Mechname])
+        -> Option<Result<Box<dyn Authentication>, SASLError>>
+    {
+        self.server.map(|f| f(sasl, offered))
     }
 }
 
@@ -163,10 +132,8 @@ mod registry_static {
     #[distributed_slice]
     pub static MECHANISMS: [Mechanism] = [..];
 }
-
-#[cfg(feature = "registry_dynamic")]
-impl SASL {
-    pub fn register(&mut self, mechanism: &'static Mechanism) {
-        self.dynamic_mechs.push(mechanism)
-    }
+#[cfg(not(feature = "registry_static"))]
+mod registry_static {
+    use super::Mechanism;
+    pub static MECHANISMS: [Mechanism] = [];
 }

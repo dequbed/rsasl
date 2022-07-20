@@ -1,20 +1,10 @@
-use rsasl::mechname::Mechname;
-use rsasl::property::{AuthId, Password};
-use rsasl::session::Step::{Done, NeedsMore};
-use rsasl::SASL;
+use rsasl::prelude::*;
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
+use rsasl::validate::NoValidation;
 
 pub fn main() {
-    // Create an untyped SASL because we won't store/retrieve information in the context since
-    // we don't use callbacks.
-    let sasl = SASL::new();
-
-    // Usually you would first agree on a mechanism with the server, for demostration purposes
-    // we directly start a PLAIN "exchange"
-    let mut session = sasl.client_start(Mechname::new(b"PLAIN").unwrap()).unwrap();
-
     // Read the "authcid" from stdin
     let mut username = String::new();
     println!("Enter username to encode for PLAIN auth:");
@@ -31,27 +21,34 @@ pub fn main() {
         return;
     }
     print!("\n");
+    let config = ClientConfig::with_credentials(None, username, password).unwrap();
 
-    // Set the username that will be used in the PLAIN authentication
-    session.set_property::<AuthId>(Arc::new(username));
+    // Create an untyped SASL because we won't store/retrieve information in the context since
+    // we don't use callbacks.
+    let sasl = SASLClient::new(Arc::new(config));
 
-    // Now set the password that will be used in the PLAIN authentication
-    session.set_property::<Password>(Arc::new(password));
+    let offered = [Mechname::new(b"PLAIN").unwrap()];
+    // Usually you would first agree on a mechanism with the server, for demostration purposes
+    // we directly start a PLAIN "exchange"
+    let mut session = sasl
+        .start_suggested(&offered)
+        .unwrap();
 
     // Do an authentication step. In a PLAIN exchange there is only one step, with no data.
     let mut out = Cursor::new(Vec::new());
     let data: Option<&[u8]> = None;
-    let step_result = session.step(data, &mut out).unwrap();
+    let (state, written) = session.step(data, &mut out).unwrap();
 
-    match step_result {
-        Done(Some(_)) => {
-            let buffer = out.into_inner();
-            println!("Encoded bytes: {:?}", buffer);
-            println!("As string: {:?}", std::str::from_utf8(&buffer.as_ref()));
+    match state {
+        State::Running => panic!("PLAIN exchange took more than one step"),
+        State::Finished => {
+            if written.is_some() {
+                let buffer = out.into_inner();
+                println!("Encoded bytes: {:?}", buffer);
+                println!("As string: {:?}", std::str::from_utf8(&buffer.as_ref()));
+            } else {
+                panic!("PLAIN exchange produced no output")
+            }
         }
-        Done(None) => {
-            panic!("PLAIN exchange produced no output")
-        }
-        NeedsMore(_) => assert!(false, "PLAIN exchange took more than one step"),
     }
 }

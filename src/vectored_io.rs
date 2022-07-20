@@ -56,7 +56,14 @@ impl<'io, const N: usize> VectoredWriter<'io, N> {
 
         let mut written = 0;
         while {
-            written += self.write_vectored_inner(&mut bufs, &mut writer)?;
+            let len = self.write_vectored_inner(&mut bufs, &mut writer)?;
+            // Check the corner case that Ok(0) was returned because the underlying writer is
+            // exhausted.
+            if len == 0 {
+                return Ok(written);
+            }
+
+            written += len;
             self.skip < N
         } {}
 

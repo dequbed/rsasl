@@ -1,68 +1,78 @@
+use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::marker::PhantomData;
 
-
-
+use thiserror::Error;
 
 use digest::crypto_common::BlockSizeUser;
-use digest::Digest;
 use digest::generic_array::GenericArray;
+use digest::Digest;
 
 use rand::Rng;
 
+use crate::context::EmptyProvider;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
+use crate::mechanism::Authentication;
+
 use crate::mechanisms::scram::parser::{
-    ClientFinal, ClientFirstMessage,
-    GS2CBindFlag, SaslName, ServerErrorValue, ServerFinal, ServerFirst,
+    ClientFinal, ClientFirstMessage, GS2CBindFlag, SaslName, ServerErrorValue, ServerFinal,
+    ServerFirst,
 };
-use crate::mechanisms::scram::tools::{find_proofs, hash_password, DOutput, generate_nonce};
-use crate::session::Step::NeedsMore;
-use crate::session::{MechanismData, Step, StepResult};
+use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, hash_password, DOutput};
+use crate::property::{AuthId, AuthzId, OverrideCBType, Password};
+use crate::session::{MechanismData, State, StepResult};
 use crate::vectored_io::VectoredWriter;
-use crate::{Authentication};
-use crate::mechanisms::common::properties::{Credentials, SimpleCredentials};
 
 pub type ScramSha256Client<const N: usize> = ScramClient<sha2::Sha256, N>;
 pub type ScramSha512Client<const N: usize> = ScramClient<sha2::Sha512, N>;
 pub type ScramSha1Client<const N: usize> = ScramClient<sha1::Sha1, N>;
 
+enum CbSupport {
+    ClientNoSupport,
+    ServerNoSupport,
+    Supported,
+}
 pub struct ScramClient<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> {
-    plus: bool,
+    plus: CbSupport,
     state: Option<ScramClientState<D, N>>,
 }
 
 impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> ScramClient<D, N> {
-    pub fn new() -> Self {
+    pub fn new(server_supports_cb: bool) -> Self {
+        let plus = if server_supports_cb {
+            CbSupport::ClientNoSupport
+        } else {
+            CbSupport::ServerNoSupport
+        };
         Self {
-            plus: false,
-            state: Some(ScramClientState::Initial(State::new(None))),
+            // TODO: Actually, how *do* we figure this out?
+            plus,
+            state: Some(ScramClientState::Initial(ScramState::new())),
         }
     }
 
     pub fn new_plus() -> Self {
         Self {
-            plus: true,
-            state: Some(ScramClientState::Initial(State::new(None))),
+            plus: CbSupport::Supported,
+            state: Some(ScramClientState::Initial(ScramState::new())),
         }
     }
 }
 
 enum ScramClientState<D: Digest + BlockSizeUser, const N: usize> {
-    Initial(State<StateClientFirst<N>>),
-    ClientFirst(State<WaitingServerFirst<D, N>>, String),
-    ServerFirst(State<WaitingServerFinal<D>>),
+    Initial(ScramState<StateClientFirst<N>>),
+    ClientFirst(ScramState<WaitingServerFirst<D, N>>, Vec<u8>),
+    ServerFirst(ScramState<WaitingServerFinal<D>>),
 }
 
-struct State<S> {
-    cbdata: Option<(&'static str, Box<[u8]>)>,
+struct ScramState<S> {
     state: S,
 }
 
-impl<const N: usize> State<StateClientFirst<N>> {
-    pub fn new(cbdata: Option<(&'static str, Box<[u8]>)>) -> Self {
+impl<const N: usize> ScramState<StateClientFirst<N>> {
+    pub fn new() -> Self {
         Self {
-            cbdata,
             state: StateClientFirst::new(),
         }
     }
@@ -70,46 +80,38 @@ impl<const N: usize> State<StateClientFirst<N>> {
     pub fn step<D: Digest + BlockSizeUser + Clone + Sync>(
         self,
         rng: &mut impl Rng,
+        cbflag: GS2CBindFlag<'_>,
+        cbdata: Option<String>,
         authzid: Option<String>,
         username: String,
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<State<WaitingServerFirst<D, N>>, SessionError> {
-        let cbflag = if let Some((name, _)) = self.cbdata.as_ref() {
-            GS2CBindFlag::Used(name)
-        } else {
-            GS2CBindFlag::NotSupported
-        };
+    ) -> Result<ScramState<WaitingServerFirst<D, N>>, SessionError> {
         let state = self
             .state
-            .send_client_first(rng, cbflag, authzid, username, writer, written)?;
-        Ok(State {
-            state,
-            cbdata: self.cbdata,
-        })
+            .send_client_first(rng, cbflag, cbdata, authzid, username, writer, written)?;
+        Ok(ScramState { state })
     }
 }
 
-impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> State<WaitingServerFirst<D, N>> {
+impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize>
+    ScramState<WaitingServerFirst<D, N>>
+{
     pub fn step(
         self,
-        password: &str,
+        password: &[u8],
         server_first: &[u8],
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<State<WaitingServerFinal<D>>, SessionError> {
-        let cbdata = self.cbdata.map(|(_, b)| b);
-        let state =
-            self.state
-                .handle_server_first(password, cbdata, server_first, writer, written)?;
-        Ok(State {
-            state,
-            cbdata: None,
-        })
+    ) -> Result<ScramState<WaitingServerFinal<D>>, SessionError> {
+        let state = self
+            .state
+            .handle_server_first(password, server_first, writer, written)?;
+        Ok(ScramState { state })
     }
 }
 
-impl<D: Digest + BlockSizeUser> State<WaitingServerFinal<D>> {
+impl<D: Digest + BlockSizeUser> ScramState<WaitingServerFinal<D>> {
     pub fn step(self, server_final: &[u8]) -> Result<(), SessionError> {
         match self.state.handle_server_final(server_final) {
             Ok(StateServerFinal { .. }) => Ok(()),
@@ -145,6 +147,7 @@ impl<const N: usize> StateClientFirst<N> {
         self,
         rng: &mut impl Rng,
         cbflag: GS2CBindFlag<'_>,
+        cbdata: Option<String>,
         authzid: Option<String>,
         username: String,
         writer: impl Write,
@@ -153,8 +156,8 @@ impl<const N: usize> StateClientFirst<N> {
         // The PRINTABLE slice is const not empty which is the only failure case we unwrap.
         let client_nonce: [u8; N] = generate_nonce(rng);
 
-        let b =
-            ClientFirstMessage::new(cbflag, authzid.as_ref(), &username, &client_nonce[..]).to_ioslices();
+        let b = ClientFirstMessage::new(cbflag, authzid.as_ref(), &username, &client_nonce[..])
+            .to_ioslices();
 
         let mut vecw = VectoredWriter::new(b);
         (*written) = vecw.write_all_vectored(writer)?;
@@ -173,7 +176,12 @@ impl<const N: usize> StateClientFirst<N> {
         // b","
         gs2_header.extend_from_slice(b",");
 
-        Ok(WaitingServerFirst::new(gs2_header, client_nonce, username))
+        Ok(WaitingServerFirst::new(
+            cbdata,
+            gs2_header,
+            client_nonce,
+            username,
+        ))
     }
 }
 
@@ -181,7 +189,7 @@ impl<const N: usize> StateClientFirst<N> {
 struct WaitingServerFirst<D: Digest + BlockSizeUser, const N: usize> {
     // Provided user password to be hashed with salt & iteration count from Server First Message
     //password: &'static str,
-    //cbdata: Option<&[u8]>
+    cbdata: Option<String>,
 
     // State <= gs2_header, client_nonce, username
     gs2_header: Vec<u8>,
@@ -203,8 +211,14 @@ struct WaitingServerFirst<D: Digest + BlockSizeUser, const N: usize> {
 }
 
 impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirst<D, N> {
-    pub fn new(gs2_header: Vec<u8>, client_nonce: [u8; N], username: String) -> Self {
+    pub fn new(
+        cbdata: Option<String>,
+        gs2_header: Vec<u8>,
+        client_nonce: [u8; N],
+        username: String,
+    ) -> Self {
         Self {
+            cbdata,
             gs2_header,
             client_nonce,
             username,
@@ -215,27 +229,31 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
     pub fn handle_server_first_salted(
         mut self,
         salted_password: &DOutput<D>,
-        cbdata: Option<Box<[u8]>>,
         server_first: ServerFirst,
         writer: impl Write,
         written: &mut usize,
     ) -> Result<WaitingServerFinal<D>, SessionError> {
-        self.gs2_header
-            .extend_from_slice(cbdata.as_ref().map(|b| b.as_ref()).unwrap_or(&[]));
+        self.cbdata
+            .take()
+            .map(|cbdata| self.gs2_header.extend_from_slice(cbdata.as_bytes()));
         let gs2headerb64 = base64::encode(self.gs2_header);
 
-        let (client_proof, server_signature) =
-            find_proofs::<D>(
-                self.username.as_str(),
-                &self.client_nonce[..],
-                server_first,
-                &gs2headerb64,
-                salted_password,
-            );
+        let (client_proof, server_signature) = find_proofs::<D>(
+            self.username.as_str(),
+            &self.client_nonce[..],
+            server_first,
+            &gs2headerb64,
+            salted_password,
+        );
 
         let proof = base64::encode(client_proof.as_slice());
 
-        let b = ClientFinal::new(gs2headerb64.as_bytes(), server_first.nonce, proof.as_bytes()).to_ioslices();
+        let b = ClientFinal::new(
+            gs2headerb64.as_bytes(),
+            server_first.nonce,
+            proof.as_bytes(),
+        )
+        .to_ioslices();
 
         let mut vecw = VectoredWriter::new(b);
         *written = vecw.write_all_vectored(writer)?;
@@ -245,8 +263,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
 
     pub fn handle_server_first(
         self,
-        password: &str,
-        cbdata: Option<Box<[u8]>>,
+        password: &[u8],
         server_first: &[u8],
         writer: impl Write,
         written: &mut usize,
@@ -263,7 +280,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
         }
 
         let iterations: u32 = std::str::from_utf8(iteration_count)
-            .map_err(|_| SCRAMError::ParseError(super::parser::ParseError::BadUtf8))?
+            .map_err(|e| SCRAMError::ParseError(super::parser::ParseError::BadUtf8(e)))?
             .parse()
             .map_err(|_| SCRAMError::Protocol(ProtocolError::IterationCountFormat))?;
 
@@ -275,7 +292,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
         let mut salted_password = GenericArray::default();
         hash_password::<D>(password, iterations, &salt[..], &mut salted_password);
 
-        self.handle_server_first_salted(&salted_password, cbdata, server_first, writer, written)
+        self.handle_server_first_salted(&salted_password, server_first, writer, written)
     }
 }
 
@@ -313,7 +330,9 @@ impl<D: Digest + BlockSizeUser> WaitingServerFinal<D> {
 
 struct StateServerFinal {}
 
-impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication for ScramClient<D, N> {
+impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
+    for ScramClient<D, N>
+{
     fn step(
         &mut self,
         session: &mut MechanismData,
@@ -323,26 +342,64 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication fo
         use ScramClientState::*;
         match self.state.take() {
             Some(Initial(state)) => {
-                /*
-                let (_cbflag, _cbdata) = if self.plus {
-                    let (name, value) = session
-                        .get_cb_data()
-                        // TODO: fix
-                        .expect("CB data required");
-                    (GS2CBindFlag::Used(name), Some(base64::encode(value)))
-                } else {
-                    (GS2CBindFlag::NotSupported, None)
+                let mut cbname = Cow::Borrowed("tls-unique");
+                let mut cbdata = None;
+                let cbflag = match self.plus {
+                    CbSupport::Supported => {
+                        let res = session.need_with::<OverrideCBType, _, _>(
+                            &EmptyProvider,
+                            &mut |i_cbname| {
+                                session.need_cb_data(
+                                    i_cbname,
+                                    &EmptyProvider,
+                                    &mut |i_cbdata| {
+                                        cbdata = Some(base64::encode(i_cbdata));
+                                        Ok(())
+                                    },
+                                )?;
+                                cbname = Cow::Owned(i_cbname.into());
+                                Ok(())
+                            },
+                        );
+                        match res {
+                            Ok(()) => {}
+                            Err(e) if e.is_missing_prop() => {
+                                session.need_cb_data(
+                                    "tls-unique",
+                                    &EmptyProvider,
+                                    &mut |i_cbdata| {
+                                        cbdata = Some(base64::encode(i_cbdata));
+                                        Ok(())
+                                    },
+                                )?;
+                            }
+                            Err(other) => return Err(other.into()),
+                        }
+
+                        GS2CBindFlag::Used(&cbname)
+                    }
+                    CbSupport::ServerNoSupport => GS2CBindFlag::SupportedNotUsed,
+                    CbSupport::ClientNoSupport => GS2CBindFlag::NotSupported,
                 };
-                 */
 
-                let Credentials { authid, authzid, password } = session.need::<SimpleCredentials>(())?;
-
-                let username = SaslName::escape(authid).unwrap();
+                let provider = EmptyProvider;
+                let username = session.need_with::<AuthId, _, _>(&provider, &mut |authid| {
+                    Ok(SaslName::escape(authid)?.into_owned())
+                })?;
+                let authzid = session
+                    .maybe_need_with::<AuthzId, _, _>(&provider, &mut |authzid| {
+                        Ok(SaslName::escape(authzid)?.into_owned())
+                    })?;
+                let password = session.need_with::<Password, _, _>(&provider, &mut |password| {
+                    Ok(password.to_vec())
+                })?;
 
                 let mut rng = rand::thread_rng();
                 let mut written = 0;
                 let new_state = state.step(
                     &mut rng,
+                    cbflag,
+                    cbdata,
                     authzid,
                     username,
                     writer,
@@ -350,7 +407,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication fo
                 )?;
                 self.state = Some(ClientFirst(new_state, password));
 
-                Ok(NeedsMore(Some(written)))
+                Ok((State::Running, Some(written)))
             }
             Some(ClientFirst(state, password)) => {
                 let server_first = input.ok_or(SessionError::InputDataRequired)?;
@@ -359,12 +416,12 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication fo
                 let new_state = state.step(&password, server_first, writer, &mut written)?;
                 self.state = Some(ServerFirst(new_state));
 
-                Ok(NeedsMore(Some(written)))
+                Ok((State::Running, Some(written)))
             }
             Some(ServerFirst(state)) => {
                 let server_final = input.ok_or(SessionError::InputDataRequired)?;
                 state.step(server_final)?;
-                Ok(Step::Done(None))
+                Ok((State::Finished, None))
             }
             None => panic!("State machine in invalid state"),
         }
@@ -392,27 +449,18 @@ impl Display for ProtocolError {
     }
 }
 
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]
 pub enum SCRAMError {
+    #[error("SCRAM protocol error: {0}")]
     Protocol(ProtocolError),
-    ParseError(super::parser::ParseError),
+    #[error("failed to parse received message: {0}")]
+    ParseError(
+        #[from]
+        #[source]
+        super::parser::ParseError,
+    ),
+    #[error("SCRAM outcome error: {0}")]
     ServerError(ServerErrorValue),
-}
-
-impl From<super::parser::ParseError> for SCRAMError {
-    fn from(e: super::parser::ParseError) -> Self {
-        Self::ParseError(e)
-    }
-}
-
-impl Display for SCRAMError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SCRAMError::Protocol(e) => write!(f, "SCRAM protocol error, {}", e),
-            SCRAMError::ParseError(e) => write!(f, "SCRAM parse error, {}", e),
-            SCRAMError::ServerError(e) => write!(f, "SCRAM outcome error, {}", e),
-        }
-    }
 }
 
 impl MechanismError for SCRAMError {
@@ -430,7 +478,8 @@ mod tests {
     use std::io::Cursor;
     use std::sync::Arc;
 
-    use crate::{Mechanism, Mechname, Side, SASL};
+    use crate::{Mechanism, Mechname, Side};
+    use crate::sasl::SASL;
 
     use super::*;
 

@@ -5,7 +5,9 @@ use crate::mechanisms::login::client::{
 use crate::mechanisms::login::server::{
     _gsasl_login_server_finish, _gsasl_login_server_start, _gsasl_login_server_step,
 };
-use crate::{Mechanism, Mechname, Side};
+use crate::mechname::Mechname;
+use crate::registry::Mechanism;
+use crate::session::Side;
 
 #[cfg(feature = "registry_static")]
 use crate::registry::{distributed_slice, MECHANISMS};
@@ -13,7 +15,7 @@ use crate::registry::{distributed_slice, MECHANISMS};
 pub static LOGIN: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unvalidated(b"LOGIN"),
     priority: 200,
-    client: Some(|_sasl| {
+    client: Some(|_sasl, _offered| {
         CMechanismStateKeeper::build(MechanismVTable {
             init: None,
             done: None,
@@ -24,7 +26,7 @@ pub static LOGIN: Mechanism = Mechanism {
             decode: None,
         })
     }),
-    server: Some(|_sasl| {
+    server: Some(|_sasl, _offered| {
         CMechanismStateKeeper::build(MechanismVTable {
             init: None,
             done: None,
