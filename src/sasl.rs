@@ -14,6 +14,60 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 use crate::mechanism::Authentication;
 
+pub struct SASLClient<CB = NoChannelBindings> {
+    inner: SASL<NoValidation, CB>,
+}
+impl SASLClient {
+    pub fn new(config: Arc<SASLConfig>) -> Self {
+        Self { inner: SASL::client(config) }
+    }
+}
+impl<CB: ChannelBindingCallback> SASLClient<CB> {
+    pub fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
+        Self { inner: SASL::with_cb(config, cb) }
+    }
+
+    /// Starts a authentication exchange as a client
+    ///
+    /// Depending on the mechanism chosen this may need additional data from the application, e.g.
+    /// an authcid, optional authzid and password for PLAIN. To provide that data an application
+    /// has to either call `set_property` before running the step that requires the data, or
+    /// install a callback.
+    pub fn start_suggested(
+        self,
+        offered: &[&Mechname],
+    ) -> Result<Session<NoValidation, CB>, SASLError> {
+        self.inner.client_start_suggested(offered)
+    }
+}
+
+pub struct SASLServer<V: Validation, CB = NoChannelBindings> {
+    inner: SASL<V, CB>,
+}
+impl<V: Validation> SASLServer<V> {
+    pub fn new(config: Arc<SASLConfig>) -> Self {
+        Self { inner: SASL::server(config) }
+    }
+}
+impl<V: Validation, CB: ChannelBindingCallback> SASLServer<V, CB> {
+    pub fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
+        Self { inner: SASL::with_cb(config, cb) }
+    }
+
+    /// Starts a authentication exchange as the server role
+    ///
+    /// An application acting as server will most likely need to implement a callback to check the
+    /// authentication data provided by the user.
+    ///
+    /// See [SessionCallback] on how to implement callbacks.
+    pub fn start_suggested(
+        self,
+        offered: &[&Mechname],
+    ) -> Result<Session<V, CB>, SASLError> {
+        self.inner.server_start_suggested(offered)
+    }
+}
+
 #[derive(Debug)]
 /// SASL Provider context
 ///
@@ -23,7 +77,7 @@ pub struct SASL<V: Validation = NoValidation, CB = NoChannelBindings> {
     pub(crate) validation: Option<V::Value>,
 }
 impl SASL {
-    pub fn client(config: Arc<SASLConfig>) -> Self {
+    fn client(config: Arc<SASLConfig>) -> Self {
         Self {
             config,
             cb: NoChannelBindings,
@@ -32,7 +86,7 @@ impl SASL {
     }
 }
 impl<V: Validation> SASL<V> {
-    pub fn server(config: Arc<SASLConfig>) -> Self {
+    fn server(config: Arc<SASLConfig>) -> Self {
         Self {
             config,
             cb: NoChannelBindings,
@@ -48,7 +102,7 @@ impl<V: Validation> SASL<V> {
 /// They are mainly relevant for protocol implementations wanting to start an
 /// authentication exchange.
 impl<CB: ChannelBindingCallback, V: Validation> SASL<V, CB> {
-    pub fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
+    fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
         Self {
             config,
             cb,
@@ -87,13 +141,7 @@ impl<CB: ChannelBindingCallback, V: Validation> SASL<V, CB> {
             })
     }
 
-    /// Starts a authentication exchange as a client
-    ///
-    /// Depending on the mechanism chosen this may need additional data from the application, e.g.
-    /// an authcid, optional authzid and password for PLAIN. To provide that data an application
-    /// has to either call `set_property` before running the step that requires the data, or
-    /// install a callback.
-    pub fn client_start_suggested<'a>(
+    fn client_start_suggested<'a>(
         self,
         offered: &[&Mechname],
     ) -> Result<Session<V, CB>, SASLError>
@@ -101,13 +149,7 @@ impl<CB: ChannelBindingCallback, V: Validation> SASL<V, CB> {
         self.start_inner(|mech| mech.client, offered)
     }
 
-    /// Starts a authentication exchange as the server role
-    ///
-    /// An application acting as server will most likely need to implement a callback to check the
-    /// authentication data provided by the user.
-    ///
-    /// See [SessionCallback] on how to implement callbacks.
-    pub fn server_start_suggested<'a>(
+    fn server_start_suggested<'a>(
         self,
         offered: &[&Mechname],
     ) -> Result<Session<V, CB>, SASLError>

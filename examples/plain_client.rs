@@ -25,15 +25,13 @@ pub fn main() {
 
     // Create an untyped SASL because we won't store/retrieve information in the context since
     // we don't use callbacks.
-    let sasl = SASL::client(Arc::new(config));
-
-    println!("{:?}", &sasl);
+    let sasl = SASLClient::new(Arc::new(config));
 
     let offered = [Mechname::new(b"PLAIN").unwrap()];
     // Usually you would first agree on a mechanism with the server, for demostration purposes
     // we directly start a PLAIN "exchange"
     let mut session = sasl
-        .client_start_suggested(&offered)
+        .start_suggested(&offered)
         .unwrap();
 
     // Do an authentication step. In a PLAIN exchange there is only one step, with no data.
