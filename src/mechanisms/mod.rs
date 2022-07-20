@@ -4,13 +4,13 @@
 //! in `COMMON` use.
 //! The implementations of these mechanisms can be found in this module
 //!
-//! ## Mechanism selection and conditional compilation
+//! # Mechanism selection and conditional compilation
 //!
 //! rsasl allows the final end-user to decide which mechanisms are required to be implemented.
 //! To this end each mechanism in the rsasl crate can be disabled using feature flags.
 //!
-//! By default **all** mechanisms are compiled into the crate and a subset can be selected at
-//! runtime using [`Registry::filter`].
+//! By default **all** implemented mechanisms are compiled into the crate.
+//!
 //! However if you know certain mechanisms will never be used you can select the mechanisms by
 //! depending on `rsasl` with `default-features` set to `false`:
 //! ```toml
@@ -24,14 +24,9 @@
 //! making use of [feature unification](https://doc.rust-lang.org/cargo/reference/features.html#feature-unification)
 //! to not compile in mechanisms that aren't needed.
 
-pub mod common {
-    pub mod properties;
-    pub mod error;
-}
-
 #[cfg(feature = "anonymous")]
 pub mod anonymous {
-    //! `ANONYMOUS` *mechanism. Requires feature "anonymous"*
+    //! `ANONYMOUS` *mechanism. Requires feature `anonymous`*
     pub mod client;
     pub mod mechinfo;
     pub mod server;
@@ -111,9 +106,9 @@ pub mod scram {
     pub mod client;
     pub mod mechinfo;
     pub mod parser;
+    pub mod properties;
     pub mod server;
     pub mod tools;
-    pub mod properties;
 }
 
 #[cfg(feature = "securid")]

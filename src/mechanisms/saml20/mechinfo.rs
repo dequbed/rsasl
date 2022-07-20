@@ -5,7 +5,9 @@ use crate::mechanisms::saml20::client::{
 use crate::mechanisms::saml20::server::{
     _gsasl_saml20_server_finish, _gsasl_saml20_server_start, _gsasl_saml20_server_step,
 };
-use crate::{Mechanism, Mechname, Side};
+use crate::mechname::Mechname;
+use crate::registry::Mechanism;
+use crate::session::Side;
 
 #[cfg(feature = "registry_static")]
 use crate::registry::{distributed_slice, MECHANISMS};
@@ -13,7 +15,7 @@ use crate::registry::{distributed_slice, MECHANISMS};
 pub static SAML20: Mechanism = Mechanism {
     priority: 1000,
     mechanism: &Mechname::const_new_unvalidated(b"SAML20"),
-    client: Some(|_sasl| {
+    client: Some(|_sasl, _offered| {
         CMechanismStateKeeper::build(MechanismVTable {
             init: None,
             done: None,
@@ -24,7 +26,7 @@ pub static SAML20: Mechanism = Mechanism {
             decode: None,
         })
     }),
-    server: Some(|_sasl| {
+    server: Some(|_sasl, _offered| {
         CMechanismStateKeeper::build(MechanismVTable {
             init: None,
             done: None,

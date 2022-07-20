@@ -1,13 +1,26 @@
+use crate::error::{MechanismError, MechanismErrorKind};
 use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
+use std::str::Utf8Error;
+use thiserror::Error;
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(Debug, Error, Copy, Clone, Eq, PartialEq)]
 pub enum SaslNameError {
+    #[error("empty string is invalid for name")]
     Empty,
-    InvalidUtf8,
+    #[error("name contains invalid utf-8: {0}")]
+    InvalidUtf8(Utf8Error),
+    #[error("name contains invalid char {0}")]
     InvalidChar(u8),
+    #[error("name contains invalid escape sequence")]
     InvalidEscape,
+}
+
+impl MechanismError for SaslNameError {
+    fn kind(&self) -> MechanismErrorKind {
+        MechanismErrorKind::Parse
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -86,16 +99,16 @@ impl<'a> SaslName<'a> {
     /// Convert a Rust-side string into the representation required by SCRAM
     ///
     /// This will clone the given string if characters need escaping
-    pub fn escape(input: String) -> Result<String, SaslNameError> {
+    pub fn escape(input: &str) -> Result<Cow<'_, str>, SaslNameError> {
         if input.contains('\0') {
             return Err(SaslNameError::InvalidChar(0));
         }
 
         if input.contains(&[',', '=']) {
             let escaped: String = input.chars().flat_map(SaslEscapeState::escape).collect();
-            Ok(escaped)
+            Ok(Cow::Owned(escaped))
         } else {
-            Ok(input)
+            Ok(Cow::Borrowed(input))
         }
     }
 
@@ -114,13 +127,13 @@ impl<'a> SaslName<'a> {
         if let Some(bad) = input.bytes().position(|b| matches!(b, b'=')) {
             let mut out = String::with_capacity(input.len());
             let good = std::str::from_utf8(&input.as_bytes()[..bad])
-                .map_err(|_| SaslNameError::InvalidUtf8)?;
+                .map_err(SaslNameError::InvalidUtf8)?;
             out.push_str(good);
             let mut input = &input[bad..];
 
             while let Some(bad) = input.bytes().position(|b| matches!(b, b'=')) {
                 let good = std::str::from_utf8(&input.as_bytes()[..bad])
-                    .map_err(|_| SaslNameError::InvalidUtf8)?;
+                    .map_err(SaslNameError::InvalidUtf8)?;
                 out.push_str(good);
                 let c = match &input.as_bytes()[bad + 1..bad + 3] {
                     b"2C" => ',',
@@ -142,30 +155,41 @@ impl<'a> SaslName<'a> {
     }
 }
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Error)]
 pub enum ParseError {
+    #[error("bad channel flag")]
     BadCBFlag,
+    #[error("channel binding name contains invalid byte {0:#x}")]
     BadCBName(u8),
+    #[error("invalid gs2header")]
     BadGS2Header,
+    #[error("attribute contains invalid byte {0:#x}")]
     InvalidAttribute(u8),
+    #[error("required attribute is missing")]
     MissingAttributes,
+    #[error("too many attributes were provided")]
     TooManyAttributes,
+    #[error("an extension is unknown but marked mandatory")]
     UnknownMandatoryExtensions,
-    BadUtf8,
+    #[error("invalid UTF-8: {0}")]
+    BadUtf8(
+        #[from]
+        #[source]
+        Utf8Error,
+    ),
+    #[error("nonce contains invalid character")]
     BadNonce,
-}
-
-impl Display for ParseError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // FIXME: Have proper error explanations
-        f.write_str("a parse error occured")
-    }
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub enum GS2CBindFlag<'scram> {
     SupportedNotUsed,
     NotSupported,
+    /// Channel bindings of the given name are used
+    ///
+    /// RFC 5056 Section 7 limits the channel binding name to "any string composed of US-ASCII
+    /// alphanumeric characters, period ('.'), and dash ('-')", which is always valid UTF-8
+    /// making the use of `str` here correct.
     Used(&'scram str),
 }
 impl<'scram> GS2CBindFlag<'scram> {
@@ -230,7 +254,7 @@ impl<'scram> ClientFirstMessage<'scram> {
 
         let authzid = partiter.next().ok_or(ParseError::BadGS2Header)?;
         let authzid = if !authzid.is_empty() {
-            Some(std::str::from_utf8(authzid).map_err(|_| ParseError::BadUtf8)?)
+            Some(std::str::from_utf8(authzid).map_err(|e| ParseError::BadUtf8(e))?)
         } else {
             None
         };
@@ -241,7 +265,7 @@ impl<'scram> ClientFirstMessage<'scram> {
         }
 
         let username = if &next[0..2] == b"n=" {
-            std::str::from_utf8(&next[2..]).map_err(|_| ParseError::BadUtf8)?
+            std::str::from_utf8(&next[2..]).map_err(|e| ParseError::BadUtf8(e))?
         } else {
             return Err(ParseError::InvalidAttribute(next[0] as u8));
         };
@@ -552,8 +576,6 @@ impl<'scram> ServerFinal<'scram> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vectored_io::VectoredWriter;
-    use std::io::Cursor;
 
     #[test]
     fn test_parse_gs2_cbind_flag() {

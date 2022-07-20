@@ -1,49 +1,36 @@
+use std::borrow::Cow;
 
-
-use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::str::Utf8Error;
+use thiserror::Error;
 
-
-use stringprep::{saslprep, Error};
+use stringprep::saslprep;
 
 use crate::error::{MechanismError, MechanismErrorKind};
 
-use crate::session::Step::{Done, NeedsMore};
-use crate::session::{MechanismData, StepResult};
+use crate::session::{MechanismData, State, StepResult};
 
-use crate::Authentication;
-use crate::validate::{Validation, ValidationQ};
-use crate::validate::validations::SIMPLE;
+use crate::context::{Demand, DemandReply, Provider};
+use crate::mechanism::Authentication;
 
+use crate::property::{AuthId, AuthzId, Password};
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 enum PlainError {
+    #[error("invalid format, expected three strings separated by two NULL-bytes")]
     BadFormat,
-    BadAuthzid(Utf8Error),
-    BadAuthcid(Utf8Error),
-    BadPassword(Utf8Error),
-    Saslprep(stringprep::Error),
-}
-
-impl Display for PlainError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::BadFormat => {
-                f.write_str("invalid format, expected three strings separated by two NULL-bytes")
-            }
-            Self::BadAuthzid(e) => write!(f, "authzid is invalid UTF-8: {}", e),
-            Self::BadAuthcid(e) => write!(f, "authcid is invalid UTF-8: {}", e),
-            Self::BadPassword(e) => write!(f, "password is invalid UTF-8: {}", e),
-            Self::Saslprep(e) => write!(f, "saslprep failed: {}", e),
-        }
-    }
-}
-
-impl From<stringprep::Error> for PlainError {
-    fn from(e: Error) -> Self {
-        Self::Saslprep(e)
-    }
+    #[error("authzid is invalid UTF-8: {0}")]
+    BadAuthzid(#[source] Utf8Error),
+    #[error("authcid is invalid UTF-8: {0}")]
+    BadAuthcid(#[source] Utf8Error),
+    #[error("password is invalid UTF-8: {0}")]
+    BadPassword(#[source] Utf8Error),
+    #[error("saslprep failed: {0}")]
+    Saslprep(
+        #[from]
+        #[source]
+        stringprep::Error,
+    ),
 }
 
 impl MechanismError for PlainError {
@@ -54,14 +41,21 @@ impl MechanismError for PlainError {
 
 pub struct Plain;
 #[derive(Debug)]
-pub struct PlainValidation {
-    pub authcid: String,
-    pub authzid: Option<String>,
-    pub password: String,
+pub struct PlainProvider<'a> {
+    pub authcid: Cow<'a, str>,
+    pub authzid: Option<Cow<'a, str>>,
+    pub password: &'a [u8],
 }
-impl ValidationQ for PlainValidation {
-    fn validation() -> Validation where Self: Sized {
-        SIMPLE
+impl<'b> Provider for PlainProvider<'b> {
+    fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
+        req.provide_ref::<AuthId>(&self.authcid)?
+            .provide_ref::<Password>(&self.password)?;
+
+        if let Some(authzid) = self.authzid.as_ref() {
+            req.provide_ref::<AuthzId>(authzid)?;
+        }
+
+        req.done()
     }
 }
 
@@ -72,8 +66,8 @@ impl Authentication for Plain {
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
     ) -> StepResult {
-        if input.map(|buf| buf.len()).unwrap_or(0) == 0 {
-            return Ok(NeedsMore(None));
+        if input.map(|buf| buf.len()).unwrap_or(0) < 4 {
+            return Err(PlainError::BadFormat.into());
         }
 
         let input = input.unwrap();
@@ -87,23 +81,24 @@ impl Authentication for Plain {
 
         let authzid = if !authzid.is_empty() {
             let s = std::str::from_utf8(authzid).map_err(PlainError::BadAuthzid)?;
-            Some(saslprep(s).map_err(|e| PlainError::from(e))?.to_string())
+            Some(saslprep(s).map_err(|e| PlainError::from(e))?)
         } else {
             None
         };
 
         let authcid = std::str::from_utf8(authcid).map_err(PlainError::BadAuthcid)?;
-        let authcid = saslprep(authcid)
-            .map_err(|e| PlainError::from(e))?
-            .to_string();
+        let authcid = saslprep(authcid).map_err(|e| PlainError::from(e))?;
 
         let password = std::str::from_utf8(password).map_err(PlainError::BadPassword)?;
-        let password = saslprep(password)
-            .map_err(|e| PlainError::from(e))?
-            .to_string();
+        let password = saslprep(password).map_err(|e| PlainError::from(e))?;
 
-        let vquery = PlainValidation { authzid, authcid, password };
-        session.validate(&vquery)?;
-        Ok(Done(None))
+        let provider = PlainProvider {
+            authzid,
+            authcid,
+            password: password.as_bytes(),
+        };
+
+        session.validate(&provider)?;
+        Ok((State::Finished, None))
     }
 }

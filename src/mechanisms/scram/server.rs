@@ -1,21 +1,24 @@
+use crate::error::{MechanismError, MechanismErrorKind, SessionError};
+use crate::mechanisms::scram::client::SCRAMError;
+use crate::mechanisms::scram::parser::{
+    ClientFinal, ClientFirstMessage, ServerErrorValue, ServerFinal, ServerFirst,
+};
+use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, DOutput};
+use crate::session::{MechanismData, State, StepResult};
+use crate::vectored_io::VectoredWriter;
+use digest::crypto_common::BlockSizeUser;
+use digest::generic_array::GenericArray;
+use digest::{Digest, OutputSizeUser};
+use hmac::SimpleHmac;
+use rand::{thread_rng, Rng, RngCore};
 use std::io::Write;
 use std::marker::PhantomData;
-use digest::crypto_common::BlockSizeUser;
-use digest::Digest;
-use digest::generic_array::GenericArray;
-use rand::{Rng, RngCore, thread_rng};
-use stringprep::saslprep;
-use crate::Authentication;
-use crate::callback::CallbackError;
-use crate::error::SessionError;
-use crate::mechanisms::scram::client::SCRAMError;
-use crate::mechanisms::scram::parser::{ClientFinal, ClientFirstMessage, ServerErrorValue, ServerFinal, ServerFirst};
-use crate::mechanisms::scram::properties::{ScramPassParams, ScramSaltedPassword, ScramSaltedPasswordQuery};
-use crate::mechanisms::scram::tools::{DOutput, find_proofs, generate_nonce};
-use crate::session::{MechanismData, StepResult};
-use crate::session::Step::{Done, NeedsMore};
-use crate::vectored_io::VectoredWriter;
+use thiserror::Error;
 
+use crate::context::ThisProvider;
+use crate::mechanism::Authentication;
+use crate::mechanisms::scram::properties::{HashIterations, PasswordHash, Salt};
+use crate::property::AuthId;
 
 const DEFAULT_ITERATIONS: u32 = 2u32.pow(14); // 16384, TODO check if still reasonable
 const DEFAULT_SALT_LEN: usize = 32;
@@ -23,6 +26,17 @@ const DEFAULT_SALT_LEN: usize = 32;
 pub type ScramSha1Server<const N: usize> = ScramServer<sha1::Sha1, N>;
 pub type ScramSha256Server<const N: usize> = ScramServer<sha2::Sha256, N>;
 pub type ScramSha512Server<const N: usize> = ScramServer<sha2::Sha512, N>;
+
+#[derive(Debug, Error)]
+pub enum ScramServerError {
+    #[error("provided password hash is wrong size for selected algorithm")]
+    PasswordHashInvalid,
+}
+impl MechanismError for ScramServerError {
+    fn kind(&self) -> MechanismErrorKind {
+        MechanismErrorKind::Parse
+    }
+}
 
 pub struct ScramServer<D: Digest + BlockSizeUser, const N: usize> {
     plus: bool,
@@ -32,20 +46,20 @@ impl<D: Digest + BlockSizeUser, const N: usize> ScramServer<D, N> {
     pub fn new() -> Self {
         Self {
             plus: false,
-            state: Some(ScramServerState::WaitingClientFirst(State::new()))
+            state: Some(ScramServerState::WaitingClientFirst(ScramState::new())),
         }
     }
 
     pub fn new_plus() -> Self {
         Self {
             plus: true,
-            state: Some(ScramServerState::WaitingClientFirst(State::new()))
+            state: Some(ScramServerState::WaitingClientFirst(ScramState::new())),
         }
     }
 }
 
 pub struct WaitingClientFirst<const N: usize> {
-    nonce: PhantomData<&'static [u8; N]>
+    nonce: PhantomData<&'static [u8; N]>,
 }
 
 impl<const N: usize> WaitingClientFirst<N> {
@@ -66,37 +80,42 @@ impl<const N: usize> WaitingClientFirst<N> {
             cbflag: _,
             authzid: _, // FIXME: Save authzid
             username,
-            nonce: client_nonce
+            nonce: client_nonce,
         } = ClientFirstMessage::parse(client_first).map_err(SCRAMError::ParseError)?;
 
         // FIXME: Escape Username from SCRAM format to whatever
+
+        let provider = ThisProvider::<AuthId>::with(username);
+        let password: Option<GenericArray<u8, D::OutputSize>>;
 
         // Retrieve the password for the given user via callback.
         // If the callback doesn't return a password (usually because the user does not exist) we
         // proceed with the authentication exchange with randomly generated data, since SCRAM
         // only indicates failure like that in the last step.
-        let (ScramPassParams {
-                iterations,
-                salt,
-            },
-            password
-        ) = self.get_salted_pw(session_data, username)?
-            //^ do a callback to get values
-            .map(|ScramSaltedPassword { params, password }| (params, Some(password)))
-            //^ Make the value Option<(Params, Option<Password>)> so we can work with it
-            .unwrap_or_else(|| (self.gen_rand_pw_params(), None));
-            //^ Generate new random values if no password was returned
+        password =
+            session_data.maybe_need_with::<PasswordHash, _, _>(&provider, &mut |password| {
+                if password.len() != <SimpleHmac<D> as OutputSizeUser>::output_size() {
+                    return Err(SessionError::MechanismError(Box::new(
+                        ScramServerError::PasswordHashInvalid,
+                    )));
+                }
+                Ok(GenericArray::clone_from_slice(password))
+            })?;
 
+        let (iterations, salt) = if password.is_some() {
+            let iterations = session_data
+                .need_with::<HashIterations, _, _>(&provider, &mut |iterations| Ok(*iterations))?;
+            let salt =
+                session_data.need_with::<Salt, _, _>(&provider, &mut |salt| Ok(salt.to_vec()))?;
+            (iterations, salt)
+        } else {
+            self.gen_rand_pw_params()
+        };
 
         let server_nonce: [u8; N] = generate_nonce(rng);
 
         let it_bytes = iterations.to_be_bytes();
-        let msg = ServerFirst::new(
-            &client_nonce,
-            &server_nonce,
-            &salt,
-            &it_bytes,
-        );
+        let msg = ServerFirst::new(&client_nonce, &server_nonce, &salt, &it_bytes);
         let mut vecw = VectoredWriter::new(msg.to_ioslices());
         *written = vecw.write_all_vectored(writer)?;
 
@@ -121,33 +140,17 @@ impl<const N: usize> WaitingClientFirst<N> {
         }
     }
 
-    fn get_salted_pw(&self, session_data: &mut MechanismData, username: &str)
-        -> Result<Option<ScramSaltedPassword>, SessionError>
-    {
-        let username = saslprep(username).expect("SASLprep failed").to_string();
-        match session_data.need::<ScramSaltedPasswordQuery>(username) {
-            Ok(answer) => Ok(Some(answer)),
-            Err(CallbackError::NoCallback | CallbackError::NoAnswer) => {
-                Ok(None)
-            },
-            Err(e) => Err(e.into())
-        }
-    }
-
-    fn gen_rand_pw_params(&self) -> ScramPassParams {
+    fn gen_rand_pw_params(&self) -> (u32, Vec<u8>) {
         let mut salt = [0u8; DEFAULT_SALT_LEN];
         thread_rng().fill_bytes(&mut salt);
 
-        ScramPassParams {
-            iterations: DEFAULT_ITERATIONS,
-            salt: salt.into(),
-        }
+        (DEFAULT_ITERATIONS, Vec::from(salt))
     }
 }
 
-pub struct WaitingClientFinal<D: Digest + BlockSizeUser>{
+pub struct WaitingClientFinal<D: Digest + BlockSizeUser> {
     nonce: Vec<u8>,
-    data: Option<FinalInner<D>>
+    data: Option<FinalInner<D>>,
 }
 struct FinalInner<D: Digest + BlockSizeUser> {
     proof: DOutput<D>,
@@ -155,7 +158,10 @@ struct FinalInner<D: Digest + BlockSizeUser> {
 }
 impl<D: Digest + BlockSizeUser> WaitingClientFinal<D> {
     pub fn new(nonce: Vec<u8>, proof: DOutput<D>, signature: DOutput<D>) -> Self {
-        Self { nonce, data: Some(FinalInner { proof, signature }) }
+        Self {
+            nonce,
+            data: Some(FinalInner { proof, signature }),
+        }
     }
     pub fn bad_user(nonce: Vec<u8>) -> Self {
         Self { nonce, data: None }
@@ -210,16 +216,13 @@ impl<D: Digest + BlockSizeUser> WaitingClientFinal<D> {
 
 pub enum Outcome {
     Failed,
-    Successful {
-        username: (),
-    }
+    Successful { username: () },
 }
 
-
-struct State<S> {
+struct ScramState<S> {
     state: S,
 }
-impl<const N: usize> State<WaitingClientFirst<N>> {
+impl<const N: usize> ScramState<WaitingClientFirst<N>> {
     pub fn new() -> Self {
         Self {
             state: WaitingClientFirst::new(),
@@ -233,37 +236,38 @@ impl<const N: usize> State<WaitingClientFirst<N>> {
         input: &[u8],
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<State<WaitingClientFinal<D>>, SessionError> {
-        let state = self.state.handle_client_first(
-            rng,
-            session_data,
-            input,
-            writer,
-            written
-        )?;
-        Ok(State { state })
+    ) -> Result<ScramState<WaitingClientFinal<D>>, SessionError> {
+        let state = self
+            .state
+            .handle_client_first(rng, session_data, input, writer, written)?;
+        Ok(ScramState { state })
     }
 }
-impl<D: Digest + BlockSizeUser> State<WaitingClientFinal<D>> {
+impl<D: Digest + BlockSizeUser> ScramState<WaitingClientFinal<D>> {
     pub fn step(
         self,
         input: &[u8],
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<State<Outcome>, SessionError> {
+    ) -> Result<ScramState<Outcome>, SessionError> {
         let state = self.state.handle_client_final(input, writer, written)?;
-        Ok(State { state })
+        Ok(ScramState { state })
     }
 }
 
 enum ScramServerState<D: Digest + BlockSizeUser, const N: usize> {
-    WaitingClientFirst(State<WaitingClientFirst<N>>),
-    WaitingClientFinal(State<WaitingClientFinal<D>>),
-    Finished(State<Outcome>)
+    WaitingClientFirst(ScramState<WaitingClientFirst<N>>),
+    WaitingClientFinal(ScramState<WaitingClientFinal<D>>),
+    Finished(ScramState<Outcome>),
 }
 
 impl<D: Digest + BlockSizeUser, const N: usize> Authentication for ScramServer<D, N> {
-    fn step(&mut self, session: &mut MechanismData, input: Option<&[u8]>, writer: &mut dyn Write) -> StepResult {
+    fn step(
+        &mut self,
+        session: &mut MechanismData,
+        input: Option<&[u8]>,
+        writer: &mut dyn Write,
+    ) -> StepResult {
         use ScramServerState::*;
         match self.state.take() {
             Some(WaitingClientFirst(state)) => {
@@ -271,30 +275,19 @@ impl<D: Digest + BlockSizeUser, const N: usize> Authentication for ScramServer<D
 
                 let mut rng = rand::thread_rng();
                 let mut written = 0;
-                let new_state = state.step(
-                    &mut rng,
-                    session,
-                    client_first,
-                    writer,
-                    &mut written
-                )?;
+                let new_state =
+                    state.step(&mut rng, session, client_first, writer, &mut written)?;
                 self.state = Some(WaitingClientFinal(new_state));
-                Ok(NeedsMore(Some(written)))
-            },
+                Ok((State::Running, Some(written)))
+            }
             Some(WaitingClientFinal(state)) => {
                 let client_final = input.ok_or(SessionError::InputDataRequired)?;
                 let mut written = 0;
-                let new_state = state.step(
-                    client_final,
-                    writer,
-                    &mut written
-                )?;
+                let new_state = state.step(client_final, writer, &mut written)?;
                 self.state = Some(Finished(new_state));
-                Ok(Done(Some(written)))
-            },
-            Some(Finished(_state)) => {
-                Err(SessionError::MechanismDone)
-            },
+                Ok((State::Finished, Some(written)))
+            }
+            Some(Finished(_state)) => Err(SessionError::MechanismDone),
 
             None => panic!("SCRAM server state machine in invalid state"),
         }

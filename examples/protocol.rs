@@ -1,21 +1,20 @@
-
-use rsasl::mechname::Mechname;
-
-use rsasl::SASL;
+use std::sync::Arc;
+use rsasl::prelude::*;
 
 fn main() {
-    let sasl = SASL::new();
+    let config = SASLConfig::with_credentials(None, String::new(), String::new()).unwrap();
+    let sasl = SASLClient::new(Arc::new(config));
 
     let presented = &[
-        Mechname::const_new_unvalidated(b"LOGIN"),
-        Mechname::const_new_unvalidated(b"PLAIN"),
-        Mechname::const_new_unvalidated(b"GSSAPI"),
-        Mechname::const_new_unvalidated(b"SCRAM-SHA-1"),
-        Mechname::const_new_unvalidated(b"SCRAM-SHA-256"),
+        Mechname::new(b"LOGIN").unwrap(),
+        Mechname::new(b"PLAIN").unwrap(),
+        Mechname::new(b"GSSAPI").unwrap(),
+        Mechname::new(b"SCRAM-SHA-1").unwrap(),
+        Mechname::new(b"SCRAM-SHA-256").unwrap(),
     ];
 
     let suggested = sasl
-        .client_start_suggested(presented.iter().map(|m| *m))
+        .start_suggested(presented.iter().map(|m| *m))
         .unwrap();
     println!("Suggested: {}", suggested.get_mechname());
     assert_eq!(suggested.get_mechname().as_str(), "SCRAM-SHA-256");

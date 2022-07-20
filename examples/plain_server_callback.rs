@@ -1,37 +1,76 @@
-use rsasl::callback::{Answerable, CallbackError, Query, SessionCallback, ValidationError};
+use rsasl::callback::{Context, SessionCallback};
 use rsasl::error::SessionError;
 use rsasl::mechname::Mechname;
-use rsasl::property::{AuthId, Password};
-use rsasl::session::Step::Done;
-use rsasl::session::{MechanismData, SessionData, Step, StepResult};
-use rsasl::validate::{validations, Validation, ValidationQ};
-use rsasl::SASL;
+use rsasl::property::{AuthId, AuthzId, Password};
+use rsasl::session::{SessionData, State};
+use rsasl::validate::{Validate, Validation, ValidationError};
+use rsasl::sasl::SASL;
 use std::io::Cursor;
 use std::sync::Arc;
-use rsasl::mechanisms::common::properties::SimpleCredentials;
-use rsasl::mechanisms::plain::server::PlainValidation;
+use thiserror::Error;
 
-// Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
+#[derive(Debug, Error)]
+enum OurCallbackError {}
+impl OurCallback {
+    fn test_validate(
+        &self,
+        _session_data: &SessionData,
+        context: &Context,
+    ) -> Result<Result<String, AuthError>, OurCallbackError> {
+        let authzid = context.get_ref::<AuthzId>();
+        let authid = context
+            .get_ref::<AuthId>()
+            .expect("SIMPLE validation requested but AuthId prop is missing!");
+        let password = context
+            .get_ref::<Password>()
+            .expect("SIMPLE validation requested but Password prop is missing!");
 
-impl SessionCallback for OurCallback {
-    fn validate(&self, _session_data: &SessionData, query: &dyn Query)
-        -> Result<(), ValidationError>
-    {
-        if let Some(PlainValidation { authcid, authzid, password }) = PlainValidation::downcast(query) {
-            if authzid.is_none() && authcid == "username" && password == "secret" {
-                Ok(())
-            } else {
-                Err(ValidationError::BadAuthentication)
-            }
+        println!(
+            "SIMPLE VALIDATION for (authzid: {:?}, authid: {}, password: {:?})",
+            authzid,
+            authid,
+            std::str::from_utf8(password)
+        );
+
+        use AuthError::*;
+        if !(authzid.is_none() || authzid == Some(authid)) {
+            Ok(Err(AuthzBad))
+        } else if authid == "username" && password == b"secret" {
+            Ok(Ok(String::from(authid)))
+        } else if authid == "username" {
+            Ok(Err(PasswdBad))
         } else {
-            Err(ValidationError::NoValidation)
+            Ok(Err(NoSuchUser))
         }
     }
 }
+impl SessionCallback for OurCallback {
+    fn validate(
+        &self,
+        session_data: &SessionData,
+        context: &Context,
+        validate: &mut Validate<'_>,
+    ) -> Result<(), ValidationError> {
+        validate.with::<TestValidation, _, _>(|| self.test_validate(session_data, context))?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+enum AuthError {
+    AuthzBad,
+    PasswdBad,
+    NoSuchUser,
+}
+
+struct TestValidation;
+impl Validation for TestValidation {
+    type Value = Result<String, AuthError>;
+}
 
 pub fn main() {
-    let mut sasl = SASL::new(Arc::new(OurCallback));
+    let sasl = SASL::new(Arc::new(OurCallback));
 
     // Authentication exchange 1
     {
@@ -40,51 +79,77 @@ pub fn main() {
         let mut session = sasl
             .server_start(Mechname::new(b"PLAIN").unwrap())
             .unwrap()
-            .without_channel_binding();
+            .without_channel_binding::<TestValidation>();
         let step_result = session.step(Some(b"\0username\0secret"), &mut out);
         print_outcome(&step_result, out.into_inner());
-        assert_eq!(step_result.unwrap(), Done(None));
+        assert_eq!(step_result.unwrap(), (State::Finished, None));
+        assert_eq!(session.validation(), Some(Ok(String::from("username"))))
     }
     // Authentication exchange 2
     {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with wrong password:\n   ");
-        let mut session = sasl.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap()
-            .without_channel_binding();
+        let mut session = sasl
+            .server_start(Mechname::new(b"PLAIN").unwrap())
+            .unwrap()
+            .without_channel_binding::<TestValidation>();
         let step_result = session.step(Some(b"\0username\0badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());
-        assert_eq!(
-            step_result.unwrap_err(),
-            SessionError::AuthenticationFailure
-        );
+        assert_eq!(step_result.unwrap(), (State::Finished, None));
+        assert_eq!(session.validation(), Some(Err(AuthError::PasswdBad)));
+    }
+
+    {
+        let mut out = Cursor::new(Vec::new());
+        print!("Authenticating to server with unknown user:\n   ");
+        let mut session = sasl
+            .server_start(Mechname::new(b"PLAIN").unwrap())
+            .unwrap()
+            .without_channel_binding::<TestValidation>();
+        let step_result = session.step(Some(b"\0somebody\0somepass"), &mut out);
+        print_outcome(&step_result, out.into_inner());
+        assert_eq!(step_result.unwrap(), (State::Finished, None));
+        assert_eq!(session.validation(), Some(Err(AuthError::NoSuchUser)));
+    }
+
+    {
+        let mut out = Cursor::new(Vec::new());
+        print!("Authenticating to server with bad authzid:\n   ");
+        let mut session = sasl
+            .server_start(Mechname::new(b"PLAIN").unwrap())
+            .unwrap()
+            .without_channel_binding::<TestValidation>();
+        let step_result = session.step(Some(b"username\0somebody\0badpass"), &mut out);
+        print_outcome(&step_result, out.into_inner());
+        assert_eq!(step_result.unwrap(), (State::Finished, None));
+        assert_eq!(session.validation(), Some(Err(AuthError::AuthzBad)));
     }
     // Authentication exchange 2
     {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with malformed data:\n   ");
-        let mut session = sasl.server_start(Mechname::new(b"PLAIN").unwrap()).unwrap()
-            .without_channel_binding();
+        let mut session = sasl
+            .server_start(Mechname::new(b"PLAIN").unwrap())
+            .unwrap()
+            .without_channel_binding::<TestValidation>();
         let step_result = session.step(Some(b"\0username badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());
         assert!(step_result.unwrap_err().is_mechanism_error());
     }
 }
 
-fn print_outcome(step_result: &StepResult, buffer: Vec<u8>) {
+fn print_outcome(step_result: &Result<(State, Option<usize>), SessionError>, buffer: Vec<u8>) {
     match step_result {
-        Ok(Step::Done(Some(_))) => {
+        Ok((State::Finished, Some(_))) => {
             println!(
-                "Authentication successful, bytes to return to client: {:?}",
+                "Authentication finished, bytes to return to client: {:?}",
                 buffer
             );
         }
-        Ok(Step::Done(None)) => {
-            println!("Authentication successful, no data to return");
+        Ok((State::Finished, None)) => {
+            println!("Authentication finished, no data to return");
         }
-        Ok(Step::NeedsMore(_)) => assert!(false, "PLAIN exchange took more than one step"),
-        Err(SessionError::AuthenticationFailure) => {
-            println!("Authentication failed, bad username or password")
-        }
+        Ok((State::Running, _)) => assert!(false, "PLAIN exchange took more than one step"),
         Err(e) => println!("Authentication errored: {}", e),
     }
 }
