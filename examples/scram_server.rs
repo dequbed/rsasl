@@ -1,11 +1,11 @@
-use rsasl::callback::{CallbackError, Request, SessionCallback};
-use rsasl::callback::Context;
-use rsasl::mechname::Mechname;
+use rsasl::prelude::*;
 use rsasl::property::{AuthId, AuthzId};
 use rsasl::validate::{NoValidation, Validate, Validation, ValidationError};
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
+use rsasl::callback::{CallbackError, Context, Request, SessionCallback};
+use rsasl::prelude::ServerConfig;
 
 // Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
@@ -58,12 +58,13 @@ impl Validation for TestValidation {
 }
 
 pub fn main() {
-    let sasl = SASL::new(Arc::new(OurCallback));
+    let config = ServerConfig::builder().with_defaults().with_callback(Box::new(OurCallback), false)
+        .unwrap();
+    let sasl = SASLServer::<TestValidation>::new(Arc::new(config));
 
     let mut session = sasl
-        .server_start(Mechname::new(b"SCRAM-SHA-1").unwrap())
-        .unwrap()
-        .without_channel_binding::<NoValidation>();
+        .start_suggested(&[Mechname::new(b"SCRAM-SHA-1").unwrap()])
+        .unwrap();
 
     loop {
         // Read data from STDIN
