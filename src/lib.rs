@@ -289,6 +289,7 @@ pub mod prelude {
 
 struct Shared;
 
+#[cfg(doc)]
 pub mod docs {
     //! Modules purely for documentation
 
@@ -303,5 +304,38 @@ pub mod docs {
         pub mod adr0001_property_and_validation_newtype {
             #![doc = include_str!("../docs/decisions/0001-property-and-validation-newtype.md")]
         }
+    }
+
+    pub mod features {
+        //! primer on the use of cargo features in rsasl
+        //!
+        //! rsasl has many features that can be toggled to customize its behaviour.
+        //!
+        //! # mechanism features
+        //!
+        //! All Mechanisms can be toggled via features. The [`mechanisms`](crate::mechanisms)
+        //! module documentation provides more detailed information on those flags
+        //!
+        //! # `provider` and `provider_base64`
+        //!
+        //! The `provider` flag enables all code required to use rsasl as an authentication
+        //! provider, i.e. to perform actual authentication using rsasl.
+        //! The `provider_base64` adds support for transparent Base64 en-/decoding. It
+        //! additionally enables `provider`, so only one of the two is required.
+        //!
+        //! One of these flags must be set by a protocol implementation that want to use rsasl. They
+        //! should however not be explicitly set by any other user to allow the protocol
+        //! implementation to speed up compilation by disabling all parts of rsasl it does not use.
+        //!
+        //! # `registry_static` and `registry_dynamic`
+        //!
+        //! The registry flags control the ways in which Mechanism implementations can be
+        //! registered in [`SASLConfig`](crate::prelude::SASLConfig)s. The `registry_static` flag
+        //! enabled automatic colletion of mechanisms at compile time using
+        //! [`linkme`](https://crates.io/crates/linkme).
+        //! The `registry_dynamic` flag enabled registration **and de-registration** of mechanisms
+        //! at runtime using a mutex'ed `Vec`.
+        //! If neither flag is set the available mechanism must be explicitly configured for each
+        //! `SASLConfig` and can not be modified after construction.
     }
 }
