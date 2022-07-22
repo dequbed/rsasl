@@ -124,6 +124,45 @@ impl Display for Mechanism {
     }
 }
 
+#[derive(Debug, Clone)]
+/// Registry of available mechanism implementations
+///
+/// This struct provides a common interface by abstracting the various ways mechanisms may be
+/// registered.
+pub struct Registry {
+    static_mechanisms: &'static [Mechanism],
+    #[cfg(feature = "registry_dynamic")]
+    dynamic_mechanisms: Vec<&'static Mechanism>,
+}
+
+impl Registry {
+    #[inline(always)]
+    /// Construct a registry with the given set of mechanisms, overwriting the default set.
+    pub fn with_mechanisms(mechanisms: &'static [Mechanism]) -> Self {
+        Self {
+            static_mechanisms: mechanisms,
+            #[cfg(feature = "registry_dynamic")]
+            dynamic_mechanisms: Vec::new(),
+        }
+    }
+
+    #[inline(always)]
+    pub fn get_mechanisms(&self) -> impl Iterator<Item=&Mechanism> {
+        self.static_mechanisms.iter()
+    }
+
+    #[cfg(feature = "registry_dynamic")]
+    pub fn register(&mut self, mechanism: &'static Mechanism) {
+        self.dynamic_mechanisms.push(mechanism)
+    }
+}
+
+impl Default for Registry {
+    fn default() -> Self {
+        Registry::with_mechanisms(&registry_static::MECHANISMS)
+    }
+}
+
 #[cfg(feature = "registry_static")]
 mod registry_static {
     use super::Mechanism;

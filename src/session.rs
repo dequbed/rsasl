@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, SessionCallback};
 use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
-use crate::config::{ConfigSide, SASLConfig};
 use crate::context::{build_context, Provider};
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
