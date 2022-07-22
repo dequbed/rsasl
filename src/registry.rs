@@ -36,10 +36,6 @@ pub use crate::session::Side;
 
 pub type MatchFn = fn(name: &Mechname) -> bool;
 
-// FIXME: This *must* at some point get access to more context. Important is at least the
-//        mechanism name. Required for GS2-* to figure out what GSSAPI mechanism to use. Nice to
-//        have for SCRAM so that SHA-1, SHA-256, SHA-512 with -PLUS variant don't result in 6
-//        separate registrations.
 pub type StartFn = fn(sasl: &SASLConfig, offered: &[&Mechname])
     -> Result<Box<dyn Authentication>, SASLError>;
 

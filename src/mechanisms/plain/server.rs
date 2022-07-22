@@ -1,43 +1,13 @@
 use std::borrow::Cow;
-
 use std::io::Write;
-use std::str::Utf8Error;
-use thiserror::Error;
 
 use stringprep::saslprep;
 
-use crate::error::{MechanismError, MechanismErrorKind};
-
 use crate::session::{MechanismData, State, StepResult};
-
 use crate::context::{Demand, DemandReply, Provider};
 use crate::mechanism::Authentication;
-
 use crate::property::{AuthId, AuthzId, Password};
-
-#[derive(Debug, Error)]
-enum PlainError {
-    #[error("invalid format, expected three strings separated by two NULL-bytes")]
-    BadFormat,
-    #[error("authzid is invalid UTF-8: {0}")]
-    BadAuthzid(#[source] Utf8Error),
-    #[error("authcid is invalid UTF-8: {0}")]
-    BadAuthcid(#[source] Utf8Error),
-    #[error("password is invalid UTF-8: {0}")]
-    BadPassword(#[source] Utf8Error),
-    #[error("saslprep failed: {0}")]
-    Saslprep(
-        #[from]
-        #[source]
-        stringprep::Error,
-    ),
-}
-
-impl MechanismError for PlainError {
-    fn kind(&self) -> MechanismErrorKind {
-        MechanismErrorKind::Parse
-    }
-}
+use super::mechinfo::PlainError;
 
 pub struct Plain;
 #[derive(Debug)]
