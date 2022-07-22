@@ -1,18 +1,16 @@
 
 use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
-use crate::config::{ClientConfig, ClientSide, ConfigSide, SASLConfig, ServerConfig, ServerSide};
+use crate::config::SASLConfig;
 
-use crate::error::{SASLError};
+use crate::error::SASLError;
 
 use crate::mechname::Mechname;
 
 use crate::registry::{Mechanism, StartFn};
-use crate::session::{ClientSession, ServerSession, Session, Side};
+use crate::session::{Session, Side};
 use crate::validate::{NoValidation, Validation};
 
-use std::marker::PhantomData;
 use std::sync::Arc;
-use crate::mechanism::Authentication;
 
 pub struct SASLClient<CB = NoChannelBindings> {
     inner: SASL<NoValidation, CB>,
@@ -121,11 +119,15 @@ impl<CB: ChannelBindingCallback, V: Validation> SASL<V, CB> {
         offered
             .iter()
             .filter_map(|offered_mechname| {
-                config.mech_list()
-                    .find(|avail_mech| avail_mech.mechanism == *offered_mechname)
-                    .filter(self.config.filter)
+                let mech = config.mech_list().find(|avail_mech| avail_mech.mechanism == *offered_mechname);
+                let mech = if let Some(filter) = &self.config.filter {
+                    mech.filter(|m| filter(m))
+                } else {
+                    mech
+                };
+                mech
                     .and_then(|mech| {
-                        let start = f(mech)?;
+                        let start = f(&mech)?;
                         let auth = start(config.as_ref(), offered).ok()?;
                         Some((mech, auth))
                     })

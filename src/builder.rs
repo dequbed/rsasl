@@ -2,9 +2,9 @@
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
 use crate::callback::SessionCallback;
-use crate::config::{ClientConfig, ClientSide, ConfigSide, SASLConfig, ServerConfig, ServerSide};
+use crate::config::{ClientSide, ConfigSide, FilterFn, SASLConfig, ServerSide, SorterFn};
 use crate::error::SASLError;
-use crate::registry::Mechanism;
+use crate::registry::{Mechanism, Registry};
 
 #[derive(Clone)]
 /// Type-checking Builder for a [`ClientConfig`](crate::config::ClientConfig) or
@@ -31,10 +31,10 @@ impl<State: Debug> Debug for ConfigBuilder<ServerSide, State> {
     }
 }
 
-fn default_filter(_: &&Mechanism) -> bool {
+fn default_filter(_: &Mechanism) -> bool {
     true
 }
-fn default_sorter(a: &&Mechanism, b: &&Mechanism) -> Ordering {
+fn default_sorter(a: &Mechanism, b: &Mechanism) -> Ordering {
     a.priority.cmp(&b.priority)
 }
 
@@ -48,22 +48,24 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantMechanisms> {
             state: WantMechanisms(()),
         }
     }
-    pub fn with_default_mechanisms(self) -> ConfigBuilder<Side, WantFilter> {
+    pub fn with_registry(self, mechanisms: Registry) -> ConfigBuilder<Side, WantFilter> {
         ConfigBuilder {
             side: self.side,
             state: WantFilter {
-                #[cfg(feature = "registry_dynamic")]
-                dynamic_mechs: vec![],
+                mechanisms,
             }
         }
     }
+    pub fn with_default_mechanisms(self) -> ConfigBuilder<Side, WantFilter> {
+        self.with_registry(Registry::default())
+    }
+
     pub fn with_defaults(self) -> ConfigBuilder<Side, WantCallback> {
         ConfigBuilder {
             side: self.side,
             state: WantCallback {
-                #[cfg(feature = "registry_dynamic")]
-                dynamic_mechs: vec![],
-                filter: default_filter,
+                mechanisms: Registry::default(),
+                filter: None,
                 sorter: default_sorter,
             }
         }
@@ -73,17 +75,28 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantMechanisms> {
 #[derive(Clone, Debug)]
 #[doc(hidden)]
 pub struct WantFilter {
-    #[cfg(feature = "registry_dynamic")]
-    dynamic_mechs: Vec<&'static Mechanism>,
+    mechanisms: Registry,
 }
 impl<Side: ConfigSide> ConfigBuilder<Side, WantFilter> {
-    pub fn with_default_filter(self) -> ConfigBuilder<Side, WantSorter> {
+    /// Install a filter, allowing only matching mechanisms to be used
+    ///
+    /// Specifically, only those Mechanism `m` may be used where `filter(&m)` returns true.
+    pub fn with_filter(self, filter: FilterFn) -> ConfigBuilder<Side, WantSorter> {
         ConfigBuilder {
             side: self.side,
             state: WantSorter {
-                #[cfg(feature = "registry_dynamic")]
-                dynamic_mechs: self.state.dynamic_mechs,
-                filter: default_filter,
+                mechanisms: self.state.mechanisms,
+                filter: Some(filter),
+            }
+        }
+    }
+
+    pub fn without_filter(self) -> ConfigBuilder<Side, WantSorter> {
+        ConfigBuilder {
+            side: self.side,
+            state: WantSorter {
+                mechanisms: self.state.mechanisms,
+                filter: None,
             }
         }
     }
@@ -92,17 +105,15 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantFilter> {
 #[derive(Clone)]
 #[doc(hidden)]
 pub struct WantSorter {
-    #[cfg(feature = "registry_dynamic")]
-    dynamic_mechs: Vec<&'static Mechanism>,
-    filter: fn(a: &&Mechanism) -> bool,
+    mechanisms: Registry,
+    filter: Option<FilterFn>,
 }
 impl<Side: ConfigSide> ConfigBuilder<Side, WantSorter> {
     pub fn with_default_sorting(self) -> ConfigBuilder<Side, WantCallback> {
         ConfigBuilder {
             side: self.side,
             state: WantCallback {
-                #[cfg(feature = "registry_dynamic")]
-                dynamic_mechs: self.state.dynamic_mechs,
+                mechanisms: self.state.mechanisms,
                 filter: self.state.filter,
                 sorter: default_sorter,
             }
@@ -113,13 +124,16 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantSorter> {
 #[derive(Clone)]
 #[doc(hidden)]
 pub struct WantCallback {
-    #[cfg(feature = "registry_dynamic")]
-    dynamic_mechs: Vec<&'static Mechanism>,
-    filter: fn(a: &&Mechanism) -> bool,
-    sorter: fn(a: &&Mechanism, b: &&Mechanism) -> Ordering,
+    mechanisms: Registry,
+    filter: Option<FilterFn>,
+    sorter: SorterFn,
 }
 impl<Side: ConfigSide> ConfigBuilder<Side, WantCallback> {
-    pub fn with_callback<CB: SessionCallback + 'static>(self, callback: Box<CB>, provides_channel_bindings: bool)
+    /// Install a callback for querying properties
+    ///
+    /// `cbsupport` dicates the availability of channel binding support. See [`CBSupport`] for
+    /// available values and their meaning.
+    pub fn with_callback<CB: SessionCallback + 'static>(self, callback: Box<CB>)
         -> Result<SASLConfig, SASLError>
     {
         let callback = callback as Box<dyn SessionCallback>;
@@ -127,9 +141,7 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantCallback> {
             callback,
             self.state.filter,
             self.state.sorter,
-            #[cfg(feature = "registry_dynamic")]
-                self.state.dynamic_mechs,
-            provides_channel_bindings,
+            self.state.mechanisms,
         )
     }
 }

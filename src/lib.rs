@@ -243,9 +243,10 @@
 //! define a [`Mechanism`](registry::Mechanism) struct describing the implemented mechanism.
 //! Documentation about how to add a custom mechanism is found in the [`registry module documentation`](registry).
 
-mod builder;
+
 pub mod callback;
 pub mod config;
+mod builder;
 mod error;
 pub mod mechanisms;
 pub mod mechname;

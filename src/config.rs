@@ -2,7 +2,7 @@
 
 use crate::builder::{ConfigBuilder, WantMechanisms};
 use crate::callback::{Context, Request, SessionCallback};
-use crate::registry::Mechanism;
+use crate::registry::{Mechanism, Registry};
 use std::cmp::Ordering;
 use std::fmt;
 use std::marker::PhantomData;
@@ -27,8 +27,8 @@ impl ConfigSide for ServerSide {
     const SIDE: session::Side = session::Side::Server;
 }
 
-type FilterFn = fn(a: &&Mechanism) -> bool;
-type SorterFn = fn(a: &&Mechanism, b: &&Mechanism) -> Ordering;
+pub(crate) type FilterFn = fn(a: &Mechanism) -> bool;
+pub(crate) type SorterFn = fn(a: &Mechanism, b: &Mechanism) -> Ordering;
 
 
 pub struct ClientSide {
@@ -50,12 +50,44 @@ impl ClientConfig {
     pub fn with_credentials(authzid: Option<String>, authid: String, password: String)
         -> Result<SASLConfig, SASLError>
     {
+        struct CredentialsProvider {
+            authid: String,
+            password: String,
+            authzid: Option<String>,
+        }
+        impl SessionCallback for CredentialsProvider {
+            fn callback(
+                &self,
+                _session_data: &SessionData,
+                _context: &Context,
+                request: &mut Request<'_>,
+            ) -> Result<(), SessionError> {
+                request
+                    .satisfy::<AuthId>(self.authid.as_str())?
+                    .satisfy::<Password>(self.password.as_bytes())?;
+                if let Some(authzid) = self.authzid.as_deref() {
+                    request.satisfy::<AuthzId>(authzid)?;
+                }
+                Ok(())
+            }
+        }
+
         let callback = CredentialsProvider {
             authid, password, authzid
         };
+
         Self::builder()
-            .with_defaults()
-            .with_callback(Box::new(callback), false)
+            .with_default_mechanisms()
+            .with_filter(|mechanism| {
+                let name = mechanism.mechanism;
+                match name.as_str() {
+                    "PLAIN" | "LOGIN" => true,
+                    n if n.starts_with("SCRAM-") => true,
+                    _ => false,
+                }
+            })
+            .with_default_sorting()
+            .with_callback(Box::new(callback))
     }
 }
 
@@ -66,16 +98,11 @@ pub struct ServerSide {
 /// Configuration for a server-side SASL authentication
 ///
 /// This is an easier to use type shortcut for the sided [`SASLConfig`] type.
-pub struct ServerConfig {
-    config: SASLConfig,
-}
+pub struct ServerConfig;
 
 impl ServerConfig {
     pub fn builder() -> ConfigBuilder<ServerSide, WantMechanisms> {
         ConfigBuilder::new(ServerSide { _marker: PhantomData })
-    }
-    pub(crate) fn new(config: SASLConfig) -> Self {
-        Self { config }
     }
 }
 
@@ -85,90 +112,56 @@ impl ServerConfig {
 /// designed to be passed to a protocol implementation and provide an opaque and abstracted
 /// interface to said configuration so that neither side has to expose implementation details.
 ///
-/// A config is pinned to either the client or server side of an authentication, with the typedefs
-/// [`ClientConfig`] and [`ServerConfig`] being provided as convenience shorthands.
 pub struct SASLConfig {
     pub(crate) callback: Box<dyn SessionCallback>,
 
-    pub(crate) filter: fn(a: &&Mechanism) -> bool,
-    pub(crate) sorter: fn(a: &&Mechanism, b: &&Mechanism) -> Ordering,
+    pub(crate) filter: Option<FilterFn>,
+    pub(crate) sorter: SorterFn,
 
-    #[cfg(feature = "registry_dynamic")]
-    dynamic_mechs: Vec<&'static Mechanism>,
-
-    pub(crate) provides_channel_bindings: bool,
+    mechanisms: Registry,
 }
 impl fmt::Debug for SASLConfig {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut d = f.debug_struct("SASLConfig");
-        d.field("static mechanisms", &crate::registry::MECHANISMS.as_ref());
-        #[cfg(feature = "registry_dynamic")]
-        d.field("dynamic mechanisms", &self.dynamic_mechs);
-        d.finish()
+        f.debug_struct("SASLConfig")
+            .field("mechanisms", &self.mechanisms)
+            .finish()
     }
 }
 
 impl SASLConfig {
-    #[cfg(not(feature = "registry_dynamic"))]
     pub(crate) fn new(
         callback: Box<dyn SessionCallback>,
-        filter: FilterFn,
+        filter: Option<FilterFn>,
         sorter: SorterFn,
-        provides_channel_bindings: bool,
-    ) -> Result<Self, SASLError> {
-        Ok(Self {
-            side,
-            callback,
-            filter,
-            sorter,
-            provides_channel_bindings,
-        })
-    }
-    #[cfg(feature = "registry_dynamic")]
-    pub(crate) fn new(
-        callback: Box<dyn SessionCallback>,
-        filter: FilterFn,
-        sorter: SorterFn,
-        dynamic_mechs: Vec<&'static Mechanism>,
-        provides_channel_bindings: bool,
+        mechanisms: Registry,
     ) -> Result<Self, SASLError> {
         Ok(Self {
             callback,
             filter,
             sorter,
-            dynamic_mechs,
-            provides_channel_bindings,
+            mechanisms,
         })
     }
 
-    pub(crate) fn mech_list(&self) -> impl Iterator<Item = &Mechanism> {
-        crate::registry::MECHANISMS.iter()
+    pub(crate) fn mech_list(&self) -> impl Iterator<Item=&Mechanism> {
+        self.mechanisms.get_mechanisms()
     }
 
-    pub fn init(&mut self) {
+    #[cfg(any(feature = "registry_dynamic", feature = "registry_static"))]
+    /// Register builtin mechanisms
+    ///
+    /// When `registry_static` is used this is a no-op and does not need to be called.
+    /// When `registry_dynamic` is used this will register all built-in mechanisms via the dynamic
+    /// registry.
+    ///
+    /// This method mainly exists as a workaround to
+    /// [rustc#47384](https://github.com/rust-lang/rust/issues/47384), which was fixed in rustc 1.62
+    pub fn register_builtin(&mut self) {
         crate::init::register_builtin(self)
     }
-}
 
-/// A [`SessionCallback`] implementation returning preconfigured values
-struct CredentialsProvider {
-    authid: String,
-    password: String,
-    authzid: Option<String>,
-}
-impl SessionCallback for CredentialsProvider {
-    fn callback(
-        &self,
-        _session_data: &SessionData,
-        _context: &Context,
-        request: &mut Request<'_>,
-    ) -> Result<(), SessionError> {
-        request
-            .satisfy::<AuthId>(self.authid.as_str())?
-            .satisfy::<Password>(self.password.as_bytes())?;
-        if let Some(authzid) = self.authzid.as_deref() {
-            request.satisfy::<AuthzId>(authzid)?;
-        }
-        Ok(())
+    #[cfg(feature = "registry_dynamic")]
+    pub fn register(&mut self, mechanism: &'static Mechanism) {
+        self.mechanisms.register(mechanism)
     }
 }
