@@ -1,7 +1,15 @@
-//! # Defining Properties
+//! # Type-safe queryable values
 //!
-//! If the existing properties in this module are not sufficient for your mechanism, you can
-//! define additional properties to be queried.
+//! Properties are used by mechanisms to retrieve data from user callbacks using
+//! [`Request`](crate::callback::Request)s.
+//!
+//! A `Property` defines an associated data type [`Value`](Property::Value) that is requested by
+//! or stored in a `Request` for the given `Property`.
+//!
+//! As an example, [`AuthId`] has `Value = str`. Thus a
+//! [`Request::satisfy`](crate::callback::Request::satisfy) will require a `&str` to be sent as
+//! `answer`. [`Password`] has `Value = [u8]`. Thus `satisfy` would in that case require a
+//! `&[u8]` instead.
 
 pub trait SizedProperty: 'static {
     type Value: 'static;
@@ -16,12 +24,31 @@ impl<P: SizedProperty> Property for P {
 }
 
 #[derive(Debug)]
+/// The username to authenticate with
+///
+/// SASL makes a distinction between this type and [`AuthzId`]. The `AuthId` generally represents
+/// the name of the user to whom the password or other authentication data belongs to, while the
+/// [`AuthzId`] is the user to authentication *as*.
+///
+/// E.g. in an authentication with `AuthId`="Bob", `AuthzId`="Alice", and `Password`="secret" a
+/// server would first verify if "secret" is Bobs password. If so, it would then create a session
+/// as if *Alice* has logged in with her password, letting Bob act on her behalf. (Given of
+/// course that Bob has the required permission to do so)
 pub struct AuthId;
 impl Property for AuthId {
     type Value = str;
 }
 
 #[derive(Debug)]
+/// The name of the entity to act as
+///
+/// SASL makes a distinction between [`AuthId`] and this type. The `AuthzId` generally represents
+/// the name of the user that is used for auth**orization**. In other words, the user to act as.
+///
+/// E.g. in an authentication with `AuthId`="Bob", `AuthzId`="Alice", and `Password`="secret" a
+/// server would first verify if "secret" is Bobs password. If so, it would then create a session
+/// as if *Alice* has logged in with her password, letting Bob act on her behalf. (Given of
+/// course that Bob has the required permission to do so)
 pub struct AuthzId;
 impl Property for AuthzId {
     type Value = str;

@@ -24,6 +24,9 @@
 //! making use of [feature unification](https://doc.rust-lang.org/cargo/reference/features.html#feature-unification)
 //! to not compile in mechanisms that aren't needed.
 
+#[cfg(doc)]
+use crate::property::*;
+
 #[cfg(feature = "anonymous")]
 pub mod anonymous {
     //! `ANONYMOUS` *mechanism. Requires feature `anonymous`*
@@ -70,6 +73,10 @@ pub mod external {
 #[cfg(feature = "login")]
 pub mod login {
     //! `LOGIN` *mechanism. Requires feature `login`*
+    //!
+    //! The `LOGIN` mechanism sends authentication data in the plain without any form of hashing
+    //! or encryption being applied. It should thus only be used over an encrypted channel such
+    //! as TLS.
     pub mod client;
     pub mod mechinfo;
     pub mod server;
@@ -86,6 +93,20 @@ pub mod openid20 {
 #[cfg(feature = "plain")]
 pub mod plain {
     //! `PLAIN` *mechanism. Requires feature `plain`*
+    //!
+    //! The `PLAIN` mechanism sends authentication data in the plain without any form of hashing
+    //! or encryption being applied. It should thus only be used over an encrypted channel such
+    //! as TLS.
+    //!
+    //! # Client side
+    //! Plain will query three properties: [`AuthzId`], [`AuthId`] and [`Password`].
+    //!
+    //! `AuthzId` and `AuthId` may not contain a NULL-byte.
+    //!
+    //! `Password` must be valid UTF-8 and must not contain NULL according to
+    //! [RFC 4616](https://www.rfc-editor.org/rfc/rfc4616.html), but rsasl will not validate a
+    //! password and instead send it as-is.
+    //!
     pub mod client;
     pub mod mechinfo;
     pub mod server;
