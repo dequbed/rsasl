@@ -1,6 +1,5 @@
 //! Configuration supplied by the downstream user
 
-use crate::builder::{ConfigBuilder, WantMechanisms};
 use crate::callback::{Context, Request, SessionCallback};
 use crate::registry::{Mechanism, Registry};
 use std::cmp::Ordering;
@@ -10,6 +9,9 @@ use crate::error::{SASLError, SessionError};
 use crate::property::{AuthId, AuthzId, Password};
 use crate::session;
 use crate::session::SessionData;
+
+#[cfg(feature = "config_builder")]
+pub use crate::builder::ConfigBuilder;
 
 mod sealed {
     pub trait Sealed {}
@@ -39,8 +41,9 @@ pub struct ClientSide {
 ///
 /// This is an easier to use type shortcut for the sided [`SASLConfig`] type.
 pub struct ClientConfig;
+#[cfg(feature = "config_builder")]
 impl ClientConfig {
-    pub fn builder() -> ConfigBuilder<ClientSide, WantMechanisms> {
+    pub fn builder() -> ConfigBuilder<ClientSide, crate::builder::WantMechanisms> {
         ConfigBuilder::new(ClientSide { _marker: PhantomData })
     }
 
@@ -100,8 +103,9 @@ pub struct ServerSide {
 /// This is an easier to use type shortcut for the sided [`SASLConfig`] type.
 pub struct ServerConfig;
 
+#[cfg(feature = "config_builder")]
 impl ServerConfig {
-    pub fn builder() -> ConfigBuilder<ServerSide, WantMechanisms> {
+    pub fn builder() -> ConfigBuilder<ServerSide, crate::builder::WantMechanisms> {
         ConfigBuilder::new(ServerSide { _marker: PhantomData })
     }
 }
@@ -112,6 +116,7 @@ impl ServerConfig {
 /// designed to be passed to a protocol implementation and provide an opaque and abstracted
 /// interface to said configuration so that neither side has to expose implementation details.
 ///
+/// This type is constructed using the [`ClientConfig`] and [`ServerConfig`] helpers
 pub struct SASLConfig {
     pub(crate) callback: Box<dyn SessionCallback>,
 
@@ -129,6 +134,13 @@ impl fmt::Debug for SASLConfig {
 }
 
 impl SASLConfig {
+    pub(crate) fn mech_list(&self) -> impl Iterator<Item=&Mechanism> {
+        self.mechanisms.get_mechanisms()
+    }
+}
+
+#[cfg(feature = "config_builder")]
+impl SASLConfig {
     pub(crate) fn new(
         callback: Box<dyn SessionCallback>,
         filter: Option<FilterFn>,
@@ -143,12 +155,8 @@ impl SASLConfig {
         })
     }
 
-    pub(crate) fn mech_list(&self) -> impl Iterator<Item=&Mechanism> {
-        self.mechanisms.get_mechanisms()
-    }
-
     #[cfg(any(feature = "registry_dynamic", feature = "registry_static"))]
-    /// Register builtin mechanisms
+    /// Register the builtin mechanisms
     ///
     /// When `registry_static` is used this is a no-op and does not need to be called.
     /// When `registry_dynamic` is used this will register all built-in mechanisms via the dynamic
@@ -161,6 +169,7 @@ impl SASLConfig {
     }
 
     #[cfg(feature = "registry_dynamic")]
+    /// Register a mechanism
     pub fn register(&mut self, mechanism: &'static Mechanism) {
         self.mechanisms.register(mechanism)
     }

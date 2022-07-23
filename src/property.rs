@@ -140,6 +140,13 @@ impl Property for ChannelBindings {
 }
 
 #[derive(Debug)]
+/// Name of the channel bindings used
+pub struct ChannelBindingName;
+impl Property for ChannelBindingName {
+    type Value = str;
+}
+
+#[derive(Debug)]
 /// Override the type of channel bindings to be used.
 ///
 /// Some mechanisms such as the `SCRAM-` family define that specific channel binding types are to

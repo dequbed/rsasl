@@ -104,7 +104,7 @@ impl<'a> SaslName<'a> {
             return Err(SaslNameError::InvalidChar(0));
         }
 
-        if input.contains(&[',', '=']) {
+        if input.contains(|c| matches!(c, ',' | '=')) {
             let escaped: String = input.chars().flat_map(SaslEscapeState::escape).collect();
             Ok(Cow::Owned(escaped))
         } else {
@@ -120,7 +120,7 @@ impl<'a> SaslName<'a> {
             return Err(SaslNameError::Empty);
         }
 
-        if let Some(c) = input.find(&['\0', ',']) {
+        if let Some(c) = input.find(|byte| matches!(byte, '\0' | ',')) {
             return Err(SaslNameError::InvalidChar(c as u8));
         }
 
