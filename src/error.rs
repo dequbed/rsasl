@@ -106,7 +106,6 @@ pub enum SessionError {
     #[error(transparent)]
     Gsasl(Gsasl),
 }
-static_assertions::assert_impl_all!(SessionError: Send, Sync);
 
 impl SessionError {
     pub fn input_required() -> Self {
@@ -246,6 +245,14 @@ fn gsasl_errname_to_str(err: libc::c_uint) -> &'static str {
 mod tests {
     use super::*;
     use crate::gsasl::consts::*;
+
+    #[test]
+    fn check_auto_traits() {
+        static_assertions::assert_impl_all!(
+            SessionError: Send,
+            Sync
+        );
+    }
 
     #[test]
     fn errname_to_str_valid() {

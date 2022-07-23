@@ -100,9 +100,8 @@ stringprep = { version = "0.1", optional = true }
 
 linkme = { version = "0.2", optional = true }
 
+[dev-dependencies]
 static_assertions = "1.1.0"
-
-document-features = { version = "0.2", optional = true }
 
 [workspace]
 members = ["examples/server"]
