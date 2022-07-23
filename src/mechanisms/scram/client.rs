@@ -351,7 +351,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
                             &mut |i_cbname| {
                                 session.need_cb_data(
                                     i_cbname,
-                                    &EmptyProvider,
+                                    EmptyProvider,
                                     &mut |i_cbdata| {
                                         cbdata = Some(base64::encode(i_cbdata));
                                         Ok(())
@@ -366,7 +366,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
                             Err(e) if e.is_missing_prop() => {
                                 session.need_cb_data(
                                     "tls-unique",
-                                    &EmptyProvider,
+                                    EmptyProvider,
                                     &mut |i_cbdata| {
                                         cbdata = Some(base64::encode(i_cbdata));
                                         Ok(())

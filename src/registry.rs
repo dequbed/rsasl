@@ -131,6 +131,7 @@ pub struct Registry {
     dynamic_mechanisms: Vec<&'static Mechanism>,
 }
 
+#[cfg(feature = "config_builder")]
 impl Registry {
     #[inline(always)]
     /// Construct a registry with the given set of mechanisms, overwriting the default set.
@@ -142,17 +143,20 @@ impl Registry {
         }
     }
 
-    #[inline(always)]
-    pub fn get_mechanisms(&self) -> impl Iterator<Item=&Mechanism> {
-        self.static_mechanisms.iter()
-    }
-
     #[cfg(feature = "registry_dynamic")]
     pub fn register(&mut self, mechanism: &'static Mechanism) {
         self.dynamic_mechanisms.push(mechanism)
     }
 }
 
+impl Registry {
+    #[inline(always)]
+    pub fn get_mechanisms(&self) -> impl Iterator<Item=&Mechanism> {
+        self.static_mechanisms.iter()
+    }
+}
+
+#[cfg(feature = "config_builder")]
 impl Default for Registry {
     fn default() -> Self {
         Registry::with_mechanisms(&registry_static::MECHANISMS)
@@ -170,5 +174,5 @@ mod registry_static {
 #[cfg(not(feature = "registry_static"))]
 mod registry_static {
     use super::Mechanism;
-    pub static MECHANISMS: [Mechanism] = [];
+    pub static MECHANISMS: [Mechanism; 0] = [];
 }
