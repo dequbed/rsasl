@@ -142,8 +142,10 @@ impl Registry {
             dynamic_mechanisms: Vec::new(),
         }
     }
+}
 
-    #[cfg(feature = "registry_dynamic")]
+#[cfg(feature = "registry_dynamic")]
+impl Registry {
     pub fn register(&mut self, mechanism: &'static Mechanism) {
         self.dynamic_mechanisms.push(mechanism)
     }
