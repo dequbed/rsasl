@@ -24,8 +24,12 @@ use crate::property::{AuthId, AuthzId, OverrideCBType, Password};
 use crate::session::{MechanismData, State, StepResult};
 use crate::vectored_io::VectoredWriter;
 
+#[cfg(feature = "scram-sha-2")]
 pub type ScramSha256Client<const N: usize> = ScramClient<sha2::Sha256, N>;
+#[cfg(feature = "scram-sha-2")]
 pub type ScramSha512Client<const N: usize> = ScramClient<sha2::Sha512, N>;
+
+#[cfg(feature = "scram-sha-1")]
 pub type ScramSha1Client<const N: usize> = ScramClient<sha1::Sha1, N>;
 
 enum CbSupport {

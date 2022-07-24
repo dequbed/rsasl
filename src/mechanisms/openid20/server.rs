@@ -6,13 +6,13 @@ use crate::gsasl::consts::{
     GSASL_OPENID20_REDIRECT_URL, GSASL_VALIDATE_OPENID20,
 };
 use crate::gsasl::gl::free::rpl_free;
-use crate::gsasl::mechtools::_gsasl_parse_gs2_header;
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set, gsasl_property_set_raw};
 use crate::session::MechanismData;
 use crate::Shared;
 use ::libc;
 use libc::{calloc, malloc, memcpy, size_t, strdup, strlen};
 use std::ptr::NonNull;
+use crate::gsasl::mechtools::_gsasl_parse_gs2_header;
 
 /* Get specification. */
 /* Get strdup, strlen. */

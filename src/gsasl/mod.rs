@@ -13,8 +13,6 @@ pub mod gl {
     pub mod free;
     #[cfg(feature = "digest")]
     pub mod gc_gnulib;
-    #[cfg(feature = "digest")]
-    pub mod gc_pbkdf2;
     pub mod memxor;
 }
 
@@ -28,7 +26,7 @@ pub mod crypto;
 pub mod error;
 pub mod free;
 pub mod gc;
-#[cfg(feature = "digest")]
+#[cfg(any(feature = "digest", feature = "openid20", feature = "saml20"))]
 pub mod mechtools;
 pub mod property;
 
