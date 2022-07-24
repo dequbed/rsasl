@@ -134,7 +134,7 @@ impl fmt::Debug for SASLConfig {
 }
 
 impl SASLConfig {
-    pub(crate) fn mech_list(&self) -> impl Iterator<Item=&Mechanism> {
+    pub fn mech_list(&self) -> impl Iterator<Item=&Mechanism> {
         self.mechanisms.get_mechanisms()
     }
 }
