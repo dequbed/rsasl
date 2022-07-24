@@ -154,7 +154,9 @@ impl SASLConfig {
             mechanisms,
         })
     }
+}
 
+impl SASLConfig {
     #[cfg(any(feature = "registry_dynamic", feature = "registry_static"))]
     /// Register the builtin mechanisms
     ///
