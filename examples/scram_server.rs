@@ -1,6 +1,6 @@
 use rsasl::prelude::*;
 use rsasl::property::{AuthId, AuthzId};
-use rsasl::validate::{NoValidation, Validate, Validation, ValidationError};
+use rsasl::validate::{Validate, Validation, ValidationError};
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
@@ -58,7 +58,7 @@ impl Validation for TestValidation {
 }
 
 pub fn main() {
-    let config = ServerConfig::builder().with_defaults().with_callback(Box::new(OurCallback), false)
+    let config = ServerConfig::builder().with_defaults().with_callback(Box::new(OurCallback))
         .unwrap();
     let sasl = SASLServer::<TestValidation>::new(Arc::new(config));
 

@@ -70,7 +70,8 @@ impl Validation for TestValidation {
 }
 
 pub fn main() {
-    let config = ServerConfig::builder().with_defaults().with_callback(Box::new(OurCallback), false).unwrap();
+    let config = ServerConfig::builder().with_defaults().with_callback(Box::new(OurCallback))
+        .unwrap();
     let config = Arc::new(config);
 
     // Authentication exchange 1

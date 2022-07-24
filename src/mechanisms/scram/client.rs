@@ -24,8 +24,12 @@ use crate::property::{AuthId, AuthzId, OverrideCBType, Password};
 use crate::session::{MechanismData, State, StepResult};
 use crate::vectored_io::VectoredWriter;
 
+#[cfg(feature = "scram-sha-2")]
 pub type ScramSha256Client<const N: usize> = ScramClient<sha2::Sha256, N>;
+#[cfg(feature = "scram-sha-2")]
 pub type ScramSha512Client<const N: usize> = ScramClient<sha2::Sha512, N>;
+
+#[cfg(feature = "scram-sha-1")]
 pub type ScramSha1Client<const N: usize> = ScramClient<sha1::Sha1, N>;
 
 enum CbSupport {
@@ -351,7 +355,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
                             &mut |i_cbname| {
                                 session.need_cb_data(
                                     i_cbname,
-                                    &EmptyProvider,
+                                    EmptyProvider,
                                     &mut |i_cbdata| {
                                         cbdata = Some(base64::encode(i_cbdata));
                                         Ok(())
@@ -366,7 +370,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
                             Err(e) if e.is_missing_prop() => {
                                 session.need_cb_data(
                                     "tls-unique",
-                                    &EmptyProvider,
+                                    EmptyProvider,
                                     &mut |i_cbdata| {
                                         cbdata = Some(base64::encode(i_cbdata));
                                         Ok(())

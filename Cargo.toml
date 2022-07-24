@@ -1,8 +1,8 @@
 [package]
 name = "rsasl"
-version = "2.0.0-preview4"
+version = "2.0.0-preview5"
 authors = ["Nadja Reitzenstein <me@dequbed.space>"]
-edition = "2018"
+edition = "2021"
 description = """The Rust SASL framework, aimed at both middleware-style protocol implementation and application code.
 Designed to make SASL authentication simple and safe while handing as much control to the user as possible.
 """
@@ -12,12 +12,13 @@ readme = "README.md"
 categories = ["authentication", "api-bindings", "network-programming"]
 keywords = ["sasl", "authentication", "sso", "framework", "middleware"]
 documentation = "https://docs.rs/rsasl"
-
+rust-version = "1.56.1"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
 default = [
     "provider", "provider_base64",
+    "config_builder",
     "registry_static", "registry_dynamic",
     "scram-sha-1", "scram-sha-2",
     "digest-md5", "cram-md5", "digest",
@@ -27,22 +28,52 @@ default = [
     "openid20", "saml20"
 ]
 
-scram-sha-1 = ["saslprep", "hmac", "sha-1", "base64", "rand", "pbkdf2"]
-scram-sha-2 = ["saslprep", "hmac", "sha2", "base64", "rand", "pbkdf2"]
-digest-md5 = ["saslprep", "hmac", "md-5"]
-cram-md5 = ["saslprep", "hmac", "md-5"]
+#! ## Compile-time mechanism selection
+## Enable `SCRAM-SHA-1` and `SCRAM-SHA-1-PLUS`
+scram-sha-1 = ["saslprep", "hmac", "digest", "sha-1", "base64", "rand", "pbkdf2"]
+## Enable `SCRAM-*` and `SCRAM-*-PLUS` mechanisms using `SHA-2`, i.e. `SHA-256` and `SHA-512`
+scram-sha-2 = ["saslprep", "hmac", "digest", "sha2", "base64", "rand", "pbkdf2"]
+## Enable `DIGEST-MD5`
+digest-md5 = ["saslprep", "hmac", "digest", "md-5", "base64"]
+## Enable `CRAM-MD5`
+cram-md5 = ["saslprep", "hmac", "digest", "md-5"]
+## Enable `ANONYMOUS`
 anonymous = []
+## Enable `EXTERNAL`
 external = []
+## Enable `PLAIN`
 plain = ["saslprep"]
+## Enable `LOGIN`
 login = ["saslprep"]
+## Enable `OPENID20`
 openid20 = []
+## Enable `SAML20`
 saml20 = []
+## Enable `SECURID`
 securid = []
 
+#! ## Provider flags
+#! These flags are relevant for crates that want to use rsasl as authentication provider, i.e. crates implementing
+#! network protocols
+
+## Enable provider mode
+##
+## This feature enables all the required code for providers, e.g. code surrounding `Session`
 provider = []
+## Enable transparent Base64 wrapping for provider mode
+##
+## This enables the `step64` method to wrap a call to `step` in base64-encoding. Adds a dependency on the `base64` crate
 provider_base64 = ["provider", "base64"]
 
+#! ## Supplier flags
+#! These flags are relevant for crates that want to use rsasl as supplier, i.e. applications and libraries making use
+#! of protocol implementations with rsasl support
+## Enable the ConfigBuilder
+config_builder = []
+
+## Enables the static registry using `linkme`
 registry_static = ["linkme"]
+## Enables the dynamic registry
 registry_dynamic = []
 
 saslprep = ["stringprep"]
@@ -69,7 +100,8 @@ stringprep = { version = "0.1", optional = true }
 
 linkme = { version = "0.2", optional = true }
 
+[dev-dependencies]
 static_assertions = "1.1.0"
 
-[package.metadata.cargo-all-features]
-skip_optional_dependencies = true
+[workspace]
+members = ["examples/server"]

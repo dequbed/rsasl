@@ -33,7 +33,7 @@ impl SessionCallback for OurCallback {
 }
 
 pub fn main() {
-    let config = ServerConfig::builder().with_defaults().with_callback(Box::new(OurCallback), false).unwrap();
+    let config = ServerConfig::builder().with_defaults().with_callback(Box::new(OurCallback)).unwrap();
     let sasl = SASLServer::<NoValidation>::new(Arc::new(config));
 
     let mut session = sasl

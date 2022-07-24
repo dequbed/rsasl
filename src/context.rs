@@ -11,11 +11,35 @@ pub trait Provider {
     }
 }
 
+pub trait ProviderExt: Provider {
+    fn and<P: Provider>(self, other: P) -> And<Self, P> where Self: Sized {
+        And { l: self, r: other }
+    }
+}
+impl<P: Provider> ProviderExt for P {}
+
 #[derive(Debug)]
 pub struct EmptyProvider;
 impl Provider for EmptyProvider {
     fn provide<'a>(&'a self, _: &mut Demand<'a>) -> DemandReply<()> {
         DemandReply::Continue(())
+    }
+}
+
+#[derive(Debug)]
+pub struct And<L,R> {
+    l: L,
+    r: R,
+}
+impl<L: Provider, R: Provider> Provider for And<L,R> {
+    fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
+        self.l.provide(req)?;
+        self.r.provide(req)
+    }
+
+    fn provide_mut<'a>(&'a mut self, req: &mut Demand<'a>) -> DemandReply<()> {
+        self.l.provide_mut(req)?;
+        self.r.provide_mut(req)
     }
 }
 

@@ -1,10 +1,10 @@
 use ::libc;
+#[cfg(feature = "digest")]
+use digest::Digest;
+#[cfg(feature = "hmac")]
+use digest::Mac;
 use digest::generic_array::GenericArray;
-use digest::{Digest, Mac};
 use libc::{__errno_location, getrandom, size_t, ssize_t};
-use md5::Md5;
-use sha1::Sha1;
-use sha2::Sha256;
 
 use crate::gsasl::gc::{Gc_rc, GC_INVALID_HASH, GC_OK, GC_RANDOM_ERROR};
 
@@ -138,48 +138,24 @@ pub unsafe fn gc_random(mut data: *mut libc::c_char, mut datalen: size_t) -> Gc_
     ) as Gc_rc;
 }
 
+#[cfg(feature = "md-5")]
 pub unsafe fn gc_md5(
     mut in_0: *const libc::c_void,
     mut inlen: size_t,
     mut resbuf: *mut libc::c_void,
 ) -> Gc_rc {
+    use digest::Digest;
+
     let mut hasher = md5::Md5::default();
     let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
     hasher.update(input);
-    let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, Md5::output_size());
+    let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, md5::Md5::output_size());
     let output = GenericArray::from_mut_slice(output);
     hasher.finalize_into(output);
     return GC_OK;
 }
 
-pub unsafe fn gc_sha1(
-    mut in_0: *const libc::c_void,
-    mut inlen: size_t,
-    mut resbuf: *mut libc::c_void,
-) -> Gc_rc {
-    let mut hasher = sha1::Sha1::default();
-    let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
-    hasher.update(input);
-    let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, Sha1::output_size());
-    let output = GenericArray::from_mut_slice(output);
-    hasher.finalize_into(output);
-    return GC_OK;
-}
-
-pub unsafe fn gc_sha256(
-    mut in_0: *const libc::c_void,
-    mut inlen: size_t,
-    mut resbuf: *mut libc::c_void,
-) -> Gc_rc {
-    let mut hasher = sha2::Sha256::default();
-    let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
-    hasher.update(input);
-    let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, Sha256::output_size());
-    let output = GenericArray::from_mut_slice(output);
-    hasher.finalize_into(output);
-    return GC_OK;
-}
-
+#[cfg(feature = "md-5")]
 pub unsafe fn gc_hmac_md5(
     mut key: *const libc::c_void,
     mut keylen: size_t,
@@ -187,54 +163,11 @@ pub unsafe fn gc_hmac_md5(
     mut inlen: size_t,
     mut resbuf: *mut libc::c_char,
 ) -> Gc_rc {
+
     type HmacMd5 = hmac::Hmac<md5::Md5>;
     let key = std::slice::from_raw_parts(key as *const u8, keylen);
 
     if let Ok(mut hasher) = <HmacMd5 as Mac>::new_from_slice(key) {
-        let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
-        hasher.update(input);
-        let hash = hasher.finalize().into_bytes();
-        let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, hash.len());
-        output.copy_from_slice(&hash);
-        GC_OK
-    } else {
-        GC_INVALID_HASH
-    }
-}
-
-pub unsafe fn gc_hmac_sha1(
-    mut key: *const libc::c_void,
-    mut keylen: size_t,
-    mut in_0: *const libc::c_void,
-    mut inlen: size_t,
-    mut resbuf: *mut libc::c_char,
-) -> Gc_rc {
-    type HmacSha1 = hmac::Hmac<sha1::Sha1>;
-    let key = std::slice::from_raw_parts(key as *const u8, keylen);
-
-    if let Ok(mut hasher) = <HmacSha1 as Mac>::new_from_slice(key) {
-        let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
-        hasher.update(input);
-        let hash = hasher.finalize().into_bytes();
-        let output = std::slice::from_raw_parts_mut(resbuf as *mut u8, hash.len());
-        output.copy_from_slice(&hash);
-        GC_OK
-    } else {
-        GC_INVALID_HASH
-    }
-}
-
-pub unsafe fn gc_hmac_sha256(
-    mut key: *const libc::c_void,
-    mut keylen: size_t,
-    mut in_0: *const libc::c_void,
-    mut inlen: size_t,
-    mut resbuf: *mut libc::c_char,
-) -> Gc_rc {
-    type HmacSha256 = hmac::Hmac<sha2::Sha256>;
-    let key = std::slice::from_raw_parts(key as *const u8, keylen);
-
-    if let Ok(mut hasher) = <HmacSha256 as Mac>::new_from_slice(key) {
         let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
         hasher.update(input);
         let hash = hasher.finalize().into_bytes();

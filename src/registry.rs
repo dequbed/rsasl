@@ -36,10 +36,6 @@ pub use crate::session::Side;
 
 pub type MatchFn = fn(name: &Mechname) -> bool;
 
-// FIXME: This *must* at some point get access to more context. Important is at least the
-//        mechanism name. Required for GS2-* to figure out what GSSAPI mechanism to use. Nice to
-//        have for SCRAM so that SHA-1, SHA-256, SHA-512 with -PLUS variant don't result in 6
-//        separate registrations.
 pub type StartFn = fn(sasl: &SASLConfig, offered: &[&Mechname])
     -> Result<Box<dyn Authentication>, SASLError>;
 
@@ -124,6 +120,51 @@ impl Display for Mechanism {
     }
 }
 
+#[derive(Debug, Clone)]
+/// Registry of available mechanism implementations
+///
+/// This struct provides a common interface by abstracting the various ways mechanisms may be
+/// registered.
+pub struct Registry {
+    static_mechanisms: &'static [Mechanism],
+    #[cfg(feature = "registry_dynamic")]
+    dynamic_mechanisms: Vec<&'static Mechanism>,
+}
+
+#[cfg(feature = "config_builder")]
+impl Registry {
+    #[inline(always)]
+    /// Construct a registry with the given set of mechanisms, overwriting the default set.
+    pub fn with_mechanisms(mechanisms: &'static [Mechanism]) -> Self {
+        Self {
+            static_mechanisms: mechanisms,
+            #[cfg(feature = "registry_dynamic")]
+            dynamic_mechanisms: Vec::new(),
+        }
+    }
+}
+
+#[cfg(feature = "registry_dynamic")]
+impl Registry {
+    pub fn register(&mut self, mechanism: &'static Mechanism) {
+        self.dynamic_mechanisms.push(mechanism)
+    }
+}
+
+impl Registry {
+    #[inline(always)]
+    pub fn get_mechanisms(&self) -> impl Iterator<Item=&Mechanism> {
+        self.static_mechanisms.iter()
+    }
+}
+
+#[cfg(feature = "config_builder")]
+impl Default for Registry {
+    fn default() -> Self {
+        Registry::with_mechanisms(&registry_static::MECHANISMS)
+    }
+}
+
 #[cfg(feature = "registry_static")]
 mod registry_static {
     use super::Mechanism;
@@ -135,5 +176,5 @@ mod registry_static {
 #[cfg(not(feature = "registry_static"))]
 mod registry_static {
     use super::Mechanism;
-    pub static MECHANISMS: [Mechanism] = [];
+    pub static MECHANISMS: [Mechanism; 0] = [];
 }
