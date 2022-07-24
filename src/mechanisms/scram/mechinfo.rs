@@ -8,6 +8,7 @@ const NONCE_LEN: usize = 24;
 #[cfg(feature = "registry_static")]
 use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+#[cfg(feature = "scram-sha-1")]
 pub static SCRAM_SHA1: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unvalidated(b"SCRAM-SHA-1"),
     priority: 400,
@@ -25,6 +26,7 @@ pub static SCRAM_SHA1: Mechanism = Mechanism {
 };
 
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+#[cfg(feature = "scram-sha-1")]
 pub static SCRAM_SHA1_PLUS: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unvalidated(b"SCRAM-SHA-1-PLUS"),
     priority: 500,
@@ -34,6 +36,7 @@ pub static SCRAM_SHA1_PLUS: Mechanism = Mechanism {
 };
 
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+#[cfg(feature = "scram-sha-2")]
 pub static SCRAM_SHA256: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unvalidated(b"SCRAM-SHA-256"),
     priority: 600,
@@ -51,6 +54,7 @@ pub static SCRAM_SHA256: Mechanism = Mechanism {
 };
 
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+#[cfg(feature = "scram-sha-2")]
 pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unvalidated(b"SCRAM-SHA-256-PLUS"),
     priority: 700,

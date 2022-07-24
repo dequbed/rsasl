@@ -15,55 +15,9 @@ use std::sync::Arc;
 pub struct SASLClient<CB = NoChannelBindings> {
     inner: SASL<NoValidation, CB>,
 }
-impl SASLClient {
-    pub fn new(config: Arc<SASLConfig>) -> Self {
-        Self { inner: SASL::client(config) }
-    }
-}
-impl<CB: ChannelBindingCallback> SASLClient<CB> {
-    pub fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
-        Self { inner: SASL::with_cb(config, cb) }
-    }
-
-    /// Starts a authentication exchange as a client
-    ///
-    /// Depending on the mechanism chosen this may need additional data from the application, e.g.
-    /// an authcid, optional authzid and password for PLAIN. To provide that data an application
-    /// has to either call `set_property` before running the step that requires the data, or
-    /// install a callback.
-    pub fn start_suggested(
-        self,
-        offered: &[&Mechname],
-    ) -> Result<Session<NoValidation, CB>, SASLError> {
-        self.inner.client_start_suggested(offered)
-    }
-}
 
 pub struct SASLServer<V: Validation, CB = NoChannelBindings> {
     inner: SASL<V, CB>,
-}
-impl<V: Validation> SASLServer<V> {
-    pub fn new(config: Arc<SASLConfig>) -> Self {
-        Self { inner: SASL::server(config) }
-    }
-}
-impl<V: Validation, CB: ChannelBindingCallback> SASLServer<V, CB> {
-    pub fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
-        Self { inner: SASL::with_cb(config, cb) }
-    }
-
-    /// Starts a authentication exchange as the server role
-    ///
-    /// An application acting as server will most likely need to implement a callback to check the
-    /// authentication data provided by the user.
-    ///
-    /// See [SessionCallback] on how to implement callbacks.
-    pub fn start_suggested(
-        self,
-        offered: &[&Mechname],
-    ) -> Result<Session<V, CB>, SASLError> {
-        self.inner.server_start_suggested(offered)
-    }
 }
 
 #[derive(Debug)]
@@ -74,88 +28,143 @@ pub struct SASL<V: Validation = NoValidation, CB = NoChannelBindings> {
     pub(crate) cb: CB,
     pub(crate) validation: Option<V::Value>,
 }
-impl SASL {
-    fn client(config: Arc<SASLConfig>) -> Self {
-        Self {
-            config,
-            cb: NoChannelBindings,
-            validation: None,
-        }
-    }
-}
-impl<V: Validation> SASL<V> {
-    fn server(config: Arc<SASLConfig>) -> Self {
-        Self {
-            config,
-            cb: NoChannelBindings,
-            validation: None,
-        }
-    }
-}
 
-/// ### Provider functions
-///
-/// These methods are only available when compiled with feature `provider`
-/// or `provider_base64` (enabled by default).
-/// They are mainly relevant for protocol implementations wanting to start an
-/// authentication exchange.
-impl<CB: ChannelBindingCallback, V: Validation> SASL<V, CB> {
-    fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
-        Self {
-            config,
-            cb,
-            validation: None,
+#[cfg(feature = "provider")]
+mod provider {
+    use super::*;
+
+    impl SASLClient {
+        pub fn new(config: Arc<SASLConfig>) -> Self {
+            Self { inner: SASL::client(config) }
+        }
+    }
+    impl<CB: ChannelBindingCallback> SASLClient<CB> {
+        pub fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
+            Self { inner: SASL::with_cb(config, cb) }
+        }
+
+        /// Starts a authentication exchange as a client
+        ///
+        /// Depending on the mechanism chosen this may need additional data from the application, e.g.
+        /// an authcid, optional authzid and password for PLAIN. To provide that data an application
+        /// has to either call `set_property` before running the step that requires the data, or
+        /// install a callback.
+        pub fn start_suggested(
+            self,
+            offered: &[&Mechname],
+        ) -> Result<Session<NoValidation, CB>, SASLError> {
+            self.inner.client_start_suggested(offered)
         }
     }
 
-    fn start_inner<'a, F>(
-        self,
-        f: F,
-        offered: &[&Mechname]
-    ) -> Result<Session<V, CB>, SASLError>
-        where F: for<'b> Fn(&'b Mechanism) -> Option<StartFn>
-    {
-        let config = self.config.clone();
-        offered
-            .iter()
-            .filter_map(|offered_mechname| {
-                let mech = config.mech_list().find(|avail_mech| avail_mech.mechanism == *offered_mechname);
-                let mech = if let Some(filter) = &self.config.filter {
-                    mech.filter(|m| filter(m))
-                } else {
+    impl<V: Validation> SASLServer<V> {
+        pub fn new(config: Arc<SASLConfig>) -> Self {
+            Self { inner: SASL::server(config) }
+        }
+    }
+    impl<V: Validation, CB: ChannelBindingCallback> SASLServer<V, CB> {
+        pub fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
+            Self { inner: SASL::with_cb(config, cb) }
+        }
+
+        /// Starts a authentication exchange as the server role
+        ///
+        /// An application acting as server will most likely need to implement a callback to check the
+        /// authentication data provided by the user.
+        ///
+        /// See [SessionCallback] on how to implement callbacks.
+        pub fn start_suggested(
+            self,
+            offered: &[&Mechname],
+        ) -> Result<Session<V, CB>, SASLError> {
+            self.inner.server_start_suggested(offered)
+        }
+    }
+
+    impl SASL {
+        fn client(config: Arc<SASLConfig>) -> Self {
+            Self {
+                config,
+                cb: NoChannelBindings,
+                validation: None,
+            }
+        }
+    }
+    impl<V: Validation> SASL<V> {
+        fn server(config: Arc<SASLConfig>) -> Self {
+            Self {
+                config,
+                cb: NoChannelBindings,
+                validation: None,
+            }
+        }
+    }
+
+    /// ### Provider functions
+    ///
+    /// These methods are only available when compiled with feature `provider`
+    /// or `provider_base64` (enabled by default).
+    /// They are mainly relevant for protocol implementations wanting to start an
+    /// authentication exchange.
+    impl<CB: ChannelBindingCallback, V: Validation> SASL<V, CB> {
+        fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
+            Self {
+                config,
+                cb,
+                validation: None,
+            }
+        }
+
+        fn start_inner<'a, F>(
+            self,
+            f: F,
+            offered: &[&Mechname]
+        ) -> Result<Session<V, CB>, SASLError>
+            where F: for<'b> Fn(&'b Mechanism) -> Option<StartFn>
+        {
+            let config = self.config.clone();
+            offered
+                .iter()
+                .filter_map(|offered_mechname| {
+                    let mech = config.mech_list().find(|avail_mech| avail_mech.mechanism == *offered_mechname);
+                    let mech = if let Some(filter) = &self.config.filter {
+                        mech.filter(|m| filter(m))
+                    } else {
+                        mech
+                    };
                     mech
-                };
-                mech
-                    .and_then(|mech| {
-                        let start = f(&mech)?;
-                        let auth = start(config.as_ref(), offered).ok()?;
-                        Some((mech, auth))
-                    })
-            })
-            .max_by(|(m,_), (n,_)| (self.config.sorter)(m, n))
-            .map_or(Err(SASLError::NoSharedMechanism), |(selected, auth)| {
-                Ok(Session::new(
-                    self,
-                    Side::Client,
-                    auth,
-                    selected.clone(),
-                ))
-            })
+                        .and_then(|mech| {
+                            let start = f(&mech)?;
+                            let auth = start(config.as_ref(), offered).ok()?;
+                            Some((mech, auth))
+                        })
+                })
+                .max_by(|(m,_), (n,_)| (self.config.sorter)(m, n))
+                .map_or(Err(SASLError::NoSharedMechanism), |(selected, auth)| {
+                    Ok(Session::new(
+                        self,
+                        Side::Client,
+                        auth,
+                        selected.clone(),
+                    ))
+                })
+        }
+
+        fn client_start_suggested<'a>(
+            self,
+            offered: &[&Mechname],
+        ) -> Result<Session<V, CB>, SASLError>
+        {
+            self.start_inner(|mech| mech.client, offered)
+        }
+
+        fn server_start_suggested<'a>(
+            self,
+            offered: &[&Mechname],
+        ) -> Result<Session<V, CB>, SASLError>
+        {
+            self.start_inner(|mech| mech.server, offered)
+        }
     }
 
-    fn client_start_suggested<'a>(
-        self,
-        offered: &[&Mechname],
-    ) -> Result<Session<V, CB>, SASLError>
-    {
-        self.start_inner(|mech| mech.client, offered)
-    }
-
-    fn server_start_suggested<'a>(
-        self,
-        offered: &[&Mechname],
-    ) -> Result<Session<V, CB>, SASLError>
-    {
-        self.start_inner(|mech| mech.server, offered)
-    }
 }
