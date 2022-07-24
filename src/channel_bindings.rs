@@ -30,13 +30,12 @@ impl ChannelBindingCallback for ThisCb {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::callback::EmptyCallback;
 
     use std::sync::Arc;
-    use crate::config::{ClientConfig, SASLConfig};
+    use crate::config::ClientConfig;
     use crate::mechname::Mechname;
 
-    use crate::sasl::{SASL, SASLClient};
+    use crate::sasl::SASLClient;
 
     use crate::typed::TaggedOption;
     use crate::validate::{NoValidation, Validate};

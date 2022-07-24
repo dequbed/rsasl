@@ -76,10 +76,13 @@
 //! authentication pluggable and enable middleware-style protocol crates that are entirely
 //! authentication-agnostic, deferring the details entirely to their downstream users.
 //!
-//! # Where to start using this crate
-//! - [I'm implementing some network protocol and I need to add SASL authentication to it!](#protocol-implementations)
-//! - [I'm an user of such a protocol crate and I need to configure my credentials!](#application-code)
-//! - [I'm both/either/none of those but I have to implement a custom SASL mechanism!](#custom-mechanisms)
+//! # Where to start
+//!
+//! There are three different use-cases rsasl provides for:
+//!
+//! - [I'm implementing a client or server for a protocol and I need to support SASL authentication](#protocol-implementations)
+//! - [I'm using a such a client or server and I need to configure my credentials](#application-code)
+//! - [I need to implement a custom SASL mechanism](#custom-mechanisms)
 //!
 //!
 //! # Protocol Implementations
@@ -193,36 +196,33 @@
 //!
 //! # Application Code
 //!
-//! To allow protocol implementations to use SASL authentication Applications needs to construct a
-//! [`ClientConfig`](prelude::ClientConfig) or [`ServerConfig`](prelude::ServerConfig) to be used
-//! by the protocol implementation.
+//! Applications wanting to perform authentication start by constructing a
+//! [`SASLConfig`](prelude::SASLConfig).
 //!
 //! This config selects the mechanisms that will be available, the priority of mechanisms, and
-//! provides required authentication data.
+//! sets up provisions for any required authentication data (such the username, password, etc).
 //!
-//! This authentication data is accessed using [`Property`](property::Property)s and can be either
-//! provided preemptively or on demand via a [`SessionCallback`](callback::SessionCallback). The
-//! use of a callback is the more
-//! flexible
-//! as [`SessionCallback::callback`](callback::SessionCallback::callback) has access to
-//! context-specific data from the ongoing
-//! authentication exchange, and as some mechanisms will always require the use of a user callback.
+//! Authentication data is queried using [`Property`](property::Property)s and
+//! [`SessionCallback`](callback::SessionCallback). The [`property`] module documentation
+//! contains additional details on the use of `Property`.
 //!
-//! Additionally callbacks can implement the
+//! Mechanisms will generally request a different set of properties.
+//! The documentation for each mechanism will list the required properties and any additional
+//! limitations that may be put on their values. Currently no discovery of queryable properties is
+//! done, so it is the responsibility of the application code resp. the `SASLConfig` to limit
+//! mechanisms to only those where all properties can be provided.
+//!
+//!
+//! Additionally, on the server side, `SessionCallback`s can implement the
 //! [`SessionCallback::validate`](callback::SessionCallback::validate) method to return data
-//! from the authentication to the protocol implementation, e.g. to return the user that was just
-//! authenticated. Details for this use-case are found in the [`validate`] module documentation.
+//! from the authentication exchange to the protocol implementation, e.g. to return the user that
+//! was just authenticated. Details for this use-case are found in the [`validate`] module
+//! documentation.
 //!
-//! Additionally to selecting mechanisms at runtime, available mechanisms can also be limited at
-//! compile time using feature flags, with the default being to enable all IANA-registered
-//! mechanisms in `COMMON` use that are implemented. See the module documentation for
-//! [`mechanisms`] for further details.
-//!
-//! To ensure that authentication can proceed all required `Property`s must be provided. The
-//! documentation for each mechanism will list the required `Property` and any additional
-//! limitations that may be put their values. Currently no discovery of queryable properties is
-//! done, so it is the responsibility of the downstream user to limit mechanisms to those they
-//! are providing all properties for.
+//! In addition to selecting mechanisms at runtime, available mechanisms can also be limited at
+//! compile time using feature flags. The default feature flags enable all IANA-registered
+//! mechanisms in `COMMON` use that are implemented by rsasl. See the module documentation for
+//! [`mechanisms`] for further details on how to en-/disable mechanisms.
 //!
 // TODO:
 //     - Static vs Dynamic Registry
@@ -243,9 +243,11 @@
 //! define a [`Mechanism`](registry::Mechanism) struct describing the implemented mechanism.
 //! Documentation about how to add a custom mechanism is found in the [`registry module documentation`](registry).
 
-mod builder;
+
 pub mod callback;
 pub mod config;
+#[cfg(feature = "config_builder")]
+mod builder;
 mod error;
 pub mod mechanisms;
 pub mod mechname;
@@ -277,6 +279,7 @@ mod vectored_io;
 pub mod prelude {
     //! prelude exporting the most commonly used types
     pub use crate::config::{ClientConfig, SASLConfig, ServerConfig};
+    pub use crate::registry::Registry;
     pub use crate::error::{SASLError, SessionError};
     pub use crate::mechname::Mechname;
     pub use crate::property::Property;
@@ -289,6 +292,7 @@ pub mod prelude {
 
 struct Shared;
 
+#[cfg(doc)]
 pub mod docs {
     //! Modules purely for documentation
 
@@ -303,5 +307,11 @@ pub mod docs {
         pub mod adr0001_property_and_validation_newtype {
             #![doc = include_str!("../docs/decisions/0001-property-and-validation-newtype.md")]
         }
+    }
+
+    pub mod features {
+        //! primer on the use of cargo features in rsasl
+        //!
+        #![doc = document_features::document_features!()]
     }
 }

@@ -6,13 +6,12 @@ use std::sync::Arc;
 
 use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, SessionCallback};
 use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
-use crate::config::{ConfigSide, SASLConfig};
-use crate::context::{build_context, Provider};
+use crate::context::{build_context, Provider, ProviderExt, ThisProvider};
 use crate::error::SessionError;
 use crate::gsasl::consts::Gsasl_property;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
-use crate::property::{ChannelBindings, Property};
+use crate::property::{ChannelBindingName, ChannelBindings, Property};
 use crate::registry::Mechanism;
 use crate::sasl::SASL;
 use crate::typed::{tags, TaggedOption};
@@ -282,19 +281,21 @@ impl MechanismData<'_> {
         Ok(closurecr.try_unwrap())
     }
 
-    pub(crate) fn need_cb_data<F, G>(
+    pub(crate) fn need_cb_data<P, F, G>(
         &self,
         cbname: &str,
-        provider: &dyn Provider,
+        provider: P,
         f: &mut F,
     ) -> Result<G, SessionError>
     where
+        P: Provider,
         F: FnMut(&[u8]) -> Result<G, SessionError>,
     {
+        let prov = ThisProvider::<ChannelBindingName>::with(cbname).and(provider);
         if let Some(cbdata) = self.chanbind_cb.get_cb_data(cbname) {
             f(cbdata)
         } else {
-            self.need_with::<ChannelBindings, F, G>(provider, f)
+            self.need_with::<ChannelBindings, F, G>(&prov, f)
         }
     }
 
@@ -394,7 +395,7 @@ pub(crate) mod tests {
                 self.mechanism_desc,
                 self.side,
             );
-            mechanism_data.need_cb_data(cbname, &EmptyProvider, f)
+            mechanism_data.need_cb_data(cbname, EmptyProvider, f)
         }
     }
 }

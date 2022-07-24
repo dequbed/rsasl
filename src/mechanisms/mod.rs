@@ -24,6 +24,9 @@
 //! making use of [feature unification](https://doc.rust-lang.org/cargo/reference/features.html#feature-unification)
 //! to not compile in mechanisms that aren't needed.
 
+#[cfg(doc)]
+use crate::property::*;
+
 #[cfg(feature = "anonymous")]
 pub mod anonymous {
     //! `ANONYMOUS` *mechanism. Requires feature `anonymous`*
@@ -70,6 +73,10 @@ pub mod external {
 #[cfg(feature = "login")]
 pub mod login {
     //! `LOGIN` *mechanism. Requires feature `login`*
+    //!
+    //! The `LOGIN` mechanism sends authentication data in the plain without any form of hashing
+    //! or encryption being applied. It should thus only be used over an encrypted channel such
+    //! as TLS.
     pub mod client;
     pub mod mechinfo;
     pub mod server;
@@ -86,6 +93,30 @@ pub mod openid20 {
 #[cfg(feature = "plain")]
 pub mod plain {
     //! `PLAIN` *mechanism. Requires feature `plain`*
+    //!
+    //! The `PLAIN` mechanism sends authentication data in the plain without any form of hashing
+    //! or encryption being applied. It should thus only be used over an encrypted channel such
+    //! as TLS.
+    //!
+    //! # Client
+    //! Plain will query three properties at the beginning of an authentication exchange:
+    //! [`AuthzId`], [`AuthId`] and [`Password`]. The supplied Provider will not satisfy any
+    //! queries.
+    //!
+    //! `AuthzId` and `AuthId` may not contain a NULL-byte.
+    //!
+    //! `Password` must be valid UTF-8 and must not contain NULL according to
+    //! [RFC 4616](https://www.rfc-editor.org/rfc/rfc4616.html), but rsasl will not validate a
+    //! password and instead send it as-is.
+    //!
+    //!
+    //! # Server
+    //! Plain will not query any properties.
+    //!
+    //! The provider passed to `validate` will allow access to [`AuthzId`], [`AuthId`] and [`Password`].
+    //!
+    //! `Authzid`, `AuthId` and `Password` are valid UTF-8, contain no NULL bytes and have
+    //! `saslprep` applied.
     pub mod client;
     pub mod mechinfo;
     pub mod server;
@@ -103,6 +134,26 @@ pub mod saml20 {
 pub mod scram {
     //! `SCRAM-*` *mechanisms. Requires feature `scram-sha-1` (for* `-SHA1` *) and/or
     //! `scram-sha-2` (for* `-SHA256` *)*
+    //!
+    //! The SCRAM mechanisms cryptographically verify that the other party has knowledge of the
+    //! password without sending the password in the clear.
+    //!
+    //! Additionally *integrity* validation of the authentication exchange is provided even when
+    //! used over unencrypted transport.
+    //! Thus SCRAM may be used over unencrypted channels but will in that case leak the `AuthId`
+    //! and `AuthzId` used.
+    //!
+    //! # Client
+    //!
+    //! Scram will at first query [`AuthzId`], [`AuthId`] and [`Password`].
+    //!
+    //! If channel bindings are used (i.e. the mechanism ends in `-PLUS`) [`OverrideCBType`] is
+    //! queried to allow setting the channel binding name to a different value than the default.
+    //!
+    //! Afterwards [`ChannelBindings`] is queried, with the name of channel bindings to be
+    //! supplied available from the provider as [`ChannelBindingName`].
+    //!
+    //!
     pub mod client;
     pub mod mechinfo;
     pub mod parser;

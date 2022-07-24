@@ -7,6 +7,7 @@ use std::io::Write;
 use crate::context::EmptyProvider;
 
 use crate::property::{AuthId, AuthzId, Password};
+use super::mechinfo::PlainError;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Plain;
@@ -20,6 +21,9 @@ impl Authentication for Plain {
     ) -> StepResult {
         let mut len = 0usize;
         let res = session.need_with::<AuthzId, _, _>(&EmptyProvider, &mut |authzid| {
+            if authzid.contains('\0') {
+                return Err(SessionError::MechanismError(Box::new(PlainError::ContainsNull)));
+            }
             writer.write_all(authzid.as_bytes())?;
             len += authzid.len();
             Ok(())
@@ -32,6 +36,9 @@ impl Authentication for Plain {
         len += writer.write(&[0])?;
 
         session.need_with::<AuthId, _, _>(&EmptyProvider, &mut |authid| {
+            if authid.contains('\0') {
+                return Err(SessionError::MechanismError(Box::new(PlainError::ContainsNull)));
+            }
             writer.write_all(authid.as_bytes())?;
             len += authid.len();
             Ok(())
