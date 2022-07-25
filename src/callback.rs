@@ -11,8 +11,8 @@ use std::marker::PhantomData;
 use crate::error::SessionError;
 use crate::property::Property;
 
-use crate::validate::{Validate, ValidationError};
 use crate::typed::{tags, Erased, TaggedOption};
+use crate::validate::{Validate, ValidationError};
 
 // Re-Exports
 pub use crate::context::Context;
@@ -38,7 +38,7 @@ pub trait SessionCallback {
     /// The callback is used when doing either a server-side or a client-side authentication. An
     /// example for an implementation on the client-side could look like so:
     /// ```rust
-    /// # use rsasl::callback::{Request, SessionCallback, Context};
+    /// # use rsasl::callback::{Request, SessionCallback, Context, SessionData};
     /// # use rsasl::prelude::*;
     /// # use rsasl::property::{AuthId, Password, AuthzId, OpenID20AuthenticateInBrowser, Realm};
     /// # struct CB;

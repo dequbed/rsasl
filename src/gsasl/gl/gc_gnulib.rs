@@ -144,8 +144,6 @@ pub unsafe fn gc_md5(
     mut inlen: size_t,
     mut resbuf: *mut libc::c_void,
 ) -> Gc_rc {
-    use digest::Digest;
-
     let mut hasher = md5::Md5::default();
     let input = std::slice::from_raw_parts(in_0 as *const u8, inlen);
     hasher.update(input);

@@ -403,7 +403,7 @@ pub(crate) mod tests {
         where
             F: FnMut(&[u8]) -> Result<G, SessionError>,
         {
-            let mut mechanism_data = MechanismData::new(
+            let mechanism_data = MechanismData::new(
                 self.sasl.config.callback.as_ref(),
                 &self.sasl.cb,
                 validate,

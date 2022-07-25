@@ -1,5 +1,5 @@
 use rsasl::prelude::*;
-use rsasl::validate::NoValidation;
+
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;

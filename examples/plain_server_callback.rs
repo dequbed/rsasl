@@ -1,8 +1,8 @@
 use rsasl::callback::{Context, SessionCallback, SessionData};
 use rsasl::mechname::Mechname;
 use rsasl::prelude::SASLServer;
-use rsasl::prelude::{ServerConfig, SessionError};
 use rsasl::prelude::State;
+use rsasl::prelude::{ServerConfig, SessionError};
 use rsasl::property::{AuthId, AuthzId, Password};
 use rsasl::validate::{Validate, Validation, ValidationError};
 use std::io::Cursor;
