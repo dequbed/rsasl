@@ -5,13 +5,13 @@ use crate::gsasl::consts::{
     GSASL_OPENID20_OUTCOME_DATA, GSASL_OPENID20_REDIRECT_URL,
 };
 use crate::gsasl::gl::free::rpl_free;
+use crate::gsasl::mechtools::_gsasl_gs2_generate_header;
 use crate::gsasl::property::{gsasl_property_get, gsasl_property_set_raw};
 use crate::session::MechanismData;
 use crate::Shared;
 use ::libc;
 use libc::{calloc, size_t, strdup, strlen, strncmp};
 use std::ptr::NonNull;
-use crate::gsasl::mechtools::_gsasl_gs2_generate_header;
 
 /* client.c --- OPENID20 mechanism, client side.
  * Copyright (C) 2011-2021 Simon Josefsson

@@ -12,7 +12,10 @@ pub trait Provider {
 }
 
 pub trait ProviderExt: Provider {
-    fn and<P: Provider>(self, other: P) -> And<Self, P> where Self: Sized {
+    fn and<P: Provider>(self, other: P) -> And<Self, P>
+    where
+        Self: Sized,
+    {
         And { l: self, r: other }
     }
 }
@@ -27,11 +30,11 @@ impl Provider for EmptyProvider {
 }
 
 #[derive(Debug)]
-pub struct And<L,R> {
+pub struct And<L, R> {
     l: L,
     r: R,
 }
-impl<L: Provider, R: Provider> Provider for And<L,R> {
+impl<L: Provider, R: Provider> Provider for And<L, R> {
     fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
         self.l.provide(req)?;
         self.r.provide(req)
@@ -85,16 +88,10 @@ impl<'a> Demand<'a> {
         }
     }
 
-    pub fn provide_ref<T: Property>(
-        &mut self,
-        value: &'a T::Value,
-    ) -> DemandReply<&mut Self> {
+    pub fn provide_ref<T: Property>(&mut self, value: &'a T::Value) -> DemandReply<&mut Self> {
         self.provide::<tags::Ref<DemandTag<T>>>(value)
     }
-    pub fn provide_mut<T: Property>(
-        &mut self,
-        value: &'a mut T::Value,
-    ) -> DemandReply<&mut Self> {
+    pub fn provide_mut<T: Property>(&mut self, value: &'a mut T::Value) -> DemandReply<&mut Self> {
         self.provide::<tags::RefMut<DemandTag<T>>>(value)
     }
 }

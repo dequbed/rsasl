@@ -2,12 +2,12 @@ use crate::mechanism::Authentication;
 use crate::session::{MechanismData, State, StepResult};
 
 use crate::callback::CallbackError;
+use crate::context::EmptyProvider;
 use crate::error::SessionError;
 use std::io::Write;
-use crate::context::EmptyProvider;
 
-use crate::property::{AuthId, AuthzId, Password};
 use super::mechinfo::PlainError;
+use crate::property::{AuthId, AuthzId, Password};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Plain;
@@ -22,7 +22,9 @@ impl Authentication for Plain {
         let mut len = 0usize;
         let res = session.need_with::<AuthzId, _, _>(&EmptyProvider, &mut |authzid| {
             if authzid.contains('\0') {
-                return Err(SessionError::MechanismError(Box::new(PlainError::ContainsNull)));
+                return Err(SessionError::MechanismError(Box::new(
+                    PlainError::ContainsNull,
+                )));
             }
             writer.write_all(authzid.as_bytes())?;
             len += authzid.len();
@@ -37,7 +39,9 @@ impl Authentication for Plain {
 
         session.need_with::<AuthId, _, _>(&EmptyProvider, &mut |authid| {
             if authid.contains('\0') {
-                return Err(SessionError::MechanismError(Box::new(PlainError::ContainsNull)));
+                return Err(SessionError::MechanismError(Box::new(
+                    PlainError::ContainsNull,
+                )));
             }
             writer.write_all(authid.as_bytes())?;
             len += authid.len();
