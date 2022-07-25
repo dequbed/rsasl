@@ -96,25 +96,19 @@ impl<'a> Validate<'a> {
     pub fn with<T, F, E>(&mut self, f: F) -> Result<&mut Self, ValidationError>
     where
         T: Validation,
-        F: FnOnce() -> Result<T::Value, E>,
-        E: std::error::Error + Send + Sync + 'static,
+        F: FnOnce() -> Result<T::Value, ValidationError>,
     {
         if let Some(result @ TaggedOption(Option::None)) = self.0.downcast_mut::<T>() {
-            match f() {
-                Ok(outcome) => {
-                    *result = TaggedOption(Some(outcome));
-                    Ok(self)
-                }
-                Err(error) => Err(ValidationError::Boxed(Box::new(error).into())),
-            }
-        } else {
-            Ok(self)
+            let outcome =  f()?;
+            *result = TaggedOption(Some(outcome));
         }
+        Ok(self)
     }
 }
 
 #[derive(Debug, Error)]
 pub enum ValidationError {
+    MissingRequiredProperty,
     #[error(transparent)]
     Boxed(Box<dyn std::error::Error + Send + Sync>),
 }
