@@ -7,6 +7,7 @@ use crate::error::SessionError::NoSecurityLayer;
 
 pub use crate::session::{MechanismData, StepResult};
 pub use crate::error::{MechanismError, MechanismErrorKind};
+pub use crate::context::ThisProvider;
 
 /// Trait implemented to be one party in an authentication exchange
 ///
