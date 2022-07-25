@@ -93,7 +93,7 @@ impl<'a> Validate<'a> {
         }
     }
 
-    pub fn with<T, F, E>(&mut self, f: F) -> Result<&mut Self, ValidationError>
+    pub fn with<T, F>(&mut self, f: F) -> Result<&mut Self, ValidationError>
     where
         T: Validation,
         F: FnOnce() -> Result<T::Value, ValidationError>,
@@ -108,6 +108,7 @@ impl<'a> Validate<'a> {
 
 #[derive(Debug, Error)]
 pub enum ValidationError {
+    #[error("A required property was not provided")]
     MissingRequiredProperty,
     #[error(transparent)]
     Boxed(Box<dyn std::error::Error + Send + Sync>),
