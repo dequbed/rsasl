@@ -219,7 +219,7 @@ impl<'a> MechanismData<'a> {
 }
 
 impl MechanismData<'_> {
-    pub(crate) fn validate(&mut self, provider: &dyn Provider) -> Result<(), ValidationError> {
+    pub fn validate(&mut self, provider: &dyn Provider) -> Result<(), ValidationError> {
         let context = build_context(provider);
         self.callback
             .validate(&self.session_data, context, self.validator)

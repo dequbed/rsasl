@@ -84,12 +84,9 @@ impl<'a> Validate<'a> {
     ///
     /// The requested value of a [`Validation`] depends on the protocol implementation. It's
     /// usually designed to extract relevant information out of the authentication exchange.
-    pub fn finalize<T: Validation>(&mut self, outcome: T::Value) -> Result<&mut Self, ()> {
+    pub fn finalize<T: Validation>(&mut self, outcome: T::Value) {
         if let Some(result @ TaggedOption(Option::None)) = self.0.downcast_mut::<T>() {
             *result = TaggedOption(Some(outcome));
-            Err(())
-        } else {
-            Ok(self)
         }
     }
 
@@ -99,7 +96,7 @@ impl<'a> Validate<'a> {
         F: FnOnce() -> Result<T::Value, ValidationError>,
     {
         if let Some(result @ TaggedOption(Option::None)) = self.0.downcast_mut::<T>() {
-            let outcome =  f()?;
+            let outcome = f()?;
             *result = TaggedOption(Some(outcome));
         }
         Ok(self)
