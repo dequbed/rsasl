@@ -52,8 +52,10 @@ impl SessionCallback for OurCallback {
         context: &Context,
         validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
-        validate.with::<TestValidation, _>(|| self.test_validate(session_data, context)
-            .map_err(|e| ValidationError::Boxed(Box::new(e))))?;
+        validate.with::<TestValidation, _>(|| {
+            self.test_validate(session_data, context)
+                .map_err(|e| ValidationError::Boxed(Box::new(e)))
+        })?;
         Ok(())
     }
 }

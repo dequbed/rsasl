@@ -5,7 +5,7 @@ use crate::error::SessionError;
 use crate::error::SessionError::NoSecurityLayer;
 use std::io::Write;
 
-pub use crate::context::ThisProvider;
+pub use crate::context::{Demand, DemandReply, Provider, ThisProvider};
 pub use crate::error::{MechanismError, MechanismErrorKind};
 pub use crate::session::{MechanismData, StepResult};
 
