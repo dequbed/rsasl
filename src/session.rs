@@ -1,10 +1,11 @@
 use std::fmt::{Debug, Formatter};
 use std::io::Write;
 
-
 use std::sync::Arc;
 
-use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, SessionCallback};
+use crate::callback::{
+    Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, SessionCallback,
+};
 use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
 use crate::context::{build_context, Provider, ProviderExt, ThisProvider};
 use crate::error::SessionError;
@@ -63,7 +64,12 @@ impl<V: Validation, C: ChannelBindingCallback> Session<V, C> {
         mechanism: Box<dyn Authentication>,
         mechanism_desc: Mechanism,
     ) -> Self {
-        Self { sasl, side, mechanism, mechanism_desc }
+        Self {
+            sasl,
+            side,
+            mechanism,
+            mechanism_desc,
+        }
     }
 
     #[inline(always)]
@@ -196,7 +202,7 @@ pub struct MechanismData<'a> {
 }
 
 impl<'a> MechanismData<'a> {
-    pub(crate) fn new(
+    fn new(
         callback: &'a dyn SessionCallback,
         chanbind_cb: &'a dyn ChannelBindingCallback,
         validator: &'a mut Validate<'a>,
@@ -213,13 +219,13 @@ impl<'a> MechanismData<'a> {
 }
 
 impl MechanismData<'_> {
-    pub(crate) fn validate(&mut self, provider: &dyn Provider) -> Result<(), ValidationError> {
+    pub fn validate(&mut self, provider: &dyn Provider) -> Result<(), ValidationError> {
         let context = build_context(provider);
         self.callback
             .validate(&self.session_data, context, self.validator)
     }
 
-    pub(crate) fn callback<'a, 'b>(
+    fn callback<'a, 'b>(
         &'b self,
         provider: &'b dyn Provider,
         request: &'b mut Request<'a>,
@@ -232,7 +238,7 @@ impl MechanismData<'_> {
         }
     }
 
-    pub(crate) fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), SessionError>
+    pub fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), SessionError>
     where
         T: Property,
     {
@@ -245,7 +251,7 @@ impl MechanismData<'_> {
         }
     }
 
-    pub(crate) fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(), SessionError>
+    fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(), SessionError>
     where
         T: Property,
         C: CallbackRequest<T::Value>,
@@ -254,7 +260,7 @@ impl MechanismData<'_> {
         self.callback(provider, Request::new_satisfy::<T>(&mut tagged_option))
     }
 
-    pub(crate) fn need_with<T, F, G>(
+    pub fn need_with<T, F, G>(
         &self,
         provider: &dyn Provider,
         closure: &mut F,
@@ -267,7 +273,7 @@ impl MechanismData<'_> {
             .ok_or(SessionError::CallbackError(CallbackError::NoCallback))
     }
 
-    pub(crate) fn maybe_need_with<T, F, G>(
+    pub fn maybe_need_with<T, F, G>(
         &self,
         provider: &dyn Provider,
         closure: &mut F,
@@ -281,7 +287,7 @@ impl MechanismData<'_> {
         Ok(closurecr.try_unwrap())
     }
 
-    pub(crate) fn need_cb_data<P, F, G>(
+    pub fn need_cb_data<P, F, G>(
         &self,
         cbname: &str,
         provider: P,
@@ -316,6 +322,15 @@ impl MechanismData<'_> {
 pub struct SessionData {
     mechanism_desc: Mechanism,
     side: Side,
+}
+impl SessionData {
+    pub fn mechanism(&self) -> &Mechanism {
+        &self.mechanism_desc
+    }
+
+    pub fn side(&self) -> Side {
+        self.side
+    }
 }
 
 impl Debug for MechanismData<'_> {
@@ -374,8 +389,8 @@ impl SessionData {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use crate::context::EmptyProvider;
     use super::*;
+    use crate::context::EmptyProvider;
     use crate::validate::Validation;
 
     impl<V: Validation, CB: ChannelBindingCallback> Session<V, CB> {
@@ -385,10 +400,10 @@ pub(crate) mod tests {
             validate: &'a mut Validate<'a>,
             f: &mut F,
         ) -> Result<G, SessionError>
-            where
-                F: FnMut(&[u8]) -> Result<G, SessionError>,
+        where
+            F: FnMut(&[u8]) -> Result<G, SessionError>,
         {
-            let mut mechanism_data = MechanismData::new(
+            let mechanism_data = MechanismData::new(
                 self.sasl.config.callback.as_ref(),
                 &self.sasl.cb,
                 validate,

@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use rsasl::prelude::*;
+use std::sync::Arc;
 
 fn main() {
     let config = ClientConfig::with_credentials(None, String::new(), String::new()).unwrap();
@@ -13,9 +13,7 @@ fn main() {
         Mechname::new(b"SCRAM-SHA-256").unwrap(),
     ];
 
-    let suggested = sasl
-        .start_suggested(presented)
-        .unwrap();
+    let suggested = sasl.start_suggested(presented).unwrap();
     println!("Suggested: {}", suggested.get_mechname());
     assert_eq!(suggested.get_mechname().as_str(), "SCRAM-SHA-256");
 }

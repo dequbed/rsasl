@@ -8,13 +8,15 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
-pub use crate::context::Context;
 use crate::error::SessionError;
 use crate::property::Property;
 
-use crate::session::SessionData;
 use crate::typed::{tags, Erased, TaggedOption};
 use crate::validate::{Validate, ValidationError};
+
+// Re-Exports
+pub use crate::context::Context;
+pub use crate::session::SessionData;
 
 pub trait SessionCallback {
     /// Answer requests by mechanism implementation for some Properties
@@ -36,7 +38,7 @@ pub trait SessionCallback {
     /// The callback is used when doing either a server-side or a client-side authentication. An
     /// example for an implementation on the client-side could look like so:
     /// ```rust
-    /// # use rsasl::callback::{Request, SessionCallback, Context};
+    /// # use rsasl::callback::{Request, SessionCallback, Context, SessionData};
     /// # use rsasl::prelude::*;
     /// # use rsasl::property::{AuthId, Password, AuthzId, OpenID20AuthenticateInBrowser, Realm};
     /// # struct CB;
@@ -99,6 +101,9 @@ pub trait SessionCallback {
 }
 
 #[derive(Debug)]
+// todo: Have a "I would handle this but I have no value valid with the *given context*" (e.g.
+//       User with that authid isn't found in the db)
+// todo: impl From<Box<E>>
 pub enum CallbackError {
     NoCallback,
     Boxed(Box<dyn Error + Send + Sync>),
@@ -322,12 +327,8 @@ impl<'a> Request<'a> {
     ///
     /// If generating the value is expensive or requires interactivity using the method
     /// [`satisfy_with`](Request::satisfy_with) may be preferable.
-    pub fn satisfy<P: Property>(
-        &mut self,
-        answer: &P::Value,
-    ) -> Result<&mut Self, SessionError> {
-        if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>()
-        {
+    pub fn satisfy<P: Property>(&mut self, answer: &P::Value) -> Result<&mut Self, SessionError> {
+        if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
             mech.satisfy(answer)?;
             Err(CallbackError::EarlyReturn(PhantomData).into())
         } else {

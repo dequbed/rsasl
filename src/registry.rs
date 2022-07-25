@@ -28,16 +28,16 @@ use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 use std::fmt::{Debug, Display, Formatter};
 
-#[cfg(feature = "registry_static")]
-pub use registry_static::*;
 use crate::config::SASLConfig;
 use crate::error::SASLError;
 pub use crate::session::Side;
+#[cfg(feature = "registry_static")]
+pub use registry_static::*;
 
 pub type MatchFn = fn(name: &Mechname) -> bool;
 
-pub type StartFn = fn(sasl: &SASLConfig, offered: &[&Mechname])
-    -> Result<Box<dyn Authentication>, SASLError>;
+pub type StartFn =
+    fn(sasl: &SASLConfig, offered: &[&Mechname]) -> Result<Box<dyn Authentication>, SASLError>;
 
 #[derive(Copy, Clone)]
 /// Mechanism Implementation
@@ -91,15 +91,19 @@ pub struct MechanismSecurityFactors {
 }
 
 impl Mechanism {
-    pub fn client(&self, sasl: &SASLConfig, offered: &[&Mechname])
-        -> Option<Result<Box<dyn Authentication>, SASLError>>
-    {
+    pub fn client(
+        &self,
+        sasl: &SASLConfig,
+        offered: &[&Mechname],
+    ) -> Option<Result<Box<dyn Authentication>, SASLError>> {
         self.client.map(|f| f(sasl, offered))
     }
 
-    pub fn server(&self, sasl: &SASLConfig, offered: &[&Mechname])
-        -> Option<Result<Box<dyn Authentication>, SASLError>>
-    {
+    pub fn server(
+        &self,
+        sasl: &SASLConfig,
+        offered: &[&Mechname],
+    ) -> Option<Result<Box<dyn Authentication>, SASLError>> {
         self.server.map(|f| f(sasl, offered))
     }
 }
@@ -153,7 +157,7 @@ impl Registry {
 
 impl Registry {
     #[inline(always)]
-    pub fn get_mechanisms(&self) -> impl Iterator<Item=&Mechanism> {
+    pub fn get_mechanisms(&self) -> impl Iterator<Item = &Mechanism> {
         self.static_mechanisms.iter()
     }
 }

@@ -1,11 +1,11 @@
+use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
+use rsasl::prelude::ServerConfig;
 use rsasl::prelude::*;
 use rsasl::property::{AuthId, AuthzId};
 use rsasl::validate::{Validate, Validation, ValidationError};
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
-use rsasl::callback::{CallbackError, Context, Request, SessionCallback};
-use rsasl::prelude::ServerConfig;
 
 // Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
@@ -58,7 +58,9 @@ impl Validation for TestValidation {
 }
 
 pub fn main() {
-    let config = ServerConfig::builder().with_defaults().with_callback(Box::new(OurCallback))
+    let config = ServerConfig::builder()
+        .with_defaults()
+        .with_callback(Box::new(OurCallback))
         .unwrap();
     let sasl = SASLServer::<TestValidation>::new(Arc::new(config));
 

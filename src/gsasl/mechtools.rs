@@ -1,10 +1,9 @@
 use crate::gsasl::consts::{
-    GSASL_CRYPTO_ERROR, GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_OK,
+    GSASL_MALLOC_ERROR, GSASL_MECHANISM_PARSE_ERROR, GSASL_OK,
 };
-use crate::gsasl::gc::GC_OK;
 use crate::gsasl::gl::free::rpl_free;
 use ::libc;
-use libc::{malloc, memchr, memcpy, size_t, strchr, strlen, strncmp};
+use libc::{malloc, memchr, memcpy, size_t, strlen, strncmp};
 
 extern "C" {
     fn asprintf(__ptr: *mut *mut libc::c_char, __fmt: *const libc::c_char, _: ...) -> libc::c_int;

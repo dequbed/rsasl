@@ -353,14 +353,10 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
                         let res = session.need_with::<OverrideCBType, _, _>(
                             &EmptyProvider,
                             &mut |i_cbname| {
-                                session.need_cb_data(
-                                    i_cbname,
-                                    EmptyProvider,
-                                    &mut |i_cbdata| {
-                                        cbdata = Some(base64::encode(i_cbdata));
-                                        Ok(())
-                                    },
-                                )?;
+                                session.need_cb_data(i_cbname, EmptyProvider, &mut |i_cbdata| {
+                                    cbdata = Some(base64::encode(i_cbdata));
+                                    Ok(())
+                                })?;
                                 cbname = Cow::Owned(i_cbname.into());
                                 Ok(())
                             },
@@ -482,8 +478,8 @@ mod tests {
     use std::io::Cursor;
     use std::sync::Arc;
 
-    use crate::{Mechanism, Mechname, Side};
     use crate::sasl::SASL;
+    use crate::{Mechanism, Mechname, Side};
 
     use super::*;
 

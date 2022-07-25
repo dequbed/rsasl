@@ -1,6 +1,6 @@
 [package]
 name = "rsasl"
-version = "2.0.0-preview5"
+version = "2.0.0-preview6"
 authors = ["Nadja Reitzenstein <me@dequbed.space>"]
 edition = "2021"
 description = """The Rust SASL framework, aimed at both middleware-style protocol implementation and application code.

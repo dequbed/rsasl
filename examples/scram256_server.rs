@@ -1,11 +1,10 @@
-use rsasl::callback::{CallbackError, Request, SessionCallback, Context};
-use rsasl::prelude::{ServerConfig, SessionError};
+use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
 use rsasl::mechanisms::scram::properties::PasswordHash;
 use rsasl::mechname::Mechname;
-use rsasl::property::AuthId;
-use rsasl::prelude::SessionData;
-use rsasl::validate::NoValidation;
 use rsasl::prelude::SASLServer;
+use rsasl::prelude::{ServerConfig, SessionError};
+use rsasl::property::AuthId;
+use rsasl::validate::NoValidation;
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
@@ -33,7 +32,10 @@ impl SessionCallback for OurCallback {
 }
 
 pub fn main() {
-    let config = ServerConfig::builder().with_defaults().with_callback(Box::new(OurCallback)).unwrap();
+    let config = ServerConfig::builder()
+        .with_defaults()
+        .with_callback(Box::new(OurCallback))
+        .unwrap();
     let sasl = SASLServer::<NoValidation>::new(Arc::new(config));
 
     let mut session = sasl
