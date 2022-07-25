@@ -1,8 +1,7 @@
-use rsasl::callback::{CallbackError, Context, Request, SessionCallback};
+use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
 use rsasl::mechanisms::scram::properties::PasswordHash;
 use rsasl::mechname::Mechname;
 use rsasl::prelude::SASLServer;
-use rsasl::prelude::SessionData;
 use rsasl::prelude::{ServerConfig, SessionError};
 use rsasl::property::AuthId;
 use rsasl::validate::NoValidation;

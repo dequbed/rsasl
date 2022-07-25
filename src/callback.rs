@@ -8,13 +8,15 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 
-pub use crate::context::Context;
 use crate::error::SessionError;
 use crate::property::Property;
 
-use crate::session::SessionData;
-use crate::typed::{tags, Erased, TaggedOption};
 use crate::validate::{Validate, ValidationError};
+use crate::typed::{tags, Erased, TaggedOption};
+
+// Re-Exports
+pub use crate::context::Context;
+pub use crate::session::SessionData;
 
 pub trait SessionCallback {
     /// Answer requests by mechanism implementation for some Properties

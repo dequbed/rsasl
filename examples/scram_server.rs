@@ -1,4 +1,4 @@
-use rsasl::callback::{CallbackError, Context, Request, SessionCallback};
+use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
 use rsasl::prelude::ServerConfig;
 use rsasl::prelude::*;
 use rsasl::property::{AuthId, AuthzId};
