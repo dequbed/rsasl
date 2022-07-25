@@ -245,7 +245,7 @@ impl MechanismData<'_> {
         }
     }
 
-    pub fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(), SessionError>
+    fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(), SessionError>
     where
         T: Property,
         C: CallbackRequest<T::Value>,
