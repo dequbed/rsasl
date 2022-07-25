@@ -309,9 +309,9 @@ pub mod docs {
         }
     }
 
-    pub mod features {
+    /*pub mod features {
         //! primer on the use of cargo features in rsasl
         //!
         #![doc = document_features::document_features!()]
-    }
+    }*/
 }
