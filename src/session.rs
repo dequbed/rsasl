@@ -1,10 +1,11 @@
 use std::fmt::{Debug, Formatter};
 use std::io::Write;
 
-
 use std::sync::Arc;
 
-use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, SessionCallback};
+use crate::callback::{
+    Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, SessionCallback,
+};
 use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
 use crate::context::{build_context, Provider, ProviderExt, ThisProvider};
 use crate::error::SessionError;
@@ -63,7 +64,12 @@ impl<V: Validation, C: ChannelBindingCallback> Session<V, C> {
         mechanism: Box<dyn Authentication>,
         mechanism_desc: Mechanism,
     ) -> Self {
-        Self { sasl, side, mechanism, mechanism_desc }
+        Self {
+            sasl,
+            side,
+            mechanism,
+            mechanism_desc,
+        }
     }
 
     #[inline(always)]
@@ -317,6 +323,15 @@ pub struct SessionData {
     mechanism_desc: Mechanism,
     side: Side,
 }
+impl SessionData {
+    pub fn mechanism(&self) -> &Mechanism {
+        &self.mechanism_desc
+    }
+
+    pub fn side(&self) -> Side {
+        self.side
+    }
+}
 
 impl Debug for MechanismData<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -374,8 +389,8 @@ impl SessionData {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use crate::context::EmptyProvider;
     use super::*;
+    use crate::context::EmptyProvider;
     use crate::validate::Validation;
 
     impl<V: Validation, CB: ChannelBindingCallback> Session<V, CB> {
@@ -385,8 +400,8 @@ pub(crate) mod tests {
             validate: &'a mut Validate<'a>,
             f: &mut F,
         ) -> Result<G, SessionError>
-            where
-                F: FnMut(&[u8]) -> Result<G, SessionError>,
+        where
+            F: FnMut(&[u8]) -> Result<G, SessionError>,
         {
             let mut mechanism_data = MechanismData::new(
                 self.sasl.config.callback.as_ref(),
