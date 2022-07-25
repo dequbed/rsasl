@@ -196,7 +196,7 @@ pub struct MechanismData<'a> {
 }
 
 impl<'a> MechanismData<'a> {
-    pub(crate) fn new(
+    fn new(
         callback: &'a dyn SessionCallback,
         chanbind_cb: &'a dyn ChannelBindingCallback,
         validator: &'a mut Validate<'a>,
@@ -219,7 +219,7 @@ impl MechanismData<'_> {
             .validate(&self.session_data, context, self.validator)
     }
 
-    pub(crate) fn callback<'a, 'b>(
+    fn callback<'a, 'b>(
         &'b self,
         provider: &'b dyn Provider,
         request: &'b mut Request<'a>,
@@ -232,7 +232,7 @@ impl MechanismData<'_> {
         }
     }
 
-    pub(crate) fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), SessionError>
+    pub fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), SessionError>
     where
         T: Property,
     {
@@ -245,7 +245,7 @@ impl MechanismData<'_> {
         }
     }
 
-    pub(crate) fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(), SessionError>
+    pub fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(), SessionError>
     where
         T: Property,
         C: CallbackRequest<T::Value>,
@@ -254,7 +254,7 @@ impl MechanismData<'_> {
         self.callback(provider, Request::new_satisfy::<T>(&mut tagged_option))
     }
 
-    pub(crate) fn need_with<T, F, G>(
+    pub fn need_with<T, F, G>(
         &self,
         provider: &dyn Provider,
         closure: &mut F,
@@ -267,7 +267,7 @@ impl MechanismData<'_> {
             .ok_or(SessionError::CallbackError(CallbackError::NoCallback))
     }
 
-    pub(crate) fn maybe_need_with<T, F, G>(
+    pub fn maybe_need_with<T, F, G>(
         &self,
         provider: &dyn Provider,
         closure: &mut F,
@@ -281,7 +281,7 @@ impl MechanismData<'_> {
         Ok(closurecr.try_unwrap())
     }
 
-    pub(crate) fn need_cb_data<P, F, G>(
+    pub fn need_cb_data<P, F, G>(
         &self,
         cbname: &str,
         provider: P,
