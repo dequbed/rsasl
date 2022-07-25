@@ -3,11 +3,11 @@ use std::io::Write;
 
 use stringprep::saslprep;
 
-use crate::session::{MechanismData, State, StepResult};
+use super::mechinfo::PlainError;
 use crate::context::{Demand, DemandReply, Provider};
 use crate::mechanism::Authentication;
 use crate::property::{AuthId, AuthzId, Password};
-use super::mechinfo::PlainError;
+use crate::session::{MechanismData, State, StepResult};
 
 pub struct Plain;
 #[derive(Debug)]

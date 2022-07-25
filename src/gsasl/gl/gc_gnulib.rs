@@ -1,9 +1,9 @@
 use ::libc;
+use digest::generic_array::GenericArray;
 #[cfg(feature = "digest")]
 use digest::Digest;
 #[cfg(feature = "hmac")]
 use digest::Mac;
-use digest::generic_array::GenericArray;
 use libc::{__errno_location, getrandom, size_t, ssize_t};
 
 use crate::gsasl::gc::{Gc_rc, GC_INVALID_HASH, GC_OK, GC_RANDOM_ERROR};
@@ -163,7 +163,6 @@ pub unsafe fn gc_hmac_md5(
     mut inlen: size_t,
     mut resbuf: *mut libc::c_char,
 ) -> Gc_rc {
-
     type HmacMd5 = hmac::Hmac<md5::Md5>;
     let key = std::slice::from_raw_parts(key as *const u8, keylen);
 

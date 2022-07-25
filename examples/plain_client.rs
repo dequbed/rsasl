@@ -1,8 +1,8 @@
 use rsasl::prelude::*;
+use rsasl::validate::NoValidation;
 use std::io;
 use std::io::Cursor;
 use std::sync::Arc;
-use rsasl::validate::NoValidation;
 
 pub fn main() {
     // Read the "authcid" from stdin
@@ -30,9 +30,7 @@ pub fn main() {
     let offered = [Mechname::new(b"PLAIN").unwrap()];
     // Usually you would first agree on a mechanism with the server, for demostration purposes
     // we directly start a PLAIN "exchange"
-    let mut session = sasl
-        .start_suggested(&offered)
-        .unwrap();
+    let mut session = sasl.start_suggested(&offered).unwrap();
 
     // Do an authentication step. In a PLAIN exchange there is only one step, with no data.
     let mut out = Cursor::new(Vec::new());

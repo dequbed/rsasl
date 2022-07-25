@@ -99,6 +99,9 @@ pub trait SessionCallback {
 }
 
 #[derive(Debug)]
+// todo: Have a "I would handle this but I have no value valid with the *given context*" (e.g.
+//       User with that authid isn't found in the db)
+// todo: impl From<Box<E>>
 pub enum CallbackError {
     NoCallback,
     Boxed(Box<dyn Error + Send + Sync>),
@@ -322,12 +325,8 @@ impl<'a> Request<'a> {
     ///
     /// If generating the value is expensive or requires interactivity using the method
     /// [`satisfy_with`](Request::satisfy_with) may be preferable.
-    pub fn satisfy<P: Property>(
-        &mut self,
-        answer: &P::Value,
-    ) -> Result<&mut Self, SessionError> {
-        if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>()
-        {
+    pub fn satisfy<P: Property>(&mut self, answer: &P::Value) -> Result<&mut Self, SessionError> {
+        if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
             mech.satisfy(answer)?;
             Err(CallbackError::EarlyReturn(PhantomData).into())
         } else {
