@@ -1,4 +1,3 @@
-
 use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
 use crate::config::SASLConfig;
 
@@ -35,12 +34,16 @@ mod provider {
 
     impl SASLClient {
         pub fn new(config: Arc<SASLConfig>) -> Self {
-            Self { inner: SASL::client(config) }
+            Self {
+                inner: SASL::client(config),
+            }
         }
     }
     impl<CB: ChannelBindingCallback> SASLClient<CB> {
         pub fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
-            Self { inner: SASL::with_cb(config, cb) }
+            Self {
+                inner: SASL::with_cb(config, cb),
+            }
         }
 
         /// Starts a authentication exchange as a client
@@ -59,12 +62,16 @@ mod provider {
 
     impl<V: Validation> SASLServer<V> {
         pub fn new(config: Arc<SASLConfig>) -> Self {
-            Self { inner: SASL::server(config) }
+            Self {
+                inner: SASL::server(config),
+            }
         }
     }
     impl<V: Validation, CB: ChannelBindingCallback> SASLServer<V, CB> {
         pub fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
-            Self { inner: SASL::with_cb(config, cb) }
+            Self {
+                inner: SASL::with_cb(config, cb),
+            }
         }
 
         /// Starts a authentication exchange as the server role
@@ -73,10 +80,7 @@ mod provider {
         /// authentication data provided by the user.
         ///
         /// See [SessionCallback] on how to implement callbacks.
-        pub fn start_suggested(
-            self,
-            offered: &[&Mechname],
-        ) -> Result<Session<V, CB>, SASLError> {
+        pub fn start_suggested(self, offered: &[&Mechname]) -> Result<Session<V, CB>, SASLError> {
             self.inner.server_start_suggested(offered)
         }
     }
@@ -118,53 +122,47 @@ mod provider {
         fn start_inner<'a, F>(
             self,
             f: F,
-            offered: &[&Mechname]
+            offered: &[&Mechname],
         ) -> Result<Session<V, CB>, SASLError>
-            where F: for<'b> Fn(&'b Mechanism) -> Option<StartFn>
+        where
+            F: for<'b> Fn(&'b Mechanism) -> Option<StartFn>,
         {
             let config = self.config.clone();
             offered
                 .iter()
                 .filter_map(|offered_mechname| {
-                    let mech = config.mech_list().find(|avail_mech| avail_mech.mechanism == *offered_mechname);
+                    let mech = config
+                        .mech_list()
+                        .find(|avail_mech| avail_mech.mechanism == *offered_mechname);
                     let mech = if let Some(filter) = &self.config.filter {
                         mech.filter(|m| filter(m))
                     } else {
                         mech
                     };
-                    mech
-                        .and_then(|mech| {
-                            let start = f(&mech)?;
-                            let auth = start(config.as_ref(), offered).ok()?;
-                            Some((mech, auth))
-                        })
+                    mech.and_then(|mech| {
+                        let start = f(&mech)?;
+                        let auth = start(config.as_ref(), offered).ok()?;
+                        Some((mech, auth))
+                    })
                 })
-                .max_by(|(m,_), (n,_)| (self.config.sorter)(m, n))
+                .max_by(|(m, _), (n, _)| (self.config.sorter)(m, n))
                 .map_or(Err(SASLError::NoSharedMechanism), |(selected, auth)| {
-                    Ok(Session::new(
-                        self,
-                        Side::Client,
-                        auth,
-                        selected.clone(),
-                    ))
+                    Ok(Session::new(self, Side::Client, auth, selected.clone()))
                 })
         }
 
         fn client_start_suggested<'a>(
             self,
             offered: &[&Mechname],
-        ) -> Result<Session<V, CB>, SASLError>
-        {
+        ) -> Result<Session<V, CB>, SASLError> {
             self.start_inner(|mech| mech.client, offered)
         }
 
         fn server_start_suggested<'a>(
             self,
             offered: &[&Mechname],
-        ) -> Result<Session<V, CB>, SASLError>
-        {
+        ) -> Result<Session<V, CB>, SASLError> {
             self.start_inner(|mech| mech.server, offered)
         }
     }
-
 }

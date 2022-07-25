@@ -1,10 +1,9 @@
-
-use std::cmp::Ordering;
-use std::fmt::{Debug, Formatter};
 use crate::callback::SessionCallback;
 use crate::config::{ClientSide, ConfigSide, FilterFn, SASLConfig, ServerSide, SorterFn};
 use crate::error::SASLError;
 use crate::registry::{Mechanism, Registry};
+use std::cmp::Ordering;
+use std::fmt::{Debug, Formatter};
 
 #[derive(Clone)]
 /// Type-checking Builder for a [`ClientConfig`](crate::config::ClientConfig) or
@@ -19,15 +18,15 @@ pub struct ConfigBuilder<Side: ConfigSide, State> {
 impl<State: Debug> Debug for ConfigBuilder<ClientSide, State> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ConfigBuilder<Client, _>")
-         .field("state", &self.state)
-         .finish()
+            .field("state", &self.state)
+            .finish()
     }
 }
 impl<State: Debug> Debug for ConfigBuilder<ServerSide, State> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ConfigBuilder<Server, _>")
-         .field("state", &self.state)
-         .finish()
+            .field("state", &self.state)
+            .finish()
     }
 }
 
@@ -51,9 +50,7 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantMechanisms> {
     pub fn with_registry(self, mechanisms: Registry) -> ConfigBuilder<Side, WantFilter> {
         ConfigBuilder {
             side: self.side,
-            state: WantFilter {
-                mechanisms,
-            }
+            state: WantFilter { mechanisms },
         }
     }
     pub fn with_default_mechanisms(self) -> ConfigBuilder<Side, WantFilter> {
@@ -67,7 +64,7 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantMechanisms> {
                 mechanisms: Registry::default(),
                 filter: None,
                 sorter: default_sorter,
-            }
+            },
         }
     }
 }
@@ -87,7 +84,7 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantFilter> {
             state: WantSorter {
                 mechanisms: self.state.mechanisms,
                 filter: Some(filter),
-            }
+            },
         }
     }
 
@@ -97,7 +94,7 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantFilter> {
             state: WantSorter {
                 mechanisms: self.state.mechanisms,
                 filter: None,
-            }
+            },
         }
     }
 }
@@ -116,7 +113,7 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantSorter> {
                 mechanisms: self.state.mechanisms,
                 filter: self.state.filter,
                 sorter: default_sorter,
-            }
+            },
         }
     }
 }
@@ -133,9 +130,10 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantCallback> {
     ///
     /// `cbsupport` dicates the availability of channel binding support. See [`CBSupport`] for
     /// available values and their meaning.
-    pub fn with_callback<CB: SessionCallback + 'static>(self, callback: Box<CB>)
-        -> Result<SASLConfig, SASLError>
-    {
+    pub fn with_callback<CB: SessionCallback + 'static>(
+        self,
+        callback: Box<CB>,
+    ) -> Result<SASLConfig, SASLError> {
         let callback = callback as Box<dyn SessionCallback>;
         SASLConfig::new(
             callback,

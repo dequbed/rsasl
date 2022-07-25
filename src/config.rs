@@ -1,14 +1,14 @@
 //! Configuration supplied by the downstream user
 
 use crate::callback::{Context, Request, SessionCallback};
+use crate::error::{SASLError, SessionError};
+use crate::property::{AuthId, AuthzId, Password};
 use crate::registry::{Mechanism, Registry};
+use crate::session;
+use crate::session::SessionData;
 use std::cmp::Ordering;
 use std::fmt;
 use std::marker::PhantomData;
-use crate::error::{SASLError, SessionError};
-use crate::property::{AuthId, AuthzId, Password};
-use crate::session;
-use crate::session::SessionData;
 
 #[cfg(feature = "config_builder")]
 pub use crate::builder::ConfigBuilder;
@@ -32,7 +32,6 @@ impl ConfigSide for ServerSide {
 pub(crate) type FilterFn = fn(a: &Mechanism) -> bool;
 pub(crate) type SorterFn = fn(a: &Mechanism, b: &Mechanism) -> Ordering;
 
-
 pub struct ClientSide {
     _marker: PhantomData<()>,
 }
@@ -44,15 +43,19 @@ pub struct ClientConfig;
 #[cfg(feature = "config_builder")]
 impl ClientConfig {
     pub fn builder() -> ConfigBuilder<ClientSide, crate::builder::WantMechanisms> {
-        ConfigBuilder::new(ClientSide { _marker: PhantomData })
+        ConfigBuilder::new(ClientSide {
+            _marker: PhantomData,
+        })
     }
 
     /// Construct a SASLConfig with static credentials
     ///
     ///
-    pub fn with_credentials(authzid: Option<String>, authid: String, password: String)
-        -> Result<SASLConfig, SASLError>
-    {
+    pub fn with_credentials(
+        authzid: Option<String>,
+        authid: String,
+        password: String,
+    ) -> Result<SASLConfig, SASLError> {
         struct CredentialsProvider {
             authid: String,
             password: String,
@@ -76,7 +79,9 @@ impl ClientConfig {
         }
 
         let callback = CredentialsProvider {
-            authid, password, authzid
+            authid,
+            password,
+            authzid,
         };
 
         Self::builder()
@@ -106,7 +111,9 @@ pub struct ServerConfig;
 #[cfg(feature = "config_builder")]
 impl ServerConfig {
     pub fn builder() -> ConfigBuilder<ServerSide, crate::builder::WantMechanisms> {
-        ConfigBuilder::new(ServerSide { _marker: PhantomData })
+        ConfigBuilder::new(ServerSide {
+            _marker: PhantomData,
+        })
     }
 }
 
@@ -134,7 +141,7 @@ impl fmt::Debug for SASLConfig {
 }
 
 impl SASLConfig {
-    pub(crate) fn mech_list(&self) -> impl Iterator<Item=&Mechanism> {
+    pub fn mech_list(&self) -> impl Iterator<Item = &Mechanism> {
         self.mechanisms.get_mechanisms()
     }
 }

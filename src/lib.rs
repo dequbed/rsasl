@@ -243,11 +243,10 @@
 //! define a [`Mechanism`](registry::Mechanism) struct describing the implemented mechanism.
 //! Documentation about how to add a custom mechanism is found in the [`registry module documentation`](registry).
 
-
-pub mod callback;
-pub mod config;
 #[cfg(feature = "config_builder")]
 mod builder;
+pub mod callback;
+pub mod config;
 mod error;
 pub mod mechanisms;
 pub mod mechname;
@@ -279,14 +278,12 @@ mod vectored_io;
 pub mod prelude {
     //! prelude exporting the most commonly used types
     pub use crate::config::{ClientConfig, SASLConfig, ServerConfig};
-    pub use crate::registry::Registry;
     pub use crate::error::{SASLError, SessionError};
     pub use crate::mechname::Mechname;
     pub use crate::property::Property;
+    pub use crate::registry::Registry;
     pub use crate::sasl::{SASLClient, SASLServer};
-    pub use crate::session::{
-        ClientSession, ServerSession, Session, SessionData, State, StepResult,
-    };
+    pub use crate::session::{ClientSession, ServerSession, Session, State, StepResult};
     pub use crate::validate::Validation;
 }
 
@@ -309,9 +306,9 @@ pub mod docs {
         }
     }
 
-    pub mod features {
+    /*pub mod features {
         //! primer on the use of cargo features in rsasl
         //!
         #![doc = document_features::document_features!()]
-    }
+    }*/
 }

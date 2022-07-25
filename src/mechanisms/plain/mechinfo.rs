@@ -1,10 +1,10 @@
-use std::str::Utf8Error;
-use thiserror::Error;
 use crate::error::{MechanismError, MechanismErrorKind};
 use crate::mechanisms::plain::{client, server};
 use crate::mechname::Mechname;
 use crate::registry::Mechanism;
 use crate::session::Side;
+use std::str::Utf8Error;
+use thiserror::Error;
 
 #[cfg(feature = "registry_static")]
 use crate::registry::{distributed_slice, MECHANISMS};
@@ -42,4 +42,3 @@ impl MechanismError for PlainError {
         MechanismErrorKind::Parse
     }
 }
-

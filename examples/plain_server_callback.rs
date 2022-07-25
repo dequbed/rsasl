@@ -1,10 +1,10 @@
-use rsasl::callback::{Context, SessionCallback};
-use rsasl::prelude::{ServerConfig, SessionError};
+use rsasl::callback::{Context, SessionCallback, SessionData};
 use rsasl::mechname::Mechname;
-use rsasl::property::{AuthId, AuthzId, Password};
-use rsasl::prelude::{SessionData, State};
-use rsasl::validate::{Validate, Validation, ValidationError};
 use rsasl::prelude::SASLServer;
+use rsasl::prelude::State;
+use rsasl::prelude::{ServerConfig, SessionError};
+use rsasl::property::{AuthId, AuthzId, Password};
+use rsasl::validate::{Validate, Validation, ValidationError};
 use std::io::Cursor;
 use std::sync::Arc;
 use thiserror::Error;
@@ -52,7 +52,10 @@ impl SessionCallback for OurCallback {
         context: &Context,
         validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
-        validate.with::<TestValidation, _, _>(|| self.test_validate(session_data, context))?;
+        validate.with::<TestValidation, _>(|| {
+            self.test_validate(session_data, context)
+                .map_err(|e| ValidationError::Boxed(Box::new(e)))
+        })?;
         Ok(())
     }
 }
@@ -70,7 +73,9 @@ impl Validation for TestValidation {
 }
 
 pub fn main() {
-    let config = ServerConfig::builder().with_defaults().with_callback(Box::new(OurCallback))
+    let config = ServerConfig::builder()
+        .with_defaults()
+        .with_callback(Box::new(OurCallback))
         .unwrap();
     let config = Arc::new(config);
 

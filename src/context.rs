@@ -6,13 +6,16 @@ use std::ops::ControlFlow;
 
 pub trait Provider {
     fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()>;
-    fn provide_mut<'a>(&'a mut self, _req: &mut Demand<'a>) -> DemandReply<()> {
-        DemandReply::Continue(())
+    fn provide_mut<'a>(&'a mut self, req: &mut Demand<'a>) -> DemandReply<()> {
+        req.done()
     }
 }
 
 pub trait ProviderExt: Provider {
-    fn and<P: Provider>(self, other: P) -> And<Self, P> where Self: Sized {
+    fn and<P: Provider>(self, other: P) -> And<Self, P>
+    where
+        Self: Sized,
+    {
         And { l: self, r: other }
     }
 }
@@ -27,11 +30,11 @@ impl Provider for EmptyProvider {
 }
 
 #[derive(Debug)]
-pub struct And<L,R> {
+pub struct And<L, R> {
     l: L,
     r: R,
 }
-impl<L: Provider, R: Provider> Provider for And<L,R> {
+impl<L: Provider, R: Provider> Provider for And<L, R> {
     fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
         self.l.provide(req)?;
         self.r.provide(req)
@@ -85,16 +88,13 @@ impl<'a> Demand<'a> {
         }
     }
 
-    pub fn provide_ref<T: Property>(
-        &mut self,
-        value: &'a T::Value,
-    ) -> DemandReply<&mut Self> {
+    #[inline(always)]
+    pub fn provide_ref<T: Property>(&mut self, value: &'a T::Value) -> DemandReply<&mut Self> {
         self.provide::<tags::Ref<DemandTag<T>>>(value)
     }
-    pub fn provide_mut<T: Property>(
-        &mut self,
-        value: &'a mut T::Value,
-    ) -> DemandReply<&mut Self> {
+
+    #[inline(always)]
+    pub fn provide_mut<T: Property>(&mut self, value: &'a mut T::Value) -> DemandReply<&mut Self> {
         self.provide::<tags::RefMut<DemandTag<T>>>(value)
     }
 }
@@ -106,19 +106,17 @@ pub(crate) fn build_context(provider: &dyn Provider) -> &Context {
 #[repr(transparent)]
 pub struct Context(dyn Provider);
 impl Context {
-    fn get_by_tag<'cx, T: tags::Type<'cx>>(&'cx self) -> Option<T::Reified> {
-        let mut tagged_option = TaggedOption::<'cx, T>(None);
+    #[inline]
+    pub fn get_ref<P: Property>(&self) -> Option<&P::Value> {
+        let mut tagged_option = TaggedOption::<'_, tags::Ref<DemandTag<P>>>(None);
         self.0.provide(Demand::new(&mut tagged_option));
         tagged_option.0
     }
     #[inline]
-    // TODO: this should probably return a Result to make it's use in callbacks easier?
-    pub fn get_ref<P: Property>(&self) -> Option<&P::Value> {
-        self.get_by_tag::<tags::Ref<DemandTag<P>>>()
-    }
-    #[inline]
-    pub fn get_mut<P: Property>(&self) -> Option<&mut P::Value> {
-        self.get_by_tag::<tags::RefMut<DemandTag<P>>>()
+    pub fn get_mut<P: Property>(&mut self) -> Option<&mut P::Value> {
+        let mut tagged_option = TaggedOption::<'_, tags::RefMut<DemandTag<P>>>(None);
+        self.0.provide_mut(Demand::new(&mut tagged_option));
+        tagged_option.0
     }
 }
 

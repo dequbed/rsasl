@@ -1,9 +1,12 @@
 //! Mechanism traits *only available with feature `unstable_custom_mechanism`*
 //!
 //!
-use std::io::Write;
 use crate::error::SessionError;
 use crate::error::SessionError::NoSecurityLayer;
+use std::io::Write;
+
+pub use crate::context::{Demand, DemandReply, Provider, ProviderExt, ThisProvider};
+pub use crate::error::{MechanismError, MechanismErrorKind};
 pub use crate::session::{MechanismData, StepResult};
 
 /// Trait implemented to be one party in an authentication exchange

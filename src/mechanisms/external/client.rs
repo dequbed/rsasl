@@ -1,8 +1,8 @@
+use crate::context::EmptyProvider;
 use crate::mechanism::Authentication;
 use crate::property::AuthId;
 use crate::session::{MechanismData, State, StepResult};
 use std::io::Write;
-use crate::context::EmptyProvider;
 
 #[derive(Copy, Clone, Debug)]
 pub struct External;
