@@ -14,7 +14,8 @@
 //! visible to the user providing the callback.
 //!
 //! ```
-//! # use std::sync::Arc;
+//! # use std::convert::Infallible;
+//! use std::sync::Arc;
 //! use rsasl::prelude::*;
 //! use rsasl::validate::Validation;
 //!
@@ -46,6 +47,60 @@ use crate::typed::{tags, Erased, TaggedOption};
 use std::any::TypeId;
 use thiserror::Error;
 
+/// Marker trait to define the type returned by `validation`
+///
+/// This trait is usually implemented on some zero-sized type (ZST):
+/// ```rust
+/// # use rsasl::prelude::Validation;
+/// pub struct MyCustomValidation;
+/// impl Validation for MyCustomValidation {
+///     type Value = u32;
+/// }
+/// ```
+///
+/// However, it can also be implemented on any other type, which is useful if said type is the
+/// one to be returned from the Validation:
+/// ```rust
+/// # use rsasl::prelude::Validation;
+/// pub struct MyLoginUserType {
+///     username: String,
+/// }
+/// impl Validation for MyLoginUserType {
+///     type Value = Self;
+/// }
+/// ```
+///
+/// Often it is most useful to make `Value` a `Result` with the `Err` type changing the
+/// authentication error that will be indicated to the client by the protocol implementation:
+///
+/// ```rust
+/// # use rsasl::prelude::Validation;
+/// pub struct MyCustomValidation;
+/// pub struct Success { /* Fill with user data to be used on successful authentication */ }
+/// pub enum Error {
+///     // If this is returned from Validation, an "invalid credentials" type of error is returned
+///     // (e.g. SMTP 535, XMPP 'not-authorized', …)
+///     CredentialsInvalid,
+///
+///     // Return a "not permitted" type of error (e.g. SMTP 550, XMPP 'account-disabled' or
+///     // 'credentials-expired'
+///     LoginNotPermitted,
+///
+///     // Return a "temporary failure" type of error (e.g. SMTP 454, XMPP 'temporary-auth-failure')
+///     TemporaryFailure {
+///         reason: String,
+///     }
+///
+///     // etc.
+/// }
+/// impl Validation for MyCustomValidation {
+///     type Value = Result<Success, Error>;
+/// }
+/// ```
+///
+/// This way the user callback can implement all of the business logic of deciding on the error
+/// type to be indicated to the client, making the protocol implementation more abstract and
+/// reusable.
 pub trait Validation: 'static {
     type Value: 'static;
 }
