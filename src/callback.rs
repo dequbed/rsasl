@@ -4,6 +4,7 @@
 //! that should not need to care about the shape of this data.
 //! Yeah, *all* the runtime reflection.
 
+use thiserror::Error;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
@@ -16,6 +17,7 @@ use crate::validate::{Validate, ValidationError};
 
 // Re-Exports
 pub use crate::context::Context;
+use crate::context::TOKEN;
 pub use crate::session::SessionData;
 
 pub trait SessionCallback {
@@ -100,39 +102,30 @@ pub trait SessionCallback {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 // todo: Have a "I would handle this but I have no value valid with the *given context*" (e.g.
 //       User with that authid isn't found in the db)
 // todo: impl From<Box<E>>
 pub enum CallbackError {
+    #[error("callback could not provide a value for this query type")]
+    NoValue,
+    #[error("callback does not handle this query type")]
     NoCallback,
+    #[error(transparent)]
     Boxed(Box<dyn Error + Send + Sync>),
 
     #[doc(hidden)]
-    EarlyReturn(PhantomData<()>),
+    #[error("callback issued early return")]
+    EarlyReturn(TOKEN),
 }
 impl CallbackError {
+    pub(crate) const fn early_return() -> Self {
+        Self::EarlyReturn(TOKEN::build())
+    }
     pub fn is_no_callback(&self) -> bool {
         match self {
             Self::NoCallback => true,
             _ => false,
-        }
-    }
-}
-impl Display for CallbackError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CallbackError::NoCallback => f.write_str("Callback does not handle that query type"),
-            CallbackError::Boxed(e) => Display::fmt(e, f),
-            CallbackError::EarlyReturn(_) => f.write_str("callback returned early"),
-        }
-    }
-}
-impl Error for CallbackError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            CallbackError::Boxed(e) => Some(e.as_ref()),
-            _ => None,
         }
     }
 }
@@ -330,7 +323,7 @@ impl<'a> Request<'a> {
     pub fn satisfy<P: Property>(&mut self, answer: &P::Value) -> Result<&mut Self, SessionError> {
         if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
             mech.satisfy(answer)?;
-            Err(CallbackError::EarlyReturn(PhantomData).into())
+            Err(CallbackError::early_return().into())
         } else {
             Ok(self)
         }
@@ -404,7 +397,7 @@ impl<'a> Request<'a> {
         if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
             let answer = closure();
             mech.satisfy(answer)?;
-            Err(CallbackError::EarlyReturn(PhantomData).into())
+            Err(CallbackError::early_return().into())
         } else {
             Ok(self)
         }
