@@ -1,3 +1,5 @@
+use std::fmt;
+use std::fmt::Write;
 use crate::property::{Property, SizedProperty};
 use crate::typed::tags::{MaybeSizedType, Type};
 use crate::typed::{tags, Erased, TaggedOption};
@@ -48,6 +50,21 @@ impl<L: Provider, R: Provider> Provider for And<L, R> {
 
 #[doc(hidden)]
 pub struct TOKEN(PhantomData<()>);
+impl TOKEN {
+    pub(crate) const fn build() -> Self {
+        Self(PhantomData)
+    }
+}
+impl fmt::Debug for TOKEN {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("TOKEN")
+    }
+}
+impl fmt::Display for TOKEN {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_char('_')
+    }
+}
 
 /// Control-flow utility to help shortcut [`Demand::provide`]
 ///
