@@ -134,11 +134,6 @@ mod provider {
                     let mech = config
                         .mech_list()
                         .find(|avail_mech| avail_mech.mechanism == *offered_mechname);
-                    let mech = if let Some(filter) = &self.config.filter {
-                        mech.filter(|m| filter(m))
-                    } else {
-                        mech
-                    };
                     mech.and_then(|mech| {
                         let start = f(&mech)?;
                         let auth = start(config.as_ref(), offered).ok()?;

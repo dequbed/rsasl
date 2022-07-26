@@ -4,6 +4,7 @@
 //! that should not need to care about the shape of this data.
 //! Yeah, *all* the runtime reflection.
 
+use thiserror::Error;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
@@ -80,6 +81,7 @@ pub trait SessionCallback {
         context: &Context,
         request: &mut Request<'_>,
     ) -> Result<(), SessionError> {
+        // silence the 'arg X not used' errors without having to prefix the parameter names with _
         let _ = (session_data, context, request);
         Err(CallbackError::NoCallback.into())
     }
@@ -95,44 +97,82 @@ pub trait SessionCallback {
         context: &Context,
         validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
+        // silence the 'arg X not used' errors without having to prefix the parameter names with _
         let _ = (session_data, context, validate);
         Ok(())
     }
 }
 
 #[derive(Debug)]
-// todo: Have a "I would handle this but I have no value valid with the *given context*" (e.g.
-//       User with that authid isn't found in the db)
-// todo: impl From<Box<E>>
+pub struct TOKEN(PhantomData<()>);
+
+#[derive(Debug, Error)]
+#[non_exhaustive]
+/// Error types for callbacks
+///
+/// This error is designed to be useful to signal callback-specific states.
+///
+/// It does however additionally include hidden internal errors that are required for some
+/// functionality but can not be handled by user code. Due to those this enum is marked
+/// [`#[non_exhaustive]`](https://rust-lang.github.io/rfcs/2008-non-exhaustive.html) — in
+/// practice this means that any match on the variant of `CallbackError` must include a catch-all
+/// `_`.
+///
+/// So instead of
+/// ```no_compile
+/// # use rsasl::callback::CallbackError;
+/// let callback_error: CallbackError;
+/// # callback_error = CallbackError::NoCallback;
+/// match callback_error {
+///     CallbackError::NoValue => { /* handle NoValue case */ },
+///     CallbackError::NoCallback => { /* handle NoCallback case */ },
+/// }
+/// ```
+/// you must write:
+/// ```rust
+/// # use rsasl::callback::CallbackError;
+/// let callback_error: CallbackError;
+/// # callback_error = CallbackError::NoCallback;
+/// match callback_error {
+///     CallbackError::NoValue => { /* handle NoValue case */ },
+///     CallbackError::NoCallback => { /* handle NoCallback case */ },
+///     _ => {}, // skip if it's an internal error type that we can't work with.
+/// }
+/// ```
+///
+/// `From<CallbackError>` is implemented by [`SessionError`], so `callback` and other functions
+/// returning `SessionError` can use this type directly with `?`:
+///
+/// ```rust
+/// # use rsasl::callback::CallbackError;
+/// # use rsasl::prelude::SessionError;
+/// fn some_fn() -> Result<(), CallbackError> {
+///     Err(CallbackError::NoCallback)
+/// }
+///
+/// fn callback() -> Result<(), SessionError> {
+///     some_fn()?;
+///     Ok(())
+/// }
+/// ```
 pub enum CallbackError {
+    #[error("callback could not provide a value for this query type")]
+    NoValue,
+    #[error("callback does not handle this query type")]
     NoCallback,
-    Boxed(Box<dyn Error + Send + Sync>),
 
     #[doc(hidden)]
-    EarlyReturn(PhantomData<()>),
+    #[error("callback issued early return")]
+    EarlyReturn(TOKEN),
 }
 impl CallbackError {
+    const fn early_return() -> Self {
+        Self::EarlyReturn(TOKEN(PhantomData))
+    }
     pub fn is_no_callback(&self) -> bool {
         match self {
             Self::NoCallback => true,
             _ => false,
-        }
-    }
-}
-impl Display for CallbackError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CallbackError::NoCallback => f.write_str("Callback does not handle that query type"),
-            CallbackError::Boxed(e) => Display::fmt(e, f),
-            CallbackError::EarlyReturn(_) => f.write_str("callback returned early"),
-        }
-    }
-}
-impl Error for CallbackError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            CallbackError::Boxed(e) => Some(e.as_ref()),
-            _ => None,
         }
     }
 }
@@ -330,7 +370,7 @@ impl<'a> Request<'a> {
     pub fn satisfy<P: Property>(&mut self, answer: &P::Value) -> Result<&mut Self, SessionError> {
         if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
             mech.satisfy(answer)?;
-            Err(CallbackError::EarlyReturn(PhantomData).into())
+            Err(CallbackError::early_return().into())
         } else {
             Ok(self)
         }
@@ -404,12 +444,17 @@ impl<'a> Request<'a> {
         if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
             let answer = closure();
             mech.satisfy(answer)?;
-            Err(CallbackError::EarlyReturn(PhantomData).into())
+            Err(CallbackError::early_return().into())
         } else {
             Ok(self)
         }
     }
 }
 
-pub struct EmptyCallback;
-impl SessionCallback for EmptyCallback {}
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+    #[derive(Copy, Clone)]
+    pub(crate) struct EmptyCallback;
+    impl SessionCallback for EmptyCallback {}
+}

@@ -1,3 +1,4 @@
+use std::error::Error;
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 
 use crate::mechname::Mechname;
@@ -9,13 +10,6 @@ use crate::validate::ValidationError;
 use std::ffi::CStr;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
-
-// TODO: Error types:
-// - Setup error. Bad Mechanism, no shared mechanism, mechanism failed to start.
-//      * `SetupError`?
-// - Session error. Stepping Mechanism broke, I/O error in output writer, requirements not delivered
-//      * Callback error should be handled specifically?
-//      * Includes Authentication error. Mechanism stepped to completion, authentication *failed*.
 
 static UNKNOWN_ERROR: &'static str = "The given error code is unknown to gsasl";
 
@@ -57,6 +51,9 @@ impl MechanismError for Gsasl {
 }
 
 #[derive(Debug, Error)]
+/// Error type returned when stepping an established `Session`
+///
+///
 pub enum SessionError {
     #[error("IO error occurred: {source}")]
     Io {
@@ -100,6 +97,9 @@ pub enum SessionError {
         ValidationError,
     ),
 
+    #[error(transparent)]
+    Boxed(#[from] Box<dyn Error + Send + Sync>),
+
     #[error("callback did not validate the authentication exchange")]
     NoValidate,
 
@@ -134,30 +134,23 @@ impl<T: MechanismError + 'static> From<T> for SessionError {
 }
 
 #[derive(Debug, Error)]
-/// The error type for rsasl errors originating from the `SASL` type
+/// The error type for rsasl errors originating from [`SASLClient`] or [`SASLServer`]
 ///
+/// This is one of two error types a protocol implementation needs to be aware of, the other
+/// being [`SessionError`].
+///
+/// `SASLError` is returned when trying to establish a new `Session` from e.g. a list of offered
+/// mechanisms.
 pub enum SASLError {
-    #[error("mechanism name is invalid: {0}")]
-    MechanismNameError(
-        #[source]
-        #[from]
-        MechanismNameError,
-    ),
-
-    #[error("provided mechanism name is not supported")]
-    UnknownMechanism,
-
     #[error("no shared mechanism found")]
+    /// No mechanism from the offered list is available.
+    ///
+    /// This error may occur even if the mechanism is implemented by rsasl, as an user may have
+    /// filtered the otherwise shared mechanisms.
     NoSharedMechanism,
 
     #[error(transparent)]
     Gsasl(#[from] Gsasl),
-}
-
-impl SASLError {
-    pub fn unknown_mechanism(_mechanism: &Mechname) -> Self {
-        Self::UnknownMechanism
-    }
 }
 
 /// Convert an error code to a human readable description of that error
