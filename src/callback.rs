@@ -451,5 +451,10 @@ impl<'a> Request<'a> {
     }
 }
 
-pub struct EmptyCallback;
-impl SessionCallback for EmptyCallback {}
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+    #[derive(Copy, Clone)]
+    pub(crate) struct EmptyCallback;
+    impl SessionCallback for EmptyCallback {}
+}

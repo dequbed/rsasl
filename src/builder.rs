@@ -31,10 +31,10 @@ impl<State: Debug> Debug for ConfigBuilder<ServerSide, State> {
     }
 }
 
-fn default_filter(_: &Mechanism) -> bool {
+pub(crate) fn default_filter(_: &Mechanism) -> bool {
     true
 }
-fn default_sorter(a: &Mechanism, b: &Mechanism) -> Ordering {
+pub(crate) fn default_sorter(a: &Mechanism, b: &Mechanism) -> Ordering {
     a.priority.cmp(&b.priority)
 }
 
@@ -63,7 +63,7 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantMechanisms> {
             side: self.side,
             state: WantCallback {
                 mechanisms: Registry::default(),
-                filter: None,
+                filter: default_filter,
                 sorter: default_sorter,
             },
         }
@@ -84,7 +84,7 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantFilter> {
             side: self.side,
             state: WantSorter {
                 mechanisms: self.state.mechanisms,
-                filter: Some(filter),
+                filter,
             },
         }
     }
@@ -94,7 +94,7 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantFilter> {
             side: self.side,
             state: WantSorter {
                 mechanisms: self.state.mechanisms,
-                filter: None,
+                filter: default_filter,
             },
         }
     }
@@ -104,7 +104,7 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantFilter> {
 #[doc(hidden)]
 pub struct WantSorter {
     mechanisms: Registry,
-    filter: Option<FilterFn>,
+    filter: FilterFn,
 }
 impl<Side: ConfigSide> ConfigBuilder<Side, WantSorter> {
     pub fn with_default_sorting(self) -> ConfigBuilder<Side, WantCallback> {
@@ -123,7 +123,7 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantSorter> {
 #[doc(hidden)]
 pub struct WantCallback {
     mechanisms: Registry,
-    filter: Option<FilterFn>,
+    filter: FilterFn,
     sorter: SorterFn,
 }
 impl<Side: ConfigSide> ConfigBuilder<Side, WantCallback> {

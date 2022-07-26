@@ -129,7 +129,7 @@ impl ServerConfig {
 pub struct SASLConfig {
     pub(crate) callback: Box<dyn SessionCallback>,
 
-    pub(crate) filter: Option<FilterFn>,
+    pub(crate) filter: FilterFn,
     pub(crate) sorter: SorterFn,
 
     mechanisms: Registry,
@@ -145,6 +145,7 @@ impl fmt::Debug for SASLConfig {
 impl SASLConfig {
     pub fn mech_list(&self) -> impl Iterator<Item = &Mechanism> {
         self.mechanisms.get_mechanisms()
+            .filter(|m| (self.filter)(m))
     }
 }
 
@@ -152,7 +153,7 @@ impl SASLConfig {
 impl SASLConfig {
     pub(crate) fn new<CB: SessionCallback + 'static>(
         callback: CB,
-        filter: Option<FilterFn>,
+        filter: FilterFn,
         sorter: SorterFn,
         mechanisms: Registry,
     ) -> Result<Self, SASLError> {

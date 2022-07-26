@@ -12,15 +12,25 @@ use crate::registry::{distributed_slice, MECHANISMS};
 pub static SCRAM_SHA1: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unvalidated(b"SCRAM-SHA-1"),
     priority: 400,
-    client: Some(|_sasl, offered| {
-        let mut server_supports_cb = false;
-        for name in offered {
-            if name.as_str() == "SCRAM-SHA-1-PLUS" {
-                server_supports_cb = true;
+    client: Some(|sasl, offered| {
+        let mut set_cb_client_no_support = true;
+        // If this fails, we def don't support cb so always set 'n' (client no support)
+        if sasl.mech_list().any(|m| m.mechanism.as_str() == "SCRAM-SHA-1-PLUS") {
+            // If we *do* support, either the server doesn't, or we just didn't want to use it.
+            set_cb_client_no_support = false;
+
+            // if we support *and* server supports *but* it wasn't chosen, it was deliberately so
+            // thus, also set 'n' (client no support) as we didn't *want* to use it.
+            for name in offered {
+                if name.as_str() == "SCRAM-SHA-1-PLUS" {
+                    set_cb_client_no_support = true;
+                }
             }
+            // otherwise, none of the offered were the CB version so the server didn't support it.
+            // Assumption is of course that the client *would have*. FIXME?
         }
         Ok(Box::new(client::ScramSha1Client::<NONCE_LEN>::new(
-            server_supports_cb,
+            set_cb_client_no_support,
         )))
     }),
     server: Some(|_sasl, _offered| Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new()))),
@@ -42,15 +52,25 @@ pub static SCRAM_SHA1_PLUS: Mechanism = Mechanism {
 pub static SCRAM_SHA256: Mechanism = Mechanism {
     mechanism: &Mechname::const_new_unvalidated(b"SCRAM-SHA-256"),
     priority: 600,
-    client: Some(|_sasl, offered| {
-        let mut server_supports_cb = false;
-        for name in offered {
-            if name.as_str() == "SCRAM-SHA-256-PLUS" {
-                server_supports_cb = true;
+    client: Some(|sasl, offered| {
+        let mut set_cb_client_no_support = true;
+        // If this fails, we def don't support cb so always set 'n' (client no support)
+        if sasl.mech_list().any(|m| m.mechanism.as_str() == "SCRAM-SHA-256-PLUS") {
+            // If we *do* support, either the server doesn't, or we just didn't want to use it.
+            set_cb_client_no_support = false;
+
+            // if we support *and* server supports *but* it wasn't chosen, it was deliberately so
+            // thus, also set 'n' (client no support) as we didn't *want* to use it.
+            for name in offered {
+                if name.as_str() == "SCRAM-SHA-256-PLUS" {
+                    set_cb_client_no_support = true;
+                }
             }
+            // otherwise, none of the offered were the CB version so the server didn't support it.
+            // Assumption is of course that the client *would have*. FIXME?
         }
         Ok(Box::new(client::ScramSha256Client::<NONCE_LEN>::new(
-            server_supports_cb,
+            set_cb_client_no_support,
         )))
     }),
     server: Some(|_sasl, _offered| Ok(Box::new(server::ScramSha256Server::<NONCE_LEN>::new()))),
@@ -70,3 +90,69 @@ pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
     }),
     first: Side::Client,
 };
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+    use crate::builder::{default_sorter, default_filter};
+    use crate::callback::tests::EmptyCallback;
+    use crate::config::SASLConfig;
+    use super::*;
+    use crate::registry::Registry;
+    use crate::sasl::SASLClient;
+
+    #[cfg(feature = "scram-sha-1")]
+    #[test]
+    /// Test if SCRAM will correctly set the CB support flag depending on the offered mechanisms.
+    fn scram_sha1_plus_selection() {
+        static SUPPORTED: &'static [Mechanism] = &[SCRAM_SHA1, SCRAM_SHA1_PLUS];
+
+        client_start(SUPPORTED, &[
+            Mechname::new_unchecked("SCRAM-SHA-1-PLUS"),
+            Mechname::new_unchecked("SCRAM-SHA-1"),
+        ], "SCRAM-SHA-1-PLUS");
+
+        // Test inverted too
+        client_start(SUPPORTED, &[
+            Mechname::new_unchecked("SCRAM-SHA-1"),
+            Mechname::new_unchecked("SCRAM-SHA-1-PLUS"),
+        ], "SCRAM-SHA-1-PLUS");
+    }
+
+    #[cfg(feature = "scram-sha-2")]
+    #[test]
+    /// Test if SCRAM will correctly set the CB support flag depending on the offered mechanisms.
+    fn scram_sha2_plus_selection() {
+        static SUPPORTED: &'static [Mechanism] = &[SCRAM_SHA256, SCRAM_SHA256_PLUS];
+
+        client_start(SUPPORTED, &[
+            Mechname::new_unchecked("SCRAM-SHA-256-PLUS"),
+            Mechname::new_unchecked("SCRAM-SHA-256"),
+        ], "SCRAM-SHA-256-PLUS");
+
+        // Test inverted too
+        client_start(SUPPORTED, &[
+            Mechname::new_unchecked("SCRAM-SHA-256"),
+            Mechname::new_unchecked("SCRAM-SHA-256-PLUS"),
+        ], "SCRAM-SHA-256-PLUS");
+    }
+
+    fn client_start(supported: &'static [Mechanism], offered: &[&Mechname], expected: &str) {
+        let cb = EmptyCallback;
+        let config = SASLConfig::new(
+            cb,
+            default_filter,
+            default_sorter,
+            Registry::with_mechanisms(supported)
+        ).expect("failed to construct sasl config");
+        let config = Arc::new(config);
+
+        let client = SASLClient::new(config.clone());
+        let session = client.start_suggested(offered)
+            .expect("failed to start session");
+        assert_eq!(
+            session.get_mechname().as_str(), expected,
+            "expected {} to get selected, instead {} was", expected, session.get_mechname()
+        );
+    }
+}
