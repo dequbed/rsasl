@@ -60,7 +60,7 @@ impl Validation for TestValidation {
 pub fn main() {
     let config = ServerConfig::builder()
         .with_defaults()
-        .with_callback(Box::new(OurCallback))
+        .with_callback(OurCallback)
         .unwrap();
     let sasl = SASLServer::<TestValidation>::new(Arc::new(config));
 

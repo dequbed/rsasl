@@ -27,6 +27,7 @@
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 use std::fmt::{Debug, Display, Formatter};
+use libc::off64_t;
 
 use crate::config::SASLConfig;
 use crate::error::SASLError;
@@ -38,6 +39,39 @@ pub type MatchFn = fn(name: &Mechname) -> bool;
 
 pub type StartFn =
     fn(sasl: &SASLConfig, offered: &[&Mechname]) -> Result<Box<dyn Authentication>, SASLError>;
+
+trait MechanismT {
+    fn client(&self, _sasl: &SASLConfig, _offered: &[&Mechname])
+        -> Result<Box<dyn Authentication>, SASLError>
+    {
+        Err(SASLError::NoSharedMechanism)
+    }
+
+    fn server(&self, _sasl: &SASLConfig, _offered: &[&Mechname])
+        -> Result<Box<dyn Authentication>, SASLError>
+    {
+        Err(SASLError::NoSharedMechanism)
+    }
+}
+#[derive(Copy, Clone)]
+pub struct Mechanism2 {
+    mechanism: &'static dyn MechanismT,
+    pub name: &'static Mechname,
+    pub first: Side,
+}
+impl Mechanism2 {
+    pub fn client(&self, sasl: &SASLConfig, offered: &[&Mechname])
+        -> Result<Box<dyn Authentication>, SASLError>
+    {
+        self.mechanism.client(sasl, offered)
+    }
+
+    pub fn server(&self, sasl: &SASLConfig, offered: &[&Mechname])
+        -> Result<Box<dyn Authentication>, SASLError>
+    {
+        self.mechanism.server(sasl, offered)
+    }
+}
 
 #[derive(Copy, Clone)]
 /// Mechanism Implementation
@@ -157,6 +191,7 @@ impl Registry {
 
 impl Registry {
     #[inline(always)]
+    // FIXME: Iter dynamic registry mechs!
     pub fn get_mechanisms(&self) -> impl Iterator<Item = &Mechanism> {
         self.static_mechanisms.iter()
     }

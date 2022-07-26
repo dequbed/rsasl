@@ -9,6 +9,8 @@ use crate::session::SessionData;
 use std::cmp::Ordering;
 use std::fmt;
 use std::marker::PhantomData;
+use std::pin::Pin;
+use std::sync::Arc;
 
 #[cfg(feature = "config_builder")]
 pub use crate::builder::ConfigBuilder;
@@ -95,7 +97,7 @@ impl ClientConfig {
                 }
             })
             .with_default_sorting()
-            .with_callback(Box::new(callback))
+            .with_callback(callback)
     }
 }
 
@@ -127,7 +129,7 @@ impl ServerConfig {
 pub struct SASLConfig {
     pub(crate) callback: Box<dyn SessionCallback>,
 
-    pub(crate) filter: Option<FilterFn>,
+    pub(crate) filter: FilterFn,
     pub(crate) sorter: SorterFn,
 
     mechanisms: Registry,
@@ -143,19 +145,20 @@ impl fmt::Debug for SASLConfig {
 impl SASLConfig {
     pub fn mech_list(&self) -> impl Iterator<Item = &Mechanism> {
         self.mechanisms.get_mechanisms()
+            .filter(|m| (self.filter)(m))
     }
 }
 
 #[cfg(feature = "config_builder")]
 impl SASLConfig {
-    pub(crate) fn new(
-        callback: Box<dyn SessionCallback>,
-        filter: Option<FilterFn>,
+    pub(crate) fn new<CB: SessionCallback + 'static>(
+        callback: CB,
+        filter: FilterFn,
         sorter: SorterFn,
         mechanisms: Registry,
     ) -> Result<Self, SASLError> {
         Ok(Self {
-            callback,
+            callback: Box::new(callback),
             filter,
             sorter,
             mechanisms,
@@ -164,15 +167,11 @@ impl SASLConfig {
 }
 
 impl SASLConfig {
-    #[cfg(any(feature = "registry_dynamic", feature = "registry_static"))]
+    #[cfg(any(feature = "registry_dynamic"))]
     /// Register the builtin mechanisms
     ///
-    /// When `registry_static` is used this is a no-op and does not need to be called.
-    /// When `registry_dynamic` is used this will register all built-in mechanisms via the dynamic
-    /// registry.
-    ///
-    /// This method mainly exists as a workaround to
-    /// [rustc#47384](https://github.com/rust-lang/rust/issues/47384), which was fixed in rustc 1.62
+    /// When `registry_static` is enabled this method is a no-op and does not need to be called.
+    /// Otherwise this will register all built-in mechanisms via the dynamic registry.
     pub fn register_builtin(&mut self) {
         crate::init::register_builtin(self)
     }
