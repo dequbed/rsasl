@@ -1,3 +1,4 @@
+use std::error::Error;
 use crate::gsasl::error::{gsasl_strerror, gsasl_strerror_name};
 
 use crate::mechname::Mechname;
@@ -99,6 +100,9 @@ pub enum SessionError {
         #[source]
         ValidationError,
     ),
+
+    #[error(transparent)]
+    Boxed(#[from] Box<dyn Error + Send + Sync>),
 
     #[error("callback did not validate the authentication exchange")]
     NoValidate,

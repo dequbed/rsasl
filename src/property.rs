@@ -12,15 +12,24 @@
 //! `&[u8]` instead.
 
 pub trait SizedProperty: 'static {
+    /// The Value being transferred by this Property
     type Value: 'static;
+
+    /// A description of this property, shown in several Display implementations
+    const DESCRIPTION: &'static str = "";
 }
 
 pub trait Property: 'static {
+    /// The Value being transferred by this Property
     type Value: ?Sized + 'static;
+    
+    /// A description of this property, shown in several Display implementations
+    const DESCRIPTION: &'static str = "";
 }
 
 impl<P: SizedProperty> Property for P {
     type Value = P::Value;
+    const DESCRIPTION: &'static str = P::DESCRIPTION;
 }
 
 #[derive(Debug)]
