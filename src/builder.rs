@@ -4,6 +4,7 @@ use crate::error::SASLError;
 use crate::registry::{Mechanism, Registry};
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
+use std::sync::Arc;
 
 #[derive(Clone)]
 /// Type-checking Builder for a [`ClientConfig`](crate::config::ClientConfig) or
@@ -132,9 +133,8 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantCallback> {
     /// available values and their meaning.
     pub fn with_callback<CB: SessionCallback + 'static>(
         self,
-        callback: Box<CB>,
+        callback: CB,
     ) -> Result<SASLConfig, SASLError> {
-        let callback = callback as Box<dyn SessionCallback>;
         SASLConfig::new(
             callback,
             self.state.filter,
