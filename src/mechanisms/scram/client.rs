@@ -43,8 +43,8 @@ pub struct ScramClient<D: Digest + BlockSizeUser + Clone + Sync, const N: usize>
 }
 
 impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> ScramClient<D, N> {
-    pub fn new(server_supports_cb: bool) -> Self {
-        let plus = if server_supports_cb {
+    pub fn new(set_cb_client_no_support: bool) -> Self {
+        let plus = if set_cb_client_no_support {
             CbSupport::ClientNoSupport
         } else {
             CbSupport::ServerNoSupport
