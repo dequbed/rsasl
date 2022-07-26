@@ -17,7 +17,6 @@ use crate::validate::{Validate, ValidationError};
 
 // Re-Exports
 pub use crate::context::Context;
-use crate::context::TOKEN;
 pub use crate::session::SessionData;
 
 pub trait SessionCallback {
@@ -82,6 +81,7 @@ pub trait SessionCallback {
         context: &Context,
         request: &mut Request<'_>,
     ) -> Result<(), SessionError> {
+        // silence the 'arg X not used' errors without having to prefix the parameter names with _
         let _ = (session_data, context, request);
         Err(CallbackError::NoCallback.into())
     }
@@ -97,30 +97,77 @@ pub trait SessionCallback {
         context: &Context,
         validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
+        // silence the 'arg X not used' errors without having to prefix the parameter names with _
         let _ = (session_data, context, validate);
         Ok(())
     }
 }
 
+#[derive(Debug)]
+pub struct TOKEN(PhantomData<()>);
+
 #[derive(Debug, Error)]
-// todo: Have a "I would handle this but I have no value valid with the *given context*" (e.g.
-//       User with that authid isn't found in the db)
-// todo: impl From<Box<E>>
+#[non_exhaustive]
+/// Error types for callbacks
+///
+/// This error is designed to be useful to signal callback-specific states.
+///
+/// It does however additionally include hidden internal errors that are required for some
+/// functionality but can not be handled by user code. Due to those this enum is marked
+/// [`#[non_exhaustive]`](https://rust-lang.github.io/rfcs/2008-non-exhaustive.html) — in
+/// practice this means that any match on the variant of `CallbackError` must include a catch-all
+/// `_`.
+///
+/// So instead of
+/// ```no_compile
+/// # use rsasl::callback::CallbackError;
+/// let callback_error: CallbackError;
+/// # callback_error = CallbackError::NoCallback;
+/// match callback_error {
+///     CallbackError::NoValue => { /* handle NoValue case */ },
+///     CallbackError::NoCallback => { /* handle NoCallback case */ },
+/// }
+/// ```
+/// you must write:
+/// ```rust
+/// # use rsasl::callback::CallbackError;
+/// let callback_error: CallbackError;
+/// # callback_error = CallbackError::NoCallback;
+/// match callback_error {
+///     CallbackError::NoValue => { /* handle NoValue case */ },
+///     CallbackError::NoCallback => { /* handle NoCallback case */ },
+///     _ => {}, // skip if it's an internal error type that we can't work with.
+/// }
+/// ```
+///
+/// `From<CallbackError>` is implemented by [`SessionError`], so `callback` and other functions
+/// returning `SessionError` can use this type directly with `?`:
+///
+/// ```rust
+/// # use rsasl::callback::CallbackError;
+/// # use rsasl::prelude::SessionError;
+/// fn some_fn() -> Result<(), CallbackError> {
+///     Err(CallbackError::NoCallback)
+/// }
+///
+/// fn callback() -> Result<(), SessionError> {
+///     some_fn()?;
+///     Ok(())
+/// }
+/// ```
 pub enum CallbackError {
     #[error("callback could not provide a value for this query type")]
     NoValue,
     #[error("callback does not handle this query type")]
     NoCallback,
-    #[error(transparent)]
-    Boxed(Box<dyn Error + Send + Sync>),
 
     #[doc(hidden)]
     #[error("callback issued early return")]
     EarlyReturn(TOKEN),
 }
 impl CallbackError {
-    pub(crate) const fn early_return() -> Self {
-        Self::EarlyReturn(TOKEN::build())
+    const fn early_return() -> Self {
+        Self::EarlyReturn(TOKEN(PhantomData))
     }
     pub fn is_no_callback(&self) -> bool {
         match self {
