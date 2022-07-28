@@ -8,7 +8,7 @@ use crate::registry::{distributed_slice, MECHANISMS};
 
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static ANONYMOUS: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unvalidated(b"ANONYMOUS"),
+    mechanism: &Mechname::const_new(b"ANONYMOUS"),
     priority: 100,
     client: Some(|_sasl, _offered| Ok(Box::new(client::Anonymous))),
     server: Some(|_sasl, _offered| Ok(Box::new(server::Anonymous))),

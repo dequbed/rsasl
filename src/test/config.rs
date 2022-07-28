@@ -19,7 +19,7 @@ impl<F> SessionCallback for ClosureSessionCallback<F> where
     }
 }
 
-struct EmptyCallback;
+pub struct EmptyCallback;
 impl SessionCallback for EmptyCallback {}
 
 static MECHANISMS: [Mechanism; 2] = [RSASLTEST_CF, RSASLTEST_SF];
