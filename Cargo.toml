@@ -28,15 +28,17 @@ default = [
     "openid20", "saml20"
 ]
 
+gsasl = ["libc"]
+
 #! ## Compile-time mechanism selection
 ## Enable `SCRAM-SHA-1` and `SCRAM-SHA-1-PLUS`
 scram-sha-1 = ["saslprep", "hmac", "digest", "sha-1", "base64", "rand", "pbkdf2"]
 ## Enable `SCRAM-*` and `SCRAM-*-PLUS` mechanisms using `SHA-2`, i.e. `SHA-256` and `SHA-512`
 scram-sha-2 = ["saslprep", "hmac", "digest", "sha2", "base64", "rand", "pbkdf2"]
 ## Enable `DIGEST-MD5`
-digest-md5 = ["saslprep", "hmac", "digest", "md-5", "base64"]
+digest-md5 = ["gsasl", "saslprep", "hmac", "digest", "md-5", "base64"]
 ## Enable `CRAM-MD5`
-cram-md5 = ["saslprep", "hmac", "digest", "md-5"]
+cram-md5 = ["gsasl", "saslprep", "hmac", "digest", "md-5"]
 ## Enable `ANONYMOUS`
 anonymous = []
 ## Enable `EXTERNAL`
@@ -44,13 +46,13 @@ external = []
 ## Enable `PLAIN`
 plain = ["saslprep"]
 ## Enable `LOGIN`
-login = ["saslprep"]
+login = ["gsasl", "saslprep"]
 ## Enable `OPENID20`
-openid20 = []
+openid20 = ["gsasl"]
 ## Enable `SAML20`
-saml20 = []
+saml20 = ["gsasl"]
 ## Enable `SECURID`
-securid = []
+securid = ["gsasl"]
 
 #! ## Provider flags
 #! These flags are relevant for crates that want to use rsasl as authentication provider, i.e. crates implementing
@@ -84,8 +86,9 @@ saslprep = ["stringprep"]
 unstable_custom_mechanism = []
 
 [dependencies]
-libc = "0.2"
 thiserror = "1.0"
+
+libc = { version = "0.2", optional = true }
 
 base64 = { version = "0.13", optional = true }
 

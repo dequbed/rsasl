@@ -256,6 +256,7 @@ pub mod validate;
 
 mod sasl;
 
+#[cfg(feature = "gsasl")]
 mod gsasl;
 mod init;
 
