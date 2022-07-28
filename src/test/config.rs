@@ -24,16 +24,16 @@ impl SessionCallback for EmptyCallback {}
 
 static MECHANISMS: [Mechanism; 2] = [RSASLTEST_CF, RSASLTEST_SF];
 
-fn client_config() -> SASLConfig {
+pub fn client_config<CB: SessionCallback + 'static>(cb: CB) -> SASLConfig {
     SASLConfig::new(
-        EmptyCallback,
+        cb,
         default_filter,
         default_sorter,
         Registry::with_mechanisms(&MECHANISMS),
     ).expect("Failed to generate known-good sasl config")
 }
 
-fn server_config<F>(validation: F) -> SASLConfig
+pub fn server_config<F>(validation: F) -> SASLConfig
 where
     F: Fn(&SessionData, &Context, &mut Validate<'_>) -> Result<(), ValidationError> + 'static,
 {
