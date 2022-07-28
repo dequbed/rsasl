@@ -85,6 +85,7 @@ pub enum SessionError {
     #[error("callback did not validate the authentication exchange")]
     NoValidate,
 
+    #[cfg(feature = "gsasl")]
     #[error(transparent)]
     Gsasl(Gsasl),
 }
