@@ -71,20 +71,6 @@ impl Mechname {
 /// Some more exotic (read less safe/sane) associated functions are also available.
 impl Mechname {
     #[inline(always)]
-    /// `const` capable conversion from `&'a [u8]` to `&'a Mechname`.
-    ///
-    /// This function uses const parameters to check the length of the passed Mechanism and will
-    /// fail to compile (with a rather cryptic message) when passed a `const [u8]` that's shorter
-    /// than 1 char or longer than 20.
-    pub(crate) const fn const_new_unvalidated<const LEN: usize>(s: &[u8; LEN]) -> &Mechname
-    where
-        CheckLen<LEN>: IsOk,
-    {
-        let r: &[u8] = s;
-        unsafe { Self::const_new_unchecked(r) }
-    }
-
-    #[inline(always)]
     /// `const` capable conversion from `&'a [u8]` to `&'a Mechname` with no validity checking.
     ///
     /// While this is safe from a memory protection standpoint since `&Mechname` and `&[u8]` have
@@ -92,14 +78,14 @@ impl Mechname {
     /// containing a subset of ASCII, which may result in undefined behaviour.
     ///
     /// Uses transmute due to [rustc issue #51911](https://github.com/rust-lang/rust/issues/51911)
-    pub const unsafe fn const_new_unchecked(s: &[u8]) -> &Mechname {
-        std::mem::transmute(s)
+    pub const fn const_new_unchecked(s: &[u8]) -> &Mechname {
+        unsafe { std::mem::transmute(s) }
     }
 
     #[inline(always)]
-    /// Convert a `&str` into an `&Mechname` without checking validity.
+    /// Convert a `&str` (or other AsRef<str>) into an `&Mechname` without checking validity.
     ///
-    /// Unlike [`Mechname::const_new_unchecked`] this is not marked `unsafe` because it is save
+    /// Like [`Mechname::const_new_unchecked`] this is not marked `unsafe` because it is save
     /// from a Memory protection POV, and does not validate the implicit UTF-8 assertion of
     /// Rust, it just potentially may result in (memory-safe!) bugs if the given slice contains
     /// invalid bytes.
@@ -176,34 +162,7 @@ pub enum MechanismNameError {
     },
 }
 
-use compiletime_checking::*;
-#[doc(hidden)]
-pub mod compiletime_checking {
-    pub trait IsOk {}
-    pub struct CheckLen<const N: usize>;
-    impl IsOk for CheckLen<1> {}
-    impl IsOk for CheckLen<2> {}
-    impl IsOk for CheckLen<3> {}
-    impl IsOk for CheckLen<4> {}
-    impl IsOk for CheckLen<5> {}
-    impl IsOk for CheckLen<6> {}
-    impl IsOk for CheckLen<7> {}
-    impl IsOk for CheckLen<8> {}
-    impl IsOk for CheckLen<9> {}
-    impl IsOk for CheckLen<10> {}
-    impl IsOk for CheckLen<11> {}
-    impl IsOk for CheckLen<12> {}
-    impl IsOk for CheckLen<13> {}
-    impl IsOk for CheckLen<14> {}
-    impl IsOk for CheckLen<15> {}
-    impl IsOk for CheckLen<16> {}
-    impl IsOk for CheckLen<17> {}
-    impl IsOk for CheckLen<18> {}
-    impl IsOk for CheckLen<19> {}
-    impl IsOk for CheckLen<20> {}
-}
-
-#[cfg(ntest)]
+#[cfg(test)]
 mod tests {
     use super::*;
 
