@@ -450,11 +450,3 @@ impl<'a> Request<'a> {
         }
     }
 }
-
-#[cfg(test)]
-pub(crate) mod tests {
-    use super::*;
-    #[derive(Copy, Clone)]
-    pub(crate) struct EmptyCallback;
-    impl SessionCallback for EmptyCallback {}
-}

@@ -76,6 +76,9 @@ registry_static = ["linkme"]
 ## Enables the dynamic registry
 registry_dynamic = []
 
+## Enable utilities for testing authentication and SASL handling
+testutils = []
+
 saslprep = ["stringprep"]
 
 unstable_custom_mechanism = []
