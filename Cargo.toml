@@ -46,7 +46,7 @@ external = []
 ## Enable `PLAIN`
 plain = ["saslprep"]
 ## Enable `LOGIN`
-login = ["gsasl", "saslprep"]
+login = []
 ## Enable `OPENID20`
 openid20 = ["gsasl"]
 ## Enable `SAML20`
