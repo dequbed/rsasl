@@ -27,7 +27,6 @@
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 use std::fmt::{Debug, Display, Formatter};
-use libc::off64_t;
 
 use crate::config::SASLConfig;
 use crate::error::SASLError;

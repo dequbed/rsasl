@@ -256,6 +256,7 @@ pub mod validate;
 
 mod sasl;
 
+#[cfg(feature = "gsasl")]
 mod gsasl;
 mod init;
 
@@ -286,6 +287,9 @@ pub mod prelude {
     pub use crate::session::{ClientSession, ServerSession, Session, State, StepResult};
     pub use crate::validate::Validation;
 }
+
+#[cfg(any(test, feature = "testutils"))]
+pub mod test;
 
 struct Shared;
 

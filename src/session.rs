@@ -9,7 +9,6 @@ use crate::callback::{
 use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
 use crate::context::{build_context, Provider, ProviderExt, ThisProvider};
 use crate::error::SessionError;
-use crate::gsasl::consts::Gsasl_property;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 use crate::property::{ChannelBindingName, ChannelBindings, Property};
@@ -304,16 +303,22 @@ impl MechanismData<'_> {
             self.need_with::<ChannelBindings, F, G>(&prov, f)
         }
     }
-
-    // Legacy bs:
-    pub unsafe fn set_property_raw(&mut self, _prop: Gsasl_property, _: Arc<String>) {
-        unimplemented!()
-    }
-    pub unsafe fn get_property<T>(&self) -> Option<&std::ffi::CStr> {
-        unimplemented!()
-    }
-    pub unsafe fn get_property_or_callback<T>(&self) -> Result<Option<&str>, ()> {
-        unimplemented!()
+}
+#[cfg(feature = "gsasl")]
+mod gsasl {
+    use super::*;
+    use crate::gsasl::consts::Gsasl_property;
+    impl MechanismData<'_> {
+        // Legacy bs:
+        pub unsafe fn set_property_raw(&mut self, _prop: Gsasl_property, _: Arc<String>) {
+            unimplemented!()
+        }
+        pub unsafe fn get_property<T>(&self) -> Option<&std::ffi::CStr> {
+            unimplemented!()
+        }
+        pub unsafe fn get_property_or_callback<T>(&self) -> Result<Option<&str>, ()> {
+            unimplemented!()
+        }
     }
 }
 

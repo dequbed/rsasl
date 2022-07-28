@@ -28,6 +28,7 @@ pub struct SASL<V: Validation = NoValidation, CB = NoChannelBindings> {
     pub(crate) validation: Option<V::Value>,
 }
 
+
 #[cfg(feature = "provider")]
 mod provider {
     use super::*;

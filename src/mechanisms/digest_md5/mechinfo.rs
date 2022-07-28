@@ -15,7 +15,7 @@ use crate::session::Side;
 use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static DIGEST_MD5: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unvalidated(b"DIGEST-MD5"),
+    mechanism: &Mechname::const_new(b"DIGEST-MD5"),
     priority: 0,
     client: Some(|_sasl, _offered| {
         CMechanismStateKeeper::build(MechanismVTable {

@@ -103,6 +103,7 @@ pub trait SessionCallback {
     }
 }
 
+#[doc(hidden)]
 #[derive(Debug)]
 pub struct TOKEN(PhantomData<()>);
 
@@ -449,12 +450,4 @@ impl<'a> Request<'a> {
             Ok(self)
         }
     }
-}
-
-#[cfg(test)]
-pub(crate) mod tests {
-    use super::*;
-    #[derive(Copy, Clone)]
-    pub(crate) struct EmptyCallback;
-    impl SessionCallback for EmptyCallback {}
 }
