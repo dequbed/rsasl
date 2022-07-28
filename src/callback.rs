@@ -103,6 +103,7 @@ pub trait SessionCallback {
     }
 }
 
+#[doc(hidden)]
 #[derive(Debug)]
 pub struct TOKEN(PhantomData<()>);
 
