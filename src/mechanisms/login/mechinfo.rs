@@ -1,12 +1,8 @@
-use crate::gsasl::gsasl::{CMechanismStateKeeper, MechanismVTable};
-use crate::mechanisms::login::server::{
-    _gsasl_login_server_finish, _gsasl_login_server_start, _gsasl_login_server_step,
-};
 use crate::mechname::Mechname;
 use crate::registry::Mechanism;
 use crate::session::Side;
 
-use super::client;
+use super::{client, server};
 
 #[cfg(feature = "registry_static")]
 use crate::registry::{distributed_slice, MECHANISMS};
@@ -15,16 +11,6 @@ pub static LOGIN: Mechanism = Mechanism {
     mechanism: &Mechname::const_new(b"LOGIN"),
     priority: 200,
     client: Some(|_sasl, _offered| Ok(Box::new(client::Login::new()))),
-    server: Some(|_sasl, _offered| {
-        CMechanismStateKeeper::build(MechanismVTable {
-            init: None,
-            done: None,
-            start: Some(_gsasl_login_server_start),
-            step: Some(_gsasl_login_server_step),
-            finish: Some(_gsasl_login_server_finish),
-            encode: None,
-            decode: None,
-        })
-    }),
+    server: Some(|_sasl, _offered| Ok(Box::new(server::Login::new()))),
     first: Side::Server,
 };
