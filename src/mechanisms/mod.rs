@@ -25,49 +25,54 @@
 //! to not compile in mechanisms that aren't needed.
 
 #[cfg(doc)]
+// import all props here so we can use them in the doc-comments below
 use crate::property::*;
 
 #[cfg(feature = "anonymous")]
 pub mod anonymous {
     //! `ANONYMOUS` *mechanism. Requires feature `anonymous`*
-    pub mod client;
-    pub mod mechinfo;
-    pub mod server;
+    mod client;
+    mod mechinfo;
+    mod server;
+    pub use mechinfo::*;
 }
 
 #[cfg(feature = "cram-md5")]
 pub mod cram_md5 {
     //! `CRAM_MD5` *mechanism. Requires feature `cram-md5`*
-    pub mod challenge;
-    pub mod client;
-    pub mod digest;
-    pub mod mechinfo;
-    pub mod server;
+    mod challenge;
+    mod client;
+    mod digest;
+    mod mechinfo;
+    mod server;
+    pub use mechinfo::*;
 }
 
 #[cfg(feature = "digest-md5")]
 pub mod digest_md5 {
     //! `DIGEST_MD5` *mechanism. Requires feature `digest-md5`*
-    pub mod client;
-    pub mod digesthmac;
-    pub mod free;
-    pub mod getsubopt;
-    pub mod mechinfo;
-    pub mod nonascii;
-    pub mod parser;
-    pub mod printer;
-    pub mod qop;
-    pub mod server;
-    pub mod session;
-    pub mod validate;
+    mod client;
+    mod digesthmac;
+    mod free;
+    mod getsubopt;
+    mod mechinfo;
+    mod nonascii;
+    mod parser;
+    mod printer;
+    mod qop;
+    mod server;
+    mod session;
+    mod validate;
+    pub use mechinfo::*;
 }
 
 #[cfg(feature = "external")]
 pub mod external {
     //! `EXTERNAL` *mechanism. Requires feature `external`*
-    pub mod client;
-    pub mod mechinfo;
-    pub mod server;
+    mod client;
+    mod mechinfo;
+    mod server;
+    pub use mechinfo::*;
 }
 
 #[cfg(feature = "login")]
@@ -77,17 +82,19 @@ pub mod login {
     //! The `LOGIN` mechanism sends authentication data in the plain without any form of hashing
     //! or encryption being applied. It should thus only be used over an encrypted channel such
     //! as TLS.
-    pub mod client;
-    pub mod mechinfo;
-    pub mod server;
+    mod client;
+    mod mechinfo;
+    mod server;
+    pub use mechinfo::*;
 }
 
 #[cfg(feature = "openid20")]
 pub mod openid20 {
     //! `OPENID20` *mechanism. Requires feature `openid20`*
-    pub mod client;
-    pub mod mechinfo;
-    pub mod server;
+    mod client;
+    mod mechinfo;
+    mod server;
+    pub use mechinfo::*;
 }
 
 #[cfg(feature = "plain")]
@@ -117,17 +124,19 @@ pub mod plain {
     //!
     //! `Authzid`, `AuthId` and `Password` are valid UTF-8, contain no NULL bytes and have
     //! `saslprep` applied.
-    pub mod client;
-    pub mod mechinfo;
-    pub mod server;
+    mod client;
+    mod mechinfo;
+    mod server;
+    pub use mechinfo::*;
 }
 
 #[cfg(feature = "saml20")]
 pub mod saml20 {
     //! `SAML20` *mechanism. Requires feature `saml20`*
-    pub mod client;
-    pub mod mechinfo;
-    pub mod server;
+    mod client;
+    mod mechinfo;
+    mod server;
+    pub use mechinfo::*;
 }
 
 #[cfg(any(feature = "scram-sha-1", feature = "scram-sha-2"))]
@@ -154,18 +163,20 @@ pub mod scram {
     //! supplied available from the provider as [`ChannelBindingName`].
     //!
     //!
-    pub mod client;
-    pub mod mechinfo;
-    pub mod parser;
+    mod client;
+    mod mechinfo;
+    mod parser;
     pub mod properties;
-    pub mod server;
-    pub mod tools;
+    mod server;
+    mod tools;
+    pub use mechinfo::*;
 }
 
 #[cfg(feature = "securid")]
 pub mod securid {
     //! `SECURID` *mechanism. Requires feature `securid`*
-    pub mod client;
-    pub mod mechinfo;
-    pub mod server;
+    mod client;
+    mod mechinfo;
+    mod server;
+    pub use mechinfo::*;
 }
