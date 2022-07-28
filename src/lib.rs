@@ -88,10 +88,10 @@
 //! # Protocol Implementations
 //!
 //! The starting point of rsasl for protocol implementations is the
-//! sided [`SASLConfig`](prelude::SASLConfig) struct, usually as
-//! [`ClientConfig`](prelude::ClientConfig) or [`ServerConfig`](prelude::ServerConfig).
-//! These structs are created by the downstream user of the protocol crate and contain all
-//! required configuration and data in an opaque and easily storable way.
+//! [`SASLConfig`](prelude::SASLConfig) struct.
+//! This struct is created by the downstream user of the protocol crate and contains all
+//! required configuration and data to select mechanism and authenticate using them in an opaque
+//! and storable way.
 //! The `SASLConfig` type is designed to be long-lived and to be valid for multiple contexts and
 //! authentication exchanges.
 //!
@@ -99,14 +99,18 @@
 //! [`SASLServer`](prelude::SASLServer) is constructed from this config, allowing a
 //! protocol crate to provide additional, context-specific, data.
 //!
-//! The produced `SASLClient` / `SASLServer` are thus themselves context-specific and usually not
-//! readily reusable, for example channel bindings are specific to a single TLS session requiring a
-//! new `SASLClient` or `SASLServer` to be constructed for every connection.
+//! The produced `SASLClient` / `SASLServer` are then of course also context-specific and usually
+//! not readily reusable, for example channel bindings are specific to a single TLS session.
+//! Thus a new `SASLClient` or `SASLServer` must be constructed for every connection.
 //!
-//! To finally start an authentication exchange a [`Session`](session::Session) is
-//! constructed by selecting the best shared authentication Mechanism, and the methods
-//! [`Session::step`](session::Session::step) or [`Session::step64`](session::Session::step64) are
-//! called until [`State::Finished`](session::State::Finished) is returned:
+//! To finally start the authentication exchange itself a [`Session`](session::Session) is
+//! constructed by having the `SASLClient` or `SASLServer` select the best mechanism using the
+//! [`SASLClient::start_suggested`](prelude::SASLClient::start_suggested) or
+//! [`SASLServer::start_suggested`](prelude::SASLServer::start_suggested) methods respectively.
+//!
+//! On the resulting session the methods [`Session::step`](session::Session::step) or
+//! [`Session::step64`](session::Session::step64) are called until
+//! [`State::Finished`](session::State::Finished) is returned:
 //!
 //! ```rust
 //! # use std::io;

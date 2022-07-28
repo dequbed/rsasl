@@ -9,6 +9,9 @@ use thiserror::Error;
 #[cfg(feature = "registry_static")]
 use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+/// Mechanism description for PLAIN
+///
+/// See the [`plain`](super) module documentation for details and usage.
 pub static PLAIN: Mechanism = Mechanism {
     mechanism: &Mechname::const_new(b"PLAIN"),
     priority: 300,
