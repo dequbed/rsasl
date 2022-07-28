@@ -79,7 +79,7 @@ registry_static = ["linkme"]
 registry_dynamic = []
 
 ## Enable utilities for testing authentication and SASL handling
-testutils = []
+testutils = ["config_builder"]
 
 saslprep = ["stringprep"]
 
