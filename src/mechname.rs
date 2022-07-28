@@ -183,14 +183,14 @@ mod tests {
             "EXACTLY_20_CHAR_LONG",
             "X-THIS-MECHNAME-IS-TOO-LONG",
             "EXACTLY_21_CHARS_LONG",
-            "SCRAM-SHA256-PLUS GSSAPI X-OAUTH2",
         ];
         let invalidchars = [
-            ("PLAIN GSSAPI LOGIN", 6, b' '),
-            ("X-CONTAINS-NULL\0", 16, b'\0'),
-            ("PLAIN\0", 6, b'\0'),
-            ("X-lowercase", 3, b'l'),
-            ("X-LÄTIN1", 4, b'\xC3'),
+            ("PLAIN GSSAPI LOGIN", 5, b' '),
+            ("SCRAM-SHA256-PLUS GSSAPI X-OAUTH2", 17, b' '),
+            ("X-CONTAINS-NULL\0", 15, b'\0'),
+            ("PLAIN\0", 5, b'\0'),
+            ("X-lowercase", 2, b'l'),
+            ("X-LÄTIN1", 3, b'\xC3'),
         ];
 
         for m in valids {
