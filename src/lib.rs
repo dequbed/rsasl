@@ -287,7 +287,7 @@ pub mod prelude {
     pub use crate::validate::Validation;
 }
 
-#[cfg(feature = "testutils")]
+#[cfg(any(test, feature = "testutils"))]
 pub mod test;
 
 struct Shared;

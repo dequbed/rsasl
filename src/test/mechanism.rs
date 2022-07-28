@@ -102,14 +102,14 @@ impl Authentication for RSaslTest {
 }
 
 pub static RSASLTEST_CF: Mechanism = Mechanism {
-    mechanism: Mechname::const_new_unvalidated(b"X-RSASLTEST-CF"),
+    mechanism: Mechname::const_new(b"X-RSASLTEST-CF"),
     priority: 0,
     client: Some(RSaslTest::new),
     server: Some(RSaslTest::new),
     first: Side::Client
 };
 pub static RSASLTEST_SF: Mechanism = Mechanism {
-    mechanism: Mechname::const_new_unvalidated(b"X-RSASLTEST-SF"),
+    mechanism: Mechname::const_new(b"X-RSASLTEST-SF"),
     priority: 0,
     client: Some(RSaslTest::new),
     server: Some(RSaslTest::new),

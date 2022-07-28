@@ -5,3 +5,4 @@
 
 mod mechanism;
 mod config;
+pub use config::EmptyCallback;

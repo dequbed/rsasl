@@ -14,7 +14,7 @@ use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static SAML20: Mechanism = Mechanism {
     priority: 1000,
-    mechanism: &Mechname::const_new_unvalidated(b"SAML20"),
+    mechanism: &Mechname::const_new(b"SAML20"),
     client: Some(|_sasl, _offered| {
         CMechanismStateKeeper::build(MechanismVTable {
             init: None,
