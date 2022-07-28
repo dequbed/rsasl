@@ -10,7 +10,7 @@ use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 #[cfg(feature = "scram-sha-1")]
 pub static SCRAM_SHA1: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unvalidated(b"SCRAM-SHA-1"),
+    mechanism: &Mechname::const_new(b"SCRAM-SHA-1"),
     priority: 400,
     client: Some(|sasl, offered| {
         let mut set_cb_client_no_support = true;
@@ -40,7 +40,7 @@ pub static SCRAM_SHA1: Mechanism = Mechanism {
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 #[cfg(feature = "scram-sha-1")]
 pub static SCRAM_SHA1_PLUS: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unvalidated(b"SCRAM-SHA-1-PLUS"),
+    mechanism: &Mechname::const_new(b"SCRAM-SHA-1-PLUS"),
     priority: 500,
     client: Some(|_sasl, _offered| Ok(Box::new(client::ScramSha1Client::<NONCE_LEN>::new_plus()))),
     server: Some(|_sasl, _offered| Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new_plus()))),
@@ -50,7 +50,7 @@ pub static SCRAM_SHA1_PLUS: Mechanism = Mechanism {
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 #[cfg(feature = "scram-sha-2")]
 pub static SCRAM_SHA256: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unvalidated(b"SCRAM-SHA-256"),
+    mechanism: &Mechname::const_new(b"SCRAM-SHA-256"),
     priority: 600,
     client: Some(|sasl, offered| {
         let mut set_cb_client_no_support = true;
@@ -80,7 +80,7 @@ pub static SCRAM_SHA256: Mechanism = Mechanism {
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 #[cfg(feature = "scram-sha-2")]
 pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unvalidated(b"SCRAM-SHA-256-PLUS"),
+    mechanism: &Mechname::const_new(b"SCRAM-SHA-256-PLUS"),
     priority: 700,
     client: Some(|_sasl, _offered| {
         Ok(Box::new(client::ScramSha256Client::<NONCE_LEN>::new_plus()))
@@ -95,7 +95,7 @@ pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
 mod tests {
     use std::sync::Arc;
     use crate::builder::{default_sorter, default_filter};
-    use crate::callback::tests::EmptyCallback;
+    use crate::test::EmptyCallback;
     use crate::config::SASLConfig;
     use super::*;
     use crate::registry::Registry;
@@ -108,14 +108,14 @@ mod tests {
         static SUPPORTED: &'static [Mechanism] = &[SCRAM_SHA1, SCRAM_SHA1_PLUS];
 
         client_start(SUPPORTED, &[
-            Mechname::new_unchecked("SCRAM-SHA-1-PLUS"),
-            Mechname::new_unchecked("SCRAM-SHA-1"),
+            Mechname::new_unchecked(b"SCRAM-SHA-1-PLUS"),
+            Mechname::new_unchecked(b"SCRAM-SHA-1"),
         ], "SCRAM-SHA-1-PLUS");
 
         // Test inverted too
         client_start(SUPPORTED, &[
-            Mechname::new_unchecked("SCRAM-SHA-1"),
-            Mechname::new_unchecked("SCRAM-SHA-1-PLUS"),
+            Mechname::new_unchecked(b"SCRAM-SHA-1"),
+            Mechname::new_unchecked(b"SCRAM-SHA-1-PLUS"),
         ], "SCRAM-SHA-1-PLUS");
     }
 
@@ -126,14 +126,14 @@ mod tests {
         static SUPPORTED: &'static [Mechanism] = &[SCRAM_SHA256, SCRAM_SHA256_PLUS];
 
         client_start(SUPPORTED, &[
-            Mechname::new_unchecked("SCRAM-SHA-256-PLUS"),
-            Mechname::new_unchecked("SCRAM-SHA-256"),
+            Mechname::new_unchecked(b"SCRAM-SHA-256-PLUS"),
+            Mechname::new_unchecked(b"SCRAM-SHA-256"),
         ], "SCRAM-SHA-256-PLUS");
 
         // Test inverted too
         client_start(SUPPORTED, &[
-            Mechname::new_unchecked("SCRAM-SHA-256"),
-            Mechname::new_unchecked("SCRAM-SHA-256-PLUS"),
+            Mechname::new_unchecked(b"SCRAM-SHA-256"),
+            Mechname::new_unchecked(b"SCRAM-SHA-256-PLUS"),
         ], "SCRAM-SHA-256-PLUS");
     }
 

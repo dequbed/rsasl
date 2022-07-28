@@ -11,7 +11,7 @@ use crate::session::Side;
 use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static SECURID: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unvalidated(b"SECURID"),
+    mechanism: &Mechname::const_new(b"SECURID"),
     priority: 300,
     client: Some(|_sasl, _offered| {
         CMechanismStateKeeper::build(MechanismVTable {

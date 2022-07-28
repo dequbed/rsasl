@@ -149,7 +149,7 @@ impl SASLConfig {
     }
 }
 
-#[cfg(feature = "config_builder")]
+#[cfg(any(feature = "config_builder", feature = "testutils"))]
 impl SASLConfig {
     pub(crate) fn new<CB: SessionCallback + 'static>(
         callback: CB,
