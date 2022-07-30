@@ -2,7 +2,6 @@ use rsasl::prelude::*;
 
 use std::io;
 use std::io::Cursor;
-use std::sync::Arc;
 
 pub fn main() {
     // Read the "authcid" from stdin

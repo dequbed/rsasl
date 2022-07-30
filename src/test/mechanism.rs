@@ -89,6 +89,7 @@ impl RSaslTest {
     }
 }
 
+#[allow(unused)]
 enum RsaslState {
     New,
     First,
@@ -104,6 +105,7 @@ impl Authentication for RSaslTest {
         input: Option<&[u8]>,
         writer: &mut dyn Write,
     ) -> Result<(State, Option<usize>), SessionError> {
+        let _ = (session, input, writer);
         todo!()
     }
 }

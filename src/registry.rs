@@ -24,9 +24,10 @@
 //! for your Mechanism MUST be marked `pub` and be reachable by dependent crates, otherwise they
 //! may be silently dropped by the compiler.
 
+use crate::alloc::boxed::Box;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
-use std::fmt::{Debug, Display, Formatter};
+use core::fmt;
 
 use crate::config::SASLConfig;
 use crate::error::SASLError;
@@ -142,8 +143,8 @@ impl Mechanism {
     }
 }
 
-impl Debug for Mechanism {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for Mechanism {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Mechanism")
             .field("name", &self.mechanism)
             .field("has client", &self.client.is_some())
@@ -152,8 +153,8 @@ impl Debug for Mechanism {
     }
 }
 
-impl Display for Mechanism {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for Mechanism {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.mechanism.as_str())
     }
 }
@@ -175,6 +176,16 @@ impl Registry {
         Self {
             static_mechanisms: mechanisms,
         }
+    }
+
+    pub(crate) fn credentials() -> Self {
+        static MECHS: &[Mechanism] = &[
+            #[cfg(feature = "plain")] crate::mechanisms::plain::PLAIN,
+            #[cfg(feature = "login")] crate::mechanisms::login::LOGIN,
+            #[cfg(feature = "scram-sha-1")] crate::mechanisms::scram::SCRAM_SHA1,
+            #[cfg(feature = "scram-sha-2")] crate::mechanisms::scram::SCRAM_SHA256,
+        ];
+        Self::with_mechanisms(MECHS)
     }
 }
 
