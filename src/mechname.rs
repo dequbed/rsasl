@@ -1,9 +1,10 @@
 //! Utilities for handling and validating names of Mechanisms
 //!
-use std::convert::TryFrom;
+use core::convert::TryFrom;
+use crate::alloc::boxed::Box;
 
-use std::fmt::{Debug, Display, Formatter};
-use std::ops::Deref;
+use core::fmt;
+use core::ops::Deref;
 use thiserror::Error;
 
 use crate::mechname::MechanismNameError::InvalidChar;
@@ -58,7 +59,7 @@ impl Mechname {
     /// Copy a Mechname to the heap
     pub fn to_boxed(&self) -> Box<Mechname> {
         let boxed = self.inner.to_vec().into_boxed_slice();
-        unsafe { std::mem::transmute(boxed) }
+        unsafe { core::mem::transmute(boxed) }
     }
 
 
@@ -76,7 +77,7 @@ impl Mechname {
     #[must_use]
     #[inline]
     pub fn as_str(&self) -> &str {
-        unsafe { std::str::from_utf8_unchecked(&self.inner) }
+        unsafe { core::str::from_utf8_unchecked(&self.inner) }
     }
 
     #[must_use]
@@ -86,7 +87,7 @@ impl Mechname {
     }
 
     pub(crate) const fn const_new(s: &[u8]) -> &Mechname {
-        unsafe { std::mem::transmute(s) }
+        unsafe { core::mem::transmute(s) }
     }
 }
 
@@ -107,14 +108,14 @@ impl Mechname {
     }
 }
 
-impl Display for Mechname {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for Mechname {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
     }
 }
 
-impl Debug for Mechname {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for Mechname {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "MECHANISM({})", self.as_str())
     }
 }

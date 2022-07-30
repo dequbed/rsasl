@@ -1,20 +1,17 @@
-use std::fmt::{Debug, Formatter};
 use std::io::Write;
 
-use std::sync::Arc;
+use core::fmt;
 
 use crate::callback::{
     Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, SessionCallback,
 };
-use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
+use crate::channel_bindings::{ChannelBindingCallback};
 use crate::context::{build_context, Provider, ProviderExt, ThisProvider};
 use crate::error::SessionError;
-use crate::mechanism::Authentication;
-use crate::mechname::Mechname;
 use crate::property::{ChannelBindingName, ChannelBindings, Property};
 use crate::registry::Mechanism;
 use crate::typed::{tags, TaggedOption};
-use crate::validate::{NoValidation, Validate, Validation, ValidationError};
+use crate::validate::{Validate, ValidationError};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
@@ -24,7 +21,11 @@ pub enum Side {
 
 #[cfg(any(feature = "provider", feature = "testutils", test))]
 mod provider {
+    use crate::channel_bindings::NoChannelBindings;
+    use crate::mechanism::Authentication;
+    use crate::mechname::Mechname;
     use crate::sasl::SASL;
+    use crate::validate::{NoValidation, Validation};
     use super::*;
     /// This represents a single authentication exchange
     ///
@@ -338,6 +339,7 @@ impl MechanismData<'_> {
 
 #[cfg(feature = "gsasl")]
 mod gsasl {
+    use crate::alloc::sync::Arc;
     use super::*;
     use crate::gsasl::consts::Gsasl_property;
     impl MechanismData<'_> {
@@ -370,8 +372,8 @@ impl SessionData {
     }
 }
 
-impl Debug for MechanismData<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for MechanismData<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("SessionData").finish()
     }
 }

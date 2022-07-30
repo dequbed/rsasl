@@ -93,7 +93,6 @@ pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
     use crate::builder::{default_sorter, default_filter};
     use crate::test::EmptyCallback;
     use crate::config::SASLConfig;
@@ -141,7 +140,6 @@ mod tests {
         let cb = EmptyCallback;
         let config = SASLConfig::new(
             cb,
-            default_filter,
             default_sorter,
             Registry::with_mechanisms(supported)
         ).expect("failed to construct sasl config");

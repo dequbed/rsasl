@@ -6,7 +6,6 @@ use rsasl::prelude::{SASLConfig, SessionError};
 use rsasl::property::{AuthId, AuthzId, Password};
 use rsasl::validate::{Validate, Validation, ValidationError};
 use std::io::Cursor;
-use std::sync::Arc;
 use thiserror::Error;
 
 struct OurCallback;

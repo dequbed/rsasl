@@ -1,17 +1,14 @@
 //! Configuration supplied by the downstream user
 
-use crate::callback::{Context, Request, SessionCallback};
-use crate::error::{SASLError, SessionError};
-use crate::property::{AuthId, AuthzId, Password};
-use crate::registry::{Mechanism, MechanismIter, Registry};
-use crate::session;
+use crate::alloc::boxed::Box;
+use crate::callback::SessionCallback;
+use crate::error::SASLError;
+use crate::registry::{Mechanism, MechanismIter};
 use crate::session::SessionData;
 use crate::mechname::Mechname;
-use std::cmp::Ordering;
-use std::fmt;
-use std::marker::PhantomData;
-use std::pin::Pin;
-use std::sync::Arc;
+use core::cmp::Ordering;
+use core::fmt;
+use alloc::sync::Arc;
 
 use crate::mechanism::Authentication;
 
@@ -77,6 +74,11 @@ impl SASLConfig {
 mod instance {
     use super::*;
     pub use crate::builder::ConfigBuilder;
+    use crate::callback::Request;
+    use crate::context::Context;
+    use crate::error::SessionError;
+    use crate::property::{AuthId, AuthzId, Password};
+    use crate::registry::Registry;
 
     impl SASLConfig {
         fn cast(arc: Arc<dyn ConfigInstance>) -> Arc<Self> {
@@ -85,11 +87,10 @@ mod instance {
 
         pub(crate) fn new<CB: SessionCallback + 'static>(
             callback: CB,
-            filter: FilterFn,
             sorter: SorterFn,
             mechanisms: Registry,
         ) -> Result<Arc<Self>, SASLError> {
-            let inner = Inner::new(callback, filter, sorter, mechanisms)?;
+            let inner = Inner::new(callback, sorter, mechanisms)?;
             let outer = Arc::new(inner) as Arc<dyn ConfigInstance>;
             Ok(Self::cast(outer))
         }
@@ -135,15 +136,7 @@ mod instance {
             };
 
             Self::builder()
-                .with_default_mechanisms()
-                .with_filter(|mechanism| {
-                    let name = mechanism.mechanism;
-                    match name.as_str() {
-                        "PLAIN" | "LOGIN" => true,
-                        n if n.starts_with("SCRAM-") => true,
-                        _ => false,
-                    }
-                })
+                .with_credentials_mechanisms()
                 .with_default_sorting()
                 .with_callback(callback)
         }
@@ -152,10 +145,7 @@ mod instance {
 
     struct Inner {
         callback: Box<dyn SessionCallback>,
-
-        filter: FilterFn,
         sorter: SorterFn,
-
         mechanisms: Registry,
     }
 
@@ -167,24 +157,15 @@ mod instance {
         }
     }
 
-    impl Inner {
-        pub fn mech_list(&self) -> impl Iterator<Item=&Mechanism> {
-            self.mechanisms.get_mechanisms()
-                .filter(|m| (self.filter)(m))
-        }
-    }
-
     #[cfg(any(feature = "config_builder", feature = "testutils"))]
     impl Inner {
         pub(crate) fn new<CB: SessionCallback + 'static>(
             callback: CB,
-            filter: FilterFn,
             sorter: SorterFn,
             mechanisms: Registry,
         ) -> Result<Self, SASLError> {
             Ok(Self {
                 callback: Box::new(callback),
-                filter,
                 sorter,
                 mechanisms,
             })

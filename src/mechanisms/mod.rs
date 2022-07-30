@@ -50,6 +50,7 @@ pub mod cram_md5 {
 
 #[cfg(feature = "digest-md5")]
 pub mod digest_md5 {
+    #![allow(unused)]
     //! `DIGEST_MD5` *mechanism. Requires feature `digest-md5`*
     mod client;
     mod digesthmac;

@@ -5,7 +5,7 @@ use crate::error::SASLError;
 
 use crate::mechname::Mechname;
 
-use crate::registry::{Mechanism, StartFn};
+use crate::registry::Mechanism;
 use crate::session::{Session, Side};
 use crate::validate::{NoValidation, Validation};
 

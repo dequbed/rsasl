@@ -2,10 +2,9 @@
 //!
 use std::sync::Arc;
 use crate::builder::{default_filter, default_sorter};
-use crate::callback::{Request, SessionCallback};
+use crate::callback::SessionCallback;
 pub use crate::callback::{Context, SessionData};
 use crate::config::SASLConfig;
-use crate::error::SessionError;
 use crate::registry::{Mechanism, Registry};
 pub use crate::validate::{Validate, ValidationError};
 use super::mechanism::{RSASLTEST_CF, RSASLTEST_SF};
@@ -28,7 +27,6 @@ static MECHANISMS: [Mechanism; 2] = [RSASLTEST_CF, RSASLTEST_SF];
 pub fn client_config<CB: SessionCallback + 'static>(cb: CB) -> Arc<SASLConfig> {
     SASLConfig::new(
         cb,
-        default_filter,
         default_sorter,
         Registry::with_mechanisms(&MECHANISMS),
     ).expect("Failed to generate known-good sasl config")
@@ -40,7 +38,6 @@ where
 {
     SASLConfig::new(
         ClosureSessionCallback(validation),
-        default_filter,
         default_sorter,
         Registry::with_mechanisms(&MECHANISMS),
     ).expect("Failed to generate known-good sasl config")
