@@ -33,7 +33,7 @@ pub static SCRAM_SHA1: Mechanism = Mechanism {
             set_cb_client_no_support,
         )))
     }),
-    server: Some(|_sasl, _offered| Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new()))),
+    server: Some(|_sasl| Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new()))),
     first: Side::Client,
 };
 
@@ -43,7 +43,7 @@ pub static SCRAM_SHA1_PLUS: Mechanism = Mechanism {
     mechanism: &Mechname::const_new(b"SCRAM-SHA-1-PLUS"),
     priority: 500,
     client: Some(|_sasl, _offered| Ok(Box::new(client::ScramSha1Client::<NONCE_LEN>::new_plus()))),
-    server: Some(|_sasl, _offered| Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new_plus()))),
+    server: Some(|_sasl| Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new_plus()))),
     first: Side::Client,
 };
 
@@ -73,7 +73,7 @@ pub static SCRAM_SHA256: Mechanism = Mechanism {
             set_cb_client_no_support,
         )))
     }),
-    server: Some(|_sasl, _offered| Ok(Box::new(server::ScramSha256Server::<NONCE_LEN>::new()))),
+    server: Some(|_sasl| Ok(Box::new(server::ScramSha256Server::<NONCE_LEN>::new()))),
     first: Side::Client,
 };
 
@@ -85,7 +85,7 @@ pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
     client: Some(|_sasl, _offered| {
         Ok(Box::new(client::ScramSha256Client::<NONCE_LEN>::new_plus()))
     }),
-    server: Some(|_sasl, _offered| {
+    server: Some(|_sasl| {
         Ok(Box::new(server::ScramSha256Server::<NONCE_LEN>::new_plus()))
     }),
     first: Side::Client,

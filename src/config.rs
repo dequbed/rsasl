@@ -19,10 +19,9 @@ pub(crate) type FilterFn = fn(a: &Mechanism) -> bool;
 pub(crate) type SorterFn = fn(a: &Mechanism, b: &Mechanism) -> Ordering;
 
 trait ConfigInstance: fmt::Debug {
-    fn select_mechanism(&self, offered: &[&Mechname])
-        -> Result<(Box<dyn Authentication>, &Mechanism), SASLError>;
     fn get_mech_iter(&self) -> MechanismIter;
     fn get_callback(&self) -> &dyn SessionCallback;
+    fn sort(&self, left: &Mechanism, right: &Mechanism) -> Ordering;
 }
 
 #[repr(transparent)]
@@ -47,7 +46,16 @@ impl SASLConfig {
     pub(crate) fn select_mechanism(&self, offered: &[&Mechname])
         -> Result<(Box<dyn Authentication>, &Mechanism), SASLError>
     {
-        self.inner.select_mechanism(offered)
+        offered
+            .iter()
+            .filter_map(|offered_mechname| {
+                self.mech_list().find(|avail_mech| avail_mech.mechanism == *offered_mechname).and_then(|mech| {
+                    let auth = mech.client(self, offered)?.ok()?;
+                    Some((auth, mech))
+                })
+            })
+            .max_by(|(_, m), (_, n)| self.inner.sort(m, n))
+            .ok_or(SASLError::NoSharedMechanism)
     }
 
     #[inline(always)]
@@ -180,16 +188,16 @@ mod instance {
     }
 
     impl ConfigInstance for Inner {
-        fn select_mechanism(&self, offered: &[&Mechname]) -> Result<(Box<dyn Authentication>, &Mechanism), SASLError> {
-            todo!()
-        }
-
         fn get_mech_iter(&self) -> MechanismIter {
             self.mechanisms.get_mechanisms()
         }
 
         fn get_callback(&self) -> &dyn SessionCallback {
             self.callback.as_ref()
+        }
+
+        fn sort(&self, left: &Mechanism, right: &Mechanism) -> Ordering {
+            (self.sorter)(left, right)
         }
     }
 }

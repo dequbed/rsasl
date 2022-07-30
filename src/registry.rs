@@ -38,6 +38,8 @@ pub type MatchFn = fn(name: &Mechname) -> bool;
 
 pub type StartFn =
     fn(sasl: &SASLConfig, offered: &[&Mechname]) -> Result<Box<dyn Authentication>, SASLError>;
+pub type ServerStartFn =
+    fn(sasl: &SASLConfig) -> Result<Box<dyn Authentication>, SASLError>;
 
 trait MechanismT {
     fn client(&self, _sasl: &SASLConfig, _offered: &[&Mechname])
@@ -46,7 +48,7 @@ trait MechanismT {
         Err(SASLError::NoSharedMechanism)
     }
 
-    fn server(&self, _sasl: &SASLConfig, _offered: &[&Mechname])
+    fn server(&self, _sasl: &SASLConfig)
         -> Result<Box<dyn Authentication>, SASLError>
     {
         Err(SASLError::NoSharedMechanism)
@@ -65,10 +67,10 @@ impl Mechanism2 {
         self.mechanism.client(sasl, offered)
     }
 
-    pub fn server(&self, sasl: &SASLConfig, offered: &[&Mechname])
+    pub fn server(&self, sasl: &SASLConfig)
         -> Result<Box<dyn Authentication>, SASLError>
     {
-        self.mechanism.server(sasl, offered)
+        self.mechanism.server(sasl)
     }
 }
 
@@ -84,7 +86,7 @@ pub struct Mechanism {
     pub(crate) priority: usize,
 
     pub(crate) client: Option<StartFn>,
-    pub(crate) server: Option<StartFn>,
+    pub(crate) server: Option<ServerStartFn>,
 
     pub(crate) first: Side,
 }
@@ -135,9 +137,8 @@ impl Mechanism {
     pub fn server(
         &self,
         sasl: &SASLConfig,
-        offered: &[&Mechname],
     ) -> Option<Result<Box<dyn Authentication>, SASLError>> {
-        self.server.map(|f| f(sasl, offered))
+        self.server.map(|f| f(sasl))
     }
 }
 

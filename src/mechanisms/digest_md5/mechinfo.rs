@@ -28,7 +28,7 @@ pub static DIGEST_MD5: Mechanism = Mechanism {
             decode: Some(_gsasl_digest_md5_client_decode),
         })
     }),
-    server: Some(|_sasl, _offered| {
+    server: Some(|_sasl| {
         CMechanismStateKeeper::build(MechanismVTable {
             init: None,
             done: None,
