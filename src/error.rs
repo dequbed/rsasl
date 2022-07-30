@@ -1,14 +1,11 @@
 use std::error::Error;
+use crate::alloc::boxed::Box;
 
-use crate::mechname::Mechname;
 use thiserror::Error;
 
 use crate::callback::CallbackError;
-use crate::mechname::MechanismNameError;
 use crate::validate::ValidationError;
-use std::ffi::CStr;
-use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
+use core::fmt;
 
 static UNKNOWN_ERROR: &'static str = "The given error code is unknown to gsasl";
 
@@ -26,7 +23,7 @@ pub enum MechanismErrorKind {
 }
 
 /// Errors specific to a certain mechanism
-pub trait MechanismError: Debug + Display + Send + Sync + std::error::Error {
+pub trait MechanismError: fmt::Debug + fmt::Display + Send + Sync + std::error::Error {
     fn kind(&self) -> MechanismErrorKind;
 }
 

@@ -12,7 +12,7 @@ readme = "README.md"
 categories = ["authentication", "api-bindings", "network-programming"]
 keywords = ["sasl", "authentication", "sso", "framework", "middleware"]
 documentation = "https://docs.rs/rsasl"
-rust-version = "1.56.1"
+rust-version = "1.56.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
@@ -27,13 +27,18 @@ default = [
     "openid20", "saml20"
 ]
 
+## Enable use of libstd
+## If this flag is not set, rsasl is marked ![no_std]. However, currently this flag will *always* be enabled as core
+## parts of rsasl depend on the stdlib.
+std = []
+
 gsasl = ["libc"]
 
 #! ## Compile-time mechanism selection
 ## Enable `SCRAM-SHA-1` and `SCRAM-SHA-1-PLUS`
-scram-sha-1 = ["saslprep", "hmac", "digest", "sha-1", "base64", "rand", "pbkdf2"]
+scram-sha-1 = ["std", "saslprep", "hmac", "digest", "sha-1", "base64", "rand", "pbkdf2"]
 ## Enable `SCRAM-*` and `SCRAM-*-PLUS` mechanisms using `SHA-2`, i.e. `SHA-256` and `SHA-512`
-scram-sha-2 = ["saslprep", "hmac", "digest", "sha2", "base64", "rand", "pbkdf2"]
+scram-sha-2 = ["std", "saslprep", "hmac", "digest", "sha2", "base64", "rand", "pbkdf2"]
 ## Enable `DIGEST-MD5`
 digest-md5 = ["gsasl", "saslprep", "hmac", "digest", "md-5", "base64"]
 ## Enable `CRAM-MD5`
@@ -109,7 +114,28 @@ static_assertions = "1.1.0"
 
 [[example]]
 name = "scram_server"
-required-features = ["provider_base64"]
+required-features = ["provider", "scram-sha-1"]
+[[example]]
+name = "scram_client"
+required-features = ["provider", "scram-sha-1"]
+
+[[example]]
+name = "scram256_server"
+required-features = ["provider", "scram-sha-2"]
+[[example]]
+name = "scram256_client"
+required-features = ["provider", "scram-sha-2"]
+
+[[example]]
+name = "plain_client"
+required-features = ["provider", "plain"]
+[[example]]
+name = "plain_server_callback"
+required-features = ["provider", "plain"]
+
+[[example]]
+name = "protocol"
+required-features = ["provider", "login", "plain", "scram-sha-1", "scram-sha-2"]
 
 [workspace]
 members = ["examples/server"]

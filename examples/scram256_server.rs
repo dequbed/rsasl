@@ -7,7 +7,6 @@ use rsasl::property::AuthId;
 use rsasl::validate::NoValidation;
 use std::io;
 use std::io::Cursor;
-use std::sync::Arc;
 
 struct OurCallback;
 impl SessionCallback for OurCallback {

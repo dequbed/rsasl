@@ -54,11 +54,9 @@ impl Authentication for Login {
 #[cfg(test)]
 mod tests {
     use std::io::Cursor;
-    use std::sync::Arc;
     use crate::config::SASLConfig;
     use crate::mechanisms::login::mechinfo::LOGIN;
     use crate::test::test_client_session;
-    use super::*;
 
     #[test]
     fn simple_combination() {

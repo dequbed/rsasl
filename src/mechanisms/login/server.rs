@@ -1,14 +1,10 @@
-use std::error::Error;
-use std::fmt::{Display, Formatter};
 use thiserror::Error;
 use crate::mechanism::{Authentication, MechanismError};
 use crate::session::{MechanismData, State};
 use std::io::Write;
-use std::ptr::NonNull;
 use std::str::Utf8Error;
 use crate::context::{Demand, DemandReply, Provider};
 use crate::error::MechanismErrorKind;
-use crate::error::SessionError::MechanismDone;
 use crate::prelude::SessionError;
 use crate::property::{AuthId, Password};
 
@@ -89,6 +85,7 @@ impl Authentication for Login {
                         password: input,
                     };
                     session.validate(&prov)?;
+                    self.state = LoginState::Done;
                     Ok((State::Finished, None))
                 } else {
                     Err(SessionError::InputDataRequired)
