@@ -40,23 +40,23 @@ scram-sha-1 = ["std", "saslprep", "hmac", "digest", "sha-1", "base64", "rand", "
 ## Enable `SCRAM-*` and `SCRAM-*-PLUS` mechanisms using `SHA-2`, i.e. `SHA-256` and `SHA-512`
 scram-sha-2 = ["std", "saslprep", "hmac", "digest", "sha2", "base64", "rand", "pbkdf2"]
 ## Enable `DIGEST-MD5`
-digest-md5 = ["gsasl", "saslprep", "hmac", "digest", "md-5", "base64"]
+digest-md5 = ["std", "gsasl", "saslprep", "hmac", "digest", "md-5", "base64"]
 ## Enable `CRAM-MD5`
-cram-md5 = ["gsasl", "saslprep", "hmac", "digest", "md-5"]
+cram-md5 = ["std", "gsasl", "saslprep", "hmac", "digest", "md-5"]
 ## Enable `ANONYMOUS`
-anonymous = []
+anonymous = ["std"]
 ## Enable `EXTERNAL`
-external = []
+external = ["std"]
 ## Enable `PLAIN`
-plain = ["saslprep"]
+plain = ["std", "saslprep"]
 ## Enable `LOGIN`
-login = []
+login = ["std"]
 ## Enable `OPENID20`
-openid20 = ["gsasl"]
+openid20 = ["std", "gsasl"]
 ## Enable `SAML20`
-saml20 = ["gsasl"]
+saml20 = ["std", "gsasl"]
 ## Enable `SECURID`
-securid = ["gsasl"]
+securid = ["std", "gsasl"]
 
 #! ## Provider flags
 #! These flags are relevant for crates that want to use rsasl as authentication provider, i.e. crates implementing
@@ -65,27 +65,27 @@ securid = ["gsasl"]
 ## Enable provider mode
 ##
 ## This feature enables all the required code for providers, e.g. code surrounding `Session`
-provider = []
+provider = ["std"]
 ## Enable transparent Base64 wrapping for provider mode
 ##
 ## This enables the `step64` method to wrap a call to `step` in base64-encoding. Adds a dependency on the `base64` crate
-provider_base64 = ["provider", "base64"]
+provider_base64 = ["std", "provider", "base64"]
 
 #! ## Supplier flags
 #! These flags are relevant for crates that want to use rsasl as supplier, i.e. applications and libraries making use
 #! of protocol implementations with rsasl support
 ## Enable the ConfigBuilder
-config_builder = []
+config_builder = ["std"]
 
 ## Enables the static registry using `linkme`
-registry_static = ["linkme"]
+registry_static = ["std", "linkme"]
 
 ## Enable utilities for testing authentication and SASL handling
-testutils = ["config_builder"]
+testutils = ["std", "config_builder"]
 
-saslprep = ["stringprep"]
+saslprep = ["std", "stringprep"]
 
-unstable_custom_mechanism = []
+unstable_custom_mechanism = ["std"]
 
 [dependencies]
 thiserror = "1.0"
