@@ -1,10 +1,10 @@
-use crate::error::{MechanismError, MechanismErrorKind};
+use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
 use thiserror::Error;
 
 use crate::context::{EmptyProvider, ThisProvider};
 use crate::property::AuthId;
-use crate::session::{MechanismData, State, StepResult};
+use crate::session::{MechanismData, State};
 use std::io::Write;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]
@@ -25,7 +25,7 @@ impl Authentication for External {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> Result<(State, Option<usize>), SessionError> {
         if let Some(input) = input {
             if let Ok(authid) = std::str::from_utf8(input) {
                 let provider = ThisProvider::<AuthId>::with(authid);

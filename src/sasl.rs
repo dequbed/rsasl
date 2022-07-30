@@ -32,7 +32,7 @@ pub(crate) struct SASL<V: Validation = NoValidation, CB = NoChannelBindings> {
     pub(crate) validation: Option<V::Value>,
 }
 
-#[cfg(feature = "provider")]
+#[cfg(any(feature = "provider", test))]
 mod provider {
     use super::*;
 

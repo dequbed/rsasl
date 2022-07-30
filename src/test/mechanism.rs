@@ -96,7 +96,7 @@ impl Authentication for RSaslTest {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> Result<(State, Option<usize>), SessionError> {
         todo!()
     }
 }

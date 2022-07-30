@@ -34,10 +34,10 @@ mod tests {
     use super::*;
 
     use crate::config::SASLConfig;
+    use crate::sasl::SASLClient;
     use crate::mechname::Mechname;
     use std::sync::Arc;
 
-    use crate::sasl::SASLClient;
 
     use crate::typed::TaggedOption;
     use crate::validate::{NoValidation, Validate};

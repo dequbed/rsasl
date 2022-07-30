@@ -13,7 +13,6 @@ use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 use crate::property::{ChannelBindingName, ChannelBindings, Property};
 use crate::registry::Mechanism;
-use crate::sasl::SASL;
 use crate::typed::{tags, TaggedOption};
 use crate::validate::{NoValidation, Validate, Validation, ValidationError};
 
@@ -23,8 +22,9 @@ pub enum Side {
     Server,
 }
 
-#[cfg(feature = "provider")]
+#[cfg(any(feature = "provider", feature = "testutils", test))]
 mod provider {
+    use crate::sasl::SASL;
     use super::*;
     /// This represents a single authentication exchange
     ///
@@ -55,7 +55,6 @@ mod provider {
         mechanism_desc: Mechanism,
     }
 
-    #[cfg(feature = "provider")]
     impl<V: Validation, C: ChannelBindingCallback> Session<V, C> {
         pub(crate) fn new(
             sasl: SASL<V, C>,
@@ -192,8 +191,37 @@ mod provider {
             }
         }
     }
+
+
+    #[cfg(test)]
+    pub(crate) mod tests {
+        use super::*;
+        use crate::context::EmptyProvider;
+        use crate::validate::Validation;
+
+        impl<V: Validation, CB: ChannelBindingCallback> Session<V, CB> {
+            pub fn get_cb_data<'a, F, G>(
+                &'a self,
+                cbname: &str,
+                validate: &'a mut Validate<'a>,
+                f: &mut F,
+            ) -> Result<G, SessionError>
+                where
+                    F: FnMut(&[u8]) -> Result<G, SessionError>,
+            {
+                let mechanism_data = MechanismData::new(
+                    self.sasl.config.get_callback(),
+                    &self.sasl.cb,
+                    validate,
+                    self.mechanism_desc,
+                    self.side,
+                );
+                mechanism_data.need_cb_data(cbname, EmptyProvider, f)
+            }
+        }
+    }
 }
-#[cfg(feature = "provider")]
+#[cfg(any(feature = "provider", feature = "testutils", test))]
 pub use provider::Session;
 
 pub struct MechanismData<'a> {
@@ -391,30 +419,3 @@ impl SessionData {
     }
 }
 
-#[cfg(test)]
-pub(crate) mod tests {
-    use super::*;
-    use crate::context::EmptyProvider;
-    use crate::validate::Validation;
-
-    impl<V: Validation, CB: ChannelBindingCallback> Session<V, CB> {
-        pub fn get_cb_data<'a, F, G>(
-            &'a self,
-            cbname: &str,
-            validate: &'a mut Validate<'a>,
-            f: &mut F,
-        ) -> Result<G, SessionError>
-        where
-            F: FnMut(&[u8]) -> Result<G, SessionError>,
-        {
-            let mechanism_data = MechanismData::new(
-                self.sasl.config.get_callback(),
-                &self.sasl.cb,
-                validate,
-                self.mechanism_desc,
-                self.side,
-            );
-            mechanism_data.need_cb_data(cbname, EmptyProvider, f)
-        }
-    }
-}

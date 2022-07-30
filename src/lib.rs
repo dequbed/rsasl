@@ -255,13 +255,11 @@ pub mod mechanisms;
 
 
 // Only relevant to a provider
-#[cfg(feature = "provider")]
-mod session;
-#[cfg(feature = "provider")]
+#[cfg(any(feature = "provider", feature = "testutils", test))]
 mod sasl;
 
-// These are shared in some way (and maybe shouldn't be)
 pub mod config;
+mod session;
 
 mod typed;
 pub mod validate;
@@ -290,14 +288,17 @@ mod vectored_io;
 
 pub mod prelude {
     //! prelude exporting the most commonly used types
-    pub use crate::config::SASLConfig;
     pub use crate::error::{SASLError, SessionError};
+
+    pub use crate::config::SASLConfig;
     pub use crate::mechname::Mechname;
     pub use crate::property::Property;
     pub use crate::registry::Registry;
-    pub use crate::sasl::{SASLClient, SASLServer};
-    pub use crate::session::{Session, State};
+    pub use crate::session::State;
     pub use crate::validate::Validation;
+
+    #[cfg(feature = "provider")]
+    pub use crate::sasl::{SASLClient, SASLServer};
 }
 
 #[cfg(any(test, feature = "testutils"))]

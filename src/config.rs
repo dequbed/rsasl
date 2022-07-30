@@ -38,7 +38,7 @@ trait ConfigInstance: fmt::Debug {
 /// or )&SASLConfig`). Right now all functions that expect a `SASLConfig` take an
 /// `Arc<SASLConfig>`, so the `!Sized` bound has little relevancy in practice.
 pub struct SASLConfig {
-    inner: dyn ConfigInstance,
+    inner: dyn ConfigInstance + Send + Sync,
 }
 
 impl SASLConfig {
@@ -191,5 +191,15 @@ mod instance {
         fn get_callback(&self) -> &dyn SessionCallback {
             self.callback.as_ref()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_impl_bounds() {
+        static_assertions::assert_impl_all!(SASLConfig: Send, Sync);
     }
 }
