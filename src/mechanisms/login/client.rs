@@ -1,7 +1,7 @@
 use crate::context::EmptyProvider;
 use std::io::Write;
 use crate::error::SessionError;
-use crate::mechanism::{Authentication, MechanismData, StepResult};
+use crate::mechanism::{Authentication, MechanismData};
 use crate::property::{AuthId, Password};
 use crate::session::State;
 
@@ -26,7 +26,7 @@ impl Authentication for Login {
         session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> Result<(State, Option<usize>), SessionError> {
         match self.state {
             LoginState::Authid => {
                 let len = session.need_with::<AuthId, _, _>(&EmptyProvider, &mut |authid| {
@@ -55,18 +55,16 @@ impl Authentication for Login {
 mod tests {
     use std::io::Cursor;
     use std::sync::Arc;
-    use crate::config::ClientConfig;
+    use crate::config::SASLConfig;
     use crate::mechanisms::login::mechinfo::LOGIN;
-    use crate::sasl::SASLClient;
-    use crate::session::{Session, Side};
     use crate::test::test_client_session;
     use super::*;
 
     #[test]
     fn simple_combination() {
-        let config = ClientConfig::with_credentials(None, "testuser".to_string(), "password".to_string())
+        let config = SASLConfig::with_credentials(None, "testuser".to_string(), "password".to_string())
             .unwrap();
-        let mut login = test_client_session(Arc::new(config), &LOGIN);
+        let mut login = test_client_session(config, &LOGIN);
         let mut out = Cursor::new(Vec::new());
 
         assert!(login.step(None, &mut out).is_ok());

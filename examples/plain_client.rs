@@ -21,11 +21,11 @@ pub fn main() {
         return;
     }
     print!("\n");
-    let config = ClientConfig::with_credentials(None, username, password).unwrap();
+    let config = SASLConfig::with_credentials(None, username, password).unwrap();
 
     // Create an untyped SASL because we won't store/retrieve information in the context since
     // we don't use callbacks.
-    let sasl = SASLClient::new(Arc::new(config));
+    let sasl = SASLClient::new(config);
 
     let offered = [Mechname::new(b"PLAIN").unwrap()];
     // Usually you would first agree on a mechanism with the server, for demostration purposes

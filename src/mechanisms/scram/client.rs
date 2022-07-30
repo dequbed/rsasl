@@ -21,7 +21,7 @@ use crate::mechanisms::scram::parser::{
 };
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, hash_password, DOutput};
 use crate::property::{AuthId, AuthzId, OverrideCBType, Password};
-use crate::session::{MechanismData, State, StepResult};
+use crate::session::{MechanismData, State};
 use crate::vectored_io::VectoredWriter;
 
 #[cfg(feature = "scram-sha-2")]
@@ -342,7 +342,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> Result<(State, Option<usize>), SessionError> {
         use ScramClientState::*;
         match self.state.take() {
             Some(Initial(state)) => {

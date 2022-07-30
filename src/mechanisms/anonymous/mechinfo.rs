@@ -11,6 +11,6 @@ pub static ANONYMOUS: Mechanism = Mechanism {
     mechanism: &Mechname::const_new(b"ANONYMOUS"),
     priority: 100,
     client: Some(|_sasl, _offered| Ok(Box::new(client::Anonymous))),
-    server: Some(|_sasl, _offered| Ok(Box::new(server::Anonymous))),
+    server: Some(|_sasl| Ok(Box::new(server::Anonymous))),
     first: Side::Client,
 };
