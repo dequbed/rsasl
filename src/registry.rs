@@ -91,6 +91,19 @@ pub struct Mechanism {
 
     pub(crate) first: Side,
 }
+#[cfg(feature = "unstable_custom_mechanism")]
+impl Mechanism {
+    pub const fn build(mechanism: &'static Mechname, priority: usize, client: Option<StartFn>,
+                       server: Option<ServerStartFn>, first: Side) -> Self {
+        Self {
+            mechanism,
+            priority,
+            client,
+            server,
+            first
+        }
+    }
+}
 
 struct MechanismSecurityFactors {
     /// Maximum possible Security Strength Factor (SSF) of the security layers installed
