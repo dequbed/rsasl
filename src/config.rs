@@ -1,185 +1,198 @@
 //! Configuration supplied by the downstream user
 
-use crate::callback::{Context, Request, SessionCallback};
-use crate::error::{SASLError, SessionError};
-use crate::property::{AuthId, AuthzId, Password};
-use crate::registry::{Mechanism, Registry};
-use crate::session;
+use crate::alloc::boxed::Box;
+use crate::callback::SessionCallback;
+use crate::error::SASLError;
+use crate::registry::{Mechanism, MechanismIter};
 use crate::session::SessionData;
-use std::cmp::Ordering;
-use std::fmt;
-use std::marker::PhantomData;
+use crate::mechname::Mechname;
+use core::cmp::Ordering;
+use core::fmt;
+use alloc::sync::Arc;
 
-#[cfg(feature = "config_builder")]
-pub use crate::builder::ConfigBuilder;
-
-mod sealed {
-    pub trait Sealed {}
-    impl Sealed for super::ClientSide {}
-    impl Sealed for super::ServerSide {}
-}
-pub trait ConfigSide: sealed::Sealed {
-    const SIDE: session::Side;
-}
-
-impl ConfigSide for ClientSide {
-    const SIDE: session::Side = session::Side::Client;
-}
-impl ConfigSide for ServerSide {
-    const SIDE: session::Side = session::Side::Server;
-}
+use crate::mechanism::Authentication;
 
 pub(crate) type FilterFn = fn(a: &Mechanism) -> bool;
 pub(crate) type SorterFn = fn(a: &Mechanism, b: &Mechanism) -> Ordering;
 
-pub struct ClientSide {
-    _marker: PhantomData<()>,
+trait ConfigInstance: fmt::Debug {
+    fn get_mech_iter<'a>(&self) -> MechanismIter<'a>;
+    fn get_callback(&self) -> &dyn SessionCallback;
+    fn sort(&self, left: &Mechanism, right: &Mechanism) -> Ordering;
 }
 
-/// Configuration for a client-side SASL authentication
-///
-/// This is an easier to use type shortcut for the sided [`SASLConfig`] type.
-pub struct ClientConfig;
-#[cfg(feature = "config_builder")]
-impl ClientConfig {
-    pub fn builder() -> ConfigBuilder<ClientSide, crate::builder::WantMechanisms> {
-        ConfigBuilder::new(ClientSide {
-            _marker: PhantomData,
-        })
-    }
-
-    /// Construct a SASLConfig with static credentials
-    ///
-    ///
-    pub fn with_credentials(
-        authzid: Option<String>,
-        authid: String,
-        password: String,
-    ) -> Result<SASLConfig, SASLError> {
-        struct CredentialsProvider {
-            authid: String,
-            password: String,
-            authzid: Option<String>,
-        }
-        impl SessionCallback for CredentialsProvider {
-            fn callback(
-                &self,
-                _session_data: &SessionData,
-                _context: &Context,
-                request: &mut Request<'_>,
-            ) -> Result<(), SessionError> {
-                request
-                    .satisfy::<AuthId>(self.authid.as_str())?
-                    .satisfy::<Password>(self.password.as_bytes())?;
-                if let Some(authzid) = self.authzid.as_deref() {
-                    request.satisfy::<AuthzId>(authzid)?;
-                }
-                Ok(())
-            }
-        }
-
-        let callback = CredentialsProvider {
-            authid,
-            password,
-            authzid,
-        };
-
-        Self::builder()
-            .with_default_mechanisms()
-            .with_filter(|mechanism| {
-                let name = mechanism.mechanism;
-                match name.as_str() {
-                    "PLAIN" | "LOGIN" => true,
-                    n if n.starts_with("SCRAM-") => true,
-                    _ => false,
-                }
-            })
-            .with_default_sorting()
-            .with_callback(Box::new(callback))
-    }
-}
-
-pub struct ServerSide {
-    _marker: PhantomData<()>,
-}
-
-/// Configuration for a server-side SASL authentication
-///
-/// This is an easier to use type shortcut for the sided [`SASLConfig`] type.
-pub struct ServerConfig;
-
-#[cfg(feature = "config_builder")]
-impl ServerConfig {
-    pub fn builder() -> ConfigBuilder<ServerSide, crate::builder::WantMechanisms> {
-        ConfigBuilder::new(ServerSide {
-            _marker: PhantomData,
-        })
-    }
-}
-
-/// Sided shareable configuration for a SASL provider
+#[repr(transparent)]
+/// Opaque supplier configuration encoding all details necessary to perform authentication exchanges
 ///
 /// This type contains all user-specified configuration necessary for SASL authentication. It is
 /// designed to be passed to a protocol implementation and provide an opaque and abstracted
 /// interface to said configuration so that neither side has to expose implementation details.
 ///
-/// This type is constructed using the [`ClientConfig`] and [`ServerConfig`] helpers
+/// Due to the user-supplied config being generic this type is `!Sized`. This means you can only
+/// ever hold this type via a pointer indirection (e.g. as `Arc<SASLConfig>`, `Box<SASLConfig>`
+/// or )&SASLConfig`). Right now all functions that expect a `SASLConfig` take an
+/// `Arc<SASLConfig>`, so the `!Sized` bound has little relevancy in practice.
 pub struct SASLConfig {
-    pub(crate) callback: Box<dyn SessionCallback>,
-
-    pub(crate) filter: Option<FilterFn>,
-    pub(crate) sorter: SorterFn,
-
-    mechanisms: Registry,
+    inner: dyn ConfigInstance + Send + Sync,
 }
 impl fmt::Debug for SASLConfig {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SASLConfig")
-            .field("mechanisms", &self.mechanisms)
-            .finish()
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.inner.fmt(f)
     }
 }
 
 impl SASLConfig {
-    pub fn mech_list(&self) -> impl Iterator<Item = &Mechanism> {
-        self.mechanisms.get_mechanisms()
+    #[inline(always)]
+    /// Select the best mechanism of the offered ones.
+    pub(crate) fn select_mechanism(&self, offered: &[&Mechname])
+        -> Result<(Box<dyn Authentication>, &Mechanism), SASLError>
+    {
+        offered
+            .iter()
+            .filter_map(|offered_mechname| {
+                self.mech_list().find(|avail_mech| avail_mech.mechanism == *offered_mechname).and_then(|mech| {
+                    let auth = mech.client(self, offered)?.ok()?;
+                    Some((auth, mech))
+                })
+            })
+            .max_by(|(_, m), (_, n)| self.inner.sort(m, n))
+            .ok_or(SASLError::NoSharedMechanism)
+    }
+
+    #[inline(always)]
+    pub(crate) fn mech_list<'a>(&self) -> impl Iterator<Item=&'a Mechanism> {
+        self.inner.get_mech_iter()
+    }
+
+    #[inline(always)]
+    pub(crate) fn get_callback(&self) -> &dyn SessionCallback {
+        self.inner.get_callback()
     }
 }
 
 #[cfg(feature = "config_builder")]
-impl SASLConfig {
-    pub(crate) fn new(
+mod instance {
+    use super::*;
+    pub use crate::builder::ConfigBuilder;
+    use crate::callback::Request;
+    use crate::context::Context;
+    use crate::error::SessionError;
+    use crate::property::{AuthId, AuthzId, Password};
+    use crate::registry::Registry;
+
+    impl SASLConfig {
+        fn cast(arc: Arc<dyn ConfigInstance>) -> Arc<Self> {
+            unsafe { std::mem::transmute(arc) }
+        }
+
+        pub(crate) fn new<CB: SessionCallback + 'static>(
+            callback: CB,
+            sorter: SorterFn,
+            mechanisms: Registry,
+        ) -> Result<Arc<Self>, SASLError> {
+            let inner = Inner::new(callback, sorter, mechanisms)?;
+            let outer = Arc::new(inner) as Arc<dyn ConfigInstance>;
+            Ok(Self::cast(outer))
+        }
+
+        pub fn builder() -> ConfigBuilder<crate::builder::WantMechanisms> {
+            ConfigBuilder::new()
+        }
+
+        /// Construct a SASLConfig with static credentials
+        ///
+        ///
+        pub fn with_credentials(
+            authzid: Option<String>,
+            authid: String,
+            password: String,
+        ) -> Result<Arc<SASLConfig>, SASLError> {
+            struct CredentialsProvider {
+                authid: String,
+                password: String,
+                authzid: Option<String>,
+            }
+            impl SessionCallback for CredentialsProvider {
+                fn callback(
+                    &self,
+                    _session_data: &SessionData,
+                    _context: &Context,
+                    request: &mut Request<'_>,
+                ) -> Result<(), SessionError> {
+                    request
+                        .satisfy::<AuthId>(self.authid.as_str())?
+                        .satisfy::<Password>(self.password.as_bytes())?;
+                    if let Some(authzid) = self.authzid.as_deref() {
+                        request.satisfy::<AuthzId>(authzid)?;
+                    }
+                    Ok(())
+                }
+            }
+
+            let callback = CredentialsProvider {
+                authid,
+                password,
+                authzid,
+            };
+
+            Self::builder()
+                .with_credentials_mechanisms()
+                .with_default_sorting()
+                .with_callback(callback)
+        }
+    }
+
+
+    struct Inner {
         callback: Box<dyn SessionCallback>,
-        filter: Option<FilterFn>,
         sorter: SorterFn,
         mechanisms: Registry,
-    ) -> Result<Self, SASLError> {
-        Ok(Self {
-            callback,
-            filter,
-            sorter,
-            mechanisms,
-        })
+    }
+
+    impl fmt::Debug for Inner {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("SASLConfig")
+             .field("mechanisms", &self.mechanisms)
+             .finish()
+        }
+    }
+
+    #[cfg(any(feature = "config_builder", feature = "testutils"))]
+    impl Inner {
+        pub(crate) fn new<CB: SessionCallback + 'static>(
+            callback: CB,
+            sorter: SorterFn,
+            mechanisms: Registry,
+        ) -> Result<Self, SASLError> {
+            Ok(Self {
+                callback: Box::new(callback),
+                sorter,
+                mechanisms,
+            })
+        }
+    }
+
+    impl ConfigInstance for Inner {
+        fn get_mech_iter<'a>(&self) -> MechanismIter<'a> {
+            self.mechanisms.get_mechanisms()
+        }
+
+        fn get_callback(&self) -> &dyn SessionCallback {
+            self.callback.as_ref()
+        }
+
+        fn sort(&self, left: &Mechanism, right: &Mechanism) -> Ordering {
+            (self.sorter)(left, right)
+        }
     }
 }
 
-impl SASLConfig {
-    #[cfg(any(feature = "registry_dynamic", feature = "registry_static"))]
-    /// Register the builtin mechanisms
-    ///
-    /// When `registry_static` is used this is a no-op and does not need to be called.
-    /// When `registry_dynamic` is used this will register all built-in mechanisms via the dynamic
-    /// registry.
-    ///
-    /// This method mainly exists as a workaround to
-    /// [rustc#47384](https://github.com/rust-lang/rust/issues/47384), which was fixed in rustc 1.62
-    pub fn register_builtin(&mut self) {
-        crate::init::register_builtin(self)
-    }
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    #[cfg(feature = "registry_dynamic")]
-    /// Register a mechanism
-    pub fn register(&mut self, mechanism: &'static Mechanism) {
-        self.mechanisms.register(mechanism)
+    #[test]
+    fn test_impl_bounds() {
+        static_assertions::assert_impl_all!(SASLConfig: Send, Sync);
     }
 }

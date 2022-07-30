@@ -4,7 +4,7 @@ use crate::mechanisms::scram::parser::{
     ClientFinal, ClientFirstMessage, ServerErrorValue, ServerFinal, ServerFirst,
 };
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, DOutput};
-use crate::session::{MechanismData, State, StepResult};
+use crate::session::{MechanismData, State};
 use crate::vectored_io::VectoredWriter;
 use digest::crypto_common::BlockSizeUser;
 use digest::generic_array::GenericArray;
@@ -27,8 +27,8 @@ const DEFAULT_SALT_LEN: usize = 32;
 pub type ScramSha1Server<const N: usize> = ScramServer<sha1::Sha1, N>;
 #[cfg(feature = "scram-sha-2")]
 pub type ScramSha256Server<const N: usize> = ScramServer<sha2::Sha256, N>;
-#[cfg(feature = "scram-sha-2")]
-pub type ScramSha512Server<const N: usize> = ScramServer<sha2::Sha512, N>;
+// #[cfg(feature = "scram-sha-2")]
+// pub type ScramSha512Server<const N: usize> = ScramServer<sha2::Sha512, N>;
 
 #[derive(Debug, Error)]
 pub enum ScramServerError {
@@ -270,7 +270,7 @@ impl<D: Digest + BlockSizeUser, const N: usize> Authentication for ScramServer<D
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> Result<(State, Option<usize>), SessionError> {
         use ScramServerState::*;
         match self.state.take() {
             Some(WaitingClientFirst(state)) => {

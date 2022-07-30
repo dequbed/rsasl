@@ -1,7 +1,6 @@
 use crate::error::{MechanismError, MechanismErrorKind};
 use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
-use std::ops::Deref;
 use std::str::Utf8Error;
 use thiserror::Error;
 
@@ -115,7 +114,7 @@ impl<'a> SaslName<'a> {
     /// Convert a SCRAM-side string into the representation expected by Rust
     ///
     /// This will clone the given string if characters need unescaping
-    pub fn unescape(input: &'a str) -> Result<Self, SaslNameError> {
+    pub fn unescape(input: &'a str) -> Result<Cow<'_, str>, SaslNameError> {
         if input.is_empty() {
             return Err(SaslNameError::Empty);
         }
@@ -144,14 +143,10 @@ impl<'a> SaslName<'a> {
                 input = &input[bad..];
             }
 
-            Ok(Self(out.into()))
+            Ok(out.into())
         } else {
-            Ok(Self(Cow::Borrowed(input)))
+            Ok(Cow::Borrowed(input))
         }
-    }
-
-    pub fn as_str(&self) -> &str {
-        self.0.deref()
     }
 }
 
@@ -167,8 +162,6 @@ pub enum ParseError {
     InvalidAttribute(u8),
     #[error("required attribute is missing")]
     MissingAttributes,
-    #[error("too many attributes were provided")]
-    TooManyAttributes,
     #[error("an extension is unknown but marked mandatory")]
     UnknownMandatoryExtensions,
     #[error("invalid UTF-8: {0}")]

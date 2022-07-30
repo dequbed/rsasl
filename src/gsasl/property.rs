@@ -71,35 +71,3 @@ pub(crate) unsafe fn gsasl_property_get(
 ) -> *const libc::c_char {
     todo!()
 }
-
-#[cfg(testn)]
-mod tests {
-    use super::*;
-    use crate::mechanisms::plain::mechinfo::PLAIN;
-    use crate::Side;
-    use std::ffi::CStr;
-    use std::sync::Arc;
-
-    #[test]
-    fn property_get_set() {
-        let mut session = MechanismData::new(None, &PLAIN, Side::Client);
-
-        unsafe {
-            let ptr = gsasl_property_fast(&mut session, GSASL_QOP);
-            assert!(ptr.is_null());
-        }
-        session.set_property::<Qop>(Arc::new(CString::new("testservice").unwrap()));
-        let cstr = session.get_property::<Qop>();
-        println!("cstr {:?}", cstr);
-        unsafe {
-            let ptr = gsasl_property_fast(&mut session, GSASL_QOP);
-            println!("after {:?}", ptr);
-            assert!(!ptr.is_null());
-            let slc = std::slice::from_raw_parts(ptr as *const u8, 11);
-            println!("Manual {}", std::str::from_utf8_unchecked(slc));
-            let cstr = CStr::from_ptr(ptr);
-            println!("fast {:?} {:?}", cstr, cstr.as_ptr());
-            assert_eq!(cstr.to_str().unwrap(), "testservice");
-        }
-    }
-}

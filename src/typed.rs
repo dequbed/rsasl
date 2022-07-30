@@ -5,11 +5,11 @@
 //! authentication mechanism needs to query information from both the user callback (e.g.
 //! username, password) and from the protocol implementation (e.g. channel binding data).
 
-use std::any::TypeId;
-use std::ops::{Deref, DerefMut};
+use core::any::TypeId;
+use core::ops::{Deref, DerefMut};
 
 pub(crate) mod tags {
-    use std::marker::PhantomData;
+    use core::marker::PhantomData;
 
     pub trait Type<'a>: 'static + Sized {
         type Reified: 'a;

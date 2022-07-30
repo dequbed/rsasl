@@ -30,11 +30,10 @@
 //!     type Value = MyDataType;
 //! }
 //!
-//! # const MECHS: &[&'static Mechname] = &[];
-//! fn do_auth(config: Arc<SASLConfig>) {
+//! fn do_auth(config: Arc<SASLConfig>, selected: &Mechname) {
 //!     let sasl = SASLServer::<MyValidation>::new(config);
 //!
-//!     let mut session = sasl.start_suggested(MECHS).unwrap();
+//!     let mut session = sasl.start_suggested(selected).unwrap();
 //!     // do authenthentication stepping and so on
 //!
 //!     // Since `SASLServer` was constructed with `MyValidation`, calling `validation()` returns
@@ -43,8 +42,9 @@
 //! }
 //! ```
 
+use crate::alloc::boxed::Box;
 use crate::typed::{tags, Erased, TaggedOption};
-use std::any::TypeId;
+use core::any::TypeId;
 use thiserror::Error;
 
 /// Marker trait to define the type returned by `validation`
@@ -126,7 +126,7 @@ impl Validation for NoValidation {
 pub struct Validate<'a>(dyn Erased<'a> + 'a);
 impl Validate<'_> {
     pub(crate) fn new<'opt, V: Validation>(opt: &'opt mut TaggedOption<'_, V>) -> &'opt mut Self {
-        unsafe { std::mem::transmute(opt as &mut dyn Erased) }
+        unsafe { core::mem::transmute(opt as &mut dyn Erased) }
     }
 }
 impl<'a> Validate<'a> {

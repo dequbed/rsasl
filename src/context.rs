@@ -1,8 +1,10 @@
+use core::fmt;
+use core::fmt::Write;
 use crate::property::{Property, SizedProperty};
 use crate::typed::tags::{MaybeSizedType, Type};
 use crate::typed::{tags, Erased, TaggedOption};
-use std::marker::PhantomData;
-use std::ops::ControlFlow;
+use core::marker::PhantomData;
+use core::ops::ControlFlow;
 
 pub trait Provider {
     fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()>;
@@ -48,6 +50,21 @@ impl<L: Provider, R: Provider> Provider for And<L, R> {
 
 #[doc(hidden)]
 pub struct TOKEN(PhantomData<()>);
+impl TOKEN {
+    pub(crate) const fn build() -> Self {
+        Self(PhantomData)
+    }
+}
+impl fmt::Debug for TOKEN {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("TOKEN")
+    }
+}
+impl fmt::Display for TOKEN {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_char('_')
+    }
+}
 
 /// Control-flow utility to help shortcut [`Demand::provide`]
 ///
@@ -71,7 +88,7 @@ impl<'a, T: SizedProperty> Type<'a> for DemandTag<T> {
 pub struct Demand<'a>(dyn Erased<'a> + 'a);
 impl<'a> Demand<'a> {
     pub(crate) fn new<T: tags::Type<'a>>(opt: &mut TaggedOption<'a, T>) -> &'a mut Self {
-        unsafe { std::mem::transmute(opt as &mut dyn Erased) }
+        unsafe { core::mem::transmute(opt as &mut dyn Erased) }
     }
 }
 impl<'a> Demand<'a> {
@@ -100,7 +117,7 @@ impl<'a> Demand<'a> {
 }
 
 pub(crate) fn build_context(provider: &dyn Provider) -> &Context {
-    unsafe { std::mem::transmute(provider) }
+    unsafe { core::mem::transmute(provider) }
 }
 
 #[repr(transparent)]

@@ -21,13 +21,13 @@ use crate::mechanisms::scram::parser::{
 };
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, hash_password, DOutput};
 use crate::property::{AuthId, AuthzId, OverrideCBType, Password};
-use crate::session::{MechanismData, State, StepResult};
+use crate::session::{MechanismData, State};
 use crate::vectored_io::VectoredWriter;
 
 #[cfg(feature = "scram-sha-2")]
 pub type ScramSha256Client<const N: usize> = ScramClient<sha2::Sha256, N>;
-#[cfg(feature = "scram-sha-2")]
-pub type ScramSha512Client<const N: usize> = ScramClient<sha2::Sha512, N>;
+// #[cfg(feature = "scram-sha-2")]
+// pub type ScramSha512Client<const N: usize> = ScramClient<sha2::Sha512, N>;
 
 #[cfg(feature = "scram-sha-1")]
 pub type ScramSha1Client<const N: usize> = ScramClient<sha1::Sha1, N>;
@@ -43,8 +43,8 @@ pub struct ScramClient<D: Digest + BlockSizeUser + Clone + Sync, const N: usize>
 }
 
 impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> ScramClient<D, N> {
-    pub fn new(server_supports_cb: bool) -> Self {
-        let plus = if server_supports_cb {
+    pub fn new(set_cb_client_no_support: bool) -> Self {
+        let plus = if set_cb_client_no_support {
             CbSupport::ClientNoSupport
         } else {
             CbSupport::ServerNoSupport
@@ -342,7 +342,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> Result<(State, Option<usize>), SessionError> {
         use ScramClientState::*;
         match self.state.take() {
             Some(Initial(state)) => {
@@ -470,45 +470,5 @@ impl MechanismError for SCRAMError {
             SCRAMError::ParseError(_) => MechanismErrorKind::Parse,
             SCRAMError::ServerError(_) => MechanismErrorKind::Outcome,
         }
-    }
-}
-
-#[cfg(testn)]
-mod tests {
-    use std::io::Cursor;
-    use std::sync::Arc;
-
-    use crate::sasl::SASL;
-    use crate::{Mechanism, Mechname, Side};
-
-    use super::*;
-
-    #[test]
-    fn scram_test_1() {
-        let mut sasl = SASL::new();
-        const M: Mechanism = Mechanism {
-            mechanism: Mechname::const_new_unvalidated(b"SCRAM"),
-            priority: 0,
-            client: Some(|_sasl| Ok(Box::new(ScramClient::<18>::new()))),
-            server: None,
-            first: Side::Client,
-        };
-        sasl.register(&M);
-        let mut session = sasl.client_start(Mechname::new(b"SCRAM").unwrap()).unwrap();
-        assert!(session.are_we_first());
-
-        session.set_property::<AuthId>(Arc::new("testuser".to_string()));
-
-        let mut out = Cursor::new(Vec::new());
-        let data: Option<&[u8]> = None;
-
-        let before = out.position() as usize;
-        let stepout = session.step(data, &mut out).unwrap();
-        let after = out.position() as usize;
-
-        let sdata = &out.get_ref()[before..after];
-
-        println!("({:?}): {}", stepout, std::str::from_utf8(sdata).unwrap());
-        assert_eq!(stepout, Step::NeedsMore(Some(after - before)));
     }
 }
