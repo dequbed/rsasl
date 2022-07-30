@@ -17,7 +17,6 @@ rust-version = "1.56.1"
 
 [features]
 default = [
-    "provider", "provider_base64",
     "config_builder",
     "registry_static",
     "scram-sha-1", "scram-sha-2",
