@@ -26,7 +26,7 @@ pub static SAML20: Mechanism = Mechanism {
             decode: None,
         })
     }),
-    server: Some(|_sasl, _offered| {
+    server: Some(|_sasl| {
         CMechanismStateKeeper::build(MechanismVTable {
             init: None,
             done: None,

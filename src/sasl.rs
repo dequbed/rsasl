@@ -103,8 +103,8 @@ mod provider {
         /// authentication data provided by the user.
         ///
         /// See [SessionCallback] on how to implement callbacks.
-        pub fn start_suggested(self, offered: &[&Mechname]) -> Result<Session<V, CB>, SASLError> {
-            self.inner.server_start_suggested(offered)
+        pub fn start_suggested(self, selected: &Mechname) -> Result<Session<V, CB>, SASLError> {
+            self.inner.server_start_suggested(selected)
         }
     }
 
@@ -140,50 +140,25 @@ mod provider {
             }
         }
 
-        fn start_inner<'a, F>(
+        fn client_start_suggested<'a>(
             self,
-            f: F,
             offered: &[&Mechname],
         ) -> Result<Session<V, CB>, SASLError>
-        where
-            F: for<'b> Fn(&'b Mechanism) -> Option<StartFn>,
         {
-            /*
-            let config = self.config.clone();
-            offered
-                .iter()
-                .filter_map(|offered_mechname| {
-                    let mech = config
-                        .mech_list()
-                        .find(|avail_mech| avail_mech.mechanism == *offered_mechname);
-                    mech.and_then(|mech| {
-                        let start = f(&mech)?;
-                        let auth = start(config.as_ref(), offered).ok()?;
-                        Some((mech, auth))
-                    })
-                })
-                .max_by(|(m, _), (n, _)| (self.config.sorter)(m, n))
-                .map_or(Err(SASLError::NoSharedMechanism), |(selected, auth)| {
-                    Ok(Session::new(self, Side::Client, auth, selected.clone()))
-                })
-             */
             let (auth, selected) = self.config.select_mechanism(offered)?;
             let selected = selected.clone();
             Ok(Session::new(self, Side::Client, auth, selected))
         }
 
-        fn client_start_suggested<'a>(
-            self,
-            offered: &[&Mechname],
-        ) -> Result<Session<V, CB>, SASLError> {
-            self.start_inner(|mech| mech.client, offered)
-        }
-
         fn server_start_suggested<'a>(
             self,
-            offered: &[&Mechname],
+            selected: &Mechname,
         ) -> Result<Session<V, CB>, SASLError> {
-            self.start_inner(|mech| mech.server, offered)
+            let config = self.config.clone();
+            let mech = config.mech_list().find(|mech| mech.mechanism == selected)
+                .ok_or(SASLError::NoSharedMechanism)?;
+            let auth = mech.server(config.as_ref()).ok_or(SASLError::NoSharedMechanism)??;
+            Ok(Session::new(self, Side::Server, auth, mech.clone()))
         }
 
         pub fn get_available(&self) -> impl Iterator<Item = &Mechanism> {

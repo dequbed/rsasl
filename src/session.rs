@@ -48,7 +48,7 @@ mod provider {
     ///
     /// On a server-side session after a `Finished` is received validation data from the user
     /// callback may be extracted with a call to [`Session::validation`].
-    pub struct Session<V: Validation, C> {
+    pub struct Session<V: Validation = NoValidation, C = NoChannelBindings> {
         sasl: SASL<V, C>,
         side: Side,
         mechanism: Box<dyn Authentication>,
