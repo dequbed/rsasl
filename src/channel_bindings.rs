@@ -1,3 +1,5 @@
+use crate::alloc::boxed::Box;
+
 pub trait ChannelBindingCallback {
     fn get_cb_data(&self, cbname: &str) -> Option<&[u8]>;
 }
@@ -36,7 +38,6 @@ mod tests {
     use crate::config::SASLConfig;
     use crate::sasl::SASLClient;
     use crate::mechname::Mechname;
-    use std::sync::Arc;
 
 
     use crate::typed::TaggedOption;

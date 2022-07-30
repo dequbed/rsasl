@@ -5,9 +5,7 @@
 //! Yeah, *all* the runtime reflection.
 
 use thiserror::Error;
-use std::error::Error;
-use std::fmt::{Display, Formatter};
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 use crate::error::SessionError;
 use crate::property::Property;
@@ -218,7 +216,7 @@ where
     fn satisfy(&mut self, answer: &T::Value) -> Result<(), SessionError> {
         if let ClosureCRState::Open(closure) = &mut self.closure {
             let reply = closure(answer)?;
-            let _ = std::mem::replace(&mut self.closure, ClosureCRState::Satisfied(reply));
+            let _ = core::mem::replace(&mut self.closure, ClosureCRState::Satisfied(reply));
         }
         Ok(())
     }
@@ -252,13 +250,13 @@ impl<'a> Request<'a> {
     pub(crate) fn new_satisfy<'o, P: Property>(
         opt: &'o mut TaggedOption<'a, tags::RefMut<Satisfy<P>>>,
     ) -> &'o mut Self {
-        unsafe { std::mem::transmute(opt as &mut dyn Erased) }
+        unsafe { core::mem::transmute(opt as &mut dyn Erased) }
     }
 
     pub(crate) fn new_action<'o, P: Property>(
         val: &'o mut TaggedOption<'a, tags::Ref<Action<P>>>,
     ) -> &'o mut Self {
-        unsafe { std::mem::transmute(val as &mut dyn Erased) }
+        unsafe { core::mem::transmute(val as &mut dyn Erased) }
     }
 }
 impl<'a> Request<'a> {

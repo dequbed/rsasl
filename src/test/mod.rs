@@ -8,7 +8,6 @@ mod config;
 
 use std::sync::Arc;
 pub use config::{EmptyCallback, client_config, server_config};
-use crate::callback::SessionCallback;
 use crate::channel_bindings::NoChannelBindings;
 use crate::config::SASLConfig;
 use crate::registry::Mechanism;

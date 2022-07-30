@@ -39,49 +39,23 @@ impl ConfigBuilder<WantMechanisms> {
             state: WantMechanisms(()),
         }
     }
-    pub fn with_registry(self, mechanisms: Registry) -> ConfigBuilder<WantFilter> {
+    pub fn with_registry(self, mechanisms: Registry) -> ConfigBuilder<WantSorter> {
         ConfigBuilder {
-            state: WantFilter { mechanisms },
+            state: WantSorter { mechanisms },
         }
     }
-    pub fn with_default_mechanisms(self) -> ConfigBuilder<WantFilter> {
+    pub fn with_default_mechanisms(self) -> ConfigBuilder<WantSorter> {
         self.with_registry(Registry::default())
+    }
+    pub(crate) fn with_credentials_mechanisms(self) -> ConfigBuilder<WantSorter> {
+        self.with_registry(Registry::credentials())
     }
 
     pub fn with_defaults(self) -> ConfigBuilder<WantCallback> {
         ConfigBuilder {
             state: WantCallback {
                 mechanisms: Registry::default(),
-                filter: default_filter,
                 sorter: default_sorter,
-            },
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-#[doc(hidden)]
-pub struct WantFilter {
-    mechanisms: Registry,
-}
-impl ConfigBuilder<WantFilter> {
-    /// Install a filter, allowing only matching mechanisms to be used
-    ///
-    /// Specifically, only those Mechanism `m` may be used where `filter(&m)` returns true.
-    pub fn with_filter(self, filter: FilterFn) -> ConfigBuilder<WantSorter> {
-        ConfigBuilder {
-            state: WantSorter {
-                mechanisms: self.state.mechanisms,
-                filter,
-            },
-        }
-    }
-
-    pub fn without_filter(self) -> ConfigBuilder<WantSorter> {
-        ConfigBuilder {
-            state: WantSorter {
-                mechanisms: self.state.mechanisms,
-                filter: default_filter,
             },
         }
     }
@@ -91,14 +65,12 @@ impl ConfigBuilder<WantFilter> {
 #[doc(hidden)]
 pub struct WantSorter {
     mechanisms: Registry,
-    filter: FilterFn,
 }
 impl ConfigBuilder<WantSorter> {
     pub fn with_default_sorting(self) -> ConfigBuilder<WantCallback> {
         ConfigBuilder {
             state: WantCallback {
                 mechanisms: self.state.mechanisms,
-                filter: self.state.filter,
                 sorter: default_sorter,
             },
         }
@@ -109,7 +81,6 @@ impl ConfigBuilder<WantSorter> {
 #[doc(hidden)]
 pub struct WantCallback {
     mechanisms: Registry,
-    filter: FilterFn,
     sorter: SorterFn,
 }
 impl ConfigBuilder<WantCallback> {
@@ -123,7 +94,6 @@ impl ConfigBuilder<WantCallback> {
     ) -> Result<Arc<SASLConfig>, SASLError> {
         SASLConfig::new(
             callback,
-            self.state.filter,
             self.state.sorter,
             self.state.mechanisms,
         )
