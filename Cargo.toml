@@ -114,7 +114,28 @@ static_assertions = "1.1.0"
 
 [[example]]
 name = "scram_server"
-required-features = ["provider_base64"]
+required-features = ["provider", "scram-sha-1"]
+[[example]]
+name = "scram_client"
+required-features = ["provider", "scram-sha-1"]
+
+[[example]]
+name = "scram256_server"
+required-features = ["provider", "scram-sha-2"]
+[[example]]
+name = "scram256_client"
+required-features = ["provider", "scram-sha-2"]
+
+[[example]]
+name = "plain_client"
+required-features = ["provider", "plain"]
+[[example]]
+name = "plain_server_callback"
+required-features = ["provider", "plain"]
+
+[[example]]
+name = "protocol"
+required-features = ["provider", "login", "plain", "scram-sha-1", "scram-sha-2"]
 
 [workspace]
 members = ["examples/server"]
