@@ -1,6 +1,6 @@
-use crate::config::SASLConfig;
+use crate::config::Inner;
 
-pub(crate) fn register_builtin(_ctx: &mut SASLConfig) {
+pub(crate) fn register_builtin(_ctx: &mut Inner) {
     #[cfg(feature = "plain")]
     {
         let _m = &crate::mechanisms::plain::PLAIN;

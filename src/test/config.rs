@@ -1,5 +1,6 @@
 //! Mock `SASLConfig` useful for testing
 //!
+use std::sync::Arc;
 use crate::builder::{default_filter, default_sorter};
 use crate::callback::{Request, SessionCallback};
 pub use crate::callback::{Context, SessionData};
@@ -24,7 +25,7 @@ impl SessionCallback for EmptyCallback {}
 
 static MECHANISMS: [Mechanism; 2] = [RSASLTEST_CF, RSASLTEST_SF];
 
-pub fn client_config<CB: SessionCallback + 'static>(cb: CB) -> SASLConfig {
+pub fn client_config<CB: SessionCallback + 'static>(cb: CB) -> Arc<SASLConfig> {
     SASLConfig::new(
         cb,
         default_filter,
@@ -33,7 +34,7 @@ pub fn client_config<CB: SessionCallback + 'static>(cb: CB) -> SASLConfig {
     ).expect("Failed to generate known-good sasl config")
 }
 
-pub fn server_config<F>(validation: F) -> SASLConfig
+pub fn server_config<F>(validation: F) -> Arc<SASLConfig>
 where
     F: Fn(&SessionData, &Context, &mut Validate<'_>) -> Result<(), ValidationError> + 'static,
 {

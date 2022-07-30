@@ -145,7 +145,6 @@ mod tests {
             default_sorter,
             Registry::with_mechanisms(supported)
         ).expect("failed to construct sasl config");
-        let config = Arc::new(config);
 
         let client = SASLClient::new(config.clone());
         let session = client.start_suggested(offered)

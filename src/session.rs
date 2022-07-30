@@ -124,7 +124,7 @@ impl<V: Validation, C: ChannelBindingCallback> Session<V, C> {
         let (state, written) = {
             let validate = Validate::new::<V>(&mut tagged_option);
             let mut mechanism_data = MechanismData::new(
-                self.sasl.config.callback.as_ref(),
+                self.sasl.config.get_callback(),
                 &self.sasl.cb,
                 validate,
                 self.mechanism_desc,
@@ -409,7 +409,7 @@ pub(crate) mod tests {
             F: FnMut(&[u8]) -> Result<G, SessionError>,
         {
             let mechanism_data = MechanismData::new(
-                self.sasl.config.callback.as_ref(),
+                self.sasl.config.get_callback(),
                 &self.sasl.cb,
                 validate,
                 self.mechanism_desc,

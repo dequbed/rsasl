@@ -36,7 +36,7 @@ pub fn main() {
         .with_defaults()
         .with_callback(OurCallback)
         .unwrap();
-    let sasl = SASLServer::<NoValidation>::new(Arc::new(config));
+    let sasl = SASLServer::<NoValidation>::new(config);
 
     let mut session = sasl
         .start_suggested(&[Mechname::new(b"SCRAM-SHA-256").unwrap()])

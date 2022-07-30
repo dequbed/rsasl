@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 fn main() {
     let config = ClientConfig::with_credentials(None, String::new(), String::new()).unwrap();
-    let sasl = SASLClient::new(Arc::new(config));
+    let sasl = SASLClient::new(config);
 
     let presented = &[
         Mechname::new(b"LOGIN").unwrap(),

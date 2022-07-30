@@ -134,7 +134,7 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantCallback> {
     pub fn with_callback<CB: SessionCallback + 'static>(
         self,
         callback: CB,
-    ) -> Result<SASLConfig, SASLError> {
+    ) -> Result<Arc<SASLConfig>, SASLError> {
         SASLConfig::new(
             callback,
             self.state.filter,
