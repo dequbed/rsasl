@@ -3,7 +3,7 @@
 use crate::callback::{Context, Request, SessionCallback};
 use crate::error::{SASLError, SessionError};
 use crate::property::{AuthId, AuthzId, Password};
-use crate::registry::{Mechanism, Registry};
+use crate::registry::{Mechanism, MechanismIter, Registry};
 use crate::session;
 use crate::session::SessionData;
 use crate::mechname::Mechname;
@@ -122,20 +122,19 @@ impl ServerConfig {
     }
 }
 
-type ConfigInstanceIter = crate::registry::RegistryIter;
-
 mod instance {
     use std::fmt;
+    use crate::callback::SessionCallback;
     use crate::error::SASLError;
     use crate::mechanism::Authentication;
     use crate::mechname::Mechname;
-    use crate::registry::Mechanism;
-    use super::ConfigInstanceIter;
+    use crate::registry::{Mechanism, MechanismIter};
 
     pub(crate) trait ConfigInstance: fmt::Debug {
         fn select_mechanism(&self, offered: &[&Mechname])
             -> Result<(Box<dyn Authentication>, &Mechanism), SASLError>;
-        fn get_mech_iter(&self) -> ConfigInstanceIter;
+        fn get_mech_iter(&self) -> MechanismIter;
+        fn get_callback(&self) -> &dyn SessionCallback;
     }
 }
 
@@ -147,7 +146,10 @@ mod instance {
 /// designed to be passed to a protocol implementation and provide an opaque and abstracted
 /// interface to said configuration so that neither side has to expose implementation details.
 ///
-/// This type is constructed using the [`ClientConfig`] and [`ServerConfig`] helpers
+/// Due to the user-supplied config being generic this type is `!Sized`. This means you can only
+/// ever hold this type via a pointer indirection (e.g. as `Arc<SASLConfig>`, `Box<SASLConfig>`
+/// or )&SASLConfig`). Right now all functions that expect a `SASLConfig` take an
+/// `Arc<SASLConfig>`, so the `!Sized` bound has little relevancy in practice.
 pub struct SASLConfig {
     inner: dyn ConfigInstance,
 }
@@ -168,12 +170,15 @@ impl SASLConfig {
 
     #[inline]
     pub fn get_callback(&self) -> &dyn SessionCallback {
-        todo!()
+        self.inner.get_callback()
     }
 }
 
 #[cfg(feature = "config_builder")]
 impl SASLConfig {
+    fn cast(arc: Arc<dyn ConfigInstance>) -> Arc<Self> {
+        unsafe { std::mem::transmute(arc) }
+    }
     pub(crate) fn new<CB: SessionCallback + 'static>(
         callback: CB,
         filter: FilterFn,
@@ -182,11 +187,11 @@ impl SASLConfig {
     ) -> Result<Arc<Self>, SASLError> {
         let inner = Inner::new(callback, filter, sorter, mechanisms)?;
         let outer = Arc::new(inner) as Arc<dyn ConfigInstance>;
-        Ok(unsafe { std::mem::transmute(outer) })
+        Ok(Self::cast(outer))
     }
 }
 
-pub(crate) struct Inner {
+struct Inner {
     callback: Box<dyn SessionCallback>,
 
     filter: FilterFn,
@@ -247,7 +252,11 @@ impl ConfigInstance for Inner {
         todo!()
     }
 
-    fn get_mech_iter(&self) -> ConfigInstanceIter {
+    fn get_mech_iter(&self) -> MechanismIter {
         self.mechanisms.get_mechanisms()
+    }
+
+    fn get_callback(&self) -> &dyn SessionCallback {
+        self.callback.as_ref()
     }
 }
