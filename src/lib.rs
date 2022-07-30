@@ -253,14 +253,20 @@ mod builder;
 pub mod callback;
 pub mod mechanisms;
 
-// these are only relevant to a provider
-pub mod property;
+
+// Only relevant to a provider
+#[cfg(feature = "provider")]
 mod session;
+#[cfg(feature = "provider")]
 mod sasl;
 
 // These are shared in some way (and maybe shouldn't be)
 pub mod config;
+
+mod typed;
 pub mod validate;
+pub mod property;
+
 mod error;
 pub mod mechname;
 
@@ -279,7 +285,6 @@ pub mod registry;
 
 mod channel_bindings;
 mod context;
-mod typed;
 
 mod vectored_io;
 
@@ -291,7 +296,7 @@ pub mod prelude {
     pub use crate::property::Property;
     pub use crate::registry::Registry;
     pub use crate::sasl::{SASLClient, SASLServer};
-    pub use crate::session::{ClientSession, ServerSession, Session, State, StepResult};
+    pub use crate::session::{ClientSession, ServerSession, Session, State};
     pub use crate::validate::Validation;
 }
 

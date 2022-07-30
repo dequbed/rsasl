@@ -378,11 +378,6 @@ impl State {
     }
 }
 
-/// Result type of a call to `step` or `step64`
-///
-/// See the documentation of [`Session::step`] for more details about this type
-pub type StepResult = Result<(State, Option<usize>), SessionError>;
-
 impl SessionData {
     pub(crate) fn new(mechanism_desc: Mechanism, side: Side) -> Self {
         Self {
