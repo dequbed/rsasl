@@ -248,9 +248,11 @@
 //! Documentation about how to add a custom mechanism is found in the [`registry module documentation`](registry).
 
 // Mark rsasl `no_std` if the `std` feature flag is not enabled.
-#![cfg_attr(not(any(feature = "std", test)), no_std)]
-
-/* TODO: Move all uses of std stuff to instead use `core` or `alloc`
+/*
+ * #![cfg_attr(not(any(feature = "std", test)), no_std)]
+ * #[cfg(not(any(feature = "std")))]
+ * compile_error!("rsasl can't be compiled without std at the moment");
+ * TODO: Move all uses of std stuff to instead use `core` or `alloc`
  * #[cfg(all(feature = "alloc", not(any(feature = "std", test))))]
  * extern crate alloc;
  * #[cfg(any(feature = "std", test))]
