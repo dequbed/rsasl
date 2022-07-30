@@ -17,9 +17,8 @@ rust-version = "1.56.1"
 
 [features]
 default = [
-    "provider", "provider_base64",
     "config_builder",
-    "registry_static", "registry_dynamic",
+    "registry_static",
     "scram-sha-1", "scram-sha-2",
     "digest-md5", "cram-md5", "digest",
     "anonymous", "external",
@@ -75,8 +74,6 @@ config_builder = []
 
 ## Enables the static registry using `linkme`
 registry_static = ["linkme"]
-## Enables the dynamic registry
-registry_dynamic = []
 
 ## Enable utilities for testing authentication and SASL handling
 testutils = ["config_builder"]
@@ -108,6 +105,11 @@ linkme = { version = "0.2", optional = true }
 
 [dev-dependencies]
 static_assertions = "1.1.0"
+
+
+[[example]]
+name = "scram_server"
+required-features = ["provider_base64"]
 
 [workspace]
 members = ["examples/server"]

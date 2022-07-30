@@ -55,6 +55,12 @@ impl Mechname {
         }
     }
 
+    /// Copy a Mechname to the heap
+    pub fn to_boxed(&self) -> Box<Mechname> {
+        let boxed = self.inner.to_vec().into_boxed_slice();
+        unsafe { std::mem::transmute(boxed) }
+    }
+
 
     #[inline(always)]
     /// Convert a `&[u8]` into an `&Mechname` without checking validity.

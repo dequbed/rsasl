@@ -73,7 +73,14 @@ pub struct RSaslTest {
     state: RsaslState,
 }
 impl RSaslTest {
-    pub fn new(_config: &SASLConfig, _offered: &[&Mechname])
+    pub fn client(_config: &SASLConfig, _offered: &[&Mechname])
+        -> Result<Box<dyn Authentication>, SASLError>
+    {
+        Ok(Box::new(Self {
+            state: RsaslState::New,
+        }))
+    }
+    pub fn server(_config: &SASLConfig)
         -> Result<Box<dyn Authentication>, SASLError>
     {
         Ok(Box::new(Self {
@@ -96,7 +103,7 @@ impl Authentication for RSaslTest {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> Result<(State, Option<usize>), SessionError> {
         todo!()
     }
 }
@@ -104,14 +111,14 @@ impl Authentication for RSaslTest {
 pub static RSASLTEST_CF: Mechanism = Mechanism {
     mechanism: Mechname::const_new(b"X-RSASLTEST-CF"),
     priority: 0,
-    client: Some(RSaslTest::new),
-    server: Some(RSaslTest::new),
+    client: Some(RSaslTest::client),
+    server: Some(RSaslTest::server),
     first: Side::Client
 };
 pub static RSASLTEST_SF: Mechanism = Mechanism {
     mechanism: Mechname::const_new(b"X-RSASLTEST-SF"),
     priority: 0,
-    client: Some(RSaslTest::new),
-    server: Some(RSaslTest::new),
+    client: Some(RSaslTest::client),
+    server: Some(RSaslTest::server),
     first: Side::Client
 };

@@ -247,23 +247,29 @@
 //! define a [`Mechanism`](registry::Mechanism) struct describing the implemented mechanism.
 //! Documentation about how to add a custom mechanism is found in the [`registry module documentation`](registry).
 
+// none of these should be necessary for a provider to compile
 #[cfg(feature = "config_builder")]
 mod builder;
-
 pub mod callback;
-pub mod config;
-mod error;
 pub mod mechanisms;
-pub mod mechname;
-pub mod property;
-mod session;
-pub mod validate;
 
+
+// Only relevant to a provider
+#[cfg(any(feature = "provider", feature = "testutils", test))]
 mod sasl;
+
+pub mod config;
+mod session;
+
+mod typed;
+pub mod validate;
+pub mod property;
+
+mod error;
+pub mod mechname;
 
 #[cfg(feature = "gsasl")]
 mod gsasl;
-mod init;
 
 #[cfg(not(any(doc, feature = "unstable_custom_mechanism")))]
 mod mechanism;
@@ -277,20 +283,24 @@ pub mod registry;
 
 mod channel_bindings;
 mod context;
-mod typed;
 
 mod vectored_io;
 
 pub mod prelude {
     //! prelude exporting the most commonly used types
-    pub use crate::config::{ClientConfig, SASLConfig, ServerConfig};
     pub use crate::error::{SASLError, SessionError};
+
+    pub use crate::config::SASLConfig;
     pub use crate::mechname::Mechname;
     pub use crate::property::Property;
     pub use crate::registry::Registry;
-    pub use crate::sasl::{SASLClient, SASLServer};
-    pub use crate::session::{ClientSession, ServerSession, Session, State, StepResult};
+    pub use crate::session::State;
     pub use crate::validate::Validation;
+
+    #[cfg(feature = "provider")]
+    pub use crate::sasl::{SASLClient, SASLServer};
+    #[cfg(feature = "provider")]
+    pub use crate::session::Session;
 }
 
 #[cfg(any(test, feature = "testutils"))]

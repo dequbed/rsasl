@@ -1,13 +1,12 @@
 //! Mechanism traits *only available with feature `unstable_custom_mechanism`*
 //!
 //!
-use crate::error::SessionError;
 use crate::error::SessionError::NoSecurityLayer;
 use std::io::Write;
 
 pub use crate::context::{Demand, DemandReply, Provider, ProviderExt, ThisProvider};
-pub use crate::error::{MechanismError, MechanismErrorKind};
-pub use crate::session::{MechanismData, StepResult};
+pub use crate::error::{MechanismError, MechanismErrorKind, SessionError};
+pub use crate::session::{MechanismData, State};
 
 /// Trait implemented to be one party in an authentication exchange
 ///
@@ -24,7 +23,7 @@ pub trait Authentication {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult;
+    ) -> Result<(State, Option<usize>), SessionError>;
 
     // TODO: Document the problems with SASL security layers before release
     // TODO: Split Authentication & Security Layer stuff?
@@ -34,6 +33,9 @@ pub trait Authentication {
     }
     fn decode(&mut self, _input: &[u8], _writer: &mut dyn Write) -> Result<usize, SessionError> {
         Err(NoSecurityLayer)
+    }
+    fn has_security_layer(&self) -> bool {
+        false
     }
 }
 

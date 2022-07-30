@@ -16,7 +16,7 @@ pub static PLAIN: Mechanism = Mechanism {
     mechanism: &Mechname::const_new(b"PLAIN"),
     priority: 300,
     client: Some(|_sasl, _offered| Ok(Box::new(client::Plain))),
-    server: Some(|_sasl, _offered| Ok(Box::new(server::Plain))),
+    server: Some(|_sasl| Ok(Box::new(server::Plain))),
     first: Side::Client,
 };
 

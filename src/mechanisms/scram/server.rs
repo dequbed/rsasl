@@ -4,7 +4,7 @@ use crate::mechanisms::scram::parser::{
     ClientFinal, ClientFirstMessage, ServerErrorValue, ServerFinal, ServerFirst,
 };
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, DOutput};
-use crate::session::{MechanismData, State, StepResult};
+use crate::session::{MechanismData, State};
 use crate::vectored_io::VectoredWriter;
 use digest::crypto_common::BlockSizeUser;
 use digest::generic_array::GenericArray;
@@ -270,7 +270,7 @@ impl<D: Digest + BlockSizeUser, const N: usize> Authentication for ScramServer<D
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> Result<(State, Option<usize>), SessionError> {
         use ScramServerState::*;
         match self.state.take() {
             Some(WaitingClientFirst(state)) => {

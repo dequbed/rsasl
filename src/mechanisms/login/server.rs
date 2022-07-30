@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
-use crate::mechanism::{Authentication, MechanismError, StepResult};
+use crate::mechanism::{Authentication, MechanismError};
 use crate::session::{MechanismData, State};
 use std::io::Write;
 use std::ptr::NonNull;
@@ -48,7 +48,7 @@ impl Authentication for Login {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> Result<(State, Option<usize>), SessionError> {
         match self.state {
             LoginState::New => {
                 let out = b"User Name\0";

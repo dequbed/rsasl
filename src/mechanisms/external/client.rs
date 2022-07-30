@@ -1,8 +1,9 @@
 use crate::context::EmptyProvider;
 use crate::mechanism::Authentication;
 use crate::property::AuthId;
-use crate::session::{MechanismData, State, StepResult};
+use crate::session::{MechanismData, State};
 use std::io::Write;
+use crate::error::SessionError;
 
 #[derive(Copy, Clone, Debug)]
 pub struct External;
@@ -13,7 +14,7 @@ impl Authentication for External {
         session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> Result<(State, Option<usize>), SessionError> {
         let mut len = None;
 
         session.need_with::<AuthId, _, ()>(&EmptyProvider, &mut |authid| {
