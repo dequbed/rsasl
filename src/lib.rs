@@ -294,8 +294,6 @@ mod context;
 
 mod vectored_io;
 
-pub mod io;
-
 pub mod prelude {
     //! prelude exporting the most commonly used types
     pub use crate::error::{SASLError, SessionError};
@@ -335,9 +333,11 @@ pub mod docs {
         }
     }
 
-    /*pub mod features {
+    /*
+    pub mod features {
         //! primer on the use of cargo features in rsasl
         //!
         #![doc = document_features::document_features!()]
-    }*/
+    }
+     */
 }
