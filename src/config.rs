@@ -25,7 +25,6 @@ trait ConfigInstance: fmt::Debug {
 }
 
 #[repr(transparent)]
-#[derive(Debug)]
 /// Opaque supplier configuration encoding all details necessary to perform authentication exchanges
 ///
 /// This type contains all user-specified configuration necessary for SASL authentication. It is
@@ -38,6 +37,11 @@ trait ConfigInstance: fmt::Debug {
 /// `Arc<SASLConfig>`, so the `!Sized` bound has little relevancy in practice.
 pub struct SASLConfig {
     inner: dyn ConfigInstance + Send + Sync,
+}
+impl fmt::Debug for SASLConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.inner.fmt(f)
+    }
 }
 
 impl SASLConfig {
