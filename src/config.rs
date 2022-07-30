@@ -12,86 +12,17 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::pin::Pin;
 use std::sync::Arc;
-use instance::ConfigInstance;
 
-#[cfg(feature = "config_builder")]
-pub use crate::builder::ConfigBuilder;
 use crate::mechanism::Authentication;
 
 pub(crate) type FilterFn = fn(a: &Mechanism) -> bool;
 pub(crate) type SorterFn = fn(a: &Mechanism, b: &Mechanism) -> Ordering;
 
-#[cfg(feature = "config_builder")]
-impl SASLConfig {
-    pub fn builder() -> ConfigBuilder<crate::builder::WantMechanisms> {
-        ConfigBuilder::new()
-    }
-
-    /// Construct a SASLConfig with static credentials
-    ///
-    ///
-    pub fn with_credentials(
-        authzid: Option<String>,
-        authid: String,
-        password: String,
-    ) -> Result<Arc<SASLConfig>, SASLError> {
-        struct CredentialsProvider {
-            authid: String,
-            password: String,
-            authzid: Option<String>,
-        }
-        impl SessionCallback for CredentialsProvider {
-            fn callback(
-                &self,
-                _session_data: &SessionData,
-                _context: &Context,
-                request: &mut Request<'_>,
-            ) -> Result<(), SessionError> {
-                request
-                    .satisfy::<AuthId>(self.authid.as_str())?
-                    .satisfy::<Password>(self.password.as_bytes())?;
-                if let Some(authzid) = self.authzid.as_deref() {
-                    request.satisfy::<AuthzId>(authzid)?;
-                }
-                Ok(())
-            }
-        }
-
-        let callback = CredentialsProvider {
-            authid,
-            password,
-            authzid,
-        };
-
-        Self::builder()
-            .with_default_mechanisms()
-            .with_filter(|mechanism| {
-                let name = mechanism.mechanism;
-                match name.as_str() {
-                    "PLAIN" | "LOGIN" => true,
-                    n if n.starts_with("SCRAM-") => true,
-                    _ => false,
-                }
-            })
-            .with_default_sorting()
-            .with_callback(callback)
-    }
-}
-
-mod instance {
-    use std::fmt;
-    use crate::callback::SessionCallback;
-    use crate::error::SASLError;
-    use crate::mechanism::Authentication;
-    use crate::mechname::Mechname;
-    use crate::registry::{Mechanism, MechanismIter};
-
-    pub(crate) trait ConfigInstance: fmt::Debug {
-        fn select_mechanism(&self, offered: &[&Mechname])
-            -> Result<(Box<dyn Authentication>, &Mechanism), SASLError>;
-        fn get_mech_iter(&self) -> MechanismIter;
-        fn get_callback(&self) -> &dyn SessionCallback;
-    }
+trait ConfigInstance: fmt::Debug {
+    fn select_mechanism(&self, offered: &[&Mechname])
+        -> Result<(Box<dyn Authentication>, &Mechanism), SASLError>;
+    fn get_mech_iter(&self) -> MechanismIter;
+    fn get_callback(&self) -> &dyn SessionCallback;
 }
 
 #[repr(transparent)]
@@ -111,108 +42,154 @@ pub struct SASLConfig {
 }
 
 impl SASLConfig {
-    #[inline]
+    #[inline(always)]
     /// Select the best mechanism of the offered ones.
-    pub fn select_mechanism(&self, offered: &[&Mechname])
+    pub(crate) fn select_mechanism(&self, offered: &[&Mechname])
         -> Result<(Box<dyn Authentication>, &Mechanism), SASLError>
     {
         self.inner.select_mechanism(offered)
     }
 
-    #[inline]
-    pub fn mech_list(&self) -> impl Iterator<Item=&Mechanism> {
+    #[inline(always)]
+    pub(crate) fn mech_list(&self) -> impl Iterator<Item=&Mechanism> {
         self.inner.get_mech_iter()
     }
 
-    #[inline]
-    pub fn get_callback(&self) -> &dyn SessionCallback {
+    #[inline(always)]
+    pub(crate) fn get_callback(&self) -> &dyn SessionCallback {
         self.inner.get_callback()
     }
 }
 
 #[cfg(feature = "config_builder")]
-impl SASLConfig {
-    fn cast(arc: Arc<dyn ConfigInstance>) -> Arc<Self> {
-        unsafe { std::mem::transmute(arc) }
+mod instance {
+    use super::*;
+    pub use crate::builder::ConfigBuilder;
+
+    impl SASLConfig {
+        fn cast(arc: Arc<dyn ConfigInstance>) -> Arc<Self> {
+            unsafe { std::mem::transmute(arc) }
+        }
+
+        pub(crate) fn new<CB: SessionCallback + 'static>(
+            callback: CB,
+            filter: FilterFn,
+            sorter: SorterFn,
+            mechanisms: Registry,
+        ) -> Result<Arc<Self>, SASLError> {
+            let inner = Inner::new(callback, filter, sorter, mechanisms)?;
+            let outer = Arc::new(inner) as Arc<dyn ConfigInstance>;
+            Ok(Self::cast(outer))
+        }
+
+        pub fn builder() -> ConfigBuilder<crate::builder::WantMechanisms> {
+            ConfigBuilder::new()
+        }
+
+        /// Construct a SASLConfig with static credentials
+        ///
+        ///
+        pub fn with_credentials(
+            authzid: Option<String>,
+            authid: String,
+            password: String,
+        ) -> Result<Arc<SASLConfig>, SASLError> {
+            struct CredentialsProvider {
+                authid: String,
+                password: String,
+                authzid: Option<String>,
+            }
+            impl SessionCallback for CredentialsProvider {
+                fn callback(
+                    &self,
+                    _session_data: &SessionData,
+                    _context: &Context,
+                    request: &mut Request<'_>,
+                ) -> Result<(), SessionError> {
+                    request
+                        .satisfy::<AuthId>(self.authid.as_str())?
+                        .satisfy::<Password>(self.password.as_bytes())?;
+                    if let Some(authzid) = self.authzid.as_deref() {
+                        request.satisfy::<AuthzId>(authzid)?;
+                    }
+                    Ok(())
+                }
+            }
+
+            let callback = CredentialsProvider {
+                authid,
+                password,
+                authzid,
+            };
+
+            Self::builder()
+                .with_default_mechanisms()
+                .with_filter(|mechanism| {
+                    let name = mechanism.mechanism;
+                    match name.as_str() {
+                        "PLAIN" | "LOGIN" => true,
+                        n if n.starts_with("SCRAM-") => true,
+                        _ => false,
+                    }
+                })
+                .with_default_sorting()
+                .with_callback(callback)
+        }
     }
-    pub(crate) fn new<CB: SessionCallback + 'static>(
-        callback: CB,
+
+
+    struct Inner {
+        callback: Box<dyn SessionCallback>,
+
         filter: FilterFn,
         sorter: SorterFn,
+
         mechanisms: Registry,
-    ) -> Result<Arc<Self>, SASLError> {
-        let inner = Inner::new(callback, filter, sorter, mechanisms)?;
-        let outer = Arc::new(inner) as Arc<dyn ConfigInstance>;
-        Ok(Self::cast(outer))
-    }
-}
-
-struct Inner {
-    callback: Box<dyn SessionCallback>,
-
-    filter: FilterFn,
-    sorter: SorterFn,
-
-    mechanisms: Registry,
-}
-impl fmt::Debug for Inner {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SASLConfig")
-            .field("mechanisms", &self.mechanisms)
-            .finish()
-    }
-}
-
-impl Inner {
-    pub fn mech_list(&self) -> impl Iterator<Item = &Mechanism> {
-        self.mechanisms.get_mechanisms()
-            .filter(|m| (self.filter)(m))
-    }
-}
-
-#[cfg(any(feature = "config_builder", feature = "testutils"))]
-impl Inner {
-    pub(crate) fn new<CB: SessionCallback + 'static>(
-        callback: CB,
-        filter: FilterFn,
-        sorter: SorterFn,
-        mechanisms: Registry,
-    ) -> Result<Self, SASLError> {
-        Ok(Self {
-            callback: Box::new(callback),
-            filter,
-            sorter,
-            mechanisms,
-        })
-    }
-}
-
-impl Inner {
-    #[cfg(any(feature = "registry_dynamic"))]
-    /// Register the builtin mechanisms
-    ///
-    /// When `registry_static` is enabled this method is a no-op and does not need to be called.
-    /// Otherwise this will register all built-in mechanisms via the dynamic registry.
-    pub fn register_builtin(&mut self) {
-        crate::init::register_builtin(self)
     }
 
-    #[cfg(feature = "registry_dynamic")]
-    /// Register a mechanism
-    pub fn register(&mut self, mechanism: &'static Mechanism) {
-        self.mechanisms.register(mechanism)
-    }
-}
-impl ConfigInstance for Inner {
-    fn select_mechanism(&self, offered: &[&Mechname]) -> Result<(Box<dyn Authentication>, &Mechanism), SASLError> {
-        todo!()
+    impl fmt::Debug for Inner {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("SASLConfig")
+             .field("mechanisms", &self.mechanisms)
+             .finish()
+        }
     }
 
-    fn get_mech_iter(&self) -> MechanismIter {
-        self.mechanisms.get_mechanisms()
+    impl Inner {
+        pub fn mech_list(&self) -> impl Iterator<Item=&Mechanism> {
+            self.mechanisms.get_mechanisms()
+                .filter(|m| (self.filter)(m))
+        }
     }
 
-    fn get_callback(&self) -> &dyn SessionCallback {
-        self.callback.as_ref()
+    #[cfg(any(feature = "config_builder", feature = "testutils"))]
+    impl Inner {
+        pub(crate) fn new<CB: SessionCallback + 'static>(
+            callback: CB,
+            filter: FilterFn,
+            sorter: SorterFn,
+            mechanisms: Registry,
+        ) -> Result<Self, SASLError> {
+            Ok(Self {
+                callback: Box::new(callback),
+                filter,
+                sorter,
+                mechanisms,
+            })
+        }
+    }
+
+    impl ConfigInstance for Inner {
+        fn select_mechanism(&self, offered: &[&Mechname]) -> Result<(Box<dyn Authentication>, &Mechanism), SASLError> {
+            todo!()
+        }
+
+        fn get_mech_iter(&self) -> MechanismIter {
+            self.mechanisms.get_mechanisms()
+        }
+
+        fn get_callback(&self) -> &dyn SessionCallback {
+            self.callback.as_ref()
+        }
     }
 }
