@@ -34,6 +34,9 @@ pub trait Authentication {
     fn decode(&mut self, _input: &[u8], _writer: &mut dyn Write) -> Result<usize, SessionError> {
         Err(NoSecurityLayer)
     }
+    fn has_security_layer(&self) -> bool {
+        false
+    }
 }
 
 // TODO(?): Proper generic version of the Authentication trait with defined Error types?
