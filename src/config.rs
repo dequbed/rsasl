@@ -18,39 +18,13 @@ use instance::ConfigInstance;
 pub use crate::builder::ConfigBuilder;
 use crate::mechanism::Authentication;
 
-mod sealed {
-    pub trait Sealed {}
-    impl Sealed for super::ClientSide {}
-    impl Sealed for super::ServerSide {}
-}
-pub trait ConfigSide: sealed::Sealed {
-    const SIDE: session::Side;
-}
-
-impl ConfigSide for ClientSide {
-    const SIDE: session::Side = session::Side::Client;
-}
-impl ConfigSide for ServerSide {
-    const SIDE: session::Side = session::Side::Server;
-}
-
 pub(crate) type FilterFn = fn(a: &Mechanism) -> bool;
 pub(crate) type SorterFn = fn(a: &Mechanism, b: &Mechanism) -> Ordering;
 
-pub struct ClientSide {
-    _marker: PhantomData<()>,
-}
-
-/// Configuration for a client-side SASL authentication
-///
-/// This is an easier to use type shortcut for the sided [`SASLConfig`] type.
-pub struct ClientConfig;
 #[cfg(feature = "config_builder")]
-impl ClientConfig {
-    pub fn builder() -> ConfigBuilder<ClientSide, crate::builder::WantMechanisms> {
-        ConfigBuilder::new(ClientSide {
-            _marker: PhantomData,
-        })
+impl SASLConfig {
+    pub fn builder() -> ConfigBuilder<crate::builder::WantMechanisms> {
+        ConfigBuilder::new()
     }
 
     /// Construct a SASLConfig with static credentials
@@ -101,24 +75,6 @@ impl ClientConfig {
             })
             .with_default_sorting()
             .with_callback(callback)
-    }
-}
-
-pub struct ServerSide {
-    _marker: PhantomData<()>,
-}
-
-/// Configuration for a server-side SASL authentication
-///
-/// This is an easier to use type shortcut for the sided [`SASLConfig`] type.
-pub struct ServerConfig;
-
-#[cfg(feature = "config_builder")]
-impl ServerConfig {
-    pub fn builder() -> ConfigBuilder<ServerSide, crate::builder::WantMechanisms> {
-        ConfigBuilder::new(ServerSide {
-            _marker: PhantomData,
-        })
     }
 }
 

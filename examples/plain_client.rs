@@ -21,7 +21,7 @@ pub fn main() {
         return;
     }
     print!("\n");
-    let config = ClientConfig::with_credentials(None, username, password).unwrap();
+    let config = SASLConfig::with_credentials(None, username, password).unwrap();
 
     // Create an untyped SASL because we won't store/retrieve information in the context since
     // we don't use callbacks.

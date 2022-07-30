@@ -55,7 +55,7 @@ impl Authentication for Login {
 mod tests {
     use std::io::Cursor;
     use std::sync::Arc;
-    use crate::config::ClientConfig;
+    use crate::config::SASLConfig;
     use crate::mechanisms::login::mechinfo::LOGIN;
     use crate::sasl::SASLClient;
     use crate::session::{Session, Side};
@@ -64,7 +64,7 @@ mod tests {
 
     #[test]
     fn simple_combination() {
-        let config = ClientConfig::with_credentials(None, "testuser".to_string(), "password".to_string())
+        let config = SASLConfig::with_credentials(None, "testuser".to_string(), "password".to_string())
             .unwrap();
         let mut login = test_client_session(config, &LOGIN);
         let mut out = Cursor::new(Vec::new());

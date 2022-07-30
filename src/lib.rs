@@ -285,7 +285,7 @@ mod vectored_io;
 
 pub mod prelude {
     //! prelude exporting the most commonly used types
-    pub use crate::config::{ClientConfig, SASLConfig, ServerConfig};
+    pub use crate::config::SASLConfig;
     pub use crate::error::{SASLError, SessionError};
     pub use crate::mechname::Mechname;
     pub use crate::property::Property;

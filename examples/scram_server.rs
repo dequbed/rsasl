@@ -1,5 +1,4 @@
 use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
-use rsasl::prelude::ServerConfig;
 use rsasl::prelude::*;
 use rsasl::property::{AuthId, AuthzId};
 use rsasl::validate::{Validate, Validation, ValidationError};
@@ -58,7 +57,7 @@ impl Validation for TestValidation {
 }
 
 pub fn main() {
-    let config = ServerConfig::builder()
+    let config = SASLConfig::builder()
         .with_defaults()
         .with_callback(OurCallback)
         .unwrap();

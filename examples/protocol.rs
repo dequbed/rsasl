@@ -2,7 +2,7 @@ use rsasl::prelude::*;
 use std::sync::Arc;
 
 fn main() {
-    let config = ClientConfig::with_credentials(None, String::new(), String::new()).unwrap();
+    let config = SASLConfig::with_credentials(None, String::new(), String::new()).unwrap();
     let sasl = SASLClient::new(config);
 
     let presented = &[
