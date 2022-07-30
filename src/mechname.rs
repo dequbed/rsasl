@@ -1,9 +1,10 @@
 //! Utilities for handling and validating names of Mechanisms
 //!
-use std::convert::TryFrom;
+use core::convert::TryFrom;
+use crate::alloc::boxed::Box;
 
-use std::fmt::{Debug, Display, Formatter};
-use std::ops::Deref;
+use core::fmt;
+use core::ops::Deref;
 use thiserror::Error;
 
 use crate::mechname::MechanismNameError::InvalidChar;
@@ -51,14 +52,32 @@ impl Mechname {
             // be equivalent to the length of the input
             debug_assert_eq!(len, input.len());
 
-            Ok(unsafe { Mechname::const_new_unchecked(input) })
+            Ok(Self::const_new(input))
         }
+    }
+
+    /// Copy a Mechname to the heap
+    pub fn to_boxed(&self) -> Box<Mechname> {
+        let boxed = self.inner.to_vec().into_boxed_slice();
+        unsafe { core::mem::transmute(boxed) }
+    }
+
+
+    #[inline(always)]
+    /// Convert a `&[u8]` into an `&Mechname` without checking validity.
+    ///
+    /// Like [`Mechname::const_new_unchecked`] this is not marked `unsafe` because it is save
+    /// from a Memory protection POV, and does not validate the implicit UTF-8 assertion of
+    /// Rust, it just potentially may result in (memory-safe!) bugs if the given slice contains
+    /// invalid bytes.
+    pub fn new_unchecked(input: &[u8]) -> &Mechname {
+        Self::const_new(input)
     }
 
     #[must_use]
     #[inline]
     pub fn as_str(&self) -> &str {
-        unsafe { std::str::from_utf8_unchecked(&self.inner) }
+        unsafe { core::str::from_utf8_unchecked(&self.inner) }
     }
 
     #[must_use]
@@ -66,24 +85,16 @@ impl Mechname {
     pub fn as_bytes(&self) -> &[u8] {
         &self.inner
     }
+
+    pub(crate) const fn const_new(s: &[u8]) -> &Mechname {
+        unsafe { core::mem::transmute(s) }
+    }
 }
 
-/// Some more exotic (read less safe/sane) associated functions are also available.
+#[cfg(feature = "unstable_custom_mechanism")]
+/// These associated functions are only available with feature `unstable_custom_mechanism`. They
+/// are *not guaranteed to be stable under semver*
 impl Mechname {
-    #[inline(always)]
-    /// `const` capable conversion from `&'a [u8]` to `&'a Mechname`.
-    ///
-    /// This function uses const parameters to check the length of the passed Mechanism and will
-    /// fail to compile (with a rather cryptic message) when passed a `const [u8]` that's shorter
-    /// than 1 char or longer than 20.
-    pub(crate) const fn const_new_unvalidated<const LEN: usize>(s: &[u8; LEN]) -> &Mechname
-    where
-        CheckLen<LEN>: IsOk,
-    {
-        let r: &[u8] = s;
-        unsafe { Self::const_new_unchecked(r) }
-    }
-
     #[inline(always)]
     /// `const` capable conversion from `&'a [u8]` to `&'a Mechname` with no validity checking.
     ///
@@ -92,30 +103,19 @@ impl Mechname {
     /// containing a subset of ASCII, which may result in undefined behaviour.
     ///
     /// Uses transmute due to [rustc issue #51911](https://github.com/rust-lang/rust/issues/51911)
-    pub const unsafe fn const_new_unchecked(s: &[u8]) -> &Mechname {
-        std::mem::transmute(s)
-    }
-
-    #[inline(always)]
-    /// Convert a `&str` into an `&Mechname` without checking validity.
-    ///
-    /// Unlike [`Mechname::const_new_unchecked`] this is not marked `unsafe` because it is save
-    /// from a Memory protection POV, and does not validate the implicit UTF-8 assertion of
-    /// Rust, it just potentially may result in (memory-safe!) bugs if the given slice contains
-    /// invalid bytes.
-    pub fn new_unchecked<'a, S: AsRef<str> + 'a>(s: S) -> &'a Mechname {
-        unsafe { &*(s.as_ref().as_bytes() as *const [u8] as *const Mechname) }
+    pub const fn const_new_unchecked(s: &[u8]) -> &Mechname {
+        Self::const_new(s)
     }
 }
 
-impl Display for Mechname {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for Mechname {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
     }
 }
 
-impl Debug for Mechname {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for Mechname {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "MECHANISM({})", self.as_str())
     }
 }
@@ -176,34 +176,7 @@ pub enum MechanismNameError {
     },
 }
 
-use compiletime_checking::*;
-#[doc(hidden)]
-pub mod compiletime_checking {
-    pub trait IsOk {}
-    pub struct CheckLen<const N: usize>;
-    impl IsOk for CheckLen<1> {}
-    impl IsOk for CheckLen<2> {}
-    impl IsOk for CheckLen<3> {}
-    impl IsOk for CheckLen<4> {}
-    impl IsOk for CheckLen<5> {}
-    impl IsOk for CheckLen<6> {}
-    impl IsOk for CheckLen<7> {}
-    impl IsOk for CheckLen<8> {}
-    impl IsOk for CheckLen<9> {}
-    impl IsOk for CheckLen<10> {}
-    impl IsOk for CheckLen<11> {}
-    impl IsOk for CheckLen<12> {}
-    impl IsOk for CheckLen<13> {}
-    impl IsOk for CheckLen<14> {}
-    impl IsOk for CheckLen<15> {}
-    impl IsOk for CheckLen<16> {}
-    impl IsOk for CheckLen<17> {}
-    impl IsOk for CheckLen<18> {}
-    impl IsOk for CheckLen<19> {}
-    impl IsOk for CheckLen<20> {}
-}
-
-#[cfg(ntest)]
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -215,18 +188,16 @@ mod tests {
             "GS2-KRB5-PLUS",
             "XOAUTHBEARER",
             "EXACTLY_20_CHAR_LONG",
-        ];
-        let toolong = [
             "X-THIS-MECHNAME-IS-TOO-LONG",
             "EXACTLY_21_CHARS_LONG",
-            "SCRAM-SHA256-PLUS GSSAPI X-OAUTH2",
         ];
         let invalidchars = [
-            ("PLAIN GSSAPI LOGIN", b' '),
-            ("X-CONTAINS-NULL\0", b'\0'),
-            ("PLAIN\0", b'\0'),
-            ("X-lowercase", b'l'),
-            ("X-LÄTIN1", b'\xC3'),
+            ("PLAIN GSSAPI LOGIN", 5, b' '),
+            ("SCRAM-SHA256-PLUS GSSAPI X-OAUTH2", 17, b' '),
+            ("X-CONTAINS-NULL\0", 15, b'\0'),
+            ("PLAIN\0", 5, b'\0'),
+            ("X-lowercase", 2, b'l'),
+            ("X-LÄTIN1", 3, b'\xC3'),
         ];
 
         for m in valids {
@@ -234,19 +205,14 @@ mod tests {
             let res = Mechname::new(m.as_bytes()).map(|m| m.as_bytes());
             assert_eq!(res, Ok(m.as_bytes()));
         }
-        for m in toolong {
+        for (m, index, value) in invalidchars {
             let e = Mechname::new(m.as_bytes())
                 .map(|m| m.as_bytes())
                 .unwrap_err();
             println!("Checking {}: {}", m, e);
-            assert_eq!(e, TooLong);
-        }
-        for (m, bad) in invalidchars {
-            let e = Mechname::new(m.as_bytes())
-                .map(|m| m.as_bytes())
-                .unwrap_err();
-            println!("Checking {}: {}", m, e);
-            assert_eq!(e, InvalidChars(bad))
+            assert_eq!(e, MechanismNameError::InvalidChar {
+                index, value
+            })
         }
     }
 }

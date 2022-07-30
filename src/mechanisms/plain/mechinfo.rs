@@ -9,11 +9,14 @@ use thiserror::Error;
 #[cfg(feature = "registry_static")]
 use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+/// Mechanism description for PLAIN
+///
+/// See the [`plain`](super) module documentation for details and usage.
 pub static PLAIN: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unvalidated(b"PLAIN"),
+    mechanism: &Mechname::const_new(b"PLAIN"),
     priority: 300,
     client: Some(|_sasl, _offered| Ok(Box::new(client::Plain))),
-    server: Some(|_sasl, _offered| Ok(Box::new(server::Plain))),
+    server: Some(|_sasl| Ok(Box::new(server::Plain))),
     first: Side::Client,
 };
 

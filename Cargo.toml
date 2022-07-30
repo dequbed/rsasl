@@ -1,6 +1,6 @@
 [package]
 name = "rsasl"
-version = "2.0.0-preview6"
+version = "2.0.0-alpha1"
 authors = ["Nadja Reitzenstein <me@dequbed.space>"]
 edition = "2021"
 description = """The Rust SASL framework, aimed at both middleware-style protocol implementation and application code.
@@ -12,14 +12,13 @@ readme = "README.md"
 categories = ["authentication", "api-bindings", "network-programming"]
 keywords = ["sasl", "authentication", "sso", "framework", "middleware"]
 documentation = "https://docs.rs/rsasl"
-rust-version = "1.56.1"
+rust-version = "1.56.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
 default = [
-    "provider", "provider_base64",
     "config_builder",
-    "registry_static", "registry_dynamic",
+    "registry_static",
     "scram-sha-1", "scram-sha-2",
     "digest-md5", "cram-md5", "digest",
     "anonymous", "external",
@@ -28,29 +27,36 @@ default = [
     "openid20", "saml20"
 ]
 
+## Enable use of libstd
+## If this flag is not set, rsasl is marked ![no_std]. However, currently this flag will *always* be enabled as core
+## parts of rsasl depend on the stdlib.
+std = []
+
+gsasl = ["libc"]
+
 #! ## Compile-time mechanism selection
 ## Enable `SCRAM-SHA-1` and `SCRAM-SHA-1-PLUS`
-scram-sha-1 = ["saslprep", "hmac", "digest", "sha-1", "base64", "rand", "pbkdf2"]
+scram-sha-1 = ["std", "saslprep", "hmac", "digest", "sha-1", "base64", "rand", "pbkdf2"]
 ## Enable `SCRAM-*` and `SCRAM-*-PLUS` mechanisms using `SHA-2`, i.e. `SHA-256` and `SHA-512`
-scram-sha-2 = ["saslprep", "hmac", "digest", "sha2", "base64", "rand", "pbkdf2"]
+scram-sha-2 = ["std", "saslprep", "hmac", "digest", "sha2", "base64", "rand", "pbkdf2"]
 ## Enable `DIGEST-MD5`
-digest-md5 = ["saslprep", "hmac", "digest", "md-5", "base64"]
+digest-md5 = ["std", "gsasl", "saslprep", "hmac", "digest", "md-5", "base64"]
 ## Enable `CRAM-MD5`
-cram-md5 = ["saslprep", "hmac", "digest", "md-5"]
+cram-md5 = ["std", "gsasl", "saslprep", "hmac", "digest", "md-5"]
 ## Enable `ANONYMOUS`
-anonymous = []
+anonymous = ["std"]
 ## Enable `EXTERNAL`
-external = []
+external = ["std"]
 ## Enable `PLAIN`
-plain = ["saslprep"]
+plain = ["std", "saslprep"]
 ## Enable `LOGIN`
-login = ["saslprep"]
+login = ["std"]
 ## Enable `OPENID20`
-openid20 = []
+openid20 = ["std", "gsasl"]
 ## Enable `SAML20`
-saml20 = []
+saml20 = ["std", "gsasl"]
 ## Enable `SECURID`
-securid = []
+securid = ["std", "gsasl"]
 
 #! ## Provider flags
 #! These flags are relevant for crates that want to use rsasl as authentication provider, i.e. crates implementing
@@ -59,30 +65,32 @@ securid = []
 ## Enable provider mode
 ##
 ## This feature enables all the required code for providers, e.g. code surrounding `Session`
-provider = []
+provider = ["std"]
 ## Enable transparent Base64 wrapping for provider mode
 ##
 ## This enables the `step64` method to wrap a call to `step` in base64-encoding. Adds a dependency on the `base64` crate
-provider_base64 = ["provider", "base64"]
+provider_base64 = ["std", "provider", "base64"]
 
 #! ## Supplier flags
 #! These flags are relevant for crates that want to use rsasl as supplier, i.e. applications and libraries making use
 #! of protocol implementations with rsasl support
 ## Enable the ConfigBuilder
-config_builder = []
+config_builder = ["std"]
 
 ## Enables the static registry using `linkme`
-registry_static = ["linkme"]
-## Enables the dynamic registry
-registry_dynamic = []
+registry_static = ["std", "linkme"]
 
-saslprep = ["stringprep"]
+## Enable utilities for testing authentication and SASL handling
+testutils = ["std", "config_builder"]
 
-unstable_custom_mechanism = []
+saslprep = ["std", "stringprep"]
+
+unstable_custom_mechanism = ["std"]
 
 [dependencies]
-libc = "0.2"
 thiserror = "1.0"
+
+libc = { version = "0.2", optional = true }
 
 base64 = { version = "0.13", optional = true }
 
@@ -102,6 +110,31 @@ linkme = { version = "0.2", optional = true }
 
 [dev-dependencies]
 static_assertions = "1.1.0"
+
+[[example]]
+name = "scram_server"
+required-features = ["provider", "scram-sha-1"]
+[[example]]
+name = "scram_client"
+required-features = ["provider", "scram-sha-1"]
+
+[[example]]
+name = "scram256_server"
+required-features = ["provider", "scram-sha-2"]
+[[example]]
+name = "scram256_client"
+required-features = ["provider", "scram-sha-2"]
+
+[[example]]
+name = "plain_client"
+required-features = ["provider", "plain"]
+[[example]]
+name = "plain_server_callback"
+required-features = ["provider", "plain"]
+
+[[example]]
+name = "protocol"
+required-features = ["provider", "login", "plain", "scram-sha-1", "scram-sha-2"]
 
 [workspace]
 members = ["examples/server"]

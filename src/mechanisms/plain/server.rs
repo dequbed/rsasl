@@ -5,9 +5,10 @@ use stringprep::saslprep;
 
 use super::mechinfo::PlainError;
 use crate::context::{Demand, DemandReply, Provider};
+use crate::error::SessionError;
 use crate::mechanism::Authentication;
 use crate::property::{AuthId, AuthzId, Password};
-use crate::session::{MechanismData, State, StepResult};
+use crate::session::{MechanismData, State};
 
 pub struct Plain;
 #[derive(Debug)]
@@ -35,7 +36,7 @@ impl Authentication for Plain {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> Result<(State, Option<usize>), SessionError> {
         if input.map(|buf| buf.len()).unwrap_or(0) < 4 {
             return Err(PlainError::BadFormat.into());
         }

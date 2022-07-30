@@ -7,9 +7,9 @@ use crate::session::Side;
 use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static EXTERNAL: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new_unvalidated(b"EXTERNAL"),
+    mechanism: &Mechname::const_new(b"EXTERNAL"),
     priority: 100,
     client: Some(|_sasl, _offered| Ok(Box::new(client::External))),
-    server: Some(|_sasl, _offered| Ok(Box::new(server::External))),
+    server: Some(|_sasl| Ok(Box::new(server::External))),
     first: Side::Client,
 };

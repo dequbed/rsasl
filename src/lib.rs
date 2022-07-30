@@ -88,10 +88,10 @@
 //! # Protocol Implementations
 //!
 //! The starting point of rsasl for protocol implementations is the
-//! sided [`SASLConfig`](prelude::SASLConfig) struct, usually as
-//! [`ClientConfig`](prelude::ClientConfig) or [`ServerConfig`](prelude::ServerConfig).
-//! These structs are created by the downstream user of the protocol crate and contain all
-//! required configuration and data in an opaque and easily storable way.
+//! [`SASLConfig`](prelude::SASLConfig) struct.
+//! This struct is created by the downstream user of the protocol crate and contains all
+//! required configuration and data to select mechanism and authenticate using them in an opaque
+//! and storable way.
 //! The `SASLConfig` type is designed to be long-lived and to be valid for multiple contexts and
 //! authentication exchanges.
 //!
@@ -99,14 +99,18 @@
 //! [`SASLServer`](prelude::SASLServer) is constructed from this config, allowing a
 //! protocol crate to provide additional, context-specific, data.
 //!
-//! The produced `SASLClient` / `SASLServer` are thus themselves context-specific and usually not
-//! readily reusable, for example channel bindings are specific to a single TLS session requiring a
-//! new `SASLClient` or `SASLServer` to be constructed for every connection.
+//! The produced `SASLClient` / `SASLServer` are then of course also context-specific and usually
+//! not readily reusable, for example channel bindings are specific to a single TLS session.
+//! Thus a new `SASLClient` or `SASLServer` must be constructed for every connection.
 //!
-//! To finally start an authentication exchange a [`Session`](session::Session) is
-//! constructed by selecting the best shared authentication Mechanism, and the methods
-//! [`Session::step`](session::Session::step) or [`Session::step64`](session::Session::step64) are
-//! called until [`State::Finished`](session::State::Finished) is returned:
+//! To finally start the authentication exchange itself a [`Session`](session::Session) is
+//! constructed by having the `SASLClient` or `SASLServer` select the best mechanism using the
+//! [`SASLClient::start_suggested`](prelude::SASLClient::start_suggested) or
+//! [`SASLServer::start_suggested`](prelude::SASLServer::start_suggested) methods respectively.
+//!
+//! On the resulting session the methods [`Session::step`](session::Session::step) or
+//! [`Session::step64`](session::Session::step64) are called until
+//! [`State::Finished`](session::State::Finished) is returned:
 //!
 //! ```rust
 //! # use std::io;
@@ -243,21 +247,37 @@
 //! define a [`Mechanism`](registry::Mechanism) struct describing the implemented mechanism.
 //! Documentation about how to add a custom mechanism is found in the [`registry module documentation`](registry).
 
+// Mark rsasl `no_std` if the `std` feature flag is not enabled.
+#![cfg_attr(not(any(feature = "std", test)), no_std)]
+#[cfg(not(any(feature = "std", test)))]
+extern crate alloc;
+#[cfg(any(feature = "std", test))]
+extern crate std as alloc;
+
+
+// none of these should be necessary for a provider to compile
 #[cfg(feature = "config_builder")]
 mod builder;
 pub mod callback;
-pub mod config;
-mod error;
 pub mod mechanisms;
-pub mod mechname;
-pub mod property;
-mod session;
-pub mod validate;
 
+
+// Only relevant to a provider
+#[cfg(any(feature = "provider", feature = "testutils", test))]
 mod sasl;
 
+pub mod config;
+mod session;
+
+mod typed;
+pub mod validate;
+pub mod property;
+
+mod error;
+pub mod mechname;
+
+#[cfg(feature = "gsasl")]
 mod gsasl;
-mod init;
 
 #[cfg(not(any(doc, feature = "unstable_custom_mechanism")))]
 mod mechanism;
@@ -271,21 +291,28 @@ pub mod registry;
 
 mod channel_bindings;
 mod context;
-mod typed;
 
 mod vectored_io;
 
 pub mod prelude {
     //! prelude exporting the most commonly used types
-    pub use crate::config::{ClientConfig, SASLConfig, ServerConfig};
     pub use crate::error::{SASLError, SessionError};
+
+    pub use crate::config::SASLConfig;
     pub use crate::mechname::Mechname;
     pub use crate::property::Property;
     pub use crate::registry::Registry;
-    pub use crate::sasl::{SASLClient, SASLServer};
-    pub use crate::session::{ClientSession, ServerSession, Session, State, StepResult};
+    pub use crate::session::State;
     pub use crate::validate::Validation;
+
+    #[cfg(feature = "provider")]
+    pub use crate::sasl::{SASLClient, SASLServer};
+    #[cfg(feature = "provider")]
+    pub use crate::session::Session;
 }
+
+#[cfg(any(test, feature = "testutils"))]
+pub mod test;
 
 struct Shared;
 
@@ -306,9 +333,11 @@ pub mod docs {
         }
     }
 
-    /*pub mod features {
+    /*
+    pub mod features {
         //! primer on the use of cargo features in rsasl
         //!
         #![doc = document_features::document_features!()]
-    }*/
+    }
+     */
 }

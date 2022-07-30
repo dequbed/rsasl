@@ -24,9 +24,10 @@
 //! for your Mechanism MUST be marked `pub` and be reachable by dependent crates, otherwise they
 //! may be silently dropped by the compiler.
 
+use crate::alloc::boxed::Box;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
-use std::fmt::{Debug, Display, Formatter};
+use core::fmt;
 
 use crate::config::SASLConfig;
 use crate::error::SASLError;
@@ -38,6 +39,41 @@ pub type MatchFn = fn(name: &Mechname) -> bool;
 
 pub type StartFn =
     fn(sasl: &SASLConfig, offered: &[&Mechname]) -> Result<Box<dyn Authentication>, SASLError>;
+pub type ServerStartFn =
+    fn(sasl: &SASLConfig) -> Result<Box<dyn Authentication>, SASLError>;
+
+trait MechanismT {
+    fn client(&self, _sasl: &SASLConfig, _offered: &[&Mechname])
+        -> Result<Box<dyn Authentication>, SASLError>
+    {
+        Err(SASLError::NoSharedMechanism)
+    }
+
+    fn server(&self, _sasl: &SASLConfig)
+        -> Result<Box<dyn Authentication>, SASLError>
+    {
+        Err(SASLError::NoSharedMechanism)
+    }
+}
+#[derive(Copy, Clone)]
+pub struct Mechanism2 {
+    mechanism: &'static dyn MechanismT,
+    pub name: &'static Mechname,
+    pub first: Side,
+}
+impl Mechanism2 {
+    pub fn client(&self, sasl: &SASLConfig, offered: &[&Mechname])
+        -> Result<Box<dyn Authentication>, SASLError>
+    {
+        self.mechanism.client(sasl, offered)
+    }
+
+    pub fn server(&self, sasl: &SASLConfig)
+        -> Result<Box<dyn Authentication>, SASLError>
+    {
+        self.mechanism.server(sasl)
+    }
+}
 
 #[derive(Copy, Clone)]
 /// Mechanism Implementation
@@ -48,15 +84,28 @@ pub struct Mechanism {
     /// The Mechanism served by this implementation.
     pub mechanism: &'static Mechname,
 
-    pub priority: usize,
+    pub(crate) priority: usize,
 
-    pub client: Option<StartFn>,
-    pub server: Option<StartFn>,
+    pub(crate) client: Option<StartFn>,
+    pub(crate) server: Option<ServerStartFn>,
 
-    pub first: Side,
+    pub(crate) first: Side,
+}
+#[cfg(feature = "unstable_custom_mechanism")]
+impl Mechanism {
+    pub const fn build(mechanism: &'static Mechname, priority: usize, client: Option<StartFn>,
+                       server: Option<ServerStartFn>, first: Side) -> Self {
+        Self {
+            mechanism,
+            priority,
+            client,
+            server,
+            first
+        }
+    }
 }
 
-pub struct MechanismSecurityFactors {
+struct MechanismSecurityFactors {
     /// Maximum possible Security Strength Factor (SSF) of the security layers installed
     ///
     /// SSF is a very fuzzy value but in general equates to the numbers of 'bits' of security,
@@ -102,14 +151,13 @@ impl Mechanism {
     pub fn server(
         &self,
         sasl: &SASLConfig,
-        offered: &[&Mechname],
     ) -> Option<Result<Box<dyn Authentication>, SASLError>> {
-        self.server.map(|f| f(sasl, offered))
+        self.server.map(|f| f(sasl))
     }
 }
 
-impl Debug for Mechanism {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for Mechanism {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Mechanism")
             .field("name", &self.mechanism)
             .field("has client", &self.client.is_some())
@@ -118,8 +166,8 @@ impl Debug for Mechanism {
     }
 }
 
-impl Display for Mechanism {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for Mechanism {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.mechanism.as_str())
     }
 }
@@ -131,8 +179,6 @@ impl Display for Mechanism {
 /// registered.
 pub struct Registry {
     static_mechanisms: &'static [Mechanism],
-    #[cfg(feature = "registry_dynamic")]
-    dynamic_mechanisms: Vec<&'static Mechanism>,
 }
 
 #[cfg(feature = "config_builder")]
@@ -142,22 +188,26 @@ impl Registry {
     pub fn with_mechanisms(mechanisms: &'static [Mechanism]) -> Self {
         Self {
             static_mechanisms: mechanisms,
-            #[cfg(feature = "registry_dynamic")]
-            dynamic_mechanisms: Vec::new(),
         }
     }
-}
 
-#[cfg(feature = "registry_dynamic")]
-impl Registry {
-    pub fn register(&mut self, mechanism: &'static Mechanism) {
-        self.dynamic_mechanisms.push(mechanism)
+    pub(crate) fn credentials() -> Self {
+        static MECHS: &[Mechanism] = &[
+            #[cfg(feature = "plain")] crate::mechanisms::plain::PLAIN,
+            #[cfg(feature = "login")] crate::mechanisms::login::LOGIN,
+            #[cfg(feature = "scram-sha-1")] crate::mechanisms::scram::SCRAM_SHA1,
+            #[cfg(feature = "scram-sha-2")] crate::mechanisms::scram::SCRAM_SHA256,
+        ];
+        Self::with_mechanisms(MECHS)
     }
 }
 
+
+
+pub(crate) type MechanismIter<'a> = core::slice::Iter<'a, Mechanism>;
 impl Registry {
     #[inline(always)]
-    pub fn get_mechanisms(&self) -> impl Iterator<Item = &Mechanism> {
+    pub(crate) fn get_mechanisms<'a>(&self) -> MechanismIter<'a> {
         self.static_mechanisms.iter()
     }
 }
