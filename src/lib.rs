@@ -247,6 +247,17 @@
 //! define a [`Mechanism`](registry::Mechanism) struct describing the implemented mechanism.
 //! Documentation about how to add a custom mechanism is found in the [`registry module documentation`](registry).
 
+// Mark rsasl `no_std` if the `std` feature flag is not enabled.
+#![cfg_attr(not(any(feature = "std", test)), no_std)]
+
+/* TODO: Move all uses of std stuff to instead use `core` or `alloc`
+ * #[cfg(all(feature = "alloc", not(any(feature = "std", test))))]
+ * extern crate alloc;
+ * #[cfg(any(feature = "std", test))]
+ * extern crate std as alloc;
+ */
+
+
 // none of these should be necessary for a provider to compile
 #[cfg(feature = "config_builder")]
 mod builder;
