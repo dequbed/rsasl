@@ -1,5 +1,5 @@
 use crate::callback::SessionCallback;
-use crate::config::{ClientSide, ConfigSide, FilterFn, SASLConfig, ServerSide, SorterFn};
+use crate::config::{FilterFn, SASLConfig, SorterFn};
 use crate::error::SASLError;
 use crate::registry::{Mechanism, Registry};
 use std::cmp::Ordering;
@@ -12,20 +12,12 @@ use std::sync::Arc;
 ///
 /// This builder allows to construct sided [`SASLConfig`]s using the type system to ensure all
 /// relevant information is provided.
-pub struct ConfigBuilder<Side: ConfigSide, State> {
-    side: Side,
+pub struct ConfigBuilder<State> {
     pub(crate) state: State,
 }
-impl<State: Debug> Debug for ConfigBuilder<ClientSide, State> {
+impl<State: Debug> Debug for ConfigBuilder<State> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ConfigBuilder<Client, _>")
-            .field("state", &self.state)
-            .finish()
-    }
-}
-impl<State: Debug> Debug for ConfigBuilder<ServerSide, State> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ConfigBuilder<Server, _>")
+        f.debug_struct("ConfigBuilder<_>")
             .field("state", &self.state)
             .finish()
     }
@@ -41,26 +33,23 @@ pub(crate) fn default_sorter(a: &Mechanism, b: &Mechanism) -> Ordering {
 #[derive(Clone, Debug)]
 #[doc(hidden)]
 pub struct WantMechanisms(());
-impl<Side: ConfigSide> ConfigBuilder<Side, WantMechanisms> {
-    pub(crate) fn new(side: Side) -> Self {
+impl ConfigBuilder<WantMechanisms> {
+    pub(crate) fn new() -> Self {
         ConfigBuilder {
-            side,
             state: WantMechanisms(()),
         }
     }
-    pub fn with_registry(self, mechanisms: Registry) -> ConfigBuilder<Side, WantFilter> {
+    pub fn with_registry(self, mechanisms: Registry) -> ConfigBuilder<WantFilter> {
         ConfigBuilder {
-            side: self.side,
             state: WantFilter { mechanisms },
         }
     }
-    pub fn with_default_mechanisms(self) -> ConfigBuilder<Side, WantFilter> {
+    pub fn with_default_mechanisms(self) -> ConfigBuilder<WantFilter> {
         self.with_registry(Registry::default())
     }
 
-    pub fn with_defaults(self) -> ConfigBuilder<Side, WantCallback> {
+    pub fn with_defaults(self) -> ConfigBuilder<WantCallback> {
         ConfigBuilder {
-            side: self.side,
             state: WantCallback {
                 mechanisms: Registry::default(),
                 filter: default_filter,
@@ -75,13 +64,12 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantMechanisms> {
 pub struct WantFilter {
     mechanisms: Registry,
 }
-impl<Side: ConfigSide> ConfigBuilder<Side, WantFilter> {
+impl ConfigBuilder<WantFilter> {
     /// Install a filter, allowing only matching mechanisms to be used
     ///
     /// Specifically, only those Mechanism `m` may be used where `filter(&m)` returns true.
-    pub fn with_filter(self, filter: FilterFn) -> ConfigBuilder<Side, WantSorter> {
+    pub fn with_filter(self, filter: FilterFn) -> ConfigBuilder<WantSorter> {
         ConfigBuilder {
-            side: self.side,
             state: WantSorter {
                 mechanisms: self.state.mechanisms,
                 filter,
@@ -89,9 +77,8 @@ impl<Side: ConfigSide> ConfigBuilder<Side, WantFilter> {
         }
     }
 
-    pub fn without_filter(self) -> ConfigBuilder<Side, WantSorter> {
+    pub fn without_filter(self) -> ConfigBuilder<WantSorter> {
         ConfigBuilder {
-            side: self.side,
             state: WantSorter {
                 mechanisms: self.state.mechanisms,
                 filter: default_filter,
@@ -106,10 +93,9 @@ pub struct WantSorter {
     mechanisms: Registry,
     filter: FilterFn,
 }
-impl<Side: ConfigSide> ConfigBuilder<Side, WantSorter> {
-    pub fn with_default_sorting(self) -> ConfigBuilder<Side, WantCallback> {
+impl ConfigBuilder<WantSorter> {
+    pub fn with_default_sorting(self) -> ConfigBuilder<WantCallback> {
         ConfigBuilder {
-            side: self.side,
             state: WantCallback {
                 mechanisms: self.state.mechanisms,
                 filter: self.state.filter,
@@ -126,7 +112,7 @@ pub struct WantCallback {
     filter: FilterFn,
     sorter: SorterFn,
 }
-impl<Side: ConfigSide> ConfigBuilder<Side, WantCallback> {
+impl ConfigBuilder<WantCallback> {
     /// Install a callback for querying properties
     ///
     /// `cbsupport` dicates the availability of channel binding support. See [`CBSupport`] for
