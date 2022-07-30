@@ -299,6 +299,8 @@ pub mod prelude {
 
     #[cfg(feature = "provider")]
     pub use crate::sasl::{SASLClient, SASLServer};
+    #[cfg(feature = "provider")]
+    pub use crate::session::Session;
 }
 
 #[cfg(any(test, feature = "testutils"))]
