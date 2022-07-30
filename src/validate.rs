@@ -30,11 +30,10 @@
 //!     type Value = MyDataType;
 //! }
 //!
-//! # const MECHS: &[&'static Mechname] = &[];
-//! fn do_auth(config: Arc<SASLConfig>) {
+//! fn do_auth(config: Arc<SASLConfig>, selected: &Mechname) {
 //!     let sasl = SASLServer::<MyValidation>::new(config);
 //!
-//!     let mut session = sasl.start_suggested(MECHS).unwrap();
+//!     let mut session = sasl.start_suggested(selected).unwrap();
 //!     // do authenthentication stepping and so on
 //!
 //!     // Since `SASLServer` was constructed with `MyValidation`, calling `validation()` returns
