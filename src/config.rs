@@ -119,6 +119,51 @@ impl ServerConfig {
     }
 }
 
+struct ConfigInstanceIter;
+impl Iterator for ConfigInstanceIter {
+    type Item = Mechanism;
+    fn next(&mut self) -> Self::Item {
+        todo!()
+    }
+}
+
+mod instance {
+    use std::fmt;
+    use super::ConfigInstanceIter;
+
+    pub trait ConfigInstance: fmt::Debug {
+        fn get_mech_iter(&self) -> ConfigInstanceIter;
+    }
+}
+#[cfg(feature = "config_builder")]
+pub use instance::ConfigInstance;
+use crate::mechname::Mechname;
+
+#[repr(transparent)]
+#[derive(Debug)]
+/// Opaque supplier configuration encoding all details necessary to perform authentication exchanges
+pub struct SASLConfig2 {
+    inner: dyn ConfigInstance,
+}
+
+impl SASLConfig2 {
+    /// Select the best mechanism of the offered ones.
+    pub fn select_mechanism(&self, offered: &[&Mechname]) -> Option<&Mechanism> {
+
+    }
+
+    pub fn available_mechs(&self) -> impl Iterator<Item=&Mechanism> {
+        self.inner.get_mech_iter()
+    }
+}
+
+#[cfg(feature = "config_builder")]
+impl SASLConfig2 {
+    pub fn new<I: ConfigInstance>(instance: Arc<I>) -> Arc<Self> {
+        unsafe { std::mem::transmute(instance as Arc<dyn ConfigInstance>) }
+    }
+}
+
 /// Sided shareable configuration for a SASL provider
 ///
 /// This type contains all user-specified configuration necessary for SASL authentication. It is

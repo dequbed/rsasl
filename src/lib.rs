@@ -247,19 +247,22 @@
 //! define a [`Mechanism`](registry::Mechanism) struct describing the implemented mechanism.
 //! Documentation about how to add a custom mechanism is found in the [`registry module documentation`](registry).
 
+// none of these should be necessary for a provider to compile
 #[cfg(feature = "config_builder")]
 mod builder;
-
 pub mod callback;
-pub mod config;
-mod error;
 pub mod mechanisms;
-pub mod mechname;
+
+// these are only relevant to a provider
 pub mod property;
 mod session;
-pub mod validate;
-
 mod sasl;
+
+// These are shared in some way (and maybe shouldn't be)
+pub mod config;
+pub mod validate;
+mod error;
+pub mod mechname;
 
 #[cfg(feature = "gsasl")]
 mod gsasl;

@@ -81,15 +81,15 @@ pub struct Mechanism {
     /// The Mechanism served by this implementation.
     pub mechanism: &'static Mechname,
 
-    pub priority: usize,
+    pub(crate) priority: usize,
 
-    pub client: Option<StartFn>,
-    pub server: Option<StartFn>,
+    pub(crate) client: Option<StartFn>,
+    pub(crate) server: Option<StartFn>,
 
-    pub first: Side,
+    pub(crate) first: Side,
 }
 
-pub struct MechanismSecurityFactors {
+struct MechanismSecurityFactors {
     /// Maximum possible Security Strength Factor (SSF) of the security layers installed
     ///
     /// SSF is a very fuzzy value but in general equates to the numbers of 'bits' of security,
