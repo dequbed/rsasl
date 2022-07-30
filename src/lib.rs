@@ -296,7 +296,7 @@ pub mod prelude {
     pub use crate::property::Property;
     pub use crate::registry::Registry;
     pub use crate::sasl::{SASLClient, SASLServer};
-    pub use crate::session::{ClientSession, ServerSession, Session, State};
+    pub use crate::session::{Session, State};
     pub use crate::validate::Validation;
 }
 
