@@ -19,7 +19,7 @@ pub(crate) type FilterFn = fn(a: &Mechanism) -> bool;
 pub(crate) type SorterFn = fn(a: &Mechanism, b: &Mechanism) -> Ordering;
 
 trait ConfigInstance: fmt::Debug {
-    fn get_mech_iter(&self) -> MechanismIter;
+    fn get_mech_iter<'a>(&self) -> MechanismIter<'a>;
     fn get_callback(&self) -> &dyn SessionCallback;
     fn sort(&self, left: &Mechanism, right: &Mechanism) -> Ordering;
 }
@@ -59,7 +59,7 @@ impl SASLConfig {
     }
 
     #[inline(always)]
-    pub(crate) fn mech_list(&self) -> impl Iterator<Item=&Mechanism> {
+    pub(crate) fn mech_list<'a>(&self) -> impl Iterator<Item=&'a Mechanism> {
         self.inner.get_mech_iter()
     }
 
@@ -188,7 +188,7 @@ mod instance {
     }
 
     impl ConfigInstance for Inner {
-        fn get_mech_iter(&self) -> MechanismIter {
+        fn get_mech_iter<'a>(&self) -> MechanismIter<'a> {
             self.mechanisms.get_mechanisms()
         }
 

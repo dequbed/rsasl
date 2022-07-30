@@ -183,7 +183,7 @@ impl Registry {
 pub(crate) type MechanismIter<'a> = core::slice::Iter<'a, Mechanism>;
 impl Registry {
     #[inline(always)]
-    pub(crate) fn get_mechanisms(&self) -> MechanismIter {
+    pub(crate) fn get_mechanisms<'a>(&self) -> MechanismIter<'a> {
         self.static_mechanisms.iter()
     }
 }
