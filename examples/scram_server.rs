@@ -64,7 +64,7 @@ pub fn main() {
     let sasl = SASLServer::<TestValidation>::new(config);
 
     let mut session = sasl
-        .start_suggested(&[Mechname::new(b"SCRAM-SHA-1").unwrap()])
+        .start_suggested(Mechname::new(b"SCRAM-SHA-1").unwrap())
         .unwrap();
 
     loop {

@@ -84,7 +84,7 @@ pub fn main() {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with correct password:\n   ");
         let mut session = sasl
-            .start_suggested(&[Mechname::new(b"PLAIN").unwrap()])
+            .start_suggested(Mechname::new(b"PLAIN").unwrap())
             .unwrap();
         let step_result = session.step(Some(b"\0username\0secret"), &mut out);
         print_outcome(&step_result, out.into_inner());
@@ -97,7 +97,7 @@ pub fn main() {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with wrong password:\n   ");
         let mut session = sasl
-            .start_suggested(&[Mechname::new(b"PLAIN").unwrap()])
+            .start_suggested(Mechname::new(b"PLAIN").unwrap())
             .unwrap();
         let step_result = session.step(Some(b"\0username\0badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());
@@ -110,7 +110,7 @@ pub fn main() {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with unknown user:\n   ");
         let mut session = sasl
-            .start_suggested(&[Mechname::new(b"PLAIN").unwrap()])
+            .start_suggested(Mechname::new(b"PLAIN").unwrap())
             .unwrap();
         let step_result = session.step(Some(b"\0somebody\0somepass"), &mut out);
         print_outcome(&step_result, out.into_inner());
@@ -123,7 +123,7 @@ pub fn main() {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with bad authzid:\n   ");
         let mut session = sasl
-            .start_suggested(&[Mechname::new(b"PLAIN").unwrap()])
+            .start_suggested(Mechname::new(b"PLAIN").unwrap())
             .unwrap();
         let step_result = session.step(Some(b"username\0somebody\0badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());
@@ -136,7 +136,7 @@ pub fn main() {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with malformed data:\n   ");
         let mut session = sasl
-            .start_suggested(&[Mechname::new(b"PLAIN").unwrap()])
+            .start_suggested(Mechname::new(b"PLAIN").unwrap())
             .unwrap();
         let step_result = session.step(Some(b"\0username badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());

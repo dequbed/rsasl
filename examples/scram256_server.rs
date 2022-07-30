@@ -39,7 +39,7 @@ pub fn main() {
     let sasl = SASLServer::<NoValidation>::new(config);
 
     let mut session = sasl
-        .start_suggested(&[Mechname::new(b"SCRAM-SHA-256").unwrap()])
+        .start_suggested(Mechname::new(b"SCRAM-SHA-256").unwrap())
         .unwrap();
 
     loop {

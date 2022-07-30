@@ -155,15 +155,14 @@ mod provider {
             selected: &Mechname,
         ) -> Result<Session<V, CB>, SASLError> {
             let config = self.config.clone();
-            let mech = config.mech_list().find(|mech| mech.mechanism == selected)
+            let mech = self.get_available().find(|mech| mech.mechanism == selected)
                 .ok_or(SASLError::NoSharedMechanism)?;
             let auth = mech.server(config.as_ref()).ok_or(SASLError::NoSharedMechanism)??;
             Ok(Session::new(self, Side::Server, auth, mech.clone()))
         }
 
-        pub fn get_available(&self) -> impl Iterator<Item = &Mechanism> {
-            // self.config2.available_mechs()
-            [].iter()
+        pub fn get_available<'a>(&self) -> impl Iterator<Item = &'a Mechanism> {
+            self.config.mech_list().filter(|mech| mech.server.is_some())
         }
     }
 }
