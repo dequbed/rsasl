@@ -1,5 +1,5 @@
 use crate::mechanism::Authentication;
-use crate::session::{MechanismData, State, StepResult};
+use crate::session::{MechanismData, State};
 
 use crate::callback::CallbackError;
 use crate::context::EmptyProvider;
@@ -18,7 +18,7 @@ impl Authentication for Plain {
         session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> Result<(State, Option<usize>), SessionError> {
         let mut len = 0usize;
         let res = session.need_with::<AuthzId, _, _>(&EmptyProvider, &mut |authzid| {
             if authzid.contains('\0') {

@@ -97,9 +97,9 @@ mod tests {
     use crate::builder::{default_sorter, default_filter};
     use crate::test::EmptyCallback;
     use crate::config::SASLConfig;
+    use crate::sasl::SASLClient;
     use super::*;
     use crate::registry::Registry;
-    use crate::sasl::SASLClient;
 
     #[cfg(feature = "scram-sha-1")]
     #[test]

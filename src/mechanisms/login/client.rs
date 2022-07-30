@@ -1,7 +1,7 @@
 use crate::context::EmptyProvider;
 use std::io::Write;
 use crate::error::SessionError;
-use crate::mechanism::{Authentication, MechanismData, StepResult};
+use crate::mechanism::{Authentication, MechanismData};
 use crate::property::{AuthId, Password};
 use crate::session::State;
 
@@ -26,7 +26,7 @@ impl Authentication for Login {
         session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> StepResult {
+    ) -> Result<(State, Option<usize>), SessionError> {
         match self.state {
             LoginState::Authid => {
                 let len = session.need_with::<AuthId, _, _>(&EmptyProvider, &mut |authid| {
@@ -57,8 +57,6 @@ mod tests {
     use std::sync::Arc;
     use crate::config::SASLConfig;
     use crate::mechanisms::login::mechinfo::LOGIN;
-    use crate::sasl::SASLClient;
-    use crate::session::{Session, Side};
     use crate::test::test_client_session;
     use super::*;
 
