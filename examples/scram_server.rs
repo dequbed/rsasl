@@ -62,7 +62,7 @@ pub fn main() {
         .with_defaults()
         .with_callback(OurCallback)
         .unwrap();
-    let sasl = SASLServer::<TestValidation>::new(Arc::new(config));
+    let sasl = SASLServer::<TestValidation>::new(config);
 
     let mut session = sasl
         .start_suggested(&[Mechname::new(b"SCRAM-SHA-1").unwrap()])

@@ -6,14 +6,17 @@ use crate::property::{AuthId, AuthzId, Password};
 use crate::registry::{Mechanism, Registry};
 use crate::session;
 use crate::session::SessionData;
+use crate::mechname::Mechname;
 use std::cmp::Ordering;
 use std::fmt;
 use std::marker::PhantomData;
 use std::pin::Pin;
 use std::sync::Arc;
+use instance::ConfigInstance;
 
 #[cfg(feature = "config_builder")]
 pub use crate::builder::ConfigBuilder;
+use crate::mechanism::Authentication;
 
 mod sealed {
     pub trait Sealed {}
@@ -57,7 +60,7 @@ impl ClientConfig {
         authzid: Option<String>,
         authid: String,
         password: String,
-    ) -> Result<SASLConfig, SASLError> {
+    ) -> Result<Arc<SASLConfig>, SASLError> {
         struct CredentialsProvider {
             authid: String,
             password: String,
@@ -119,52 +122,26 @@ impl ServerConfig {
     }
 }
 
-struct ConfigInstanceIter;
-impl Iterator for ConfigInstanceIter {
-    type Item = Mechanism;
-    fn next(&mut self) -> Self::Item {
-        todo!()
-    }
-}
+type ConfigInstanceIter = crate::registry::RegistryIter;
 
 mod instance {
     use std::fmt;
+    use crate::error::SASLError;
+    use crate::mechanism::Authentication;
+    use crate::mechname::Mechname;
+    use crate::registry::Mechanism;
     use super::ConfigInstanceIter;
 
-    pub trait ConfigInstance: fmt::Debug {
+    pub(crate) trait ConfigInstance: fmt::Debug {
+        fn select_mechanism(&self, offered: &[&Mechname])
+            -> Result<(Box<dyn Authentication>, &Mechanism), SASLError>;
         fn get_mech_iter(&self) -> ConfigInstanceIter;
     }
 }
-#[cfg(feature = "config_builder")]
-pub use instance::ConfigInstance;
-use crate::mechname::Mechname;
 
 #[repr(transparent)]
 #[derive(Debug)]
 /// Opaque supplier configuration encoding all details necessary to perform authentication exchanges
-pub struct SASLConfig2 {
-    inner: dyn ConfigInstance,
-}
-
-impl SASLConfig2 {
-    /// Select the best mechanism of the offered ones.
-    pub fn select_mechanism(&self, offered: &[&Mechname]) -> Option<&Mechanism> {
-
-    }
-
-    pub fn available_mechs(&self) -> impl Iterator<Item=&Mechanism> {
-        self.inner.get_mech_iter()
-    }
-}
-
-#[cfg(feature = "config_builder")]
-impl SASLConfig2 {
-    pub fn new<I: ConfigInstance>(instance: Arc<I>) -> Arc<Self> {
-        unsafe { std::mem::transmute(instance as Arc<dyn ConfigInstance>) }
-    }
-}
-
-/// Sided shareable configuration for a SASL provider
 ///
 /// This type contains all user-specified configuration necessary for SASL authentication. It is
 /// designed to be passed to a protocol implementation and provide an opaque and abstracted
@@ -172,14 +149,52 @@ impl SASLConfig2 {
 ///
 /// This type is constructed using the [`ClientConfig`] and [`ServerConfig`] helpers
 pub struct SASLConfig {
-    pub(crate) callback: Box<dyn SessionCallback>,
+    inner: dyn ConfigInstance,
+}
 
-    pub(crate) filter: FilterFn,
-    pub(crate) sorter: SorterFn,
+impl SASLConfig {
+    #[inline]
+    /// Select the best mechanism of the offered ones.
+    pub fn select_mechanism(&self, offered: &[&Mechname])
+        -> Result<(Box<dyn Authentication>, &Mechanism), SASLError>
+    {
+        self.inner.select_mechanism(offered)
+    }
+
+    #[inline]
+    pub fn mech_list(&self) -> impl Iterator<Item=&Mechanism> {
+        self.inner.get_mech_iter()
+    }
+
+    #[inline]
+    pub fn get_callback(&self) -> &dyn SessionCallback {
+        todo!()
+    }
+}
+
+#[cfg(feature = "config_builder")]
+impl SASLConfig {
+    pub(crate) fn new<CB: SessionCallback + 'static>(
+        callback: CB,
+        filter: FilterFn,
+        sorter: SorterFn,
+        mechanisms: Registry,
+    ) -> Result<Arc<Self>, SASLError> {
+        let inner = Inner::new(callback, filter, sorter, mechanisms)?;
+        let outer = Arc::new(inner) as Arc<dyn ConfigInstance>;
+        Ok(unsafe { std::mem::transmute(outer) })
+    }
+}
+
+pub(crate) struct Inner {
+    callback: Box<dyn SessionCallback>,
+
+    filter: FilterFn,
+    sorter: SorterFn,
 
     mechanisms: Registry,
 }
-impl fmt::Debug for SASLConfig {
+impl fmt::Debug for Inner {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SASLConfig")
             .field("mechanisms", &self.mechanisms)
@@ -187,7 +202,7 @@ impl fmt::Debug for SASLConfig {
     }
 }
 
-impl SASLConfig {
+impl Inner {
     pub fn mech_list(&self) -> impl Iterator<Item = &Mechanism> {
         self.mechanisms.get_mechanisms()
             .filter(|m| (self.filter)(m))
@@ -195,7 +210,7 @@ impl SASLConfig {
 }
 
 #[cfg(any(feature = "config_builder", feature = "testutils"))]
-impl SASLConfig {
+impl Inner {
     pub(crate) fn new<CB: SessionCallback + 'static>(
         callback: CB,
         filter: FilterFn,
@@ -211,7 +226,7 @@ impl SASLConfig {
     }
 }
 
-impl SASLConfig {
+impl Inner {
     #[cfg(any(feature = "registry_dynamic"))]
     /// Register the builtin mechanisms
     ///
@@ -225,5 +240,14 @@ impl SASLConfig {
     /// Register a mechanism
     pub fn register(&mut self, mechanism: &'static Mechanism) {
         self.mechanisms.register(mechanism)
+    }
+}
+impl ConfigInstance for Inner {
+    fn select_mechanism(&self, offered: &[&Mechname]) -> Result<(Box<dyn Authentication>, &Mechanism), SASLError> {
+        todo!()
+    }
+
+    fn get_mech_iter(&self) -> ConfigInstanceIter {
+        self.mechanisms.get_mechanisms()
     }
 }

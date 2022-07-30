@@ -148,6 +148,7 @@ mod provider {
         where
             F: for<'b> Fn(&'b Mechanism) -> Option<StartFn>,
         {
+            /*
             let config = self.config.clone();
             offered
                 .iter()
@@ -165,6 +166,10 @@ mod provider {
                 .map_or(Err(SASLError::NoSharedMechanism), |(selected, auth)| {
                     Ok(Session::new(self, Side::Client, auth, selected.clone()))
                 })
+             */
+            let (auth, selected) = self.config.select_mechanism(offered)?;
+            let selected = selected.clone();
+            Ok(Session::new(self, Side::Client, auth, selected))
         }
 
         fn client_start_suggested<'a>(
@@ -183,7 +188,7 @@ mod provider {
 
         pub fn get_available(&self) -> impl Iterator<Item = &Mechanism> {
             // self.config2.available_mechs()
-            todo!()
+            [].iter()
         }
     }
 }

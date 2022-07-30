@@ -77,7 +77,6 @@ pub fn main() {
         .with_defaults()
         .with_callback(OurCallback)
         .unwrap();
-    let config = Arc::new(config);
 
     // Authentication exchange 1
     {

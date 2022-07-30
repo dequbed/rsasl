@@ -66,7 +66,7 @@ mod tests {
     fn simple_combination() {
         let config = ClientConfig::with_credentials(None, "testuser".to_string(), "password".to_string())
             .unwrap();
-        let mut login = test_client_session(Arc::new(config), &LOGIN);
+        let mut login = test_client_session(config, &LOGIN);
         let mut out = Cursor::new(Vec::new());
 
         assert!(login.step(None, &mut out).is_ok());

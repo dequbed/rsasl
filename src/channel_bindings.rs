@@ -48,7 +48,7 @@ mod tests {
         let cbdata = b"foobar";
         let thiscb = ThisCb::new("this-cb", cbdata.to_vec().into_boxed_slice());
         let config = ClientConfig::with_credentials(None, String::new(), String::new()).unwrap();
-        let sasl = SASLClient::with_cb(Arc::new(config), thiscb);
+        let sasl = SASLClient::with_cb(config, thiscb);
         let session = sasl
             .start_suggested(&[&Mechname::new(b"PLAIN").unwrap()])
             .unwrap();
