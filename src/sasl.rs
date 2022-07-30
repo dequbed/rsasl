@@ -11,6 +11,10 @@ use crate::validate::{NoValidation, Validation};
 
 use std::sync::Arc;
 
+#[derive(Debug)]
+/// SASL Client context
+///
+/// A SASL Client starts authentication using the
 pub struct SASLClient<CB = NoChannelBindings> {
     inner: SASL<NoValidation, CB>,
 }
@@ -22,16 +26,19 @@ pub struct SASLServer<V: Validation, CB = NoChannelBindings> {
 #[derive(Debug)]
 /// SASL Provider context
 ///
-pub struct SASL<V: Validation = NoValidation, CB = NoChannelBindings> {
+pub(crate) struct SASL<V: Validation = NoValidation, CB = NoChannelBindings> {
     pub(crate) config: Arc<SASLConfig>,
     pub(crate) cb: CB,
     pub(crate) validation: Option<V::Value>,
 }
 
-
 #[cfg(feature = "provider")]
 mod provider {
     use super::*;
+
+    /************************************************************
+     * CLIENT impls
+     ************************************************************/
 
     impl SASLClient {
         pub fn new(config: Arc<SASLConfig>) -> Self {
@@ -40,6 +47,13 @@ mod provider {
             }
         }
     }
+
+    /// ### Provider functions
+    ///
+    /// These methods are only available when compiled with feature `provider`
+    /// or `provider_base64` (enabled by default).
+    /// They are mainly relevant for protocol implementations wanting to start an
+    /// authentication exchange.
     impl<CB: ChannelBindingCallback> SASLClient<CB> {
         pub fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
             Self {
@@ -61,6 +75,10 @@ mod provider {
         }
     }
 
+    /************************************************************
+     * SERVER impls
+     ************************************************************/
+
     impl<V: Validation> SASLServer<V> {
         pub fn new(config: Arc<SASLConfig>) -> Self {
             Self {
@@ -75,6 +93,10 @@ mod provider {
             }
         }
 
+        pub fn get_available(&self) -> impl Iterator<Item = &Mechanism> {
+            self.inner.get_available()
+        }
+
         /// Starts a authentication exchange as the server role
         ///
         /// An application acting as server will most likely need to implement a callback to check the
@@ -85,6 +107,11 @@ mod provider {
             self.inner.server_start_suggested(offered)
         }
     }
+
+
+    /************************************************************
+     * SHARED impls
+     ************************************************************/
 
     impl SASL {
         fn client(config: Arc<SASLConfig>) -> Self {
@@ -104,13 +131,6 @@ mod provider {
             }
         }
     }
-
-    /// ### Provider functions
-    ///
-    /// These methods are only available when compiled with feature `provider`
-    /// or `provider_base64` (enabled by default).
-    /// They are mainly relevant for protocol implementations wanting to start an
-    /// authentication exchange.
     impl<CB: ChannelBindingCallback, V: Validation> SASL<V, CB> {
         fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
             Self {
@@ -159,6 +179,11 @@ mod provider {
             offered: &[&Mechname],
         ) -> Result<Session<V, CB>, SASLError> {
             self.start_inner(|mech| mech.server, offered)
+        }
+
+        pub fn get_available(&self) -> impl Iterator<Item = &Mechanism> {
+            // self.config2.available_mechs()
+            todo!()
         }
     }
 }
