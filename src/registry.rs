@@ -164,8 +164,6 @@ impl Display for Mechanism {
 /// registered.
 pub struct Registry {
     static_mechanisms: &'static [Mechanism],
-    #[cfg(feature = "registry_dynamic")]
-    dynamic_mechanisms: Vec<&'static Mechanism>,
 }
 
 #[cfg(feature = "config_builder")]
@@ -175,22 +173,12 @@ impl Registry {
     pub fn with_mechanisms(mechanisms: &'static [Mechanism]) -> Self {
         Self {
             static_mechanisms: mechanisms,
-            #[cfg(feature = "registry_dynamic")]
-            dynamic_mechanisms: Vec::new(),
         }
-    }
-}
-
-#[cfg(feature = "registry_dynamic")]
-impl Registry {
-    pub fn register(&mut self, mechanism: &'static Mechanism) {
-        self.dynamic_mechanisms.push(mechanism)
     }
 }
 
 impl Registry {
     #[inline(always)]
-    // FIXME: Iter dynamic registry mechs!
     pub fn get_mechanisms(&self) -> impl Iterator<Item = &Mechanism> {
         self.static_mechanisms.iter()
     }
