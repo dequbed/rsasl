@@ -314,6 +314,9 @@ pub mod prelude {
 #[cfg(any(test, feature = "testutils"))]
 pub mod test;
 
+#[cfg(feature = "rustls")]
+pub mod utils;
+
 struct Shared;
 
 #[cfg(doc)]
