@@ -247,7 +247,7 @@ impl<'scram> ClientFirstMessage<'scram> {
 
         let authzid = partiter.next().ok_or(ParseError::BadGS2Header)?;
         let authzid = if !authzid.is_empty() {
-            Some(std::str::from_utf8(authzid).map_err(|e| ParseError::BadUtf8(e))?)
+            Some(std::str::from_utf8(&authzid[2..]).map_err(|e| ParseError::BadUtf8(e))?)
         } else {
             None
         };
@@ -364,7 +364,7 @@ impl<'scram> ServerFirst<'scram> {
 
         let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
         if next.len() < 2 {
-            println!("{:?}", input);
+            return Err(ParseError::MissingAttributes);
         }
         if &next[0..2] == b"m=" {
             return Err(ParseError::UnknownMandatoryExtensions);
@@ -439,17 +439,23 @@ impl<'scram> ClientFinal<'scram> {
         } else {
             return Err(ParseError::InvalidAttribute(next[0]));
         };
+
         let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
         let nonce = if &next[0..2] == b"r=" {
             &next[2..]
         } else {
             return Err(ParseError::InvalidAttribute(next[0]));
         };
-        let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
-        let proof = if &next[0..2] == b"p=" {
-            &next[2..]
-        } else {
-            return Err(ParseError::InvalidAttribute(next[0]));
+
+        let proof = loop {
+            // Skip all extensions in between nonce and proof since we can't handle them.
+            // If they are mandatory-to-implement extensions we error.
+            let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
+            if &next[0..2] == b"p=" {
+                break &next[2..];
+            } else if &next[0..2] == b"m=" {
+                return Err(ParseError::UnknownMandatoryExtensions);
+            };
         };
 
         if let Some(next) = partiter.next() {

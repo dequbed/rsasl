@@ -27,7 +27,7 @@ pub(crate) fn default_filter(_: &Mechanism) -> bool {
     true
 }
 pub(crate) fn default_sorter(a: &Mechanism, b: &Mechanism) -> Ordering {
-    a.priority.cmp(&b.priority)
+    b.priority.cmp(&a.priority)
 }
 
 #[derive(Clone, Debug)]
