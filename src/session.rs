@@ -287,15 +287,6 @@ impl MechanismData<'_> {
         }
     }
 
-    /*fn need<'a, T, C>(&self, provider: &dyn Provider, mut mechcb: C) -> Result<(), SessionError>
-    where
-        T: Property<'a>,
-        C: CallbackRequest<T::Value>,
-    {
-        let mut tagged_option = TaggedOption::<'a, tags::RefMut<Satisfy<T>>>(Some(&mut mechcb));
-        self.callback(provider, Request::new_satisfy::<T>(&mut tagged_option))?;
-    }*/
-
     pub fn need_with<P, F, G>(
         &self,
         provider: &dyn Provider,
@@ -303,31 +294,25 @@ impl MechanismData<'_> {
     ) -> Result<G, SessionError>
     where
         P: for<'p> Property<'p>,
-        F: for<'p> FnOnce(&'p <P as Property<'p>>::Value) -> Result<G, SessionError>,
+        F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
     {
-        /*
         self.maybe_need_with::<P, F, G>(provider, closure)?
             .ok_or(CallbackError::NoCallback(type_name::<P>()).into())
-         */
-        todo!()
     }
 
-    pub fn maybe_need_with<'p, P, F, G>(
+    pub fn maybe_need_with<P, F, G>(
         &self,
         provider: &dyn Provider,
         closure: F,
     ) -> Result<Option<G>, SessionError>
     where
-        P: Property<'p>,
+        P: for<'p> Property<'p>,
         F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
     {
-        /*
         let mut closurecr = ClosureCR::<P, _, _>::wrap(closure);
         let mut tagged = Tagged::<'_, tags::RefMut<Satisfy<P>>>(&mut closurecr);
         self.callback(provider, Request::new_satisfy::<P>(&mut tagged))?;
         Ok(closurecr.try_unwrap())
-         */
-        todo!()
     }
 
     pub fn need<P, F>(
