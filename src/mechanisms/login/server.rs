@@ -72,11 +72,11 @@ impl Authentication for Login {
                         authid: &'a str,
                         password: &'a [u8],
                     }
-                    impl Provider for LoginProvider<'_> {
-                        fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
+                    impl<'a> Provider<'a> for LoginProvider<'a> {
+                        fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
                             req
-                                .provide_ref::<AuthId>(&self.authid)?
-                                .provide_ref::<Password>(&self.password)?
+                                .provide_ref::<AuthId>(self.authid)?
+                                .provide_ref::<Password>(self.password)?
                                 .done()
                         }
                     }

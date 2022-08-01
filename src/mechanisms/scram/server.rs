@@ -13,7 +13,7 @@ use std::io::Write;
 use std::marker::PhantomData;
 use thiserror::Error;
 
-use crate::context::{Demand, DemandReply, Provider, ThisProvider};
+use crate::context::{Demand, DemandReply, Provider};
 use crate::mechanism::Authentication;
 use crate::mechanisms::scram::properties::{HashIterations, PasswordHash, Salt};
 use crate::property::{AuthId, AuthzId};
@@ -90,8 +90,8 @@ impl<const N: usize> WaitingClientFirst<N> {
             authid: &'a str,
             authzid: Option<&'a str>,
         }
-        impl Provider for Prov<'_> {
-            fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
+        impl<'a> Provider<'a> for Prov<'a> {
+            fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
                 req.provide_ref::<AuthId>(self.authid)?;
                 if let Some(authzid) = self.authzid {
                     req.provide_ref::<AuthzId>(authzid)?;
@@ -107,7 +107,7 @@ impl<const N: usize> WaitingClientFirst<N> {
             // TODO: check if this is a likely protocol downgrade
             GS2CBindFlag::SupportedNotUsed => {},
             GS2CBindFlag::NotSupported => {},
-            GS2CBindFlag::Used(name) => session_data.need_cb_data(name, provider, &mut |cbdata| {
+            GS2CBindFlag::Used(name) => session_data.need_cb_data(name, provider, |cbdata| {
                 gs2_header.extend_from_slice(cbdata);
                 Ok(())
             })?,
@@ -120,7 +120,7 @@ impl<const N: usize> WaitingClientFirst<N> {
         // proceed with the authentication exchange with randomly generated data, since SCRAM
         // only indicates failure like that in the last step.
         password =
-            session_data.maybe_need_with::<PasswordHash, _, _>(&provider, &mut |password| {
+            session_data.maybe_need_with::<PasswordHash, _, _>(&provider, |password| {
                 if password.len() != <SimpleHmac<D> as OutputSizeUser>::output_size() {
                     return Err(SessionError::MechanismError(Box::new(
                         ScramServerError::PasswordHashInvalid,
@@ -131,9 +131,9 @@ impl<const N: usize> WaitingClientFirst<N> {
 
         let (iterations, salt) = if password.is_some() {
             let iterations = session_data
-                .need_with::<HashIterations, _, _>(&provider, &mut |iterations| Ok(*iterations))?;
+                .need_with::<HashIterations, _, _>(&provider, |iterations| Ok(*iterations))?;
             let salt = session_data
-                .need_with::<Salt, _, _>(&provider, &mut |salt| Ok(base64::encode(salt)))?;
+                .need_with::<Salt, _, _>(&provider, |salt| Ok(base64::encode(salt)))?;
             (iterations, salt)
         } else {
             self.gen_rand_pw_params()

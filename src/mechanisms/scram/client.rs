@@ -357,13 +357,13 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
                     CbSupport::Supported => {
                         session.maybe_need_with::<OverrideCBType, _, _>(
                             &EmptyProvider,
-                            &mut |i_cbname| {
+                            |i_cbname| {
                                 cbname = Cow::Owned(i_cbname.into());
                                 Ok(())
                             },
                         )?;
 
-                        session.need_cb_data(&cbname, EmptyProvider, &mut |i_cbdata| {
+                        session.need_cb_data(&cbname, EmptyProvider, |i_cbdata| {
                             cbdata = Some(i_cbdata.into());
                             Ok(())
                         })?;
@@ -375,14 +375,14 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
                 };
 
                 let provider = EmptyProvider;
-                let username = session.need_with::<AuthId, _, _>(&provider, &mut |authid| {
+                let username = session.need_with::<AuthId, _, _>(&provider, |authid| {
                     Ok(SaslName::escape(authid)?.into_owned())
                 })?;
                 let authzid = session
-                    .maybe_need_with::<AuthzId, _, _>(&provider, &mut |authzid| {
+                    .maybe_need_with::<AuthzId, _, _>(&provider, |authzid| {
                         Ok(SaslName::escape(authzid)?.into_owned())
                     })?;
-                let password = session.need_with::<Password, _, _>(&provider, &mut |password| {
+                let password = session.need_with::<Password, _, _>(&provider, |password| {
                     Ok(password.to_vec())
                 })?;
 

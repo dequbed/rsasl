@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::io::Write;
 
 use stringprep::saslprep;
@@ -13,16 +12,16 @@ use crate::session::{MechanismData, State};
 pub struct Plain;
 #[derive(Debug)]
 pub struct PlainProvider<'a> {
-    pub authcid: Cow<'a, str>,
-    pub authzid: Option<Cow<'a, str>>,
+    pub authcid: &'a str,
+    pub authzid: Option<&'a str>,
     pub password: &'a [u8],
 }
-impl<'b> Provider for PlainProvider<'b> {
-    fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
-        req.provide_ref::<AuthId>(&self.authcid)?
-            .provide_ref::<Password>(&self.password)?;
+impl<'a> Provider<'a> for PlainProvider<'a> {
+    fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
+        req.provide_ref::<AuthId>(self.authcid)?
+            .provide_ref::<Password>(self.password)?;
 
-        if let Some(authzid) = self.authzid.as_ref() {
+        if let Some(authzid) = self.authzid {
             req.provide_ref::<AuthzId>(authzid)?;
         }
 
@@ -64,8 +63,8 @@ impl Authentication for Plain {
         let password = saslprep(password).map_err(|e| PlainError::from(e))?;
 
         let provider = PlainProvider {
-            authzid,
-            authcid,
+            authzid: authzid.as_deref(),
+            authcid: authcid.as_ref(),
             password: password.as_bytes(),
         };
 

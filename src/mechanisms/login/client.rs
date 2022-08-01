@@ -29,7 +29,7 @@ impl Authentication for Login {
     ) -> Result<(State, Option<usize>), SessionError> {
         match self.state {
             LoginState::Authid => {
-                let len = session.need_with::<AuthId, _, _>(&EmptyProvider, &mut |authid| {
+                let len = session.need_with::<AuthId, _, _>(&EmptyProvider, |authid| {
                     writer.write_all(authid.as_bytes())?;
                     Ok(authid.len())
                 })?;
@@ -37,7 +37,7 @@ impl Authentication for Login {
                 Ok((State::Running, Some(len)))
             }
             LoginState::Password => {
-                let len = session.need_with::<Password, _, _>(&EmptyProvider, &mut |password| {
+                let len = session.need_with::<Password, _, _>(&EmptyProvider, |password| {
                     writer.write_all(password)?;
                     Ok(password.len())
                 })?;

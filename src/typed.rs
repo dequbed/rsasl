@@ -6,7 +6,8 @@
 //! username, password) and from the protocol implementation (e.g. channel binding data).
 
 use core::any::TypeId;
-use core::ops::{Deref, DerefMut};
+use core::ops::Deref;
+use std::ops::DerefMut;
 
 pub(crate) mod tags {
     use core::marker::PhantomData;
@@ -28,21 +29,22 @@ pub(crate) mod tags {
     impl<'a, T: MaybeSizedType<'a>> Type<'a> for RefMut<T> {
         type Reified = &'a mut T::Reified;
     }
+
+    pub struct Optional<T>(PhantomData<T>);
+    impl<'a, T: Type<'a>> Type<'a> for Optional<T> {
+        type Reified = Option<T::Reified>;
+    }
 }
 
 #[repr(transparent)]
-/// An option made covariant over a tagged type `T`
-///
-/// This is the only possible implementation of [`Erased`] allowing safe casts to be made under
-/// this assumption.
-pub(crate) struct TaggedOption<'a, T: tags::Type<'a>>(pub(crate) Option<T::Reified>);
-impl<'a, T: tags::Type<'a>> Deref for TaggedOption<'a, T> {
-    type Target = Option<T::Reified>;
+pub(crate) struct Tagged<'a, T: tags::Type<'a>>(pub(crate) T::Reified);
+impl<'a, T: tags::Type<'a>> Deref for Tagged<'a, T> {
+    type Target = T::Reified;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
-impl<'a, T: tags::Type<'a>> DerefMut for TaggedOption<'a, T> {
+impl<'a, T: tags::Type<'a>> DerefMut for Tagged<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -57,7 +59,7 @@ impl<'a, T: tags::Type<'a>> DerefMut for TaggedOption<'a, T> {
 pub(crate) trait Erased<'a>: 'a {
     fn tag_id(&self) -> TypeId;
 }
-impl<'a, T: tags::Type<'a>> Erased<'a> for TaggedOption<'a, T> {
+impl<'a, T: tags::Type<'a>> Erased<'a> for Tagged<'a, T> {
     fn tag_id(&self) -> TypeId {
         TypeId::of::<T>()
     }
@@ -69,18 +71,18 @@ impl<'a> dyn Erased<'a> {
     }
 
     #[inline]
-    pub fn downcast_mut<T: tags::Type<'a>>(&mut self) -> Option<&mut TaggedOption<'a, T>> {
+    pub fn downcast_mut<T: tags::Type<'a>>(&mut self) -> Option<&mut Tagged<'a, T>> {
         if self.is::<T>() {
-            Some(unsafe { &mut *(self as *mut Self as *mut TaggedOption<'a, T>) })
+            Some(unsafe { &mut *(self as *mut Self as *mut Tagged<'a, T>) })
         } else {
             None
         }
     }
 
     #[inline]
-    pub fn downcast_ref<T: tags::Type<'a>>(&self) -> Option<&TaggedOption<'a, T>> {
+    pub fn downcast_ref<T: tags::Type<'a>>(&self) -> Option<&Tagged<'a, T>> {
         if self.is::<T>() {
-            Some(unsafe { &*(self as *const Self as *const TaggedOption<'a, T>) })
+            Some(unsafe { &*(self as *const Self as *const Tagged<'a, T>) })
         } else {
             None
         }
