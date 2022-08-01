@@ -1,6 +1,9 @@
 use crate::alloc::boxed::Box;
 
 pub trait ChannelBindingCallback {
+    fn default_cb_name(&self) -> Option<&str> {
+        None
+    }
     fn get_cb_data(&self, cbname: &str) -> Option<&[u8]>;
 }
 
@@ -36,11 +39,10 @@ mod tests {
     use super::*;
 
     use crate::config::SASLConfig;
-    use crate::sasl::SASLClient;
     use crate::mechname::Mechname;
+    use crate::sasl::SASLClient;
+    use crate::typed::Tagged;
 
-
-    use crate::typed::TaggedOption;
     use crate::validate::{NoValidation, Validate};
 
     #[test]
@@ -54,7 +56,7 @@ mod tests {
             .start_suggested(&[&Mechname::new(b"PLAIN").unwrap()])
             .unwrap();
 
-        let mut tagged_option = TaggedOption::<'_, NoValidation>(None);
+        let mut tagged_option = Tagged::<'_, NoValidation>(None);
 
         let validate = Validate::new::<NoValidation>(&mut tagged_option);
         session

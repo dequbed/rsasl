@@ -98,7 +98,7 @@ base64 = { version = "0.13", optional = true }
 
 rand = { version = "0.8", optional = true }
 
-hmac = { version = "0.12", optional = true }
+hmac = { version = "0.12", optional = true, features = ["reset"] }
 digest = { version = "0.10", optional = true }
 sha-1 = { version = "0.10", optional = true }
 sha2 = { version = "0.10", optional = true }
