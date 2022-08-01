@@ -311,7 +311,12 @@ impl MechanismData<'_> {
     {
         let mut closurecr = ClosureCR::<P, _, _>::wrap(closure);
         let mut tagged = Tagged::<'_, tags::RefMut<Satisfy<P>>>(&mut closurecr);
-        self.callback(provider, Request::new_satisfy::<P>(&mut tagged))?;
+        match self.callback(provider, Request::new_satisfy::<P>(&mut tagged)) {
+            Ok(()) => Ok(()),
+            // explicitly ignore a `NoValue` error since that one *is actually okay*
+            Err(SessionError::CallbackError(CallbackError::NoValue)) => Ok(()),
+            Err(error) => Err(error)
+        }?;
         Ok(closurecr.try_unwrap())
     }
 

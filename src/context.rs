@@ -162,7 +162,7 @@ mod tests {
     #[test]
     fn test_thisprovider() {
         struct TestTag;
-        impl Property for TestTag {
+        impl Property<'_> for TestTag {
             type Value = str;
         }
         let value = "hello ";
