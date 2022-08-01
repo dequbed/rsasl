@@ -6,7 +6,7 @@ use std::io::Write;
 use crate::error::SessionError;
 
 pub struct AnonymousToken;
-impl Property for AnonymousToken {
+impl Property<'_> for AnonymousToken {
     type Value = str;
 }
 
@@ -20,7 +20,7 @@ impl Authentication for Anonymous {
         writer: &mut dyn Write,
     ) -> Result<(State, Option<usize>), SessionError> {
         let mut len = None;
-        session.need_with::<AnonymousToken, _, ()>(&EmptyProvider, &mut |token| {
+        session.need_with::<AnonymousToken, _, ()>(&EmptyProvider, |token| {
             let buf = token.as_bytes();
             writer.write_all(buf)?;
             len = Some(buf.len());

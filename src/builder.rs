@@ -1,5 +1,5 @@
 use crate::callback::SessionCallback;
-use crate::config::{FilterFn, SASLConfig, SorterFn};
+use crate::config::{SASLConfig, SorterFn};
 use crate::error::SASLError;
 use crate::registry::{Mechanism, Registry};
 use std::cmp::Ordering;
