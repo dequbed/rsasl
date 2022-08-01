@@ -335,7 +335,7 @@ impl MechanismData<'_> {
         }
     }
 
-    pub fn need_cb_data<'a, P, F, G: 'a>(
+    pub fn need_cb_data<'a, P, F, G>(
         &self,
         cbname: &'a str,
         provider: P,
@@ -343,7 +343,7 @@ impl MechanismData<'_> {
     ) -> Result<G, SessionError>
     where
         P: Provider<'a>,
-        F: FnOnce(&[u8]) -> Result<G, SessionError> + 'a,
+        F: FnOnce(&[u8]) -> Result<G, SessionError>,
     {
         let prov = ThisProvider::<ChannelBindingName>::with(cbname).and(provider);
         if let Some(cbdata) = self.chanbind_cb.get_cb_data(cbname) {
