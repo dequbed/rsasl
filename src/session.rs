@@ -315,26 +315,6 @@ impl MechanismData<'_> {
         Ok(closurecr.try_unwrap())
     }
 
-    pub fn need<P, F>(
-        &self,
-        provider: &dyn Provider,
-        closure: F,
-    ) -> Result<Option<()>, SessionError>
-        where
-            P: for<'p> Property<'p>,
-            F: FnOnce(&<P as Property<'_>>::Value) -> Result<(), SessionError>,
-    {
-        let mut closurecr = ClosureCR::<P, _, _>::wrap(closure);
-        let mut tagged = Tagged::<'_, tags::RefMut<Satisfy<P>>>(&mut closurecr);
-        let request = Request::new_satisfy::<P>(&mut tagged);
-        let context = build_context(provider);
-        match self.callback.callback(&self.session_data, context, request) {
-            Ok(()) => Ok(None),
-            Err(SessionError::CallbackError(CallbackError::EarlyReturn(_))) => Ok(None),
-            Err(e) => Err(e),
-        }
-    }
-
     pub fn need_cb_data<'a, P, F, G>(
         &self,
         cbname: &'a str,
