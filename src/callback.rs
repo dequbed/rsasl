@@ -81,7 +81,7 @@ pub trait SessionCallback {
     ) -> Result<(), SessionError> {
         // silence the 'arg X not used' errors without having to prefix the parameter names with _
         let _ = (session_data, context, request);
-        Err(CallbackError::NoCallback.into())
+        Ok(())
     }
 
     /// Validate an authentication exchange
@@ -131,10 +131,10 @@ pub struct TOKEN(PhantomData<()>);
 /// ```rust
 /// # use rsasl::callback::CallbackError;
 /// let callback_error: CallbackError;
-/// # callback_error = CallbackError::NoCallback;
+/// # callback_error = CallbackError::NoCallback("");
 /// match callback_error {
 ///     CallbackError::NoValue => { /* handle NoValue case */ },
-///     CallbackError::NoCallback => { /* handle NoCallback case */ },
+///     CallbackError::NoCallback(_) => { /* handle NoCallback case */ },
 ///     _ => {}, // skip if it's an internal error type that we can't work with.
 /// }
 /// ```
@@ -146,7 +146,7 @@ pub struct TOKEN(PhantomData<()>);
 /// # use rsasl::callback::CallbackError;
 /// # use rsasl::prelude::SessionError;
 /// fn some_fn() -> Result<(), CallbackError> {
-///     Err(CallbackError::NoCallback)
+///     Err(CallbackError::NoValue)
 /// }
 ///
 /// fn callback() -> Result<(), SessionError> {
@@ -157,8 +157,8 @@ pub struct TOKEN(PhantomData<()>);
 pub enum CallbackError {
     #[error("callback could not provide a value for this query type")]
     NoValue,
-    #[error("callback does not handle this query type")]
-    NoCallback,
+    #[error("callback does not handle property {0}")]
+    NoCallback(&'static str),
 
     #[doc(hidden)]
     #[error("callback issued early return")]
@@ -170,7 +170,7 @@ impl CallbackError {
     }
     pub fn is_no_callback(&self) -> bool {
         match self {
-            Self::NoCallback => true,
+            Self::NoCallback(_) => true,
             _ => false,
         }
     }
@@ -392,8 +392,8 @@ impl<'a> Request<'a> {
     /// # use rsasl::callback::Request;
     /// # use rsasl::prelude::SessionError;
     /// # use rsasl::property::{AuthId, AuthzId, Password};
-    /// # fn ask_user_for_authid<'a>() -> &'a str { unimplemented!() }
-    /// # fn ask_user_for_password<'a>() -> &'a [u8] { unimplemented!() }
+    /// # fn ask_user_for_authid<'a>() -> Result<&'a str, SessionError> { unimplemented!() }
+    /// # fn ask_user_for_password<'a>() -> Result<&'a [u8], SessionError> { unimplemented!() }
     /// # fn try_get_cached_password<'a>() -> Option<&'a [u8]> { unimplemented!() }
     /// # fn example(request: &mut Request<'_>) -> Result<(), SessionError> {
     /// // Skipping the interactive asking if the password was cached previously
@@ -418,7 +418,7 @@ impl<'a> Request<'a> {
     /// # use rsasl::callback::Request;
     /// # use rsasl::prelude::SessionError;
     /// # use rsasl::property::{AuthId, AuthzId, Password};
-    /// # fn ask_user_for_password<'a>() -> &'a [u8] { &[] }
+    /// # fn ask_user_for_password<'a>() -> Result<&'a [u8], SessionError> { Ok(&[]) }
     /// # fn try_get_cached_password<'a>() -> Option<&'a [u8]> { Some(&[]) }
     /// # fn example(request: &mut Request<'_>) -> Result<(), SessionError> {
     /// if let Some(password) = try_get_cached_password() {
@@ -436,12 +436,12 @@ impl<'a> Request<'a> {
     ///
     /// If the value for a property is static or readily available using
     /// [`satisfy`](Request::satisfy) may be preferable.
-    pub fn satisfy_with<'b, P: Property, F: FnOnce() -> &'b P::Value>(
+    pub fn satisfy_with<'b, P: Property, F: FnOnce() -> Result<&'b P::Value, SessionError>>(
         &mut self,
         closure: F,
     ) -> Result<&mut Self, SessionError> {
         if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
-            let answer = closure();
+            let answer = closure()?;
             mech.satisfy(answer)?;
             Err(CallbackError::early_return().into())
         } else {

@@ -34,14 +34,14 @@ pub trait MechanismError: fmt::Debug + fmt::Display + Send + Sync + std::error::
 ///
 ///
 pub enum SessionError {
-    #[error("IO error occurred: {source}")]
+    #[error("IO error occurred")]
     Io {
         #[from]
         source: std::io::Error,
     },
 
     #[cfg(feature = "provider_base64")]
-    #[error("base64 wrapping failed: {source}")]
+    #[error("base64 wrapping failed")]
     Base64 {
         #[from]
         source: base64::DecodeError,
@@ -61,15 +61,14 @@ pub enum SessionError {
     #[error("internal mechanism error: {0}")]
     MechanismError(Box<dyn MechanismError>),
 
-    #[error("callback error: {0}")]
-    // TODO: Make it so "required data not provided" is handled specifically
+    #[error("callback error")]
     CallbackError(
         #[from]
         #[source]
         CallbackError,
     ),
 
-    #[error("validation error: {0}")]
+    #[error("validation error")]
     ValidationError(
         #[from]
         #[source]
@@ -81,6 +80,20 @@ pub enum SessionError {
 
     #[error("callback did not validate the authentication exchange")]
     NoValidate,
+
+    #[error("the server failed mutual authentication")]
+    /// This error indicates that the server failed to authenticate itself to a client
+    ///
+    /// This is most of the time **a very bad thing**. It means that the server failed to show that
+    /// it has access to the clients password *and let them in anyway*. While this may be okay in
+    /// a few select circumstances this error should not be ignored lightly.
+    ///
+    /// Only mechanisms that perform mutual authentication can return this error, and it will
+    /// only ever be returned on the client side of an authentication.
+    MutualAuthenticationFailed,
+
+    #[error("channel binding data for '{0}' is required")]
+    MissingChannelBindingData(String),
 
     #[cfg(feature = "gsasl")]
     #[error(transparent)]
@@ -101,7 +114,7 @@ impl SessionError {
 
     pub fn is_missing_prop(&self) -> bool {
         match self {
-            Self::CallbackError(CallbackError::NoCallback) => true,
+            Self::CallbackError(CallbackError::NoCallback(_)) => true,
             _ => false,
         }
     }

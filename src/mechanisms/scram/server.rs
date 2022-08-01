@@ -1,8 +1,6 @@
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
-use crate::mechanisms::scram::client::SCRAMError;
-use crate::mechanisms::scram::parser::{
-    ClientFinal, ClientFirstMessage, ServerErrorValue, ServerFinal, ServerFirst,
-};
+use crate::mechanisms::scram::client::{ProtocolError, SCRAMError};
+use crate::mechanisms::scram::parser::{ClientFinal, ClientFirstMessage, GS2CBindFlag, ServerErrorValue, ServerFinal, ServerFirst};
 use crate::mechanisms::scram::tools::{find_proofs, generate_nonce, DOutput};
 use crate::session::{MechanismData, State};
 use crate::vectored_io::VectoredWriter;
@@ -15,10 +13,10 @@ use std::io::Write;
 use std::marker::PhantomData;
 use thiserror::Error;
 
-use crate::context::ThisProvider;
+use crate::context::{Demand, DemandReply, Provider, ThisProvider};
 use crate::mechanism::Authentication;
 use crate::mechanisms::scram::properties::{HashIterations, PasswordHash, Salt};
-use crate::property::AuthId;
+use crate::property::{AuthId, AuthzId};
 
 const DEFAULT_ITERATIONS: u32 = 2u32.pow(14); // 16384, TODO check if still reasonable
 const DEFAULT_SALT_LEN: usize = 32;
@@ -80,15 +78,41 @@ impl<const N: usize> WaitingClientFirst<N> {
     ) -> Result<WaitingClientFinal<D>, SessionError> {
         // Step 1: (try to) parse the client message received.
         let client_first @ ClientFirstMessage {
-            cbflag: _,
-            authzid: _, // FIXME: Save authzid
-            username,
+            cbflag,
+            authzid, // FIXME: Save authzid
+            username: authid,
             nonce: client_nonce,
         } = ClientFirstMessage::parse(client_first).map_err(SCRAMError::ParseError)?;
 
         // FIXME: Escape Username from SCRAM format to whatever
+        #[derive(Copy, Clone)]
+        struct Prov<'a> {
+            authid: &'a str,
+            authzid: Option<&'a str>,
+        }
+        impl Provider for Prov<'_> {
+            fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
+                req.provide_ref::<AuthId>(self.authid)?;
+                if let Some(authzid) = self.authzid {
+                    req.provide_ref::<AuthzId>(authzid)?;
+                }
+                req.done()
+            }
+        }
 
-        let provider = ThisProvider::<AuthId>::with(username);
+        let provider = Prov { authid, authzid };
+        let mut gs2_header = client_first.build_gs2_header_vec();
+
+        match cbflag {
+            // TODO: check if this is a likely protocol downgrade
+            GS2CBindFlag::SupportedNotUsed => {},
+            GS2CBindFlag::NotSupported => {},
+            GS2CBindFlag::Used(name) => session_data.need_cb_data(name, provider, &mut |cbdata| {
+                gs2_header.extend_from_slice(cbdata);
+                Ok(())
+            })?,
+        };
+
         let password: Option<GenericArray<u8, D::OutputSize>>;
 
         // Retrieve the password for the given user via callback.
@@ -108,8 +132,8 @@ impl<const N: usize> WaitingClientFirst<N> {
         let (iterations, salt) = if password.is_some() {
             let iterations = session_data
                 .need_with::<HashIterations, _, _>(&provider, &mut |iterations| Ok(*iterations))?;
-            let salt =
-                session_data.need_with::<Salt, _, _>(&provider, &mut |salt| Ok(salt.to_vec()))?;
+            let salt = session_data
+                .need_with::<Salt, _, _>(&provider, &mut |salt| Ok(base64::encode(salt)))?;
             (iterations, salt)
         } else {
             self.gen_rand_pw_params()
@@ -117,8 +141,13 @@ impl<const N: usize> WaitingClientFirst<N> {
 
         let server_nonce: [u8; N] = generate_nonce(rng);
 
-        let it_bytes = iterations.to_be_bytes();
-        let msg = ServerFirst::new(&client_nonce, &server_nonce, &salt, &it_bytes);
+        let it_bytes = format!("{}", iterations);
+        let msg = ServerFirst::new(
+            &client_nonce,
+            &server_nonce,
+            salt.as_bytes(),
+            it_bytes.as_bytes(),
+        );
         let mut vecw = VectoredWriter::new(msg.to_ioslices());
         *written = vecw.write_all_vectored(writer)?;
 
@@ -127,32 +156,32 @@ impl<const N: usize> WaitingClientFirst<N> {
         common_nonce.extend_from_slice(&server_nonce);
 
         if let Some(salted_password) = password {
-            let gs2header = client_first.build_gs2_header_vec();
-            let gs2headerb64 = base64::encode(gs2header);
+            let gs2_header_b64 = base64::encode(&gs2_header[..]);
 
             let (proof, signature) = find_proofs::<D>(
-                username,
+                authid,
                 client_nonce,
                 msg,
-                &gs2headerb64,
+                &gs2_header_b64,
                 &GenericArray::from_slice(&salted_password),
             );
-            Ok(WaitingClientFinal::new(common_nonce, proof, signature))
+            Ok(WaitingClientFinal::new(common_nonce, gs2_header, proof, signature))
         } else {
-            Ok(WaitingClientFinal::bad_user(common_nonce))
+            Ok(WaitingClientFinal::bad_user(common_nonce, gs2_header))
         }
     }
 
-    fn gen_rand_pw_params(&self) -> (u32, Vec<u8>) {
+    fn gen_rand_pw_params(&self) -> (u32, String) {
         let mut salt = [0u8; DEFAULT_SALT_LEN];
         thread_rng().fill_bytes(&mut salt);
 
-        (DEFAULT_ITERATIONS, Vec::from(salt))
+        (DEFAULT_ITERATIONS, base64::encode(salt))
     }
 }
 
 pub struct WaitingClientFinal<D: Digest + BlockSizeUser> {
     nonce: Vec<u8>,
+    gs2_header: Vec<u8>,
     data: Option<FinalInner<D>>,
 }
 struct FinalInner<D: Digest + BlockSizeUser> {
@@ -160,14 +189,17 @@ struct FinalInner<D: Digest + BlockSizeUser> {
     signature: DOutput<D>,
 }
 impl<D: Digest + BlockSizeUser> WaitingClientFinal<D> {
-    pub fn new(nonce: Vec<u8>, proof: DOutput<D>, signature: DOutput<D>) -> Self {
+    pub fn new(nonce: Vec<u8>, gs2_header: Vec<u8>, proof: DOutput<D>, signature: DOutput<D>)
+        -> Self
+    {
         Self {
             nonce,
+            gs2_header,
             data: Some(FinalInner { proof, signature }),
         }
     }
-    pub fn bad_user(nonce: Vec<u8>) -> Self {
-        Self { nonce, data: None }
+    pub fn bad_user(nonce: Vec<u8>, gs2_header: Vec<u8>) -> Self {
+        Self { nonce, gs2_header, data: None }
     }
 
     pub fn handle_client_final(
@@ -184,7 +216,11 @@ impl<D: Digest + BlockSizeUser> WaitingClientFinal<D> {
 
         let outcome = Outcome::Failed;
 
-        let msg = if !self.verify_channel_bindings(channel_binding) {
+        let cb = base64::decode(channel_binding)
+            .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
+
+
+        let msg = if !self.verify_channel_bindings(&cb) {
             ServerFinal::Error(ServerErrorValue::ChannelBindingsDontMatch)
         } else {
             if nonce != self.nonce {
@@ -196,7 +232,7 @@ impl<D: Digest + BlockSizeUser> WaitingClientFinal<D> {
                     } else {
                         let msg = ServerFinal::Verifier(data.signature.as_slice());
                         let mut vecw = VectoredWriter::new(msg.to_ioslices());
-                        *written = vecw.write_all_vectored(writer)?;
+                        * written = vecw.write_all_vectored(writer)?;
                         // FIXME: We need to validate the authzid/authid combo first!
                         return Ok(Outcome::Successful { username: () });
                     }
@@ -212,8 +248,8 @@ impl<D: Digest + BlockSizeUser> WaitingClientFinal<D> {
         Ok(outcome)
     }
 
-    pub fn verify_channel_bindings(&self, _channel_binding: &[u8]) -> bool {
-        todo!()
+    pub fn verify_channel_bindings(&self, channel_binding: &[u8]) -> bool {
+        &self.gs2_header[..] == channel_binding
     }
 }
 

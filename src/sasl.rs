@@ -93,8 +93,11 @@ mod provider {
             }
         }
 
-        pub fn get_available(&self) -> impl Iterator<Item = &Mechanism> {
-            self.inner.get_available()
+        pub fn get_available(&self) -> impl IntoIterator<Item = &Mechanism> {
+            let mut vec: Vec<&Mechanism> = self.inner.get_available().collect();
+            vec.as_mut_slice()
+                .sort_unstable_by(|a,b| self.inner.config.sort(a,b));
+            vec
         }
 
         /// Starts a authentication exchange as the server role

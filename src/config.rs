@@ -68,6 +68,11 @@ impl SASLConfig {
     pub(crate) fn get_callback(&self) -> &dyn SessionCallback {
         self.inner.get_callback()
     }
+
+    #[inline(always)]
+    pub(crate) fn sort(&self, left: &Mechanism, right: &Mechanism) -> Ordering {
+        self.inner.sort(left, right)
+    }
 }
 
 #[cfg(feature = "config_builder")]

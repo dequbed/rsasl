@@ -1,6 +1,7 @@
 use std::io::Write;
 
 use core::fmt;
+use core::any::type_name;
 
 use crate::callback::{
     Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, SessionCallback,
@@ -276,7 +277,7 @@ impl MechanismData<'_> {
         let mut tagged_option = TaggedOption::<'_, tags::Ref<Action<T>>>(Some(value));
         self.callback(provider, Request::new_action::<T>(&mut tagged_option))?;
         if tagged_option.is_some() {
-            Err(SessionError::CallbackError(CallbackError::NoCallback))
+            Err(SessionError::CallbackError(CallbackError::NoCallback(type_name::<T>())))
         } else {
             Ok(())
         }
@@ -301,7 +302,7 @@ impl MechanismData<'_> {
         F: FnMut(&T::Value) -> Result<G, SessionError>,
     {
         self.maybe_need_with::<T, F, G>(provider, closure)?
-            .ok_or(SessionError::CallbackError(CallbackError::NoCallback))
+            .ok_or(CallbackError::NoCallback(type_name::<T>()).into())
     }
 
     pub fn maybe_need_with<T, F, G>(
@@ -332,7 +333,8 @@ impl MechanismData<'_> {
         if let Some(cbdata) = self.chanbind_cb.get_cb_data(cbname) {
             f(cbdata)
         } else {
-            self.need_with::<ChannelBindings, F, G>(&prov, f)
+            self.maybe_need_with::<ChannelBindings, F, G>(&prov, f)?
+                .ok_or(SessionError::MissingChannelBindingData(cbname.to_string()))
         }
     }
 }
@@ -356,6 +358,7 @@ mod gsasl {
     }
 }
 
+#[derive(Debug)]
 // TODO: Since the Session object is only known to the protocol implementation and user they can
 //       share a statically known Context.
 pub struct SessionData {

@@ -85,7 +85,7 @@ impl<const N: usize> ScramState<StateClientFirst<N>> {
         self,
         rng: &mut impl Rng,
         cbflag: GS2CBindFlag<'_>,
-        cbdata: Option<String>,
+        cbdata: Option<Vec<u8>>,
         authzid: Option<String>,
         username: String,
         writer: impl Write,
@@ -135,9 +135,9 @@ struct StateClientFirst<const N: usize> {
     // Input <= Nothing
 
     // Generate: client_nonce <- random
-    //           gs2_header <- cb_flag ',' authzid
+    //           gs2_header <- cb_flag ',' authzid ','
 
-    // Output => ClientFirstMessage gs2_header ',' n=username ',' r=client_nonce
+    // Output => ClientFirstMessage gs2_header n=username ',' r=client_nonce
 
     // State => gs2_header, client_nonce, username
 }
@@ -151,7 +151,7 @@ impl<const N: usize> StateClientFirst<N> {
         self,
         rng: &mut impl Rng,
         cbflag: GS2CBindFlag<'_>,
-        cbdata: Option<String>,
+        cbdata: Option<Vec<u8>>,
         authzid: Option<String>,
         username: String,
         writer: impl Write,
@@ -193,7 +193,7 @@ impl<const N: usize> StateClientFirst<N> {
 struct WaitingServerFirst<D: Digest + BlockSizeUser, const N: usize> {
     // Provided user password to be hashed with salt & iteration count from Server First Message
     //password: &'static str,
-    cbdata: Option<String>,
+    cbdata: Option<Vec<u8>>,
 
     // State <= gs2_header, client_nonce, username
     gs2_header: Vec<u8>,
@@ -216,7 +216,7 @@ struct WaitingServerFirst<D: Digest + BlockSizeUser, const N: usize> {
 
 impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirst<D, N> {
     pub fn new(
-        cbdata: Option<String>,
+        cbdata: Option<Vec<u8>>,
         gs2_header: Vec<u8>,
         client_nonce: [u8; N],
         username: String,
@@ -239,7 +239,7 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
     ) -> Result<WaitingServerFinal<D>, SessionError> {
         self.cbdata
             .take()
-            .map(|cbdata| self.gs2_header.extend_from_slice(cbdata.as_bytes()));
+            .map(|cbdata| self.gs2_header.extend_from_slice(&cbdata[..]));
         let gs2headerb64 = base64::encode(self.gs2_header);
 
         let (client_proof, server_signature) = find_proofs::<D>(
@@ -292,9 +292,13 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> WaitingServerFirs
             return Err(SCRAMError::Protocol(ProtocolError::IterationCountZero).into());
         }
 
+        println!("salt: {}", std::str::from_utf8(salt).unwrap());
+
         let salt = base64::decode(salt).unwrap();
         let mut salted_password = GenericArray::default();
         hash_password::<D>(password, iterations, &salt[..], &mut salted_password);
+
+        println!("salted pw: {}", base64::encode(salted_password.as_slice()));
 
         self.handle_server_first_salted(&salted_password, server_first, writer, written)
     }
@@ -346,35 +350,23 @@ impl<D: Digest + BlockSizeUser + Clone + Sync, const N: usize> Authentication
         use ScramClientState::*;
         match self.state.take() {
             Some(Initial(state)) => {
+                // TODO: make the default 'tls-unique' configurable
                 let mut cbname = Cow::Borrowed("tls-unique");
                 let mut cbdata = None;
                 let cbflag = match self.plus {
                     CbSupport::Supported => {
-                        let res = session.need_with::<OverrideCBType, _, _>(
+                        session.maybe_need_with::<OverrideCBType, _, _>(
                             &EmptyProvider,
                             &mut |i_cbname| {
-                                session.need_cb_data(i_cbname, EmptyProvider, &mut |i_cbdata| {
-                                    cbdata = Some(base64::encode(i_cbdata));
-                                    Ok(())
-                                })?;
                                 cbname = Cow::Owned(i_cbname.into());
                                 Ok(())
                             },
-                        );
-                        match res {
-                            Ok(()) => {}
-                            Err(e) if e.is_missing_prop() => {
-                                session.need_cb_data(
-                                    "tls-unique",
-                                    EmptyProvider,
-                                    &mut |i_cbdata| {
-                                        cbdata = Some(base64::encode(i_cbdata));
-                                        Ok(())
-                                    },
-                                )?;
-                            }
-                            Err(other) => return Err(other.into()),
-                        }
+                        )?;
+
+                        session.need_cb_data(&cbname, EmptyProvider, &mut |i_cbdata| {
+                            cbdata = Some(i_cbdata.into());
+                            Ok(())
+                        })?;
 
                         GS2CBindFlag::Used(&cbname)
                     }
@@ -434,6 +426,7 @@ pub enum ProtocolError {
     IterationCountFormat,
     IterationCountZero,
     ServerSignatureMismatch,
+    Base64Decode,
 }
 
 impl Display for ProtocolError {
@@ -442,6 +435,7 @@ impl Display for ProtocolError {
             ProtocolError::InvalidNonce => f.write_str("returned server nonce is invalid"),
             ProtocolError::IterationCountFormat => f.write_str("iteration count must be decimal"),
             ProtocolError::IterationCountZero => f.write_str("iteration count can't be zero"),
+            ProtocolError::Base64Decode => f.write_str("base64 decoding of data failed"),
             ProtocolError::ServerSignatureMismatch => {
                 f.write_str("Calculated server MAC and received server MAC do not match")
             }
