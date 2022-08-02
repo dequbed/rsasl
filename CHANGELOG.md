@@ -1,13 +1,24 @@
 # Revision history for `rsasl`
 
+All notable changes are documented or linked to in this file. The format of the changelog is based on 
+['Keep a Changelog'](https://keepachangelog.com/en/1.0.0/). In short, this changelog is sorted the most recent
+release at the top, and the first section —  Unreleased — documents features that are in the `development` 
+branch but have not yet landed in the `main` branch from which releases are generated.
+
+`rsasl` adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html); with 
+the notable exception of custom mechanism support and excluding 
+bug-fixes there will not be any backwards-incompatible changes within a major version release.
+
+The MSRV (minimum supported Rust version) of the project is documented in the [`Cargo.toml`](Cargo.toml) and in the 
+[README](README.md). Changes to the MSRV are considered a **non-breaking change** and thus can happen in a *MINOR* 
+release. They will however *never* happen in a patch release.
+
 <!-- next-header -->
 ## [Unreleased] — ReleaseDate
 
 ### Added
 
 - Properties can now contain data with other lifetimes than `'static`
-
-- Added utilities to generate channel binding data for rustls
 
 ## [v2.0.0-alpha1] — 2022-07-30
 
