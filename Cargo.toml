@@ -57,6 +57,8 @@ openid20 = ["std", "gsasl"]
 saml20 = ["std", "gsasl"]
 ## Enable `SECURID`
 securid = ["std", "gsasl"]
+## Enable `XOAUTH2`
+xoauth2 = ["std"]
 
 #! ## Provider flags
 #! These flags are relevant for crates that want to use rsasl as authentication provider, i.e. crates implementing
