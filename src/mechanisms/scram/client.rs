@@ -237,20 +237,14 @@ impl<const N: usize> StateClientFirst<N> {
 
 // Waiting for first server msg
 struct WaitingServerFirst<D, const N: usize> {
+    // base64-encoded channel bindings, i.e. the attribute to send with 'c=' in client final.
     channel_bindings: String,
-    // Need to compare combined_nonce to be valid
+    // The generated client nonce
     client_nonce: [u8; N],
+    // Authid
     username: String,
-    // Input <= Server First Message { combined_nonce, salt, iteration_count }
 
-    // Validate: len combined_nonce > len client_nonce
-    //           combined_nonce `beginsWith` client_nonce
-
-    // Generate: (proof, server_hmac) <- hash_with password salt iteration_count
-    //           channel_binding <- base64_encode ( gs2_header ++ cb_data )
-
-    // Output => ClientFinalMessage c=channel_binding,r=combined_nonce,p=proof
-    // State => server_hmac
+    // Marker for the digest in use
     digest: PhantomData<D>,
 }
 
@@ -300,19 +294,7 @@ where
         let salt = base64::decode(salt64)
             .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
 
-        struct Prov<'a> {
-            iterations: &'a u32,
-            salt: &'a [u8],
-        }
-        impl<'a> Provider<'a> for Prov<'a> {
-            fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
-                req.provide_ref::<Salt>(self.salt)?
-                    .provide_ref::<Iterations>(self.iterations)?
-                    .done()
-            }
-        }
-
-        let prov = Prov {
+        let prov = ScramClientProvider {
             iterations: &iterations,
             salt: &salt[..],
         };
@@ -386,10 +368,7 @@ where
         );
 
         let proof = DOutput::<D>::from_exact_iter(
-            client_key
-                .iter()
-                .zip(client_signature)
-                .map(|(x, y)| x ^ y),
+            client_key.iter().zip(client_signature).map(|(x, y)| x ^ y),
         )
         .expect("XOR of two same-sized arrays was not of that size?");
         let proof64 = base64::encode(&proof);
@@ -447,18 +426,7 @@ impl<D: Digest + BlockSizeUser> WaitingServerFinal<D> {
                 let v = base64::decode(verifier)
                     .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
                 if self.verifier.as_slice() == &v[..] {
-                    struct Prov<'a> {
-                        salt: &'a [u8],
-                        iterations: &'a u32,
-                    }
-                    impl<'a> Provider<'a> for Prov<'a> {
-                        fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
-                            req.provide_ref::<Salt>(self.salt)?
-                                .provide_ref::<Iterations>(self.iterations)?
-                                .done()
-                        }
-                    }
-                    let prov = Prov {
+                    let prov = ScramClientProvider {
                         salt: &self.salt[..],
                         iterations: &self.iterations,
                     };
@@ -564,6 +532,18 @@ impl MechanismError for SCRAMError {
             SCRAMError::ParseError(_) => MechanismErrorKind::Parse,
             SCRAMError::ServerError(_) => MechanismErrorKind::Outcome,
         }
+    }
+}
+
+struct ScramClientProvider<'a> {
+    iterations: &'a u32,
+    salt: &'a [u8],
+}
+impl<'a> Provider<'a> for ScramClientProvider<'a> {
+    fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
+        req.provide_ref::<Salt>(self.salt)?
+            .provide_ref::<Iterations>(self.iterations)?
+            .done()
     }
 }
 
