@@ -120,8 +120,12 @@ where
 }
 
 impl<D: Digest + BlockSizeUser> ScramState<WaitingServerFinal<D>> {
-    pub fn step(self, server_final: &[u8]) -> Result<(), SessionError> {
-        match self.state.handle_server_final(server_final) {
+    pub fn step(
+        self,
+        session: &mut MechanismData,
+        server_final: &[u8],
+    ) -> Result<(), SessionError> {
+        match self.state.handle_server_final(session, server_final) {
             Ok(StateServerFinal { .. }) => Ok(()),
             Err(e) => Err(e.into()),
         }
@@ -383,7 +387,7 @@ where
 
         let proof = DOutput::<D>::from_exact_iter(
             client_key
-                .into_iter()
+                .iter()
                 .zip(client_signature)
                 .map(|(x, y)| x ^ y),
         )
@@ -397,34 +401,74 @@ where
         let mut vecw = VectoredWriter::new(client_final);
         *written = vecw.write_all_vectored(writer)?;
 
-        Ok(WaitingServerFinal::new(server_signature))
+        Ok(WaitingServerFinal::new(
+            server_signature,
+            client_key,
+            server_key,
+            salt,
+            iterations,
+        ))
     }
 }
 
 // Waiting for final server msg
 struct WaitingServerFinal<D: Digest + BlockSizeUser> {
-    // State <= server_hmac
-    server_sig: DOutput<D>,
-    // Input <= Server Final Message ( verifier | error )
-
-    // Validate: verifier == server_hmac
-    //           no error
-
-    // Output => Nothing
-    // State => Nothing
+    verifier: DOutput<D>,
+    client_key: DOutput<D>,
+    server_key: DOutput<D>,
+    salt: Vec<u8>,
+    iterations: u32,
 }
 
 impl<D: Digest + BlockSizeUser> WaitingServerFinal<D> {
-    pub fn new(server_sig: DOutput<D>) -> Self {
-        Self { server_sig }
+    pub fn new(
+        verifier: DOutput<D>,
+        client_key: DOutput<D>,
+        server_key: DOutput<D>,
+        salt: Vec<u8>,
+        iterations: u32,
+    ) -> Self {
+        Self {
+            verifier,
+            client_key,
+            server_key,
+            salt,
+            iterations,
+        }
     }
 
-    pub fn handle_server_final(self, server_final: &[u8]) -> Result<StateServerFinal, SessionError> {
+    pub fn handle_server_final(
+        self,
+        session: &mut MechanismData,
+        server_final: &[u8],
+    ) -> Result<StateServerFinal, SessionError> {
         match ServerFinal::parse(server_final).map_err(SCRAMError::ParseError)? {
             ServerFinal::Verifier(verifier) => {
                 let v = base64::decode(verifier)
                     .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
-                if self.server_sig.as_slice() == &v[..] {
+                if self.verifier.as_slice() == &v[..] {
+                    struct Prov<'a> {
+                        salt: &'a [u8],
+                        iterations: &'a u32,
+                    }
+                    impl<'a> Provider<'a> for Prov<'a> {
+                        fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
+                            req.provide_ref::<Salt>(self.salt)?
+                                .provide_ref::<Iterations>(self.iterations)?
+                                .done()
+                        }
+                    }
+                    let prov = Prov {
+                        salt: &self.salt[..],
+                        iterations: &self.iterations,
+                    };
+                    session.action::<ScramCachedPassword>(
+                        &prov,
+                        &ScramCachedPassword {
+                            client_key: self.client_key.as_slice(),
+                            server_key: self.server_key.as_slice(),
+                        },
+                    );
                     Ok(StateServerFinal {})
                 } else {
                     Err(SessionError::MutualAuthenticationFailed)
@@ -468,7 +512,7 @@ where
             }
             Some(ServerFirst(state)) => {
                 let server_final = input.ok_or(SessionError::InputDataRequired)?;
-                state.step(server_final)?;
+                state.step(session, server_final)?;
                 Ok((State::Finished, None))
             }
             None => panic!("State machine in invalid state"),
