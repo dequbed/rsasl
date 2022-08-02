@@ -4,12 +4,12 @@
 
 use miette::{IntoDiagnostic, WrapErr};
 use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
+use rsasl::mechanisms::scram::properties::*;
 use rsasl::prelude::*;
 use rsasl::property::*;
 use rsasl::validate::{NoValidation, Validate, ValidationError};
 use std::io;
 use std::io::Cursor;
-use rsasl::mechanisms::scram::properties::*;
 
 struct EnvCallback;
 impl SessionCallback for EnvCallback {
@@ -28,18 +28,24 @@ impl SessionCallback for EnvCallback {
         } else if request.is::<ChannelBindings>() {
             let cbdata = var("RSASL_CBDATA")?;
             request.satisfy::<ChannelBindings>(cbdata.as_bytes())?;
-        } else if request.is::<PasswordHash>() {
+        } else if request.is::<ScramStoredPassword>() {
             if let Some("username") = context.get_ref::<AuthId>() {
-                let data = base64::decode("p5gegiYLXQDvq+yCjFEV5WN/eu8i5rfy3/J5YKhyQgw=").unwrap();
-                request.satisfy::<PasswordHash>(&data[..])?;
+                request.satisfy::<ScramStoredPassword>(&ScramStoredPassword {
+                    iterations: 4096,
+                    salt: &[
+                        0xc0, 0x3d, 0x33, 0xfd, 0xce, 0x5d, 0xed, 0x2e, 0x2a, 0xeb, 0x8e, 0xbc,
+                        0x3b, 0x3d, 0x62, 0xb2,
+                    ],
+                    stored_key: &[
+                        87, 125, 145, 236, 250, 131, 103, 74, 247, 123, 68, 218, 121, 173, 12, 23,
+                        43, 85, 15, 252, 200, 80, 44, 176, 45, 246, 33, 245, 143, 247, 0, 109,
+                    ],
+                    server_key: &[
+                        196, 31, 224, 204, 165, 244, 68, 118, 6, 197, 163, 187, 35, 70, 137, 4,
+                        185, 243, 25, 19, 31, 49, 253, 198, 239, 25, 226, 58, 253, 195, 184, 185,
+                    ],
+                })?;
             }
-        } else if request.is::<HashIterations>() {
-            request.satisfy::<HashIterations>(&4096)?;
-        } else if request.is::<Salt>() {
-            request.satisfy::<Salt>(&[
-                0xc0, 0x3d, 0x33, 0xfd, 0xce, 0x5d, 0xed, 0x2e,
-                0x2a, 0xeb, 0x8e, 0xbc, 0x3b, 0x3d, 0x62, 0xb2
-            ])?;
         }
         Ok(())
     }

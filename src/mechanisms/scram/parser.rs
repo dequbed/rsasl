@@ -227,13 +227,13 @@ pub struct ClientFirstMessage<'scram> {
 impl<'scram> ClientFirstMessage<'scram> {
     pub fn new(
         cbflag: GS2CBindFlag<'scram>,
-        authzid: Option<&'scram String>,
+        authzid: Option<&'scram str>,
         username: &'scram str,
         nonce: &'scram [u8],
     ) -> Self {
         Self {
             cbflag,
-            authzid: authzid.map(|s| s.as_ref()),
+            authzid,
             username,
             nonce,
         }

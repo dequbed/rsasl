@@ -17,7 +17,7 @@ impl Authentication for External {
     ) -> Result<(State, Option<usize>), SessionError> {
         let mut len = None;
 
-        session.need_with::<AuthId, _, ()>(&EmptyProvider, &mut |authid| {
+        session.need_with::<AuthId, _, ()>(&EmptyProvider, |authid| {
             let buf = authid.as_bytes();
             writer.write_all(buf)?;
             len = Some(buf.len());
