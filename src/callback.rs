@@ -307,7 +307,7 @@ impl<'a> Request<'a> {
     /// Ok(())
     /// # }
     /// ```
-    pub fn get_action<P: Property<'a>>(&'a mut self) -> Option<&'a P::Value> {
+    pub fn get_action<P: Property<'a>>(&mut self) -> Option<&'a P::Value> {
         if let Some(Tagged(Some(value))) =
             self.0.downcast_mut::<Action<P>>().take()
         {

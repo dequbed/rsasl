@@ -25,6 +25,13 @@ impl<'a> Property<'a> for ScramStoredPassword<'static> {
     type Value = ScramStoredPassword<'a>;
 }
 
+/// Callback to store generated keys for future use
+///
+/// actionable but also satisfiable, depends.
+/// This property is used by the SCRAM mechanism on the client side of an authentication, and
+/// an action callback for this property will be issued when the server has been authenticated.
+/// This allows a client to store the derived keys in a persistent database and use them in
+/// future authentication exchanges.
 pub struct ScramCachedPassword<'a> {
     pub client_key: &'a [u8],
     pub server_key: &'a [u8],
