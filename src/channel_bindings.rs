@@ -40,6 +40,7 @@ mod tests {
 
     use crate::config::SASLConfig;
     use crate::mechname::Mechname;
+    use crate::prelude::SessionError;
     use crate::sasl::SASLClient;
     use crate::typed::Tagged;
 
@@ -74,6 +75,9 @@ mod tests {
                 Ok(())
             })
             .unwrap_err();
-        assert!(e.is_missing_prop())
+        match e {
+            SessionError::MissingChannelBindingData(name) if name.as_str() == "blahblubb" => {},
+            e => panic!("Expected MissingChannelBindingData error, received {:?}", e)
+        }
     }
 }
