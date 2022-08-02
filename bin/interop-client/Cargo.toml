@@ -1,0 +1,15 @@
+[package]
+name = "interop-client"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rsasl = { path = "../..", features = ["provider_base64"] }
+
+clap = "3.2"
+
+miette = { version = "4.7", features = ["fancy"] }
+
+hex = "0.4"
