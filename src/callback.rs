@@ -10,7 +10,7 @@ use core::marker::PhantomData;
 use crate::error::SessionError;
 use crate::property::Property;
 
-use crate::typed::{tags, Erased, TaggedOption};
+use crate::typed::{tags, Erased, Tagged};
 use crate::validate::{Validate, ValidationError};
 
 // Re-Exports
@@ -77,7 +77,7 @@ pub trait SessionCallback {
         &self,
         session_data: &SessionData,
         context: &Context,
-        request: &mut Request<'_>,
+        request: &mut Request,
     ) -> Result<(), SessionError> {
         // silence the 'arg X not used' errors without having to prefix the parameter names with _
         let _ = (session_data, context, request);
@@ -180,43 +180,45 @@ pub(crate) trait CallbackRequest<Answer: ?Sized> {
     fn satisfy(&mut self, answer: &Answer) -> Result<(), SessionError>;
 }
 
-enum ClosureCRState<'f, F, G> {
-    Open(&'f mut F),
+enum ClosureCRState<F, G> {
+    Open(F),
     Satisfied(G),
 }
 #[repr(transparent)]
-pub(crate) struct ClosureCR<'f, T, F, G> {
-    closure: ClosureCRState<'f, F, G>,
-    _marker: PhantomData<T>,
+pub(crate) struct ClosureCR<P, F, G> {
+    closure: Option<ClosureCRState<F, G>>,
+    _marker: PhantomData<P>,
 }
-impl<'f, T, F, G> ClosureCR<'f, T, F, G>
+
+impl<P, F, G> ClosureCR<P, F, G>
 where
-    T: Property,
-    F: FnMut(&T::Value) -> Result<G, SessionError>,
+    P: for<'p> Property<'p>,
+    F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
 {
-    pub fn wrap(closure: &'f mut F) -> ClosureCR<'f, T, F, G> {
+    pub fn wrap(closure: F) -> ClosureCR<P, F, G> {
         ClosureCR {
-            closure: ClosureCRState::Open(closure),
+            closure: Some(ClosureCRState::Open(closure)),
             _marker: PhantomData,
         }
     }
     pub fn try_unwrap(self) -> Option<G> {
-        if let ClosureCRState::Satisfied(val) = self.closure {
+        if let Some(ClosureCRState::Satisfied(val)) = self.closure {
             Some(val)
         } else {
             None
         }
     }
 }
-impl<T, F, G> CallbackRequest<T::Value> for ClosureCR<'_, T, F, G>
+
+impl<P, F, G> CallbackRequest<<P as Property<'_>>::Value> for ClosureCR<P, F, G>
 where
-    T: Property,
-    F: FnMut(&T::Value) -> Result<G, SessionError>,
+    P: for<'p> Property<'p>,
+    F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
 {
-    fn satisfy(&mut self, answer: &T::Value) -> Result<(), SessionError> {
-        if let ClosureCRState::Open(closure) = &mut self.closure {
+    fn satisfy(&mut self, answer: &<P as Property<'_>>::Value) -> Result<(), SessionError> {
+        if let Some(ClosureCRState::Open(mut closure)) = self.closure.take() {
             let reply = closure(answer)?;
-            let _ = core::mem::replace(&mut self.closure, ClosureCRState::Satisfied(reply));
+            self.closure = Some(ClosureCRState::Satisfied(reply));
         }
         Ok(())
     }
@@ -224,14 +226,14 @@ where
 
 #[repr(transparent)]
 pub(crate) struct Satisfy<T>(PhantomData<T>);
-impl<'a, T: Property> tags::MaybeSizedType<'a> for Satisfy<T> {
+impl<'a, T: Property<'a>> tags::MaybeSizedType<'a> for Satisfy<T> {
     type Reified = dyn CallbackRequest<T::Value> + 'a;
 }
 
 #[repr(transparent)]
 pub(crate) struct Action<T>(PhantomData<T>);
-impl<'a, T: Property> tags::MaybeSizedType<'a> for Action<T> {
-    type Reified = T::Value;
+impl<'a, T: Property<'a>> tags::Type<'a> for Action<T> {
+    type Reified = Option<&'a T::Value>;
 }
 
 #[repr(transparent)]
@@ -247,24 +249,25 @@ impl<'a, T: Property> tags::MaybeSizedType<'a> for Action<T> {
 /// side and is documented in the documentation of the mechanism implementation in question.
 pub struct Request<'a>(dyn Erased<'a>);
 impl<'a> Request<'a> {
-    pub(crate) fn new_satisfy<'o, P: Property>(
-        opt: &'o mut TaggedOption<'a, tags::RefMut<Satisfy<P>>>,
-    ) -> &'o mut Self {
+    pub(crate) fn new_satisfy<P: for<'p> Property<'p>>(
+        opt: &'a mut Tagged<'a, tags::RefMut<Satisfy<P>>>,
+    ) -> &'a mut Self
+    {
         unsafe { core::mem::transmute(opt as &mut dyn Erased) }
     }
 
-    pub(crate) fn new_action<'o, P: Property>(
-        val: &'o mut TaggedOption<'a, tags::Ref<Action<P>>>,
-    ) -> &'o mut Self {
+    pub(crate) fn new_action<'t, 'p, P: Property<'p>>(
+        val: &'t mut Tagged<'p, Action<P>>,
+    ) -> &'t mut Self {
         unsafe { core::mem::transmute(val as &mut dyn Erased) }
     }
 }
 impl<'a> Request<'a> {
-    fn is_satisfy<P: Property>(&self) -> bool {
+    fn is_satisfy<P: Property<'a>>(&self) -> bool {
         self.0.is::<tags::RefMut<Satisfy<P>>>()
     }
-    fn is_action<P: Property>(&self) -> bool {
-        self.0.is::<tags::Ref<Action<P>>>()
+    fn is_action<P: Property<'a>>(&self) -> bool {
+        self.0.is::<Action<P>>()
     }
 
     /// Returns true iff this Request is for the Property `P`.
@@ -272,7 +275,7 @@ impl<'a> Request<'a> {
     /// Using this method is generally not necessary as [`satisfy`](Request::satisfy),
     /// [`satisfy_with`](Request::satisfy_with) and [`get_action`](Request::get_action) can used
     /// efficiently without.
-    pub fn is<P: Property>(&self) -> bool {
+    pub fn is<P: Property<'a>>(&self) -> bool {
         self.is_satisfy::<P>() || self.is_action::<P>()
     }
 
@@ -304,9 +307,9 @@ impl<'a> Request<'a> {
     /// Ok(())
     /// # }
     /// ```
-    pub fn get_action<P: Property>(&mut self) -> Option<&P::Value> {
-        if let Some(TaggedOption(Some(value))) =
-            self.0.downcast_mut::<tags::Ref<Action<P>>>().take()
+    pub fn get_action<P: Property<'a>>(&mut self) -> Option<&'a P::Value> {
+        if let Some(Tagged(Some(value))) =
+            self.0.downcast_mut::<Action<P>>().take()
         {
             Some(*value)
         } else {
@@ -348,7 +351,7 @@ impl<'a> Request<'a> {
     /// # use rsasl::callback::Request;
     /// # use rsasl::prelude::SessionError;
     /// # use rsasl::property::{AuthId, AuthzId, Password};
-    /// # fn ask_user_for_password<'a>() -> &'a [u8] { &[] }
+    /// # fn ask_user_for_password<'a>() -> Result<&'a [u8], SessionError> { Ok(&[]) }
     /// # fn try_get_cached_password<'a>() -> Option<&'a [u8]> { Some(&[]) }
     /// # fn example(request: &mut Request<'_>) -> Result<(), SessionError> {
     /// if let Some(password) = try_get_cached_password() {
@@ -366,8 +369,10 @@ impl<'a> Request<'a> {
     ///
     /// If generating the value is expensive or requires interactivity using the method
     /// [`satisfy_with`](Request::satisfy_with) may be preferable.
-    pub fn satisfy<P: Property>(&mut self, answer: &P::Value) -> Result<&mut Self, SessionError> {
-        if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
+    pub fn satisfy<P: Property<'a>>(&mut self, answer: &P::Value)
+        -> Result<&mut Self, SessionError>
+    {
+        if let Some(Tagged(mech)) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
             mech.satisfy(answer)?;
             Err(CallbackError::early_return().into())
         } else {
@@ -436,11 +441,11 @@ impl<'a> Request<'a> {
     ///
     /// If the value for a property is static or readily available using
     /// [`satisfy`](Request::satisfy) may be preferable.
-    pub fn satisfy_with<'b, P: Property, F: FnOnce() -> Result<&'b P::Value, SessionError>>(
-        &mut self,
+    pub fn satisfy_with<P: Property<'a>, F: FnOnce() -> Result<&'a P::Value, SessionError>>(
+        &'a mut self,
         closure: F,
-    ) -> Result<&mut Self, SessionError> {
-        if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
+    ) -> Result<&'a mut Self, SessionError> {
+        if let Some(Tagged(mech)) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
             let answer = closure()?;
             mech.satisfy(answer)?;
             Err(CallbackError::early_return().into())

@@ -5,6 +5,8 @@
 
 ### Added
 
+- Properties can now contain data with other lifetimes than `'static`
+
 - Added utilities to generate channel binding data for rustls
 
 ## [v2.0.0-alpha1] — 2022-07-30
