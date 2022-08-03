@@ -19,6 +19,12 @@ release. They will however *never* happen in a patch release.
 ### Added
 
 - Properties can now contain data with other lifetimes than `'static`
+- XOAUTH2 mechanism, client-side only
+
+### Fixed
+
+- Fixed 'actionable' callbacks not correctly indicating they were handled
+
 
 ## [v2.0.0-alpha1] — 2022-07-30
 
