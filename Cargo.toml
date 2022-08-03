@@ -3,16 +3,24 @@ name = "rsasl"
 version = "2.0.0-alpha1"
 authors = ["Nadja Reitzenstein <me@dequbed.space>"]
 edition = "2021"
+rust-version = "1.56.0"
+
 description = """The Rust SASL framework, aimed at both middleware-style protocol implementation and application code.
 Designed to make SASL authentication simple and safe while handing as much control to the user as possible.
 """
-license = "LGPL-2.1-or-later"
-repository = "https://github.com/dequbed/rsasl"
-readme = "README.md"
-categories = ["authentication", "api-bindings", "network-programming"]
-keywords = ["sasl", "authentication", "sso", "framework", "middleware"]
 documentation = "https://docs.rs/rsasl"
-rust-version = "1.56.0"
+readme = "README.md"
+
+homepage = "https://github.com/dequbed/rsasl"
+repository = "https://github.com/dequbed/rsasl"
+license = "LGPL-2.1-or-later"
+
+keywords = ["sasl", "authentication", "sso", "framework", "middleware"]
+categories = ["authentication", "api-bindings", "network-programming"]
+
+# Manually list files to include; this skips examples, integration tests and testing binaries that arent useful when
+# rsasl is only used as a dependency.
+include = ["Cargo.toml", "/src/", "README.md", "CHANGELOG.md", "LICENSE", "/docs/"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
@@ -57,6 +65,8 @@ openid20 = ["std", "gsasl"]
 saml20 = ["std", "gsasl"]
 ## Enable `SECURID`
 securid = ["std", "gsasl"]
+## Enable `XOAUTH2`
+xoauth2 = ["std"]
 
 #! ## Provider flags
 #! These flags are relevant for crates that want to use rsasl as authentication provider, i.e. crates implementing

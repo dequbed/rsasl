@@ -181,3 +181,11 @@ pub mod securid {
     mod server;
     pub use mechinfo::*;
 }
+
+#[cfg(feature = "xoauth2")]
+pub mod xoauth2 {
+    mod client;
+    mod mechinfo;
+    pub mod properties;
+    pub use mechinfo::*;
+}

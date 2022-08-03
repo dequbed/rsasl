@@ -17,7 +17,7 @@ impl SessionCallback for OurCallback {
     ) -> Result<(), SessionError> {
         let _authid = context
             .get_ref::<AuthId>()
-            .ok_or(SessionError::CallbackError(CallbackError::NoCallback))?;
+            .ok_or(SessionError::CallbackError(CallbackError::NoValue))?;
 
         Ok(())
     }
