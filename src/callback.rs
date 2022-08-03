@@ -308,10 +308,11 @@ impl<'a> Request<'a> {
     /// # }
     /// ```
     pub fn get_action<P: Property<'a>>(&mut self) -> Option<&'a P::Value> {
-        if let Some(Tagged(Some(value))) =
-            self.0.downcast_mut::<Action<P>>().take()
+        if let Some(Tagged(value)) = self.0.downcast_mut::<Action<P>>()
         {
-            Some(*value)
+            // We take the value here to be able to tell that `get_action` was called for the
+            // correct type. If the value still exists after the callback, then it wasn't.
+            value.take()
         } else {
             None
         }

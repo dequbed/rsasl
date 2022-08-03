@@ -15,7 +15,7 @@ use crate::sasl::SASL;
 use crate::session::{Session, Side};
 use crate::validate::NoValidation;
 
-pub fn test_client_session(config: Arc<SASLConfig>, mechanism: &Mechanism) -> Session<NoValidation, NoChannelBindings> {
+pub fn client_session(config: Arc<SASLConfig>, mechanism: &Mechanism) -> Session<NoValidation, NoChannelBindings> {
     let mech = mechanism.client(&config, &[mechanism.mechanism])
                         .unwrap().unwrap();
     let sasl = SASL {

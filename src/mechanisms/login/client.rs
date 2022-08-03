@@ -56,13 +56,13 @@ mod tests {
     use std::io::Cursor;
     use crate::config::SASLConfig;
     use crate::mechanisms::login::mechinfo::LOGIN;
-    use crate::test::test_client_session;
+    use crate::test::client_session;
 
     #[test]
     fn simple_combination() {
         let config = SASLConfig::with_credentials(None, "testuser".to_string(), "password".to_string())
             .unwrap();
-        let mut login = test_client_session(config, &LOGIN);
+        let mut login = client_session(config, &LOGIN);
         let mut out = Cursor::new(Vec::new());
 
         assert!(login.step(None, &mut out).is_ok());

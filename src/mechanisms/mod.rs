@@ -186,4 +186,6 @@ pub mod securid {
 pub mod xoauth2 {
     mod client;
     mod mechinfo;
+    pub mod properties;
+    pub use mechinfo::*;
 }
