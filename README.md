@@ -21,6 +21,7 @@ rsasl provide a large number of mechanisms by itself:
 - LOGIN
 - SCRAM-SHA-1 and SCRAM-SHA-1-PLUS
 - SCRAM-SHA-256 and SCRAM-SHA-256-PLUS
+- XOAUTH2 (Client side only)
 
 Support for the following mechanisms was available in rsasl 1 but is not implemented in rsasl 2:
 
