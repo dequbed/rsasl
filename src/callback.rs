@@ -42,7 +42,7 @@ pub trait SessionCallback {
     /// # use rsasl::property::{AuthId, Password, AuthzId, OpenID20AuthenticateInBrowser, Realm};
     /// # struct CB;
     /// # impl CB {
-    /// # fn interactive_get_username(&self) -> &str { unimplemented!() }
+    /// # fn interactive_get_username(&self) -> Result<&str, SessionError> { unimplemented!() }
     /// # }
     /// # fn open_browser_and_go_to(url: &str) { }
     /// # impl SessionCallback for CB {
@@ -308,10 +308,11 @@ impl<'a> Request<'a> {
     /// # }
     /// ```
     pub fn get_action<P: Property<'a>>(&mut self) -> Option<&'a P::Value> {
-        if let Some(Tagged(Some(value))) =
-            self.0.downcast_mut::<Action<P>>().take()
+        if let Some(Tagged(value)) = self.0.downcast_mut::<Action<P>>()
         {
-            Some(*value)
+            // We take the value here to be able to tell that `get_action` was called for the
+            // correct type. If the value still exists after the callback, then it wasn't.
+            value.take()
         } else {
             None
         }
@@ -351,18 +352,21 @@ impl<'a> Request<'a> {
     /// # use rsasl::callback::Request;
     /// # use rsasl::prelude::SessionError;
     /// # use rsasl::property::{AuthId, AuthzId, Password};
-    /// # fn ask_user_for_password<'a>() -> Result<&'a [u8], SessionError> { Ok(&[]) }
-    /// # fn try_get_cached_password<'a>() -> Option<&'a [u8]> { Some(&[]) }
-    /// # fn example(request: &mut Request<'_>) -> Result<(), SessionError> {
-    /// if let Some(password) = try_get_cached_password() {
+    /// # struct C;
+    /// # impl C {
+    /// # fn ask_user_for_password(&self) -> Result<&[u8], SessionError> { Ok(&[]) }
+    /// # fn try_get_cached_password(&self) -> Option<&[u8]> { Some(&[]) }
+    /// # fn example(&self, request: &mut Request<'_>) -> Result<(), SessionError> {
+    /// if let Some(password) = self.try_get_cached_password() {
     ///     request.satisfy::<Password>(password)?;
     ///     // This is wrong, as the above call will *succeed* if `AuthId` was requested but this
     ///     // return may prevent the `satisfy` below from ever being evaluated.
     ///     return Ok(());
     /// }
-    /// request.satisfy_with::<Password, _>(|| ask_user_for_password())?;
+    /// request.satisfy_with::<Password, _>(|| self.ask_user_for_password())?;
     /// request.satisfy::<AuthId>("foobar")?;
     /// # Ok(())
+    /// # }
     /// # }
     /// # panic!("request for 'AuthId' is implemented but was not satisfied");
     /// ```
@@ -441,10 +445,12 @@ impl<'a> Request<'a> {
     ///
     /// If the value for a property is static or readily available using
     /// [`satisfy`](Request::satisfy) may be preferable.
-    pub fn satisfy_with<P: Property<'a>, F: FnOnce() -> Result<&'a P::Value, SessionError>>(
-        &'a mut self,
+    pub fn satisfy_with<'b, P: Property<'a>, F>(
+        &'b mut self,
         closure: F,
-    ) -> Result<&'a mut Self, SessionError> {
+    ) -> Result<&'b mut Self, SessionError>
+    where F: FnOnce() -> Result<&'b P::Value, SessionError>
+    {
         if let Some(Tagged(mech)) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
             let answer = closure()?;
             mech.satisfy(answer)?;
