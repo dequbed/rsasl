@@ -141,6 +141,16 @@ mod properties {
         type Value = [u8];
     }
 
+
+    #[derive(Debug)]
+    /// An OAuth 2.0 Bearer token
+    ///
+    /// The token is required to be [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) format.
+    pub struct OAuthBearerToken;
+    impl Property<'_> for OAuthBearerToken {
+        type Value = str;
+    }
+
     #[derive(Debug)]
     /// Provide channel binding data
     ///
