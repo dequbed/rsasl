@@ -66,7 +66,7 @@ making this release possible.**
 * Initial stabilized release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/dequbed/rsasl/compare/v2.0.0-alpha1...HEAD
+[Unreleased]: https://github.com/dequbed/rsasl/compare/v2.0.0-alpha1...development
 [v2.0.0-alpha1]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview1...v2.0.0-alpha1
 [v2.0.0-preview1]: https://github.com/dequbed/rsasl/compare/v1.4.1...v2.0.0-preview1
 [v1.4.1]: https://github.com/dequbed/rsasl/compare/v1.4.0...v1.4.1
