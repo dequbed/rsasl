@@ -248,7 +248,7 @@ struct WaitingServerFirst<D, const N: usize> {
     digest: PhantomData<D>,
 }
 
-impl<const N: usize, D> WaitingServerFirst<D, N>
+impl<D, const N: usize> WaitingServerFirst<D, N>
 where
     D: Digest + BlockSizeUser + FixedOutputReset + Clone + Sync,
 {

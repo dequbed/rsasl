@@ -89,7 +89,7 @@ impl<const N: usize> WaitingClientFirst<N> {
         client_first: &[u8],
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<WaitingClientFinal<N, D>, SessionError> {
+    ) -> Result<WaitingClientFinal<D, N>, SessionError> {
         // Step 1: (try to) parse the client message received.
         let client_first @ ClientFirstMessage {
             cbflag,
@@ -196,10 +196,10 @@ impl<const N: usize> WaitingClientFirst<N> {
     }
 }
 
-pub struct WaitingClientFinal<const N: usize, D: Digest + BlockSizeUser + FixedOutput> {
-    data: Option<FinalInner<N, D>>,
+pub struct WaitingClientFinal<D: Digest + BlockSizeUser + FixedOutput, const N: usize> {
+    data: Option<FinalInner<D, N>>,
 }
-struct FinalInner<const N: usize, D: Digest + BlockSizeUser + FixedOutput> {
+struct FinalInner<D: Digest + BlockSizeUser + FixedOutput, const N: usize> {
     client_nonce: Vec<u8>,
     server_nonce: [u8; N],
     gs2_header: Vec<u8>,
@@ -209,7 +209,7 @@ struct FinalInner<const N: usize, D: Digest + BlockSizeUser + FixedOutput> {
     stored_key: GenericArray<u8, D::OutputSize>,
     server_key: DOutput<D>,
 }
-impl<const N: usize, D: Digest + BlockSizeUser + FixedOutput> WaitingClientFinal<N, D> {
+impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal<D, N> {
     pub fn new(
         client_nonce: Vec<u8>,
         server_nonce: [u8; N],
@@ -349,14 +349,14 @@ impl<const N: usize> ScramState<WaitingClientFirst<N>> {
         input: &[u8],
         writer: impl Write,
         written: &mut usize,
-    ) -> Result<ScramState<WaitingClientFinal<N, D>>, SessionError> {
+    ) -> Result<ScramState<WaitingClientFinal<D, N>>, SessionError> {
         let state = self
             .state
             .handle_client_first(rng, session_data, input, writer, written)?;
         Ok(ScramState { state })
     }
 }
-impl<const N: usize, D: Digest + BlockSizeUser + FixedOutput> ScramState<WaitingClientFinal<N, D>> {
+impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> ScramState<WaitingClientFinal<D, N>> {
     pub fn step(
         self,
         input: &[u8],
@@ -370,7 +370,7 @@ impl<const N: usize, D: Digest + BlockSizeUser + FixedOutput> ScramState<Waiting
 
 enum ScramServerState<D: Digest + BlockSizeUser + FixedOutput, const N: usize> {
     WaitingClientFirst(ScramState<WaitingClientFirst<N>>),
-    WaitingClientFinal(ScramState<WaitingClientFinal<N, D>>),
+    WaitingClientFinal(ScramState<WaitingClientFinal<D, N>>),
     Finished(ScramState<()>),
 }
 
