@@ -96,7 +96,7 @@ mod provider {
         pub fn get_available(&self) -> impl IntoIterator<Item = &Mechanism> {
             let mut vec: Vec<&Mechanism> = self.inner.get_available().collect();
             vec.as_mut_slice()
-                .sort_unstable_by(|a,b| self.inner.config.sort(a,b));
+                .sort_unstable_by(|a, b| self.inner.config.sort(a, b));
             vec
         }
 
@@ -110,7 +110,6 @@ mod provider {
             self.inner.server_start_suggested(selected)
         }
     }
-
 
     /************************************************************
      * SHARED impls
@@ -146,8 +145,7 @@ mod provider {
         fn client_start_suggested<'a>(
             self,
             offered: &[&Mechname],
-        ) -> Result<Session<V, CB>, SASLError>
-        {
+        ) -> Result<Session<V, CB>, SASLError> {
             let (auth, selected) = self.config.select_mechanism(offered)?;
             let selected = selected.clone();
             Ok(Session::new(self, Side::Client, auth, selected))
@@ -158,9 +156,13 @@ mod provider {
             selected: &Mechname,
         ) -> Result<Session<V, CB>, SASLError> {
             let config = self.config.clone();
-            let mech = self.get_available().find(|mech| mech.mechanism == selected)
+            let mech = self
+                .get_available()
+                .find(|mech| mech.mechanism == selected)
                 .ok_or(SASLError::NoSharedMechanism)?;
-            let auth = mech.server(config.as_ref()).ok_or(SASLError::NoSharedMechanism)??;
+            let auth = mech
+                .server(config.as_ref())
+                .ok_or(SASLError::NoSharedMechanism)??;
             Ok(Session::new(self, Side::Server, auth, mech.clone()))
         }
 

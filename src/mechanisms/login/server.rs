@@ -1,17 +1,17 @@
-use thiserror::Error;
+use crate::context::{Demand, DemandReply, Provider};
+use crate::error::MechanismErrorKind;
 use crate::mechanism::{Authentication, MechanismError};
+use crate::prelude::SessionError;
+use crate::property::{AuthId, Password};
 use crate::session::{MechanismData, State};
 use std::io::Write;
 use std::str::Utf8Error;
-use crate::context::{Demand, DemandReply, Provider};
-use crate::error::MechanismErrorKind;
-use crate::prelude::SessionError;
-use crate::property::{AuthId, Password};
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 enum LoginError {
     #[error(transparent)]
-    Utf8(Utf8Error)
+    Utf8(Utf8Error),
 }
 
 impl MechanismError for LoginError {
@@ -51,7 +51,7 @@ impl Authentication for Login {
                 writer.write_all(out)?;
                 self.state = LoginState::WaitingForUsername;
                 Ok((State::Running, Some(out.len())))
-            },
+            }
             LoginState::WaitingForUsername => {
                 if let Some(input) = input {
                     let username = std::str::from_utf8(input)
@@ -74,8 +74,7 @@ impl Authentication for Login {
                     }
                     impl<'a> Provider<'a> for LoginProvider<'a> {
                         fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
-                            req
-                                .provide_ref::<AuthId>(self.authid)?
+                            req.provide_ref::<AuthId>(self.authid)?
                                 .provide_ref::<Password>(self.password)?
                                 .done()
                         }

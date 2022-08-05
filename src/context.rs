@@ -1,8 +1,8 @@
-use core::fmt;
-use core::fmt::Write;
 use crate::property::{Property, SizedProperty};
 use crate::typed::tags::{MaybeSizedType, Type};
 use crate::typed::{tags, Erased, Tagged};
+use core::fmt;
+use core::fmt::Write;
 use core::marker::PhantomData;
 use core::ops::ControlFlow;
 
@@ -93,7 +93,7 @@ impl<'a> Demand<'a> {
     }
 
     fn provide<T: tags::Type<'a>>(&mut self, value: T::Reified) -> DemandReply<&mut Self> {
-        if let Some(res ) = self.0.downcast_mut::<tags::Optional<T>>() {
+        if let Some(res) = self.0.downcast_mut::<tags::Optional<T>>() {
             res.0 = Some(value);
             DemandReply::Break(TOKEN(PhantomData))
         } else {
@@ -107,7 +107,10 @@ impl<'a> Demand<'a> {
     }
 
     #[inline(always)]
-    pub fn provide_mut<T: Property<'a>>(&mut self, value: &'a mut T::Value) -> DemandReply<&mut Self> {
+    pub fn provide_mut<T: Property<'a>>(
+        &mut self,
+        value: &'a mut T::Value,
+    ) -> DemandReply<&mut Self> {
         self.provide::<tags::RefMut<DemandTag<T>>>(value)
     }
 }
@@ -144,7 +147,8 @@ impl<'a, P: Property<'a>> ThisProvider<'a, P> {
     }
 }
 impl<'a, P> Provider<'a> for ThisProvider<'a, P>
-    where P: Property<'a>
+where
+    P: Property<'a>,
 {
     fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
         req.provide_ref::<P>(self.back())?.done()

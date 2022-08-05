@@ -4,8 +4,8 @@
 //! that should not need to care about the shape of this data.
 //! Yeah, *all* the runtime reflection.
 
-use thiserror::Error;
 use core::marker::PhantomData;
+use thiserror::Error;
 
 use crate::error::SessionError;
 use crate::property::{Property, SizedProperty};
@@ -250,8 +250,7 @@ pub struct Request<'a>(dyn Erased<'a>);
 impl<'a> Request<'a> {
     pub(crate) fn new_satisfy<P: for<'p> Property<'p>>(
         opt: &'a mut Tagged<'a, tags::RefMut<Satisfy<P>>>,
-    ) -> &'a mut Self
-    {
+    ) -> &'a mut Self {
         unsafe { core::mem::transmute(opt as &mut dyn Erased) }
     }
 
@@ -307,8 +306,7 @@ impl<'a> Request<'a> {
     /// # }
     /// ```
     pub fn get_action<P: Property<'a>>(&mut self) -> Option<&'a P::Value> {
-        if let Some(Tagged(value)) = self.0.downcast_mut::<Action<P>>()
-        {
+        if let Some(Tagged(value)) = self.0.downcast_mut::<Action<P>>() {
             // We take the value here to be able to tell that `get_action` was called for the
             // correct type. If the value still exists after the callback, then it wasn't.
             value.take()
@@ -374,9 +372,10 @@ impl<'a> Request<'a> {
     ///
     /// If generating the value is expensive or requires interactivity using the method
     /// [`satisfy_with`](Request::satisfy_with) may be preferable.
-    pub fn satisfy<P: for<'p> Property<'p>>(&mut self, answer: &<P as Property<'_>>::Value)
-        -> Result<&mut Self, SessionError>
-    {
+    pub fn satisfy<P: for<'p> Property<'p>>(
+        &mut self,
+        answer: &<P as Property<'_>>::Value,
+    ) -> Result<&mut Self, SessionError> {
         if let Some(Tagged(mech)) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
             mech.satisfy(answer)?;
             Err(CallbackError::early_return().into())
@@ -452,7 +451,8 @@ impl<'a> Request<'a> {
         &mut self,
         closure: F,
     ) -> Result<&mut Self, SessionError>
-    where F: FnOnce() -> Result<P::Value, SessionError>
+    where
+        F: FnOnce() -> Result<P::Value, SessionError>,
     {
         if let Some(Tagged(mech)) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
             let answer = closure()?;

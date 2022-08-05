@@ -89,10 +89,6 @@ impl ConfigBuilder<WantCallback> {
         self,
         callback: CB,
     ) -> Result<Arc<SASLConfig>, SASLError> {
-        SASLConfig::new(
-            callback,
-            self.state.sorter,
-            self.state.mechanisms,
-        )
+        SASLConfig::new(callback, self.state.sorter, self.state.mechanisms)
     }
 }

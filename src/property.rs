@@ -141,7 +141,6 @@ mod properties {
         type Value = [u8];
     }
 
-
     #[derive(Debug)]
     /// An OAuth 2.0 Bearer token
     ///

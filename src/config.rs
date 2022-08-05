@@ -3,12 +3,12 @@
 use crate::alloc::boxed::Box;
 use crate::callback::SessionCallback;
 use crate::error::SASLError;
+use crate::mechname::Mechname;
 use crate::registry::{Mechanism, MechanismIter};
 use crate::session::SessionData;
-use crate::mechname::Mechname;
+use alloc::sync::Arc;
 use core::cmp::Ordering;
 use core::fmt;
-use alloc::sync::Arc;
 
 use crate::mechanism::Authentication;
 
@@ -43,23 +43,26 @@ impl fmt::Debug for SASLConfig {
 impl SASLConfig {
     #[inline(always)]
     /// Select the best mechanism of the offered ones.
-    pub(crate) fn select_mechanism(&self, offered: &[&Mechname])
-        -> Result<(Box<dyn Authentication>, &Mechanism), SASLError>
-    {
+    pub(crate) fn select_mechanism(
+        &self,
+        offered: &[&Mechname],
+    ) -> Result<(Box<dyn Authentication>, &Mechanism), SASLError> {
         offered
             .iter()
             .filter_map(|offered_mechname| {
-                self.mech_list().find(|avail_mech| avail_mech.mechanism == *offered_mechname).and_then(|mech| {
-                    let auth = mech.client(self, offered)?.ok()?;
-                    Some((auth, mech))
-                })
+                self.mech_list()
+                    .find(|avail_mech| avail_mech.mechanism == *offered_mechname)
+                    .and_then(|mech| {
+                        let auth = mech.client(self, offered)?.ok()?;
+                        Some((auth, mech))
+                    })
             })
             .max_by(|(_, m), (_, n)| self.inner.sort(m, n))
             .ok_or(SASLError::NoSharedMechanism)
     }
 
     #[inline(always)]
-    pub(crate) fn mech_list<'a>(&self) -> impl Iterator<Item=&'a Mechanism> {
+    pub(crate) fn mech_list<'a>(&self) -> impl Iterator<Item = &'a Mechanism> {
         self.inner.get_mech_iter()
     }
 
@@ -146,7 +149,6 @@ mod instance {
         }
     }
 
-
     struct Inner {
         callback: Box<dyn SessionCallback>,
         sorter: SorterFn,
@@ -156,8 +158,8 @@ mod instance {
     impl fmt::Debug for Inner {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
             f.debug_struct("SASLConfig")
-             .field("mechanisms", &self.mechanisms)
-             .finish()
+                .field("mechanisms", &self.mechanisms)
+                .finish()
         }
     }
 

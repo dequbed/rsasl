@@ -1,4 +1,5 @@
 use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
+use rsasl::mechanisms::scram::properties::SaltedPassword;
 use rsasl::mechname::Mechname;
 use rsasl::prelude::SASLServer;
 use rsasl::prelude::{SASLConfig, SessionError};
@@ -6,7 +7,6 @@ use rsasl::property::AuthId;
 use rsasl::validate::NoValidation;
 use std::io;
 use std::io::Cursor;
-use rsasl::mechanisms::scram::properties::SaltedPassword;
 
 struct OurCallback;
 impl SessionCallback for OurCallback {

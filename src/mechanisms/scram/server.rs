@@ -17,7 +17,7 @@ use thiserror::Error;
 
 use crate::context::{Demand, DemandReply, Provider};
 use crate::mechanism::Authentication;
-use crate::mechanisms::scram::properties::{ScramStoredPassword};
+use crate::mechanisms::scram::properties::ScramStoredPassword;
 use crate::property::{AuthId, AuthzId};
 
 trait ScramConfig {
@@ -69,7 +69,11 @@ pub struct ScramServer<D: Digest + BlockSizeUser + FixedOutput, const N: usize> 
 }
 impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> ScramServer<D, N> {
     pub fn new(can_cb: bool) -> Self {
-        let plus = if can_cb { CBSupport::Yes } else { CBSupport::No };
+        let plus = if can_cb {
+            CBSupport::Yes
+        } else {
+            CBSupport::No
+        };
         Self {
             state: Some(ScramServerState::WaitingClientFirst(ScramState::new(plus))),
         }
@@ -90,7 +94,10 @@ pub(crate) struct WaitingClientFirst<const N: usize> {
 
 impl<const N: usize> WaitingClientFirst<N> {
     fn new(plus: CBSupport) -> Self {
-        Self { plus, nonce: PhantomData }
+        Self {
+            plus,
+            nonce: PhantomData,
+        }
     }
 
     fn handle_client_first<D: Digest + BlockSizeUser + FixedOutput>(
@@ -136,8 +143,12 @@ impl<const N: usize> WaitingClientFirst<N> {
 
         match cbflag {
             // TODO: check if this is a protocol downgrade
-            GS2CBindFlag::SupportedNotUsed => if self.plus == CBSupport::Yes {
-                return Err(SessionError::MechanismError(Box::new(ScramServerError::ChannelBindingsNotUsed)));
+            GS2CBindFlag::SupportedNotUsed => {
+                if self.plus == CBSupport::Yes {
+                    return Err(SessionError::MechanismError(Box::new(
+                        ScramServerError::ChannelBindingsNotUsed,
+                    )));
+                }
             }
             GS2CBindFlag::NotSupported => {}
             GS2CBindFlag::Used(name) => session_data.need_cb_data(name, provider, |cbdata| {
@@ -200,7 +211,12 @@ impl<const N: usize> WaitingClientFirst<N> {
             thread_rng().fill_bytes(&mut salt);
             let salt = base64::encode(salt);
 
-            let msg = ServerFirst::new(&client_nonce, &server_nonce, salt.as_bytes(), DEFAULT_ITERATIONS);
+            let msg = ServerFirst::new(
+                &client_nonce,
+                &server_nonce,
+                salt.as_bytes(),
+                DEFAULT_ITERATIONS,
+            );
             let mut vecw = VectoredWriter::new(msg.to_ioslices());
             *written = vecw.write_all_vectored(writer)?;
 
@@ -282,12 +298,18 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
             } else {
                 if let Some(remainder) = nonce.strip_prefix(&client_nonce[..]) {
                     if remainder == server_nonce {
-                        if proof.len() > (<SimpleHmac<D> as OutputSizeUser>::output_size() * 4 / 3) + 3 {
+                        if proof.len()
+                            > (<SimpleHmac<D> as OutputSizeUser>::output_size() * 4 / 3) + 3
+                        {
                             ServerFinal::Error(ServerErrorValue::InvalidProof)
                         } else {
                             let mut proof_decoded = DOutput::<D>::default();
-                            base64::decode_config_slice(proof, base64::STANDARD, &mut proof_decoded)
-                                .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
+                            base64::decode_config_slice(
+                                proof,
+                                base64::STANDARD,
+                                &mut proof_decoded,
+                            )
+                            .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
 
                             let mut client_signature = DOutput::<D>::default();
                             let mut server_signature = DOutput::<D>::default();
@@ -313,7 +335,7 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
                                     .zip(client_signature)
                                     .map(|(x, y)| x ^ y),
                             )
-                                .expect("XOR of two same-sized arrays was not of that size?");
+                            .expect("XOR of two same-sized arrays was not of that size?");
 
                             let calculated_stored_key = D::digest(client_key);
 

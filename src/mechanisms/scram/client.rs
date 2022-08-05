@@ -1,4 +1,3 @@
-
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::marker::PhantomData;
@@ -9,7 +8,6 @@ use digest::crypto_common::BlockSizeUser;
 
 use digest::{Digest, FixedOutputReset};
 
-
 use crate::callback::CallbackError;
 use rand::Rng;
 
@@ -18,8 +16,7 @@ use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
 
 use crate::mechanisms::scram::parser::{
-    ClientFinal, SaslName, ServerErrorValue, ServerFinal,
-    ServerFirst,
+    ClientFinal, SaslName, ServerErrorValue, ServerFinal, ServerFirst,
 };
 use crate::mechanisms::scram::properties::{Iterations, Salt, SaltedPassword, ScramCachedPassword};
 use crate::mechanisms::scram::tools::{
@@ -427,7 +424,6 @@ impl<D: Digest + BlockSizeUser> WaitingServerFinal<D> {
                     .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
 
                 if self.verifier.as_slice() == &v[..] {
-
                     let prov = ScramClientProvider {
                         salt: &self.salt[..],
                         iterations: &self.iterations,

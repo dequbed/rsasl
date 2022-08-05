@@ -77,12 +77,13 @@ pub fn compute_signatures<D: Digest + BlockSizeUser + FixedOutput>(
 }
 
 pub fn derive_keys<D>(password: &[u8]) -> (DOutput<D>, DOutput<D>)
-    where D: Digest + BlockSizeUser + FixedOutputReset
+where
+    D: Digest + BlockSizeUser + FixedOutputReset,
 {
     // todo: I technically do know that password can only be valid if it's of the
     //       exact size. (i.e. use KeyInit's new() here)
-    let mut key_hmac = <SimpleHmac<D>>::new_from_slice(password)
-        .expect("HMAC should work with every key length");
+    let mut key_hmac =
+        <SimpleHmac<D>>::new_from_slice(password).expect("HMAC should work with every key length");
 
     Mac::update(&mut key_hmac, b"Client Key");
     let client_key = key_hmac.finalize_reset().into_bytes();

@@ -37,8 +37,7 @@ pub use registry_static::*;
 
 pub type StartFn =
     fn(sasl: &SASLConfig, offered: &[&Mechname]) -> Result<Box<dyn Authentication>, SASLError>;
-pub type ServerStartFn =
-    fn(sasl: &SASLConfig) -> Result<Box<dyn Authentication>, SASLError>;
+pub type ServerStartFn = fn(sasl: &SASLConfig) -> Result<Box<dyn Authentication>, SASLError>;
 
 #[derive(Copy, Clone)]
 /// Mechanism Implementation
@@ -58,14 +57,19 @@ pub struct Mechanism {
 }
 #[cfg(feature = "unstable_custom_mechanism")]
 impl Mechanism {
-    pub const fn build(mechanism: &'static Mechname, priority: usize, client: Option<StartFn>,
-                       server: Option<ServerStartFn>, first: Side) -> Self {
+    pub const fn build(
+        mechanism: &'static Mechname,
+        priority: usize,
+        client: Option<StartFn>,
+        server: Option<ServerStartFn>,
+        first: Side,
+    ) -> Self {
         Self {
             mechanism,
             priority,
             client,
             server,
-            first
+            first,
         }
     }
 }
@@ -79,10 +83,7 @@ impl Mechanism {
         self.client.map(|f| f(sasl, offered))
     }
 
-    pub fn server(
-        &self,
-        sasl: &SASLConfig,
-    ) -> Option<Result<Box<dyn Authentication>, SASLError>> {
+    pub fn server(&self, sasl: &SASLConfig) -> Option<Result<Box<dyn Authentication>, SASLError>> {
         self.server.map(|f| f(sasl))
     }
 }
@@ -124,16 +125,18 @@ impl Registry {
 
     pub(crate) fn credentials() -> Self {
         static MECHS: &[Mechanism] = &[
-            #[cfg(feature = "plain")] crate::mechanisms::plain::PLAIN,
-            #[cfg(feature = "login")] crate::mechanisms::login::LOGIN,
-            #[cfg(feature = "scram-sha-1")] crate::mechanisms::scram::SCRAM_SHA1,
-            #[cfg(feature = "scram-sha-2")] crate::mechanisms::scram::SCRAM_SHA256,
+            #[cfg(feature = "plain")]
+            crate::mechanisms::plain::PLAIN,
+            #[cfg(feature = "login")]
+            crate::mechanisms::login::LOGIN,
+            #[cfg(feature = "scram-sha-1")]
+            crate::mechanisms::scram::SCRAM_SHA1,
+            #[cfg(feature = "scram-sha-2")]
+            crate::mechanisms::scram::SCRAM_SHA256,
         ];
         Self::with_mechanisms(MECHS)
     }
 }
-
-
 
 pub(crate) type MechanismIter<'a> = core::slice::Iter<'a, Mechanism>;
 impl Registry {

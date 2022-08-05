@@ -1,8 +1,5 @@
-
-
 use core::any::type_name;
 use core::fmt;
-
 
 use crate::callback::{Action, CallbackError, ClosureCR, Request, Satisfy, SessionCallback};
 use crate::channel_bindings::ChannelBindingCallback;
@@ -21,13 +18,13 @@ pub enum Side {
 
 #[cfg(any(feature = "provider", feature = "testutils", test))]
 mod provider {
-    use std::io::Write;
     use super::*;
     use crate::channel_bindings::NoChannelBindings;
     use crate::mechanism::Authentication;
     use crate::mechname::Mechname;
     use crate::sasl::SASL;
     use crate::validate::{NoValidation, Validation};
+    use std::io::Write;
 
     /// This represents a single authentication exchange
     ///
@@ -289,11 +286,7 @@ impl MechanismData<'_> {
         }
     }
 
-    pub fn need_with<P, F, G>(
-        &self,
-        provider: &dyn Provider,
-        closure: F,
-    ) -> Result<G, SessionError>
+    pub fn need_with<P, F, G>(&self, provider: &dyn Provider, closure: F) -> Result<G, SessionError>
     where
         P: for<'p> Property<'p>,
         F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
@@ -317,7 +310,7 @@ impl MechanismData<'_> {
             Ok(()) => Ok(()),
             // explicitly ignore a `NoValue` error since that one *is actually okay*
             Err(SessionError::CallbackError(CallbackError::NoValue)) => Ok(()),
-            Err(error) => Err(error)
+            Err(error) => Err(error),
         }?;
         Ok(closurecr.try_unwrap())
     }
