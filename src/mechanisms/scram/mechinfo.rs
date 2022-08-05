@@ -37,7 +37,6 @@ pub static SCRAM_SHA1: Mechanism = Mechanism {
     first: Side::Client,
 };
 
-#[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 #[cfg(feature = "scram-sha-1")]
 pub static SCRAM_SHA1_PLUS: Mechanism = Mechanism {
     mechanism: &Mechname::const_new(b"SCRAM-SHA-1-PLUS"),
@@ -77,7 +76,6 @@ pub static SCRAM_SHA256: Mechanism = Mechanism {
     first: Side::Client,
 };
 
-#[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 #[cfg(feature = "scram-sha-2")]
 pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
     mechanism: &Mechname::const_new(b"SCRAM-SHA-256-PLUS"),

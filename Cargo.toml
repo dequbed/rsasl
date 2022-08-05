@@ -94,8 +94,6 @@ saslprep = ["std", "stringprep"]
 [dependencies]
 thiserror = "1.0"
 
-rustls = { version = "0.20.6", optional = true }
-
 base64 = { version = "0.13", optional = true }
 
 rand = { version = "0.8", optional = true }
@@ -111,6 +109,8 @@ pbkdf2 = { version = "0.10", optional = true, default_features = false }
 stringprep = { version = "0.1", optional = true }
 
 linkme = { version = "0.2", optional = true }
+
+rustls = { version = "0.20.6", optional = true }
 
 [dev-dependencies]
 static_assertions = "1.1.0"

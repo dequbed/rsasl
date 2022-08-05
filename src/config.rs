@@ -19,6 +19,7 @@ trait ConfigInstance: fmt::Debug {
     fn get_mech_iter<'a>(&self) -> MechanismIter<'a>;
     fn get_callback(&self) -> &dyn SessionCallback;
     fn sort(&self, left: &Mechanism, right: &Mechanism) -> Ordering;
+    fn filter(&self, mech: &Mechanism) -> bool;
 }
 
 #[repr(transparent)]
