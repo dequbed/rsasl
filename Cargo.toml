@@ -141,4 +141,4 @@ name = "protocol"
 required-features = ["provider", "login", "plain", "scram-sha-1", "scram-sha-2"]
 
 [workspace]
-members = ["examples/server", "bin/interop-client", "bin/interop-server"]
+members = ["bin/interop-client", "bin/interop-server"]
