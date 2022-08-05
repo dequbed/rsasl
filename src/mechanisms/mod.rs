@@ -127,8 +127,19 @@ pub mod scram {
 
 #[cfg(feature = "xoauth2")]
 pub mod xoauth2 {
+    //!
+    //!
+    //! # Server
+    ///
+    /// Since XOAUTH2 can return almost arbitrary error responses a callback must be used to be able
+    /// to set the error message to be returned.
+    ///
+    /// A 'satisfiable' callback for the property [`XOAuth2Validate`](properties::XOAuth2Validate)
+    /// will be issued on the server side, with a provider provider giving access to [`AuthId`]
+    /// and [`OAuthBearerToken`].
     mod client;
     mod mechinfo;
+    mod server;
     pub mod properties;
     pub use mechinfo::*;
 }

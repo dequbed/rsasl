@@ -66,25 +66,40 @@ impl<'a, T: tags::Type<'a>> Erased<'a> for Tagged<'a, T> {
 }
 impl<'a> dyn Erased<'a> {
     #[inline]
-    pub fn is<T: tags::Type<'a>>(&self) -> bool {
+    pub(crate) fn is<'p, T: tags::Type<'p>>(&self) -> bool {
         TypeId::of::<T>() == self.tag_id()
     }
 
     #[inline]
-    pub fn downcast_mut<T: tags::Type<'a>>(&mut self) -> Option<&mut Tagged<'a, T>> {
+    pub(crate) fn downcast_mut<'p, T: tags::Type<'p>>(&mut self) -> Option<&mut Tagged<'p, T>> {
         if self.is::<T>() {
-            Some(unsafe { &mut *(self as *mut Self as *mut Tagged<'a, T>) })
+            Some(unsafe { &mut *(self as *mut Self as *mut Tagged<'p, T>) })
         } else {
             None
         }
     }
 
     #[inline]
-    pub fn downcast_ref<T: tags::Type<'a>>(&self) -> Option<&Tagged<'a, T>> {
+    pub(crate) fn downcast_ref<T: tags::Type<'a>>(&self) -> Option<&Tagged<'a, T>> {
         if self.is::<T>() {
             Some(unsafe { &*(self as *const Self as *const Tagged<'a, T>) })
         } else {
             None
         }
     }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use crate::callback::Action;
+    use crate::property::AuthId;
+    use super::*;
+
+    #[test]
+    fn cant_outlive() {
+        let value = String::from("hello world");
+        let mut tagged = Tagged::<Action<AuthId>>(Some(value.as_ref()));
+    }
+
 }
