@@ -340,25 +340,6 @@ impl MechanismData<'_> {
     }
 }
 
-#[cfg(feature = "gsasl")]
-mod gsasl {
-    use super::*;
-    use crate::alloc::sync::Arc;
-    use crate::gsasl::consts::Gsasl_property;
-    impl MechanismData<'_> {
-        // Legacy bs:
-        pub unsafe fn set_property_raw(&mut self, _prop: Gsasl_property, _: Arc<String>) {
-            unimplemented!()
-        }
-        pub unsafe fn get_property<T>(&self) -> Option<&std::ffi::CStr> {
-            unimplemented!()
-        }
-        pub unsafe fn get_property_or_callback<T>(&self) -> Result<Option<&str>, ()> {
-            unimplemented!()
-        }
-    }
-}
-
 #[derive(Debug)]
 // TODO: Since the Session object is only known to the protocol implementation and user they can
 //       share a statically known Context.
