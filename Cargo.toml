@@ -29,7 +29,7 @@ default = [
     "registry_static",
     "scram-sha-1", "scram-sha-2",
     "anonymous", "external",
-    "plain", "login",
+    "xoauth2", "plain", "login",
 ]
 
 ## Enable use of libstd
