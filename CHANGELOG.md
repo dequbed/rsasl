@@ -17,6 +17,9 @@ release. They will however *never* happen in a patch release.
 ## [Unreleased] — ReleaseDate
 
 
+### Fixed
+- XOAUTH2 now compiles with the msrv 1.56.0 
+
 ## [v2.0.0-preview8] — 2022-08-05
 
 rsasl is now licensed under Apache-2.0 and MIT dual license.
