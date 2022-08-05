@@ -1,9 +1,9 @@
 use crate::context::EmptyProvider;
+use crate::error::SessionError;
 use crate::mechanism::Authentication;
 use crate::property::Property;
 use crate::session::{MechanismData, State};
 use std::io::Write;
-use crate::error::SessionError;
 
 pub struct AnonymousToken;
 impl Property<'_> for AnonymousToken {

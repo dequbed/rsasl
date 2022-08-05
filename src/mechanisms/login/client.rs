@@ -1,9 +1,9 @@
 use crate::context::EmptyProvider;
-use std::io::Write;
 use crate::error::SessionError;
 use crate::mechanism::{Authentication, MechanismData};
 use crate::property::{AuthId, Password};
 use crate::session::State;
+use std::io::Write;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
 enum LoginState {
@@ -17,7 +17,9 @@ pub(super) struct Login {
 }
 impl Login {
     pub(crate) fn new() -> Self {
-        Self { state: LoginState::Authid }
+        Self {
+            state: LoginState::Authid,
+        }
     }
 }
 impl Authentication for Login {
@@ -44,24 +46,23 @@ impl Authentication for Login {
                 self.state = LoginState::Done;
                 Ok((State::Finished, Some(len)))
             }
-            LoginState::Done => {
-                Err(SessionError::MechanismDone)
-            }
+            LoginState::Done => Err(SessionError::MechanismDone),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
     use crate::config::SASLConfig;
     use crate::mechanisms::login::mechinfo::LOGIN;
     use crate::test::client_session;
+    use std::io::Cursor;
 
     #[test]
     fn simple_combination() {
-        let config = SASLConfig::with_credentials(None, "testuser".to_string(), "password".to_string())
-            .unwrap();
+        let config =
+            SASLConfig::with_credentials(None, "testuser".to_string(), "password".to_string())
+                .unwrap();
         let mut login = client_session(config, &LOGIN);
         let mut out = Cursor::new(Vec::new());
 

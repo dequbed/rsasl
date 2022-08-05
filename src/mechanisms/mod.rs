@@ -139,7 +139,7 @@ pub mod xoauth2 {
     /// and [`OAuthBearerToken`].
     mod client;
     mod mechinfo;
-    mod server;
     pub mod properties;
+    mod server;
     pub use mechinfo::*;
 }

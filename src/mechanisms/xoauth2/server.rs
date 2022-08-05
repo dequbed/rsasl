@@ -4,7 +4,7 @@ use crate::mechanism::{Authentication, MechanismData, State};
 use crate::mechanisms::xoauth2::properties::XOAuth2Validate;
 use crate::property::{AuthId, OAuthBearerToken};
 use core::str::Utf8Error;
-use std::io::{Write};
+use std::io::Write;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Default)]
@@ -114,12 +114,12 @@ impl Authentication for XOAuth2 {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
+    use super::*;
     use crate::callback::{Request, SessionCallback};
     use crate::context::Context;
     use crate::session::{Session, SessionData};
     use crate::test;
-    use super::*;
+    use std::io::Cursor;
 
     struct C<'a> {
         authid: &'a str,
@@ -178,7 +178,10 @@ mod tests {
     fn test_errored() {
         let errstr = r#"{"status":"401","schemes":"bearer","scope":"https://mail.google.com/"}"#;
         let result = Err(errstr);
-        let mut session = prepare_session(C { result, .. Default::default() });
+        let mut session = prepare_session(C {
+            result,
+            ..Default::default()
+        });
         let mut out = Cursor::new(Vec::<u8>::new());
 
         let data = b"user=username@host.tld\x01auth=Bearer ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg\x01\x01";

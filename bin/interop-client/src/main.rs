@@ -46,8 +46,12 @@ impl SessionCallback for EnvCallback {
                 let salt = context.get_ref::<Salt>().unwrap();
                 let iterations = context.get_ref::<Iterations>().unwrap();
                 println!("callback action to cache scram keys");
-                println!("salt={} iterations={} client_key={} server_key={}",
-                    hex::encode(salt), iterations, hex::encode(client_key), hex::encode(server_key)
+                println!(
+                    "salt={} iterations={} client_key={} server_key={}",
+                    hex::encode(salt),
+                    iterations,
+                    hex::encode(client_key),
+                    hex::encode(server_key)
                 );
             }
         }

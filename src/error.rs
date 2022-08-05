@@ -1,5 +1,5 @@
-use std::error::Error;
 use crate::alloc::boxed::Box;
+use std::error::Error;
 
 use thiserror::Error;
 
@@ -24,8 +24,6 @@ pub enum MechanismErrorKind {
 pub trait MechanismError: fmt::Debug + fmt::Display + Send + Sync + std::error::Error {
     fn kind(&self) -> MechanismErrorKind;
 }
-
-
 
 #[derive(Debug, Error)]
 /// Error type returned when stepping an established `Session`
@@ -149,5 +147,4 @@ mod tests {
     fn check_auto_traits() {
         static_assertions::assert_impl_all!(SessionError: Send, Sync);
     }
-
 }

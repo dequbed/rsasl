@@ -80,17 +80,15 @@ impl<'a> dyn Erased<'a> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::callback::Action;
     use crate::property::AuthId;
-    use super::*;
 
     #[test]
     fn cant_outlive() {
         let value = String::from("hello world");
         let _tagged = Tagged::<Action<AuthId>>(Some(value.as_ref()));
     }
-
 }

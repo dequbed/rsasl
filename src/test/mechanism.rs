@@ -5,8 +5,8 @@
 
 use crate::mechanism::{Authentication, MechanismData};
 use crate::prelude::*;
-use std::io::Write;
 use crate::registry::{Mechanism, Side};
+use std::io::Write;
 
 /// X-RSASLTEST implementation
 ///
@@ -74,16 +74,15 @@ pub struct RSaslTest {
     state: RsaslState,
 }
 impl RSaslTest {
-    pub fn client(_config: &SASLConfig, _offered: &[&Mechname])
-        -> Result<Box<dyn Authentication>, SASLError>
-    {
+    pub fn client(
+        _config: &SASLConfig,
+        _offered: &[&Mechname],
+    ) -> Result<Box<dyn Authentication>, SASLError> {
         Ok(Box::new(Self {
             state: RsaslState::New,
         }))
     }
-    pub fn server(_config: &SASLConfig)
-        -> Result<Box<dyn Authentication>, SASLError>
-    {
+    pub fn server(_config: &SASLConfig) -> Result<Box<dyn Authentication>, SASLError> {
         Ok(Box::new(Self {
             state: RsaslState::New,
         }))
@@ -96,7 +95,7 @@ enum RsaslState {
     First,
     Second,
     Third,
-    Fourth
+    Fourth,
 }
 
 impl Authentication for RSaslTest {
@@ -116,12 +115,12 @@ pub static RSASLTEST_CF: Mechanism = Mechanism {
     priority: 0,
     client: Some(RSaslTest::client),
     server: Some(RSaslTest::server),
-    first: Side::Client
+    first: Side::Client,
 };
 pub static RSASLTEST_SF: Mechanism = Mechanism {
     mechanism: Mechname::const_new(b"X-RSASLTEST-SF"),
     priority: 0,
     client: Some(RSaslTest::client),
     server: Some(RSaslTest::server),
-    first: Side::Client
+    first: Side::Client,
 };

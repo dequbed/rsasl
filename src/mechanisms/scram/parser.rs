@@ -9,7 +9,11 @@ pub enum SaslNameError {
     #[error("empty string is invalid for name")]
     Empty,
     #[error("name contains invalid utf-8: {0}")]
-    InvalidUtf8(#[from] #[source] Utf8Error),
+    InvalidUtf8(
+        #[from]
+        #[source]
+        Utf8Error,
+    ),
     #[error("name contains invalid char {0}")]
     InvalidChar(u8),
     #[error("name contains invalid escape sequence")]
@@ -129,14 +133,13 @@ impl<'a> SaslName<'a> {
 
         if let Some(bad) = input.iter().position(|b| matches!(b, b'=')) {
             let mut out = String::with_capacity(input.len());
-            let good = std::str::from_utf8(&input[..bad])
-                .map_err(SaslNameError::InvalidUtf8)?;
+            let good = std::str::from_utf8(&input[..bad]).map_err(SaslNameError::InvalidUtf8)?;
             out.push_str(good);
             let mut input = &input[bad..];
 
             while let Some(bad) = input.iter().position(|b| matches!(b, b'=')) {
-                let good = std::str::from_utf8(&input[..bad])
-                    .map_err(SaslNameError::InvalidUtf8)?;
+                let good =
+                    std::str::from_utf8(&input[..bad]).map_err(SaslNameError::InvalidUtf8)?;
                 out.push_str(good);
                 let c = match &input[bad + 1..bad + 3] {
                     b"2C" => ',',

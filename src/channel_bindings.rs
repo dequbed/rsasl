@@ -74,8 +74,8 @@ mod tests {
             })
             .unwrap_err();
         match e {
-            SessionError::MissingChannelBindingData(name) if name.as_str() == "blahblubb" => {},
-            e => panic!("Expected MissingChannelBindingData error, received {:?}", e)
+            SessionError::MissingChannelBindingData(name) if name.as_str() == "blahblubb" => {}
+            e => panic!("Expected MissingChannelBindingData error, received {:?}", e),
         }
     }
 }
