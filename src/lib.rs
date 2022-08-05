@@ -276,9 +276,6 @@ pub mod property;
 mod error;
 pub mod mechname;
 
-#[cfg(feature = "gsasl")]
-mod gsasl;
-
 #[cfg(not(any(doc, feature = "unstable_custom_mechanism")))]
 mod mechanism;
 #[cfg(not(any(doc, feature = "unstable_custom_mechanism")))]
