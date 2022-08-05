@@ -43,7 +43,7 @@
 //! ```
 
 use crate::alloc::boxed::Box;
-use crate::typed::{tags, Erased, TaggedOption};
+use crate::typed::{tags, Erased, Tagged};
 use core::any::TypeId;
 use thiserror::Error;
 
@@ -105,7 +105,7 @@ pub trait Validation: 'static {
     type Value: 'static;
 }
 impl<'a, V: Validation> tags::Type<'a> for V {
-    type Reified = V::Value;
+    type Reified = Option<V::Value>;
 }
 
 #[derive(Debug)]
@@ -124,8 +124,9 @@ impl Validation for NoValidation {
 /// Additionally their data types are defined by the protocol implementation instead of the
 /// mechanism.
 pub struct Validate<'a>(dyn Erased<'a> + 'a);
+#[cfg(any(feature = "provider", feature = "testutils"))]
 impl Validate<'_> {
-    pub(crate) fn new<'opt, V: Validation>(opt: &'opt mut TaggedOption<'_, V>) -> &'opt mut Self {
+    pub(crate) fn new<'opt, V: Validation>(opt: &'opt mut Tagged<'_, V>) -> &'opt mut Self {
         unsafe { core::mem::transmute(opt as &mut dyn Erased) }
     }
 }
@@ -140,8 +141,8 @@ impl<'a> Validate<'a> {
     /// The requested value of a [`Validation`] depends on the protocol implementation. It's
     /// usually designed to extract relevant information out of the authentication exchange.
     pub fn finalize<T: Validation>(&mut self, outcome: T::Value) {
-        if let Some(result @ TaggedOption(Option::None)) = self.0.downcast_mut::<T>() {
-            *result = TaggedOption(Some(outcome));
+        if let Some(result @ Tagged(Option::None)) = self.0.downcast_mut::<T>() {
+            *result = Tagged(Some(outcome));
         }
     }
 
@@ -150,9 +151,9 @@ impl<'a> Validate<'a> {
         T: Validation,
         F: FnOnce() -> Result<T::Value, ValidationError>,
     {
-        if let Some(result @ TaggedOption(Option::None)) = self.0.downcast_mut::<T>() {
+        if let Some(result @ Tagged(Option::None)) = self.0.downcast_mut::<T>() {
             let outcome = f()?;
-            *result = TaggedOption(Some(outcome));
+            *result = Tagged(Some(outcome));
         }
         Ok(self)
     }

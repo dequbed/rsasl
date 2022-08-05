@@ -15,7 +15,10 @@ pub static SCRAM_SHA1: Mechanism = Mechanism {
     client: Some(|sasl, offered| {
         let mut set_cb_client_no_support = true;
         // If this fails, we def don't support cb so always set 'n' (client no support)
-        if sasl.mech_list().any(|m| m.mechanism.as_str() == "SCRAM-SHA-1-PLUS") {
+        if sasl
+            .mech_list()
+            .any(|m| m.mechanism.as_str() == "SCRAM-SHA-1-PLUS")
+        {
             // If we *do* support, either the server doesn't, or we just didn't want to use it.
             set_cb_client_no_support = false;
 
@@ -33,11 +36,15 @@ pub static SCRAM_SHA1: Mechanism = Mechanism {
             set_cb_client_no_support,
         )))
     }),
-    server: Some(|_sasl| Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new()))),
+    server: Some(|sasl| {
+        let can_cb = sasl
+            .mech_list()
+            .any(|m| m.mechanism.as_str() == "SCRAM-SHA-1-PLUS");
+        Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new(can_cb)))
+    }),
     first: Side::Client,
 };
 
-#[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 #[cfg(feature = "scram-sha-1")]
 pub static SCRAM_SHA1_PLUS: Mechanism = Mechanism {
     mechanism: &Mechname::const_new(b"SCRAM-SHA-1-PLUS"),
@@ -55,7 +62,10 @@ pub static SCRAM_SHA256: Mechanism = Mechanism {
     client: Some(|sasl, offered| {
         let mut set_cb_client_no_support = true;
         // If this fails, we def don't support cb so always set 'n' (client no support)
-        if sasl.mech_list().any(|m| m.mechanism.as_str() == "SCRAM-SHA-256-PLUS") {
+        if sasl
+            .mech_list()
+            .any(|m| m.mechanism.as_str() == "SCRAM-SHA-256-PLUS")
+        {
             // If we *do* support, either the server doesn't, or we just didn't want to use it.
             set_cb_client_no_support = false;
 
@@ -73,11 +83,17 @@ pub static SCRAM_SHA256: Mechanism = Mechanism {
             set_cb_client_no_support,
         )))
     }),
-    server: Some(|_sasl| Ok(Box::new(server::ScramSha256Server::<NONCE_LEN>::new()))),
+    server: Some(|sasl| {
+        let can_cb = sasl
+            .mech_list()
+            .any(|m| m.mechanism.as_str() == "SCRAM-SHA-256-PLUS");
+        Ok(Box::new(server::ScramSha256Server::<NONCE_LEN>::new(
+            can_cb,
+        )))
+    }),
     first: Side::Client,
 };
 
-#[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 #[cfg(feature = "scram-sha-2")]
 pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
     mechanism: &Mechname::const_new(b"SCRAM-SHA-256-PLUS"),
@@ -85,20 +101,18 @@ pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
     client: Some(|_sasl, _offered| {
         Ok(Box::new(client::ScramSha256Client::<NONCE_LEN>::new_plus()))
     }),
-    server: Some(|_sasl| {
-        Ok(Box::new(server::ScramSha256Server::<NONCE_LEN>::new_plus()))
-    }),
+    server: Some(|_sasl| Ok(Box::new(server::ScramSha256Server::<NONCE_LEN>::new_plus()))),
     first: Side::Client,
 };
 
 #[cfg(test)]
 mod tests {
-    use crate::builder::{default_sorter, default_filter};
-    use crate::test::EmptyCallback;
-    use crate::config::SASLConfig;
-    use crate::sasl::SASLClient;
     use super::*;
+    use crate::builder::default_sorter;
+    use crate::config::SASLConfig;
     use crate::registry::Registry;
+    use crate::sasl::SASLClient;
+    use crate::test::EmptyCallback;
 
     #[cfg(feature = "scram-sha-1")]
     #[test]
@@ -106,16 +120,24 @@ mod tests {
     fn scram_sha1_plus_selection() {
         static SUPPORTED: &'static [Mechanism] = &[SCRAM_SHA1, SCRAM_SHA1_PLUS];
 
-        client_start(SUPPORTED, &[
-            Mechname::new_unchecked(b"SCRAM-SHA-1-PLUS"),
-            Mechname::new_unchecked(b"SCRAM-SHA-1"),
-        ], "SCRAM-SHA-1-PLUS");
+        client_start(
+            SUPPORTED,
+            &[
+                Mechname::new_unchecked(b"SCRAM-SHA-1-PLUS"),
+                Mechname::new_unchecked(b"SCRAM-SHA-1"),
+            ],
+            "SCRAM-SHA-1-PLUS",
+        );
 
         // Test inverted too
-        client_start(SUPPORTED, &[
-            Mechname::new_unchecked(b"SCRAM-SHA-1"),
-            Mechname::new_unchecked(b"SCRAM-SHA-1-PLUS"),
-        ], "SCRAM-SHA-1-PLUS");
+        client_start(
+            SUPPORTED,
+            &[
+                Mechname::new_unchecked(b"SCRAM-SHA-1"),
+                Mechname::new_unchecked(b"SCRAM-SHA-1-PLUS"),
+            ],
+            "SCRAM-SHA-1-PLUS",
+        );
     }
 
     #[cfg(feature = "scram-sha-2")]
@@ -124,32 +146,41 @@ mod tests {
     fn scram_sha2_plus_selection() {
         static SUPPORTED: &'static [Mechanism] = &[SCRAM_SHA256, SCRAM_SHA256_PLUS];
 
-        client_start(SUPPORTED, &[
-            Mechname::new_unchecked(b"SCRAM-SHA-256-PLUS"),
-            Mechname::new_unchecked(b"SCRAM-SHA-256"),
-        ], "SCRAM-SHA-256-PLUS");
+        client_start(
+            SUPPORTED,
+            &[
+                Mechname::new_unchecked(b"SCRAM-SHA-256-PLUS"),
+                Mechname::new_unchecked(b"SCRAM-SHA-256"),
+            ],
+            "SCRAM-SHA-256-PLUS",
+        );
 
         // Test inverted too
-        client_start(SUPPORTED, &[
-            Mechname::new_unchecked(b"SCRAM-SHA-256"),
-            Mechname::new_unchecked(b"SCRAM-SHA-256-PLUS"),
-        ], "SCRAM-SHA-256-PLUS");
+        client_start(
+            SUPPORTED,
+            &[
+                Mechname::new_unchecked(b"SCRAM-SHA-256"),
+                Mechname::new_unchecked(b"SCRAM-SHA-256-PLUS"),
+            ],
+            "SCRAM-SHA-256-PLUS",
+        );
     }
 
     fn client_start(supported: &'static [Mechanism], offered: &[&Mechname], expected: &str) {
         let cb = EmptyCallback;
-        let config = SASLConfig::new(
-            cb,
-            default_sorter,
-            Registry::with_mechanisms(supported)
-        ).expect("failed to construct sasl config");
+        let config = SASLConfig::new(cb, default_sorter, Registry::with_mechanisms(supported))
+            .expect("failed to construct sasl config");
 
         let client = SASLClient::new(config.clone());
-        let session = client.start_suggested(offered)
+        let session = client
+            .start_suggested(offered)
             .expect("failed to start session");
         assert_eq!(
-            session.get_mechname().as_str(), expected,
-            "expected {} to get selected, instead {} was", expected, session.get_mechname()
+            session.get_mechname().as_str(),
+            expected,
+            "expected {} to get selected, instead {} was",
+            expected,
+            session.get_mechname()
         );
     }
 }

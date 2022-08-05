@@ -1,16 +1,13 @@
-use std::io::Write;
-
+use core::any::type_name;
 use core::fmt;
 
-use crate::callback::{
-    Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, SessionCallback,
-};
-use crate::channel_bindings::{ChannelBindingCallback};
+use crate::callback::{Action, CallbackError, ClosureCR, Request, Satisfy, SessionCallback};
+use crate::channel_bindings::ChannelBindingCallback;
 use crate::context::{build_context, Provider, ProviderExt, ThisProvider};
 use crate::error::SessionError;
 use crate::property::{ChannelBindingName, ChannelBindings, Property};
 use crate::registry::Mechanism;
-use crate::typed::{tags, TaggedOption};
+use crate::typed::{tags, Tagged};
 use crate::validate::{Validate, ValidationError};
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
@@ -21,12 +18,14 @@ pub enum Side {
 
 #[cfg(any(feature = "provider", feature = "testutils", test))]
 mod provider {
+    use super::*;
     use crate::channel_bindings::NoChannelBindings;
     use crate::mechanism::Authentication;
     use crate::mechname::Mechname;
     use crate::sasl::SASL;
     use crate::validate::{NoValidation, Validation};
-    use super::*;
+    use std::io::Write;
+
     /// This represents a single authentication exchange
     ///
     /// An authentication exchange may have multiple steps, with each step potentially sending data
@@ -119,7 +118,7 @@ mod provider {
             input: Option<&[u8]>,
             writer: &mut impl Write,
         ) -> Result<(State, Option<usize>), SessionError> {
-            let mut tagged_option = TaggedOption::<'_, V>(None);
+            let mut tagged_option = Tagged::<'_, V>(None);
 
             let (state, written) = {
                 let validate = Validate::new::<V>(&mut tagged_option);
@@ -193,6 +192,31 @@ mod provider {
         }
     }
 
+    impl<'a> MechanismData<'a> {
+        fn new(
+            callback: &'a dyn SessionCallback,
+            chanbind_cb: &'a dyn ChannelBindingCallback,
+            validator: &'a mut Validate<'a>,
+            mechanism_desc: Mechanism,
+            side: Side,
+        ) -> Self {
+            Self {
+                callback,
+                chanbind_cb,
+                validator,
+                session_data: SessionData::new(mechanism_desc, side),
+            }
+        }
+    }
+
+    impl SessionData {
+        pub(crate) fn new(mechanism_desc: Mechanism, side: Side) -> Self {
+            Self {
+                mechanism_desc,
+                side,
+            }
+        }
+    }
 
     #[cfg(test)]
     pub(crate) mod tests {
@@ -207,8 +231,8 @@ mod provider {
                 validate: &'a mut Validate<'a>,
                 f: &mut F,
             ) -> Result<G, SessionError>
-                where
-                    F: FnMut(&[u8]) -> Result<G, SessionError>,
+            where
+                F: FnMut(&[u8]) -> Result<G, SessionError>,
             {
                 let mechanism_data = MechanismData::new(
                     self.sasl.config.get_callback(),
@@ -232,23 +256,6 @@ pub struct MechanismData<'a> {
     session_data: SessionData,
 }
 
-impl<'a> MechanismData<'a> {
-    fn new(
-        callback: &'a dyn SessionCallback,
-        chanbind_cb: &'a dyn ChannelBindingCallback,
-        validator: &'a mut Validate<'a>,
-        mechanism_desc: Mechanism,
-        side: Side,
-    ) -> Self {
-        Self {
-            callback,
-            chanbind_cb,
-            validator,
-            session_data: SessionData::new(mechanism_desc, side),
-        }
-    }
-}
-
 impl MechanismData<'_> {
     pub fn validate(&mut self, provider: &dyn Provider) -> Result<(), ValidationError> {
         let context = build_context(provider);
@@ -256,10 +263,10 @@ impl MechanismData<'_> {
             .validate(&self.session_data, context, self.validator)
     }
 
-    fn callback<'a, 'b>(
-        &'b self,
-        provider: &'b dyn Provider,
-        request: &'b mut Request<'a>,
+    fn callback(
+        &self,
+        provider: &dyn Provider,
+        request: &mut Request<'_>,
     ) -> Result<(), SessionError> {
         let context = build_context(provider);
         match self.callback.callback(&self.session_data, context, request) {
@@ -269,93 +276,75 @@ impl MechanismData<'_> {
         }
     }
 
-    pub fn action<T>(&self, provider: &dyn Provider, value: &T::Value) -> Result<(), SessionError>
+    pub fn action<'a, T>(
+        &self,
+        provider: &dyn Provider,
+        value: &'a T::Value,
+    ) -> Result<(), SessionError>
     where
-        T: Property,
+        T: Property<'a>,
     {
-        let mut tagged_option = TaggedOption::<'_, tags::Ref<Action<T>>>(Some(value));
-        self.callback(provider, Request::new_action::<T>(&mut tagged_option))?;
-        if tagged_option.is_some() {
-            Err(SessionError::CallbackError(CallbackError::NoCallback))
+        let mut tagged = Tagged::<'a, Action<T>>(Some(value));
+        self.callback(provider, Request::new_action::<T>(&mut tagged))?;
+        if tagged.is_some() {
+            Err(SessionError::CallbackError(CallbackError::NoCallback(
+                type_name::<T>(),
+            )))
         } else {
             Ok(())
         }
     }
 
-    fn need<T, C>(&self, provider: &dyn Provider, mechcb: &mut C) -> Result<(), SessionError>
+    pub fn need_with<P, F, G>(&self, provider: &dyn Provider, closure: F) -> Result<G, SessionError>
     where
-        T: Property,
-        C: CallbackRequest<T::Value>,
+        P: for<'p> Property<'p>,
+        F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
     {
-        let mut tagged_option = TaggedOption::<'_, tags::RefMut<Satisfy<T>>>(Some(mechcb));
-        self.callback(provider, Request::new_satisfy::<T>(&mut tagged_option))
+        self.maybe_need_with::<P, F, G>(provider, closure)?
+            .ok_or(CallbackError::NoCallback(type_name::<P>()).into())
     }
 
-    pub fn need_with<T, F, G>(
+    pub fn maybe_need_with<P, F, G>(
         &self,
         provider: &dyn Provider,
-        closure: &mut F,
-    ) -> Result<G, SessionError>
-    where
-        T: Property,
-        F: FnMut(&T::Value) -> Result<G, SessionError>,
-    {
-        self.maybe_need_with::<T, F, G>(provider, closure)?
-            .ok_or(SessionError::CallbackError(CallbackError::NoCallback))
-    }
-
-    pub fn maybe_need_with<T, F, G>(
-        &self,
-        provider: &dyn Provider,
-        closure: &mut F,
+        closure: F,
     ) -> Result<Option<G>, SessionError>
     where
-        T: Property,
-        F: FnMut(&T::Value) -> Result<G, SessionError>,
+        P: for<'p> Property<'p>,
+        F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
     {
-        let mut closurecr = ClosureCR::<T, _, _>::wrap(closure);
-        self.need::<T, _>(provider, &mut closurecr)?;
+        let mut closurecr = ClosureCR::<P, _, _>::wrap(closure);
+        let mut tagged = Tagged::<'_, tags::RefMut<Satisfy<P>>>(&mut closurecr);
+        match self.callback(provider, Request::new_satisfy::<P>(&mut tagged)) {
+            Ok(()) => Ok(()),
+            // explicitly ignore a `NoValue` error since that one *is actually okay*
+            Err(SessionError::CallbackError(CallbackError::NoValue)) => Ok(()),
+            Err(error) => Err(error),
+        }?;
         Ok(closurecr.try_unwrap())
     }
 
-    pub fn need_cb_data<P, F, G>(
+    pub fn need_cb_data<'a, P, F, G>(
         &self,
-        cbname: &str,
+        cbname: &'a str,
         provider: P,
-        f: &mut F,
+        f: F,
     ) -> Result<G, SessionError>
     where
-        P: Provider,
-        F: FnMut(&[u8]) -> Result<G, SessionError>,
+        P: Provider<'a>,
+        F: FnOnce(&[u8]) -> Result<G, SessionError>,
     {
         let prov = ThisProvider::<ChannelBindingName>::with(cbname).and(provider);
         if let Some(cbdata) = self.chanbind_cb.get_cb_data(cbname) {
             f(cbdata)
         } else {
-            self.need_with::<ChannelBindings, F, G>(&prov, f)
+            self.maybe_need_with::<ChannelBindings, F, G>(&prov, f)?
+                .ok_or(SessionError::MissingChannelBindingData(cbname.to_string()))
         }
     }
 }
 
-#[cfg(feature = "gsasl")]
-mod gsasl {
-    use crate::alloc::sync::Arc;
-    use super::*;
-    use crate::gsasl::consts::Gsasl_property;
-    impl MechanismData<'_> {
-        // Legacy bs:
-        pub unsafe fn set_property_raw(&mut self, _prop: Gsasl_property, _: Arc<String>) {
-            unimplemented!()
-        }
-        pub unsafe fn get_property<T>(&self) -> Option<&std::ffi::CStr> {
-            unimplemented!()
-        }
-        pub unsafe fn get_property_or_callback<T>(&self) -> Result<Option<&str>, ()> {
-            unimplemented!()
-        }
-    }
-}
-
+#[derive(Debug)]
 // TODO: Since the Session object is only known to the protocol implementation and user they can
 //       share a statically known Context.
 pub struct SessionData {
@@ -411,13 +400,3 @@ impl State {
         !self.is_running()
     }
 }
-
-impl SessionData {
-    pub(crate) fn new(mechanism_desc: Mechanism, side: Side) -> Self {
-        Self {
-            mechanism_desc,
-            side,
-        }
-    }
-}
-

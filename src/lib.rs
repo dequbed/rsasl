@@ -254,13 +254,11 @@ extern crate alloc;
 #[cfg(any(feature = "std", test))]
 extern crate std as alloc;
 
-
 // none of these should be necessary for a provider to compile
 #[cfg(feature = "config_builder")]
 mod builder;
 pub mod callback;
 pub mod mechanisms;
-
 
 // Only relevant to a provider
 #[cfg(any(feature = "provider", feature = "testutils", test))]
@@ -269,15 +267,12 @@ mod sasl;
 pub mod config;
 mod session;
 
+pub mod property;
 mod typed;
 pub mod validate;
-pub mod property;
 
 mod error;
 pub mod mechname;
-
-#[cfg(feature = "gsasl")]
-mod gsasl;
 
 #[cfg(not(any(doc, feature = "unstable_custom_mechanism")))]
 mod mechanism;
@@ -313,8 +308,6 @@ pub mod prelude {
 
 #[cfg(any(test, feature = "testutils"))]
 pub mod test;
-
-struct Shared;
 
 #[cfg(doc)]
 pub mod docs {

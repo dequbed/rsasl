@@ -4,35 +4,49 @@
 [![docs]][docs.rs]
 ![maintenance]
 ![license]
+![msrv]
 
 rsasl is an framework for [RFC 4422](https://tools.ietf.org/html/rfc4422); the Simple Authentication and Security 
 Layer — aka SASL.
 
-rsasl provide a large number of mechanisms by itself: (Crossed off ones are ported to pure Rust already, striked through
-ones aren't yet implemented in the 2.0 version / main branch)
+It is designed to enable implementing SASL support in protocol handling crates while abstracting away the details, 
+allowing downstream users to select available mechanisms and add support for additional mechanisms without any 
+changes required in the protocol handling crate.
 
-- [x] EXTERNAL
-- [x] ANONYMOUS
-- [x] PLAIN
-- [x] LOGIN
-- [ ] CRAM-MD5
-- [ ] DIGEST-MD5
-- [x] SCRAM-SHA-1
-- [x] SCRAM-SHA-256
-- [ ] ~~NTLM~~
-- [ ] SECURID
-- [ ] ~~GSSAPI~~
-- [ ] ~~GS2-KRB5~~
-- [ ] SAML20
-- [ ] OPENID20
-- [ ] ~~KERBEROS_V5~~
+rsasl provide a number of mechanisms by itself: 
 
-Additional mechanisms can be implemented by other crates.
+- EXTERNAL
+- ANONYMOUS
+- PLAIN
+- LOGIN
+- SCRAM-SHA-1 and SCRAM-SHA-1-PLUS
+- SCRAM-SHA-256 and SCRAM-SHA-256-PLUS
+- XOAUTH2 (Client side only)
+
+Support for the following mechanisms was available in rsasl 1 but is not implemented in rsasl 2:
+
+- OPENID20
+- SAML20
+- GSSAPI
+- GS2-KRB5
+- KERBEROS_V5
+- NTLM
+- SECURID
+- CRAM-MD5
+- DIGEST-MD5
+
+Additional mechanisms can be implemented by other crates. (**NOTE: In the current `v2.0.0` this feature is unstable**)
 
 ### Conditional compilation of mechanism
 
 rsasl allows users to select the available mechanisms at compile time using cargo features.
 For an overview refer to the module documentation of `rsasl::mechanisms`.
+
+
+### MSRV — Minimum Supported Rust Version
+
+The current msrv rsasl is Rust `1.56.0`, however do note that certain features (e.g. `registry_static`) have
+dependencies with much more recent msrv.
 
 # Versions
 
@@ -46,7 +60,8 @@ code will be removed before the first non-preview `2.0.0` release.
 
 # License
 
-Version 2 of this library is a transpilation of gsasl and thus under the very same [license of LGPL 2.1 or later](LICENSE).
+Version 2 and later of this library are dual licensed under both [Apache-2.0](LICENSE.APACHE-2.0) and 
+[MIT](LICENSE.MIT), at your option.
 
 # Examples
 
@@ -57,4 +72,5 @@ You can find a few examples on [GitHub](examples/).
 [docs]: https://docs.rs/rsasl/badge.svg
 [docs.rs]: https://docs.rs/rsasl/
 [maintenance]: https://img.shields.io/badge/maintenance-actively%20developed-green.svg
-[license]: https://img.shields.io/github/license/dequbed/rsasl
+[license]: https://img.shields.io/crates/l/rsasl
+[msrv]: https://img.shields.io/badge/rust%20msrv-1.56.0-blueviolet

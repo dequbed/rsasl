@@ -5,14 +5,10 @@ use crate::callback::SessionCallback;
 use crate::error::SASLError;
 use crate::registry::{Mechanism, MechanismIter};
 use crate::session::SessionData;
-use crate::mechname::Mechname;
+use alloc::sync::Arc;
 use core::cmp::Ordering;
 use core::fmt;
-use alloc::sync::Arc;
 
-use crate::mechanism::Authentication;
-
-pub(crate) type FilterFn = fn(a: &Mechanism) -> bool;
 pub(crate) type SorterFn = fn(a: &Mechanism, b: &Mechanism) -> Ordering;
 
 trait ConfigInstance: fmt::Debug {
@@ -41,32 +37,49 @@ impl fmt::Debug for SASLConfig {
     }
 }
 
+#[cfg(any(feature = "provider", feature = "testutils"))]
+mod provider {
+    use super::*;
+    use crate::mechname::Mechname;
+    use crate::mechanism::Authentication;
+
+    impl SASLConfig {
+        #[inline(always)]
+        /// Select the best mechanism of the offered ones.
+        pub(crate) fn select_mechanism(
+            &self,
+            offered: &[&Mechname],
+        ) -> Result<(Box<dyn Authentication>, &Mechanism), SASLError> {
+            offered
+                .iter()
+                .filter_map(|offered_mechname| {
+                    self.mech_list()
+                        .find(|avail_mech| avail_mech.mechanism == *offered_mechname)
+                        .and_then(|mech| {
+                            let auth = mech.client(self, offered)?.ok()?;
+                            Some((auth, mech))
+                        })
+                })
+                .max_by(|(_, m), (_, n)| self.inner.sort(m, n))
+                .ok_or(SASLError::NoSharedMechanism)
+        }
+
+        #[inline(always)]
+        pub(crate) fn get_callback(&self) -> &dyn SessionCallback {
+            self.inner.get_callback()
+        }
+
+        #[inline(always)]
+        pub(crate) fn sort(&self, left: &Mechanism, right: &Mechanism) -> Ordering {
+            self.inner.sort(left, right)
+        }
+    }
+}
+
 impl SASLConfig {
     #[inline(always)]
-    /// Select the best mechanism of the offered ones.
-    pub(crate) fn select_mechanism(&self, offered: &[&Mechname])
-        -> Result<(Box<dyn Authentication>, &Mechanism), SASLError>
-    {
-        offered
-            .iter()
-            .filter_map(|offered_mechname| {
-                self.mech_list().find(|avail_mech| avail_mech.mechanism == *offered_mechname).and_then(|mech| {
-                    let auth = mech.client(self, offered)?.ok()?;
-                    Some((auth, mech))
-                })
-            })
-            .max_by(|(_, m), (_, n)| self.inner.sort(m, n))
-            .ok_or(SASLError::NoSharedMechanism)
-    }
-
-    #[inline(always)]
-    pub(crate) fn mech_list<'a>(&self) -> impl Iterator<Item=&'a Mechanism> {
+    pub(crate) fn mech_list<'a>(&self) -> impl Iterator<Item = &'a Mechanism> {
         self.inner.get_mech_iter()
-    }
-
-    #[inline(always)]
-    pub(crate) fn get_callback(&self) -> &dyn SessionCallback {
-        self.inner.get_callback()
     }
 }
 
@@ -142,7 +155,6 @@ mod instance {
         }
     }
 
-
     struct Inner {
         callback: Box<dyn SessionCallback>,
         sorter: SorterFn,
@@ -152,8 +164,8 @@ mod instance {
     impl fmt::Debug for Inner {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
             f.debug_struct("SASLConfig")
-             .field("mechanisms", &self.mechanisms)
-             .finish()
+                .field("mechanisms", &self.mechanisms)
+                .finish()
         }
     }
 

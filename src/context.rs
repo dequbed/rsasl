@@ -1,32 +1,32 @@
-use core::fmt;
-use core::fmt::Write;
 use crate::property::{Property, SizedProperty};
 use crate::typed::tags::{MaybeSizedType, Type};
-use crate::typed::{tags, Erased, TaggedOption};
+use crate::typed::{tags, Erased, Tagged};
+use core::fmt;
+use core::fmt::Write;
 use core::marker::PhantomData;
 use core::ops::ControlFlow;
 
-pub trait Provider {
-    fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()>;
-    fn provide_mut<'a>(&'a mut self, req: &mut Demand<'a>) -> DemandReply<()> {
+pub trait Provider<'a> {
+    fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()>;
+    fn provide_mut(&mut self, req: &mut Demand<'a>) -> DemandReply<()> {
         req.done()
     }
 }
 
-pub trait ProviderExt: Provider {
-    fn and<P: Provider>(self, other: P) -> And<Self, P>
+pub trait ProviderExt<'a>: Provider<'a> {
+    fn and<P: Provider<'a>>(self, other: P) -> And<Self, P>
     where
         Self: Sized,
     {
         And { l: self, r: other }
     }
 }
-impl<P: Provider> ProviderExt for P {}
+impl<'a, P: Provider<'a>> ProviderExt<'a> for P {}
 
 #[derive(Debug)]
 pub struct EmptyProvider;
-impl Provider for EmptyProvider {
-    fn provide<'a>(&'a self, _: &mut Demand<'a>) -> DemandReply<()> {
+impl Provider<'_> for EmptyProvider {
+    fn provide(&self, _: &mut Demand<'_>) -> DemandReply<()> {
         DemandReply::Continue(())
     }
 }
@@ -36,13 +36,13 @@ pub struct And<L, R> {
     l: L,
     r: R,
 }
-impl<L: Provider, R: Provider> Provider for And<L, R> {
-    fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
+impl<'a, L: Provider<'a>, R: Provider<'a>> Provider<'a> for And<L, R> {
+    fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
         self.l.provide(req)?;
         self.r.provide(req)
     }
 
-    fn provide_mut<'a>(&'a mut self, req: &mut Demand<'a>) -> DemandReply<()> {
+    fn provide_mut(&mut self, req: &mut Demand<'a>) -> DemandReply<()> {
         self.l.provide_mut(req)?;
         self.r.provide_mut(req)
     }
@@ -50,11 +50,7 @@ impl<L: Provider, R: Provider> Provider for And<L, R> {
 
 #[doc(hidden)]
 pub struct TOKEN(PhantomData<()>);
-impl TOKEN {
-    pub(crate) const fn build() -> Self {
-        Self(PhantomData)
-    }
-}
+
 impl fmt::Debug for TOKEN {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("TOKEN")
@@ -73,10 +69,10 @@ impl fmt::Display for TOKEN {
 pub type DemandReply<T> = ControlFlow<TOKEN, T>;
 
 struct DemandTag<T>(PhantomData<T>);
-impl<'a, T: Property> MaybeSizedType<'a> for DemandTag<T> {
+impl<'a, T: Property<'a>> MaybeSizedType<'a> for DemandTag<T> {
     type Reified = T::Value;
 }
-impl<'a, T: SizedProperty> Type<'a> for DemandTag<T> {
+impl<'a, T: SizedProperty<'a>> Type<'a> for DemandTag<T> {
     type Reified = T::Value;
 }
 
@@ -87,7 +83,7 @@ impl<'a, T: SizedProperty> Type<'a> for DemandTag<T> {
 /// necessarily of a `'static` lifetime.
 pub struct Demand<'a>(dyn Erased<'a> + 'a);
 impl<'a> Demand<'a> {
-    pub(crate) fn new<T: tags::Type<'a>>(opt: &mut TaggedOption<'a, T>) -> &'a mut Self {
+    pub(crate) fn new<T: tags::Type<'a>>(opt: &mut Tagged<'a, tags::Optional<T>>) -> &'a mut Self {
         unsafe { core::mem::transmute(opt as &mut dyn Erased) }
     }
 }
@@ -97,7 +93,7 @@ impl<'a> Demand<'a> {
     }
 
     fn provide<T: tags::Type<'a>>(&mut self, value: T::Reified) -> DemandReply<&mut Self> {
-        if let Some(res @ TaggedOption(None)) = self.0.downcast_mut::<T>() {
+        if let Some(res) = self.0.downcast_mut::<tags::Optional<T>>() {
             res.0 = Some(value);
             DemandReply::Break(TOKEN(PhantomData))
         } else {
@@ -106,49 +102,55 @@ impl<'a> Demand<'a> {
     }
 
     #[inline(always)]
-    pub fn provide_ref<T: Property>(&mut self, value: &'a T::Value) -> DemandReply<&mut Self> {
+    pub fn provide_ref<T: Property<'a>>(&mut self, value: &'a T::Value) -> DemandReply<&mut Self> {
         self.provide::<tags::Ref<DemandTag<T>>>(value)
     }
 
     #[inline(always)]
-    pub fn provide_mut<T: Property>(&mut self, value: &'a mut T::Value) -> DemandReply<&mut Self> {
+    pub fn provide_mut<T: Property<'a>>(
+        &mut self,
+        value: &'a mut T::Value,
+    ) -> DemandReply<&mut Self> {
         self.provide::<tags::RefMut<DemandTag<T>>>(value)
     }
 }
 
-pub(crate) fn build_context(provider: &dyn Provider) -> &Context {
+pub(crate) fn build_context<'a>(provider: &'a dyn Provider) -> &'a Context<'a> {
     unsafe { core::mem::transmute(provider) }
 }
 
 #[repr(transparent)]
-pub struct Context(dyn Provider);
-impl Context {
+pub struct Context<'a>(dyn Provider<'a>);
+impl<'a> Context<'a> {
     #[inline]
-    pub fn get_ref<P: Property>(&self) -> Option<&P::Value> {
-        let mut tagged_option = TaggedOption::<'_, tags::Ref<DemandTag<P>>>(None);
-        self.0.provide(Demand::new(&mut tagged_option));
-        tagged_option.0
+    pub fn get_ref<P: Property<'a>>(&self) -> Option<&'a P::Value> {
+        let mut tagged = Tagged::<'_, tags::Optional<tags::Ref<DemandTag<P>>>>(None);
+        self.0.provide(Demand::new(&mut tagged));
+        tagged.0
     }
     #[inline]
-    pub fn get_mut<P: Property>(&mut self) -> Option<&mut P::Value> {
-        let mut tagged_option = TaggedOption::<'_, tags::RefMut<DemandTag<P>>>(None);
-        self.0.provide_mut(Demand::new(&mut tagged_option));
-        tagged_option.0
+    pub fn get_mut<P: Property<'a>>(&mut self) -> Option<&'a mut P::Value> {
+        let mut tagged = Tagged::<'_, tags::Optional<tags::RefMut<DemandTag<P>>>>(None);
+        self.0.provide_mut(Demand::new(&mut tagged));
+        tagged.0
     }
 }
 
 #[repr(transparent)]
-pub struct ThisProvider<'a, P: Property>(&'a P::Value);
-impl<P: Property> ThisProvider<'_, P> {
-    pub fn with(value: &P::Value) -> ThisProvider<'_, P> {
+pub struct ThisProvider<'a, P: Property<'a>>(&'a P::Value);
+impl<'a, P: Property<'a>> ThisProvider<'a, P> {
+    pub fn with(value: &'a P::Value) -> ThisProvider<'a, P> {
         ThisProvider(value)
     }
-    fn back(&self) -> &P::Value {
+    fn back(&self) -> &'a P::Value {
         self.0
     }
 }
-impl<P: Property> Provider for ThisProvider<'_, P> {
-    fn provide<'a>(&'a self, req: &mut Demand<'a>) -> DemandReply<()> {
+impl<'a, P> Provider<'a> for ThisProvider<'a, P>
+where
+    P: Property<'a>,
+{
+    fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
         req.provide_ref::<P>(self.back())?.done()
     }
 }
@@ -160,7 +162,7 @@ mod tests {
     #[test]
     fn test_thisprovider() {
         struct TestTag;
-        impl Property for TestTag {
+        impl Property<'_> for TestTag {
             type Value = str;
         }
         let value = "hello ";
