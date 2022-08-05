@@ -16,6 +16,9 @@ release. They will however *never* happen in a patch release.
 <!-- next-header -->
 ## [Unreleased] — ReleaseDate
 
+
+## [v2.0.0-preview8] — 2022-08-05
+
 rsasl is now licensed under Apache-2.0 and MIT dual license.
 
 ### Added
@@ -35,7 +38,7 @@ rsasl is now licensed under Apache-2.0 and MIT dual license.
 - Fixed 'actionable' callbacks not correctly indicating they were handled
 
 
-## [v2.0.0-alpha1] — 2022-07-30
+## [v2.0.0-preview7] — 2022-07-30
 
 First 'alpha' release of rsasl 2.0.0, with most of the API stabilized enough that testing if rsasl
 is usable by third-party crates in other situations than BFFH is possible.
@@ -75,7 +78,8 @@ making this release possible.**
 * Initial stabilized release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/dequbed/rsasl/compare/v2.0.0-alpha1...development
-[v2.0.0-alpha1]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview1...v2.0.0-alpha1
+[Unreleased]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview8...development
+[v2.0.0-preview8]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview7...v2.0.0-preview8
+[v2.0.0-preview7]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview1...v2.0.0-preview7
 [v2.0.0-preview1]: https://github.com/dequbed/rsasl/compare/v1.4.1...v2.0.0-preview1
 [v1.4.1]: https://github.com/dequbed/rsasl/compare/v1.4.0...v1.4.1
