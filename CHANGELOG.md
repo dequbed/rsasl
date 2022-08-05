@@ -16,6 +16,8 @@ release. They will however *never* happen in a patch release.
 <!-- next-header -->
 ## [Unreleased] — ReleaseDate
 
+rsasl is now licensed under Apache-2.0 and MIT dual license.
+
 ### Added
 
 - Properties can now contain data with other lifetimes than `'static`
