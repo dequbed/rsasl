@@ -28,11 +28,8 @@ default = [
     "config_builder",
     "registry_static",
     "scram-sha-1", "scram-sha-2",
-    "digest-md5", "cram-md5",
     "anonymous", "external",
     "plain", "login",
-    "securid",
-    "openid20", "saml20"
 ]
 
 ## Enable use of libstd
@@ -40,17 +37,11 @@ default = [
 ## parts of rsasl depend on the stdlib.
 std = []
 
-gsasl = ["libc"]
-
 #! ## Compile-time mechanism selection
 ## Enable `SCRAM-SHA-1` and `SCRAM-SHA-1-PLUS`
 scram-sha-1 = ["std", "saslprep", "hmac", "digest", "sha-1", "base64", "rand", "pbkdf2"]
 ## Enable `SCRAM-*` and `SCRAM-*-PLUS` mechanisms using `SHA-2`, i.e. `SHA-256` and `SHA-512`
 scram-sha-2 = ["std", "saslprep", "hmac", "digest", "sha2", "base64", "rand", "pbkdf2"]
-## Enable `DIGEST-MD5`
-digest-md5 = ["std", "gsasl", "saslprep", "hmac", "digest", "md-5", "base64"]
-## Enable `CRAM-MD5`
-cram-md5 = ["std", "gsasl", "saslprep", "hmac", "digest", "md-5"]
 ## Enable `ANONYMOUS`
 anonymous = ["std"]
 ## Enable `EXTERNAL`
@@ -59,12 +50,6 @@ external = ["std"]
 plain = ["std", "saslprep"]
 ## Enable `LOGIN`
 login = ["std"]
-## Enable `OPENID20`
-openid20 = ["std", "gsasl"]
-## Enable `SAML20`
-saml20 = ["std", "gsasl"]
-## Enable `SECURID`
-securid = ["std", "gsasl"]
 ## Enable `XOAUTH2`
 xoauth2 = ["std"]
 
@@ -101,8 +86,6 @@ unstable_custom_mechanism = ["std"]
 thiserror = "1.0"
 
 rustls = { version = "0.20.6", optional = true }
-
-libc = { version = "0.2", optional = true }
 
 base64 = { version = "0.13", optional = true }
 
