@@ -35,45 +35,10 @@ pub use crate::session::Side;
 #[cfg(feature = "registry_static")]
 pub use registry_static::*;
 
-pub type MatchFn = fn(name: &Mechname) -> bool;
-
 pub type StartFn =
     fn(sasl: &SASLConfig, offered: &[&Mechname]) -> Result<Box<dyn Authentication>, SASLError>;
 pub type ServerStartFn =
     fn(sasl: &SASLConfig) -> Result<Box<dyn Authentication>, SASLError>;
-
-trait MechanismT {
-    fn client(&self, _sasl: &SASLConfig, _offered: &[&Mechname])
-        -> Result<Box<dyn Authentication>, SASLError>
-    {
-        Err(SASLError::NoSharedMechanism)
-    }
-
-    fn server(&self, _sasl: &SASLConfig)
-        -> Result<Box<dyn Authentication>, SASLError>
-    {
-        Err(SASLError::NoSharedMechanism)
-    }
-}
-#[derive(Copy, Clone)]
-pub struct Mechanism2 {
-    mechanism: &'static dyn MechanismT,
-    pub name: &'static Mechname,
-    pub first: Side,
-}
-impl Mechanism2 {
-    pub fn client(&self, sasl: &SASLConfig, offered: &[&Mechname])
-        -> Result<Box<dyn Authentication>, SASLError>
-    {
-        self.mechanism.client(sasl, offered)
-    }
-
-    pub fn server(&self, sasl: &SASLConfig)
-        -> Result<Box<dyn Authentication>, SASLError>
-    {
-        self.mechanism.server(sasl)
-    }
-}
 
 #[derive(Copy, Clone)]
 /// Mechanism Implementation
@@ -103,40 +68,6 @@ impl Mechanism {
             first
         }
     }
-}
-
-struct MechanismSecurityFactors {
-    /// Maximum possible Security Strength Factor (SSF) of the security layers installed
-    ///
-    /// SSF is a very fuzzy value but in general equates to the numbers of 'bits' of security,
-    /// usually being linked to the key size. E.g. encryption using DES has `56`, 3DES `112`,
-    /// AES128 `128`, and so on.
-    /// Security layers that do not provide confidentiality (i.e. encryption) but integrity
-    /// protection (via e.g. HMAC) usually have a SSF of 1.
-    pub max_ssf: u16,
-
-    /// This mechanism doesn't transfer secrets in plain text and is thus not susceptible to
-    /// simple eavesdropping attacks.
-    pub noplain: bool,
-    /// This mechanism supports mutual authentication, i.e. if the authentication exchange
-    /// succeeds then both the client and server have verified the identity of the other.
-    pub mutual: bool,
-
-    /// This mechanism can support channel bindings, i.e. cryptographically bind the
-    /// authentication to the (encrypted) transport layer, usually TLS or IPsec.
-    /// Using channel bindings can guard against some forms of man-in-the-middle attacks as the
-    /// authentication will not succeed if both sides are not seeing the same cryptographic
-    /// channel.
-    ///
-    /// Example: The TLS connection is being actively intercepted by an attacker that managed to
-    /// get a trusted certificate deemed valid for the connection. Channel binding data for
-    /// standard TLS cb mechanism includes either the public certificate that was used by the
-    /// server or data derived from the (TLS) session secrets, both of which would show the
-    /// MITM-attack in the above scenario.
-    ///
-    /// Channel binding *DOES NOT* guard against an attacker that has access to the channel secrets
-    /// and can decrypt the channel passively.
-    pub channel_binding: bool,
 }
 
 impl Mechanism {

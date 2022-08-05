@@ -17,6 +17,7 @@ pub struct ThisCb {
     value: Box<[u8]>,
 }
 impl ThisCb {
+    #[allow(unused)]
     pub fn new(name: &'static str, value: Box<[u8]>) -> Self {
         Self { name, value }
     }

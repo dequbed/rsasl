@@ -78,15 +78,6 @@ impl<'a> dyn Erased<'a> {
             None
         }
     }
-
-    #[inline]
-    pub(crate) fn downcast_ref<T: tags::Type<'a>>(&self) -> Option<&Tagged<'a, T>> {
-        if self.is::<T>() {
-            Some(unsafe { &*(self as *const Self as *const Tagged<'a, T>) })
-        } else {
-            None
-        }
-    }
 }
 
 
@@ -99,7 +90,7 @@ mod tests {
     #[test]
     fn cant_outlive() {
         let value = String::from("hello world");
-        let mut tagged = Tagged::<Action<AuthId>>(Some(value.as_ref()));
+        let _tagged = Tagged::<Action<AuthId>>(Some(value.as_ref()));
     }
 
 }

@@ -7,8 +7,6 @@ use crate::callback::CallbackError;
 use crate::validate::ValidationError;
 use core::fmt;
 
-static UNKNOWN_ERROR: &'static str = "The given error code is unknown to gsasl";
-
 /// Different high-level kinds of errors that can happen in mechanisms
 pub enum MechanismErrorKind {
     /// Parsing failed for the given reason (syntactical error)

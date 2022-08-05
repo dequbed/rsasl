@@ -1,10 +1,10 @@
-use std::io::Write;
+
 
 use core::any::type_name;
 use core::fmt;
-use std::marker::PhantomData;
 
-use crate::callback::{Action, CallbackError, CallbackRequest, ClosureCR, Request, Satisfy, SessionCallback};
+
+use crate::callback::{Action, CallbackError, ClosureCR, Request, Satisfy, SessionCallback};
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::context::{build_context, Provider, ProviderExt, ThisProvider};
 use crate::error::SessionError;
@@ -21,12 +21,14 @@ pub enum Side {
 
 #[cfg(any(feature = "provider", feature = "testutils", test))]
 mod provider {
+    use std::io::Write;
     use super::*;
     use crate::channel_bindings::NoChannelBindings;
     use crate::mechanism::Authentication;
     use crate::mechname::Mechname;
     use crate::sasl::SASL;
     use crate::validate::{NoValidation, Validation};
+
     /// This represents a single authentication exchange
     ///
     /// An authentication exchange may have multiple steps, with each step potentially sending data
@@ -324,7 +326,7 @@ impl MechanismData<'_> {
         &self,
         cbname: &'a str,
         provider: P,
-        mut f: F,
+        f: F,
     ) -> Result<G, SessionError>
     where
         P: Provider<'a>,

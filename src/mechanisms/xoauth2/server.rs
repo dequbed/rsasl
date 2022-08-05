@@ -4,7 +4,7 @@ use crate::mechanism::{Authentication, MechanismData, State};
 use crate::mechanisms::xoauth2::properties::XOAuth2Validate;
 use crate::property::{AuthId, OAuthBearerToken};
 use core::str::Utf8Error;
-use std::io::{BufRead, Write};
+use std::io::{Write};
 use thiserror::Error;
 
 #[derive(Debug, Clone, Default)]
@@ -91,6 +91,7 @@ impl Authentication for XOAuth2 {
                     session.need_with::<XOAuth2Validate, _, _>(&prov, |result| {
                         if let Err(error) = result {
                             writer.write_all(error.as_bytes())?;
+                            self.state = XOAuth2State::Errored;
                             Ok((State::Running, Some(error.len())))
                         } else {
                             Ok((State::Finished, None))
@@ -155,8 +156,8 @@ mod tests {
     }
 
     fn prepare_session(callback: C<'static>) -> Session {
-        let authid = "username@host.tld";
-        let token = "ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg";
+        let _authid = "username@host.tld";
+        let _token = "ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg";
         let config = test::server_config(callback);
         test::server_session(config, &super::super::mechinfo::XOAUTH2)
     }

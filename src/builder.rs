@@ -23,11 +23,8 @@ impl<State: Debug> Debug for ConfigBuilder<State> {
     }
 }
 
-pub(crate) fn default_filter(_: &Mechanism) -> bool {
-    true
-}
 pub(crate) fn default_sorter(a: &Mechanism, b: &Mechanism) -> Ordering {
-    b.priority.cmp(&a.priority)
+    a.priority.cmp(&b.priority)
 }
 
 #[derive(Clone, Debug)]

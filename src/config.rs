@@ -12,7 +12,6 @@ use alloc::sync::Arc;
 
 use crate::mechanism::Authentication;
 
-pub(crate) type FilterFn = fn(a: &Mechanism) -> bool;
 pub(crate) type SorterFn = fn(a: &Mechanism, b: &Mechanism) -> Ordering;
 
 trait ConfigInstance: fmt::Debug {

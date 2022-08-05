@@ -1,7 +1,7 @@
 //! Mock `SASLConfig` useful for testing
 //!
 use std::sync::Arc;
-use crate::builder::{default_filter, default_sorter};
+use crate::builder::{default_sorter};
 use crate::callback::SessionCallback;
 pub use crate::callback::{Context, SessionData};
 use crate::config::SASLConfig;

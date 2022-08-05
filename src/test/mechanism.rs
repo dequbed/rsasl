@@ -69,6 +69,7 @@ use crate::registry::{Mechanism, Side};
 /// ```
 ///
 /// client-first/server-first depends on which side performs step 1.
+#[allow(unused)]
 pub struct RSaslTest {
     state: RsaslState,
 }
