@@ -15,7 +15,7 @@ struct EnvCallback;
 impl SessionCallback for EnvCallback {
     fn callback(
         &self,
-        session_data: &SessionData,
+        _session_data: &SessionData,
         context: &Context,
         request: &mut Request<'_>,
     ) -> Result<(), SessionError> {
@@ -53,7 +53,7 @@ impl SessionCallback for EnvCallback {
         &self,
         session_data: &SessionData,
         context: &Context,
-        validate: &mut Validate<'_>,
+        _validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
         if session_data.mechanism().mechanism.as_str() == "PLAIN" {
             let authid = context.get_ref::<AuthId>();
@@ -76,7 +76,7 @@ pub fn main() -> miette::Result<()> {
         .into_diagnostic()
         .wrap_err("Failed to generate SASL config")?;
 
-    let mut server = SASLServer::<NoValidation>::new(config);
+    let server = SASLServer::<NoValidation>::new(config);
     for mech in server.get_available() {
         print!("{} ", mech.mechanism.as_str());
     }
@@ -114,7 +114,7 @@ pub fn main() -> miette::Result<()> {
             .step64(input.as_deref().map(|s| s.trim().as_bytes()), &mut out)
             .into_diagnostic()
             .wrap_err("Unexpected error occurred during stepping the session")?;
-        let mut output = out.into_inner();
+        let output = out.into_inner();
 
         let output =
             String::from_utf8(output).expect("base64 encoded output is somehow not valid UTF-8");

@@ -7,7 +7,6 @@ use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionD
 use rsasl::mechanisms::scram::properties::{Iterations, Salt, ScramCachedPassword};
 use rsasl::prelude::*;
 use rsasl::property::*;
-use rsasl::validate::{Validate, ValidationError};
 use std::io;
 use std::io::Cursor;
 
@@ -105,7 +104,7 @@ pub fn main() -> miette::Result<()> {
             .step64(input.as_deref().map(|s| s.trim().as_bytes()), &mut out)
             .into_diagnostic()
             .wrap_err("Unexpected error occurred during stepping the session")?;
-        let mut output = out.into_inner();
+        let output = out.into_inner();
 
         let output =
             String::from_utf8(output).expect("base64 encoded output is somehow not valid UTF-8");

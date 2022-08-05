@@ -50,11 +50,7 @@ impl<'a, L: Provider<'a>, R: Provider<'a>> Provider<'a> for And<L, R> {
 
 #[doc(hidden)]
 pub struct TOKEN(PhantomData<()>);
-impl TOKEN {
-    pub(crate) const fn build() -> Self {
-        Self(PhantomData)
-    }
-}
+
 impl fmt::Debug for TOKEN {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("TOKEN")

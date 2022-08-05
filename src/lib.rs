@@ -311,8 +311,6 @@ pub mod prelude {
 #[cfg(any(test, feature = "testutils"))]
 pub mod test;
 
-struct Shared;
-
 #[cfg(doc)]
 pub mod docs {
     //! Modules purely for documentation

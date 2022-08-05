@@ -215,7 +215,7 @@ where
     F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
 {
     fn satisfy(&mut self, answer: &<P as Property<'_>>::Value) -> Result<(), SessionError> {
-        if let Some(ClosureCRState::Open(mut closure)) = self.closure.take() {
+        if let Some(ClosureCRState::Open(closure)) = self.closure.take() {
             let reply = closure(answer)?;
             self.closure = Some(ClosureCRState::Satisfied(reply));
         }

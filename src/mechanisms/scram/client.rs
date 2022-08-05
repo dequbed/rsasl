@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::marker::PhantomData;
@@ -6,9 +6,9 @@ use std::marker::PhantomData;
 use thiserror::Error;
 
 use digest::crypto_common::BlockSizeUser;
-use digest::generic_array::GenericArray;
-use digest::{Digest, FixedOutputReset, Mac, Output, OutputSizeUser, Update};
-use hmac::SimpleHmac;
+
+use digest::{Digest, FixedOutputReset};
+
 
 use crate::callback::CallbackError;
 use rand::Rng;
@@ -18,12 +18,12 @@ use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
 
 use crate::mechanisms::scram::parser::{
-    ClientFinal, ClientFirstMessage, GS2CBindFlag, SaslName, ServerErrorValue, ServerFinal,
+    ClientFinal, SaslName, ServerErrorValue, ServerFinal,
     ServerFirst,
 };
 use crate::mechanisms::scram::properties::{Iterations, Salt, SaltedPassword, ScramCachedPassword};
 use crate::mechanisms::scram::tools::{
-    compute_signatures, derive_keys, find_proofs, generate_nonce, hash_password, DOutput,
+    compute_signatures, derive_keys, generate_nonce, hash_password, DOutput,
 };
 use crate::property::{AuthId, AuthzId, OverrideCBType, Password};
 use crate::session::{MechanismData, State};
@@ -163,7 +163,7 @@ impl<const N: usize> StateClientFirst<N> {
         self,
         rng: &mut impl Rng,
         session: &mut MechanismData,
-        mut writer: impl Write,
+        writer: impl Write,
         written: &mut usize,
     ) -> Result<WaitingServerFirst<D, N>, SessionError>
     where
@@ -268,7 +268,7 @@ where
         writer: impl Write,
         written: &mut usize,
     ) -> Result<WaitingServerFinal<D>, SessionError> {
-        let server_first @ ServerFirst {
+        let _server_first @ ServerFirst {
             nonce,
             server_nonce: _,
             salt: salt64,
@@ -425,12 +425,16 @@ impl<D: Digest + BlockSizeUser> WaitingServerFinal<D> {
             ServerFinal::Verifier(verifier) => {
                 let v = base64::decode(verifier)
                     .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
+
                 if self.verifier.as_slice() == &v[..] {
+
                     let prov = ScramClientProvider {
                         salt: &self.salt[..],
                         iterations: &self.iterations,
                     };
-                    session.action::<ScramCachedPassword>(
+
+                    // `let _` because the client doesn't have to save the generated keys
+                    let _ = session.action::<ScramCachedPassword>(
                         &prov,
                         &ScramCachedPassword {
                             client_key: self.client_key.as_slice(),
@@ -493,7 +497,6 @@ pub enum ProtocolError {
     InvalidNonce,
     IterationCountFormat,
     IterationCountZero,
-    ServerSignatureMismatch,
     Base64Decode,
 }
 
@@ -504,9 +507,6 @@ impl Display for ProtocolError {
             ProtocolError::IterationCountFormat => f.write_str("iteration count must be decimal"),
             ProtocolError::IterationCountZero => f.write_str("iteration count can't be zero"),
             ProtocolError::Base64Decode => f.write_str("base64 decoding of data failed"),
-            ProtocolError::ServerSignatureMismatch => {
-                f.write_str("Calculated server MAC and received server MAC do not match")
-            }
         }
     }
 }
@@ -549,7 +549,8 @@ impl<'a> Provider<'a> for ScramClientProvider<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use digest::Update;
+    use hmac::{Mac, SimpleHmac};
     use rand::random;
 
     #[test]
@@ -566,11 +567,11 @@ mod tests {
         Mac::update(&mut hmac, b"Server Key");
         let server_key = hmac.finalize().into_bytes();
 
-        let mut hmac2 = <SimpleHmac<sha2::Sha256>>::new_from_slice(&key)
+        let hmac2 = <SimpleHmac<sha2::Sha256>>::new_from_slice(&key)
             .expect("HMAC should work with every key length");
         let client_key2 = hmac2.chain(b"Client Key").finalize().into_bytes();
 
-        let mut hmac3 = <SimpleHmac<sha2::Sha256>>::new_from_slice(&key)
+        let hmac3 = <SimpleHmac<sha2::Sha256>>::new_from_slice(&key)
             .expect("HMAC should work with every key length");
         let server_key2 = hmac3.chain(b"Server Key").finalize().into_bytes();
 

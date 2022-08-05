@@ -9,7 +9,7 @@ pub enum SaslNameError {
     #[error("empty string is invalid for name")]
     Empty,
     #[error("name contains invalid utf-8: {0}")]
-    InvalidUtf8(Utf8Error),
+    InvalidUtf8(#[from] #[source] Utf8Error),
     #[error("name contains invalid char {0}")]
     InvalidChar(u8),
     #[error("name contains invalid escape sequence")]
@@ -99,6 +99,9 @@ impl<'a> SaslName<'a> {
     ///
     /// This will clone the given string if characters need escaping
     pub fn escape(input: &str) -> Result<Cow<'_, str>, SaslNameError> {
+        if input.is_empty() {
+            return Err(SaslNameError::Empty);
+        }
         if input.contains('\0') {
             return Err(SaslNameError::InvalidChar(0));
         }
@@ -111,30 +114,31 @@ impl<'a> SaslName<'a> {
         }
     }
 
+    #[allow(unused)]
     /// Convert a SCRAM-side string into the representation expected by Rust
     ///
     /// This will clone the given string if characters need unescaping
-    pub fn unescape(input: &'a str) -> Result<Cow<'_, str>, SaslNameError> {
+    pub fn unescape(input: &'a [u8]) -> Result<Cow<'_, str>, SaslNameError> {
         if input.is_empty() {
             return Err(SaslNameError::Empty);
         }
 
-        if let Some(c) = input.find(|byte| matches!(byte, '\0' | ',')) {
-            return Err(SaslNameError::InvalidChar(c as u8));
+        if let Some(c) = input.iter().find(|byte| matches!(**byte, b'\0' | b',')) {
+            return Err(SaslNameError::InvalidChar(*c));
         }
 
-        if let Some(bad) = input.bytes().position(|b| matches!(b, b'=')) {
+        if let Some(bad) = input.iter().position(|b| matches!(b, b'=')) {
             let mut out = String::with_capacity(input.len());
-            let good = std::str::from_utf8(&input.as_bytes()[..bad])
+            let good = std::str::from_utf8(&input[..bad])
                 .map_err(SaslNameError::InvalidUtf8)?;
             out.push_str(good);
             let mut input = &input[bad..];
 
-            while let Some(bad) = input.bytes().position(|b| matches!(b, b'=')) {
-                let good = std::str::from_utf8(&input.as_bytes()[..bad])
+            while let Some(bad) = input.iter().position(|b| matches!(b, b'=')) {
+                let good = std::str::from_utf8(&input[..bad])
                     .map_err(SaslNameError::InvalidUtf8)?;
                 out.push_str(good);
-                let c = match &input.as_bytes()[bad + 1..bad + 3] {
+                let c = match &input[bad + 1..bad + 3] {
                     b"2C" => ',',
                     b"3D" => '=',
                     _ => return Err(SaslNameError::InvalidEscape),
@@ -145,7 +149,7 @@ impl<'a> SaslName<'a> {
 
             Ok(out.into())
         } else {
-            Ok(Cow::Borrowed(input))
+            Ok(Cow::Borrowed(core::str::from_utf8(input)?))
         }
     }
 }
@@ -225,6 +229,7 @@ pub struct ClientFirstMessage<'scram> {
     pub nonce: &'scram [u8],
 }
 impl<'scram> ClientFirstMessage<'scram> {
+    #[allow(unused)]
     pub fn new(
         cbflag: GS2CBindFlag<'scram>,
         authzid: Option<&'scram str>,
@@ -296,6 +301,7 @@ impl<'scram> ClientFirstMessage<'scram> {
         [cba, cbb, prefix, authzid]
     }
 
+    #[allow(unused)]
     pub fn to_ioslices(&self) -> [&'scram [u8]; 8] {
         let [cba, cbb, prefix, authzid] = self.gs2_header_parts();
 

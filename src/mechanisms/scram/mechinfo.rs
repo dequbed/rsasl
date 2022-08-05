@@ -33,7 +33,10 @@ pub static SCRAM_SHA1: Mechanism = Mechanism {
             set_cb_client_no_support,
         )))
     }),
-    server: Some(|_sasl| Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new()))),
+    server: Some(|sasl| {
+        let can_cb = sasl.mech_list().any(|m| m.mechanism.as_str() == "SCRAM-SHA-1-PLUS");
+        Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new(can_cb)))
+    }),
     first: Side::Client,
 };
 
@@ -72,7 +75,10 @@ pub static SCRAM_SHA256: Mechanism = Mechanism {
             set_cb_client_no_support,
         )))
     }),
-    server: Some(|_sasl| Ok(Box::new(server::ScramSha256Server::<NONCE_LEN>::new()))),
+    server: Some(|sasl| {
+        let can_cb = sasl.mech_list().any(|m| m.mechanism.as_str() == "SCRAM-SHA-256-PLUS");
+        Ok(Box::new(server::ScramSha256Server::<NONCE_LEN>::new(can_cb)))
+    }),
     first: Side::Client,
 };
 
@@ -91,7 +97,7 @@ pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
 
 #[cfg(test)]
 mod tests {
-    use crate::builder::{default_sorter, default_filter};
+    use crate::builder::{default_sorter};
     use crate::test::EmptyCallback;
     use crate::config::SASLConfig;
     use crate::sasl::SASLClient;
@@ -99,8 +105,7 @@ mod tests {
     use crate::registry::Registry;
 
     #[cfg(feature = "scram-sha-1")]
-    // FIXME: Investigate why this fails
-    //#[test]
+    #[test]
     /// Test if SCRAM will correctly set the CB support flag depending on the offered mechanisms.
     fn scram_sha1_plus_selection() {
         static SUPPORTED: &'static [Mechanism] = &[SCRAM_SHA1, SCRAM_SHA1_PLUS];
@@ -118,8 +123,7 @@ mod tests {
     }
 
     #[cfg(feature = "scram-sha-2")]
-    // FIXME: Investigate why this fails
-    //#[test]
+    #[test]
     /// Test if SCRAM will correctly set the CB support flag depending on the offered mechanisms.
     fn scram_sha2_plus_selection() {
         static SUPPORTED: &'static [Mechanism] = &[SCRAM_SHA256, SCRAM_SHA256_PLUS];

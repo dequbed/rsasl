@@ -13,7 +13,7 @@ use crate::config::SASLConfig;
 use crate::registry::Mechanism;
 use crate::sasl::SASL;
 use crate::session::{Session, Side};
-use crate::validate::NoValidation;
+
 
 pub fn client_session(config: Arc<SASLConfig>, mechanism: &Mechanism) -> Session {
     let mech = mechanism.client(&config, &[mechanism.mechanism])

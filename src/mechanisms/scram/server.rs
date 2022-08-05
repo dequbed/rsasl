@@ -3,7 +3,7 @@ use crate::mechanisms::scram::client::{ProtocolError, SCRAMError};
 use crate::mechanisms::scram::parser::{
     ClientFinal, ClientFirstMessage, GS2CBindFlag, ServerErrorValue, ServerFinal, ServerFirst,
 };
-use crate::mechanisms::scram::tools::{compute_signatures, find_proofs, generate_nonce, DOutput};
+use crate::mechanisms::scram::tools::{compute_signatures, generate_nonce, DOutput};
 use crate::session::{MechanismData, State};
 use crate::vectored_io::VectoredWriter;
 use digest::crypto_common::BlockSizeUser;
@@ -17,7 +17,7 @@ use thiserror::Error;
 
 use crate::context::{Demand, DemandReply, Provider};
 use crate::mechanism::Authentication;
-use crate::mechanisms::scram::properties::{Salt, ScramStoredPassword};
+use crate::mechanisms::scram::properties::{ScramStoredPassword};
 use crate::property::{AuthId, AuthzId};
 
 trait ScramConfig {
@@ -32,7 +32,7 @@ trait ScramConfig {
     const ABORT_IMMEDIATELY: bool = false;
 }
 
-const DEFAULT_ITERATIONS: u32 = 2u32.pow(14); // 16384, TODO check if still reasonable
+const DEFAULT_ITERATIONS: &'static [u8] = b"16384"; // 2u32.pow(14) TODO check if still reasonable
 const DEFAULT_SALT_LEN: usize = 32;
 
 #[cfg(feature = "scram-sha-1")]
@@ -46,6 +46,9 @@ pub type ScramSha256Server<const N: usize> = ScramServer<sha2::Sha256, N>;
 pub enum ScramServerError {
     #[error("provided password hash is wrong size for selected algorithm")]
     PasswordHashInvalid,
+
+    #[error("channel bindings are supported by both sides but were not used")]
+    ChannelBindingsNotUsed,
 }
 impl MechanismError for ScramServerError {
     fn kind(&self) -> MechanismErrorKind {
@@ -53,36 +56,44 @@ impl MechanismError for ScramServerError {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum CBSupport {
+    /// Server doesn't support CB
+    No,
+    /// Server *does* support CB
+    Yes,
+}
+
 pub struct ScramServer<D: Digest + BlockSizeUser + FixedOutput, const N: usize> {
-    plus: bool,
     state: Option<ScramServerState<D, N>>,
 }
 impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> ScramServer<D, N> {
-    pub fn new() -> Self {
+    pub fn new(can_cb: bool) -> Self {
+        let plus = if can_cb { CBSupport::Yes } else { CBSupport::No };
         Self {
-            plus: false,
-            state: Some(ScramServerState::WaitingClientFirst(ScramState::new())),
+            state: Some(ScramServerState::WaitingClientFirst(ScramState::new(plus))),
         }
     }
 
     pub fn new_plus() -> Self {
+        let plus = CBSupport::Yes;
         Self {
-            plus: true,
-            state: Some(ScramServerState::WaitingClientFirst(ScramState::new())),
+            state: Some(ScramServerState::WaitingClientFirst(ScramState::new(plus))),
         }
     }
 }
 
-pub struct WaitingClientFirst<const N: usize> {
+pub(crate) struct WaitingClientFirst<const N: usize> {
+    plus: CBSupport,
     nonce: PhantomData<&'static [u8; N]>,
 }
 
 impl<const N: usize> WaitingClientFirst<N> {
-    pub fn new() -> Self {
-        Self { nonce: PhantomData }
+    fn new(plus: CBSupport) -> Self {
+        Self { plus, nonce: PhantomData }
     }
 
-    pub fn handle_client_first<D: Digest + BlockSizeUser + FixedOutput>(
+    fn handle_client_first<D: Digest + BlockSizeUser + FixedOutput>(
         self,
         rng: &mut impl Rng,
         session_data: &mut MechanismData,
@@ -125,7 +136,9 @@ impl<const N: usize> WaitingClientFirst<N> {
 
         match cbflag {
             // TODO: check if this is a protocol downgrade
-            GS2CBindFlag::SupportedNotUsed => {}
+            GS2CBindFlag::SupportedNotUsed => if self.plus == CBSupport::Yes {
+                return Err(SessionError::MechanismError(Box::new(ScramServerError::ChannelBindingsNotUsed)));
+            }
             GS2CBindFlag::NotSupported => {}
             GS2CBindFlag::Used(name) => session_data.need_cb_data(name, provider, |cbdata| {
                 gs2_header.extend_from_slice(cbdata);
@@ -187,7 +200,7 @@ impl<const N: usize> WaitingClientFirst<N> {
             thread_rng().fill_bytes(&mut salt);
             let salt = base64::encode(salt);
 
-            let msg = ServerFirst::new(&client_nonce, &server_nonce, salt.as_bytes(), b"16384");
+            let msg = ServerFirst::new(&client_nonce, &server_nonce, salt.as_bytes(), DEFAULT_ITERATIONS);
             let mut vecw = VectoredWriter::new(msg.to_ioslices());
             *written = vecw.write_all_vectored(writer)?;
 
@@ -196,7 +209,7 @@ impl<const N: usize> WaitingClientFirst<N> {
     }
 }
 
-pub struct WaitingClientFinal<D: Digest + BlockSizeUser + FixedOutput, const N: usize> {
+pub(crate) struct WaitingClientFinal<D: Digest + BlockSizeUser + FixedOutput, const N: usize> {
     data: Option<FinalInner<D, N>>,
 }
 struct FinalInner<D: Digest + BlockSizeUser + FixedOutput, const N: usize> {
@@ -210,7 +223,7 @@ struct FinalInner<D: Digest + BlockSizeUser + FixedOutput, const N: usize> {
     server_key: DOutput<D>,
 }
 impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal<D, N> {
-    pub fn new(
+    fn new(
         client_nonce: Vec<u8>,
         server_nonce: [u8; N],
         gs2_header: Vec<u8>,
@@ -234,11 +247,11 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
         }
     }
 
-    pub fn bad_user() -> Self {
+    fn bad_user() -> Self {
         Self { data: None }
     }
 
-    pub fn handle_client_final(
+    fn handle_client_final(
         self,
         client_final: &[u8],
         writer: impl Write,
@@ -273,7 +286,8 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
                             ServerFinal::Error(ServerErrorValue::InvalidProof)
                         } else {
                             let mut proof_decoded = DOutput::<D>::default();
-                            base64::decode_config_slice(proof, base64::STANDARD, &mut proof_decoded).map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode));
+                            base64::decode_config_slice(proof, base64::STANDARD, &mut proof_decoded)
+                                .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
 
                             let mut client_signature = DOutput::<D>::default();
                             let mut server_signature = DOutput::<D>::default();
@@ -336,13 +350,13 @@ struct ScramState<S> {
     state: S,
 }
 impl<const N: usize> ScramState<WaitingClientFirst<N>> {
-    pub fn new() -> Self {
+    fn new(plus: CBSupport) -> Self {
         Self {
-            state: WaitingClientFirst::new(),
+            state: WaitingClientFirst::new(plus),
         }
     }
 
-    pub fn step<D: Digest + BlockSizeUser + FixedOutput>(
+    fn step<D: Digest + BlockSizeUser + FixedOutput>(
         self,
         rng: &mut impl Rng,
         session_data: &mut MechanismData,
@@ -357,7 +371,7 @@ impl<const N: usize> ScramState<WaitingClientFirst<N>> {
     }
 }
 impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> ScramState<WaitingClientFinal<D, N>> {
-    pub fn step(
+    fn step(
         self,
         input: &[u8],
         writer: impl Write,
