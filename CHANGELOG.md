@@ -21,7 +21,12 @@ rsasl is now licensed under Apache-2.0 and MIT dual license.
 ### Added
 
 - Properties can now contain data with other lifetimes than `'static`
-- XOAUTH2 mechanism, client-side only
+- XOAUTH2 mechanism, both server and client-side.
+- Testing utilities for the server side of an authentication exchange
+
+### Changed
+
+- `Request::satisfy_with` is now limited to `SizedProperty`.
 
 ### Fixed
 
