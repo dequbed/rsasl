@@ -32,11 +32,6 @@ default = [
     "xoauth2", "plain", "login",
 ]
 
-## Enable use of libstd
-## If this flag is not set, rsasl is marked ![no_std]. However, currently this flag will *always* be enabled as core
-## parts of rsasl depend on the stdlib.
-std = []
-
 #! ## Compile-time mechanism selection
 ## Enable `SCRAM-SHA-1` and `SCRAM-SHA-1-PLUS`
 scram-sha-1 = ["std", "saslprep", "hmac", "digest", "sha-1", "base64", "rand", "pbkdf2"]
@@ -75,12 +70,26 @@ config_builder = ["std"]
 ## Enables the static registry using `linkme`
 registry_static = ["std", "linkme"]
 
+#! ## Misc flags
+#! Other miscellanious flags
+
 ## Enable utilities for testing authentication and SASL handling
 testutils = ["std", "config_builder"]
 
-saslprep = ["std", "stringprep"]
-
+## Enable adding custom mechanisms.
+##
+## **NOTE: This flag indicates an opt-out of SemVer stability guarantees**
+## The code for adding mechanism from other crates has not stabilized yet and is subject to *breaking* changes even in
+## a minor release.
 unstable_custom_mechanism = ["std"]
+
+## Enable use of libstd
+## If this flag is not set, rsasl is marked ![no_std]. However, currently this flag will *always* be enabled as core
+## parts of rsasl depend on the stdlib.
+std = []
+
+# Dependency flag, shouldn't be set explicitly
+saslprep = ["std", "stringprep"]
 
 [dependencies]
 thiserror = "1.0"
