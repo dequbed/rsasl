@@ -8,7 +8,7 @@ use thiserror::Error;
 use core::marker::PhantomData;
 
 use crate::error::SessionError;
-use crate::property::Property;
+use crate::property::{Property, SizedProperty};
 
 use crate::typed::{tags, Erased, Tagged};
 use crate::validate::{Validate, ValidationError};
@@ -51,9 +51,8 @@ pub trait SessionCallback {
     /// {
     ///     // Some requests are to provide a value for the given property by calling `satisfy`.
     ///     request
-    ///         // satisfy_with only runs the provided closure if the type is correct
-    ///         .satisfy_with::<AuthId, _>(|| self.interactive_get_username())?
     ///         // satisfy calls can be chained, making use of short-circuiting
+    ///         .satisfy::<AuthId>(self.interactive_get_username()?)?
     ///         .satisfy::<Password>(b"password")?
     ///         .satisfy::<AuthzId>("authzid")?;
     ///
@@ -362,8 +361,10 @@ impl<'a> Request<'a> {
     ///     // This is wrong, as the above call will *succeed* if `AuthId` was requested but this
     ///     // return may prevent the `satisfy` below from ever being evaluated.
     ///     return Ok(());
+    /// } else {
+    ///     let password = self.ask_user_for_password()?;
+    ///     request.satisfy::<Password>(password)?;
     /// }
-    /// request.satisfy_with::<Password, _>(|| self.ask_user_for_password())?;
     /// request.satisfy::<AuthId>("foobar")?;
     /// # Ok(())
     /// # }
@@ -373,7 +374,7 @@ impl<'a> Request<'a> {
     ///
     /// If generating the value is expensive or requires interactivity using the method
     /// [`satisfy_with`](Request::satisfy_with) may be preferable.
-    pub fn satisfy<P: Property<'a>>(&mut self, answer: &P::Value)
+    pub fn satisfy<P: for<'p> Property<'p>>(&mut self, answer: &<P as Property<'_>>::Value)
         -> Result<&mut Self, SessionError>
     {
         if let Some(Tagged(mech)) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
@@ -412,8 +413,8 @@ impl<'a> Request<'a> {
     /// }
     ///
     /// request
-    ///     .satisfy_with::<AuthId, _>(|| ask_user_for_authid())?
-    ///     .satisfy_with::<Password, _>(|| ask_user_for_password())?;
+    ///     .satisfy::<AuthId>(ask_user_for_authid()?)?
+    ///     .satisfy::<Password>(ask_user_for_password()?)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -435,8 +436,10 @@ impl<'a> Request<'a> {
     ///     // This is wrong, as the above call will *succeed* if `AuthId` was requested but this
     ///     // return may prevent the `satisfy` below from ever being evaluated.
     ///     return Ok(());
+    /// } else {
+    ///     let password = ask_user_for_password()?;
+    ///     request.satisfy::<Password>(password)?;
     /// }
-    /// request.satisfy_with::<Password, _>(|| ask_user_for_password())?;
     /// request.satisfy::<AuthId>("foobar")?;
     /// # Ok(())
     /// # }
@@ -445,15 +448,15 @@ impl<'a> Request<'a> {
     ///
     /// If the value for a property is static or readily available using
     /// [`satisfy`](Request::satisfy) may be preferable.
-    pub fn satisfy_with<'b, P: Property<'a>, F>(
-        &'b mut self,
+    pub fn satisfy_with<'p, P: SizedProperty<'p>, F>(
+        &mut self,
         closure: F,
-    ) -> Result<&'b mut Self, SessionError>
-    where F: FnOnce() -> Result<&'b P::Value, SessionError>
+    ) -> Result<&mut Self, SessionError>
+    where F: FnOnce() -> Result<P::Value, SessionError>
     {
         if let Some(Tagged(mech)) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
             let answer = closure()?;
-            mech.satisfy(answer)?;
+            mech.satisfy(&answer)?;
             Err(CallbackError::early_return().into())
         } else {
             Ok(self)
