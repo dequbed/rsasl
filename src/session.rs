@@ -192,6 +192,32 @@ mod provider {
         }
     }
 
+    impl<'a> MechanismData<'a> {
+        fn new(
+            callback: &'a dyn SessionCallback,
+            chanbind_cb: &'a dyn ChannelBindingCallback,
+            validator: &'a mut Validate<'a>,
+            mechanism_desc: Mechanism,
+            side: Side,
+        ) -> Self {
+            Self {
+                callback,
+                chanbind_cb,
+                validator,
+                session_data: SessionData::new(mechanism_desc, side),
+            }
+        }
+    }
+
+    impl SessionData {
+        pub(crate) fn new(mechanism_desc: Mechanism, side: Side) -> Self {
+            Self {
+                mechanism_desc,
+                side,
+            }
+        }
+    }
+
     #[cfg(test)]
     pub(crate) mod tests {
         use super::*;
@@ -228,23 +254,6 @@ pub struct MechanismData<'a> {
     chanbind_cb: &'a dyn ChannelBindingCallback,
     validator: &'a mut Validate<'a>,
     session_data: SessionData,
-}
-
-impl<'a> MechanismData<'a> {
-    fn new(
-        callback: &'a dyn SessionCallback,
-        chanbind_cb: &'a dyn ChannelBindingCallback,
-        validator: &'a mut Validate<'a>,
-        mechanism_desc: Mechanism,
-        side: Side,
-    ) -> Self {
-        Self {
-            callback,
-            chanbind_cb,
-            validator,
-            session_data: SessionData::new(mechanism_desc, side),
-        }
-    }
 }
 
 impl MechanismData<'_> {
@@ -389,14 +398,5 @@ impl State {
     #[inline(always)]
     pub fn is_finished(&self) -> bool {
         !self.is_running()
-    }
-}
-
-impl SessionData {
-    pub(crate) fn new(mechanism_desc: Mechanism, side: Side) -> Self {
-        Self {
-            mechanism_desc,
-            side,
-        }
     }
 }

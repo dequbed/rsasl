@@ -53,6 +53,7 @@ pub struct Mechanism {
     pub(crate) client: Option<StartFn>,
     pub(crate) server: Option<ServerStartFn>,
 
+    #[cfg_attr(not(feature = "provider"), allow(unused))]
     pub(crate) first: Side,
 }
 #[cfg(feature = "unstable_custom_mechanism")]

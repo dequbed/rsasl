@@ -124,6 +124,7 @@ impl Validation for NoValidation {
 /// Additionally their data types are defined by the protocol implementation instead of the
 /// mechanism.
 pub struct Validate<'a>(dyn Erased<'a> + 'a);
+#[cfg(any(feature = "provider", feature = "testutils"))]
 impl Validate<'_> {
     pub(crate) fn new<'opt, V: Validation>(opt: &'opt mut Tagged<'_, V>) -> &'opt mut Self {
         unsafe { core::mem::transmute(opt as &mut dyn Erased) }
