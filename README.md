@@ -13,7 +13,7 @@ It is designed to enable implementing SASL support in protocol handling crates w
 allowing downstream users to select available mechanisms and add support for additional mechanisms without any 
 changes required in the protocol handling crate.
 
-rsasl provide a large number of mechanisms by itself: 
+rsasl provide a number of mechanisms by itself: 
 
 - EXTERNAL
 - ANONYMOUS
@@ -60,7 +60,8 @@ code will be removed before the first non-preview `2.0.0` release.
 
 # License
 
-Version 2 of this library is a transpilation of gsasl and thus under the very same [license of LGPL 2.1 or later](LICENSE).
+Version 2 and later of this library are dual licensed under both [Apache-2.0](LICENSE.APACHE-2.0) and 
+[MIT](LICENSE.MIT), at your option.
 
 # Examples
 
