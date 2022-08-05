@@ -17,6 +17,7 @@ pub struct ThisCb {
     value: Box<[u8]>,
 }
 impl ThisCb {
+    #[allow(unused)]
     pub fn new(name: &'static str, value: Box<[u8]>) -> Self {
         Self { name, value }
     }
@@ -36,11 +37,11 @@ mod tests {
     use super::*;
 
     use crate::config::SASLConfig;
-    use crate::sasl::SASLClient;
     use crate::mechname::Mechname;
+    use crate::prelude::SessionError;
+    use crate::sasl::SASLClient;
+    use crate::typed::Tagged;
 
-
-    use crate::typed::TaggedOption;
     use crate::validate::{NoValidation, Validate};
 
     #[test]
@@ -54,7 +55,7 @@ mod tests {
             .start_suggested(&[&Mechname::new(b"PLAIN").unwrap()])
             .unwrap();
 
-        let mut tagged_option = TaggedOption::<'_, NoValidation>(None);
+        let mut tagged_option = Tagged::<'_, NoValidation>(None);
 
         let validate = Validate::new::<NoValidation>(&mut tagged_option);
         session
@@ -72,6 +73,9 @@ mod tests {
                 Ok(())
             })
             .unwrap_err();
-        assert!(e.is_missing_prop())
+        match e {
+            SessionError::MissingChannelBindingData(name) if name.as_str() == "blahblubb" => {}
+            e => panic!("Expected MissingChannelBindingData error, received {:?}", e),
+        }
     }
 }

@@ -1,7 +1,7 @@
 //! Utilities for handling and validating names of Mechanisms
 //!
-use core::convert::TryFrom;
 use crate::alloc::boxed::Box;
+use core::convert::TryFrom;
 
 use core::fmt;
 use core::ops::Deref;
@@ -61,7 +61,6 @@ impl Mechname {
         let boxed = self.inner.to_vec().into_boxed_slice();
         unsafe { core::mem::transmute(boxed) }
     }
-
 
     #[inline(always)]
     /// Convert a `&[u8]` into an `&Mechname` without checking validity.
@@ -210,9 +209,7 @@ mod tests {
                 .map(|m| m.as_bytes())
                 .unwrap_err();
             println!("Checking {}: {}", m, e);
-            assert_eq!(e, MechanismNameError::InvalidChar {
-                index, value
-            })
+            assert_eq!(e, MechanismNameError::InvalidChar { index, value })
         }
     }
 }

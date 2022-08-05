@@ -11,23 +11,23 @@
 //! `answer`. [`Password`] has `Value = [u8]`. Thus `satisfy` would in that case require a
 //! `&[u8]` instead.
 
-pub trait SizedProperty: 'static {
+pub trait SizedProperty<'a>: 'static {
     /// The Value being transferred by this Property
-    type Value: 'static;
+    type Value: 'a;
 
     /// A description of this property, shown in several Display implementations
     const DESCRIPTION: &'static str = "";
 }
 
-pub trait Property: 'static {
+pub trait Property<'a>: 'static {
     /// The Value being transferred by this Property
-    type Value: ?Sized + 'static;
+    type Value: ?Sized + 'a;
 
     /// A description of this property, shown in several Display implementations
     const DESCRIPTION: &'static str = "";
 }
 
-impl<P: SizedProperty> Property for P {
+impl<'a, P: SizedProperty<'a>> Property<'a> for P {
     type Value = P::Value;
     const DESCRIPTION: &'static str = P::DESCRIPTION;
 }
@@ -49,7 +49,7 @@ mod properties {
     /// as if *Alice* has logged in with her password, letting Bob act on her behalf. (Given of
     /// course that Bob has the required permission to do so)
     pub struct AuthId;
-    impl Property for AuthId {
+    impl Property<'_> for AuthId {
         type Value = str;
     }
 
@@ -64,19 +64,19 @@ mod properties {
     /// as if *Alice* has logged in with her password, letting Bob act on her behalf. (Given of
     /// course that Bob has the required permission to do so)
     pub struct AuthzId;
-    impl Property for AuthzId {
+    impl Property<'_> for AuthzId {
         type Value = str;
     }
 
     #[derive(Debug)]
     pub struct OpenID20AuthenticateInBrowser;
-    impl Property for OpenID20AuthenticateInBrowser {
+    impl Property<'_> for OpenID20AuthenticateInBrowser {
         type Value = str;
     }
 
     #[derive(Debug)]
     pub struct Saml20AuthenticateInBrowser;
-    impl Property for Saml20AuthenticateInBrowser {
+    impl Property<'_> for Saml20AuthenticateInBrowser {
         type Value = str;
     }
 
@@ -103,7 +103,7 @@ mod properties {
 
     #[derive(Debug)]
     pub struct Realm;
-    impl Property for Realm {
+    impl Property<'_> for Realm {
         type Value = str;
     }
 
@@ -121,13 +121,13 @@ mod properties {
 
     #[derive(Debug)]
     pub struct Hostname;
-    impl Property for Hostname {
+    impl Property<'_> for Hostname {
         type Value = str;
     }
 
     #[derive(Debug)]
     pub struct Service;
-    impl Property for Service {
+    impl Property<'_> for Service {
         type Value = str;
     }
 
@@ -137,8 +137,17 @@ mod properties {
     /// Additional constraints may be put on this property by some mechanisms, refer to their
     /// documentation for further details.
     pub struct Password;
-    impl Property for Password {
+    impl Property<'_> for Password {
         type Value = [u8];
+    }
+
+    #[derive(Debug)]
+    /// An OAuth 2.0 Bearer token
+    ///
+    /// The token is required to be [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) format.
+    pub struct OAuthBearerToken;
+    impl Property<'_> for OAuthBearerToken {
+        type Value = str;
     }
 
     #[derive(Debug)]
@@ -149,14 +158,14 @@ mod properties {
     /// mechanism name ending in `-PLUS`. Since this channel binding data may be only be available to
     /// the protocol crate it will be requested from both the protocol crate and the user callback.
     pub struct ChannelBindings;
-    impl Property for ChannelBindings {
+    impl Property<'_> for ChannelBindings {
         type Value = [u8];
     }
 
     #[derive(Debug)]
     /// Name of the channel bindings used
     pub struct ChannelBindingName;
-    impl Property for ChannelBindingName {
+    impl Property<'_> for ChannelBindingName {
         type Value = str;
     }
 
@@ -172,7 +181,7 @@ mod properties {
     ///
     /// Refer to the documentation of the [`ChannelBindings`] property for further information.
     pub struct OverrideCBType;
-    impl Property for OverrideCBType {
+    impl Property<'_> for OverrideCBType {
         type Value = str;
     }
 }

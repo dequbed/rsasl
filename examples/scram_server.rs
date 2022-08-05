@@ -4,7 +4,6 @@ use rsasl::property::{AuthId, AuthzId};
 use rsasl::validate::{Validate, Validation, ValidationError};
 use std::io;
 use std::io::Cursor;
-use std::sync::Arc;
 
 // Callback is an unit struct since no data can be accessed from it.
 struct OurCallback;
@@ -17,7 +16,7 @@ impl SessionCallback for OurCallback {
     ) -> Result<(), SessionError> {
         let _authid = context
             .get_ref::<AuthId>()
-            .ok_or(SessionError::CallbackError(CallbackError::NoCallback))?;
+            .ok_or(SessionError::CallbackError(CallbackError::NoValue))?;
 
         Ok(())
     }
@@ -47,6 +46,7 @@ impl SessionCallback for OurCallback {
     }
 }
 
+#[allow(unused)]
 struct User {
     name: String,
 }

@@ -4,13 +4,13 @@
 //! that should not need to care about the shape of this data.
 //! Yeah, *all* the runtime reflection.
 
-use thiserror::Error;
 use core::marker::PhantomData;
+use thiserror::Error;
 
 use crate::error::SessionError;
-use crate::property::Property;
+use crate::property::{Property, SizedProperty};
 
-use crate::typed::{tags, Erased, TaggedOption};
+use crate::typed::{tags, Erased, Tagged};
 use crate::validate::{Validate, ValidationError};
 
 // Re-Exports
@@ -42,7 +42,7 @@ pub trait SessionCallback {
     /// # use rsasl::property::{AuthId, Password, AuthzId, OpenID20AuthenticateInBrowser, Realm};
     /// # struct CB;
     /// # impl CB {
-    /// # fn interactive_get_username(&self) -> &str { unimplemented!() }
+    /// # fn interactive_get_username(&self) -> Result<&str, SessionError> { unimplemented!() }
     /// # }
     /// # fn open_browser_and_go_to(url: &str) { }
     /// # impl SessionCallback for CB {
@@ -51,9 +51,8 @@ pub trait SessionCallback {
     /// {
     ///     // Some requests are to provide a value for the given property by calling `satisfy`.
     ///     request
-    ///         // satisfy_with only runs the provided closure if the type is correct
-    ///         .satisfy_with::<AuthId, _>(|| self.interactive_get_username())?
     ///         // satisfy calls can be chained, making use of short-circuiting
+    ///         .satisfy::<AuthId>(self.interactive_get_username()?)?
     ///         .satisfy::<Password>(b"password")?
     ///         .satisfy::<AuthzId>("authzid")?;
     ///
@@ -77,11 +76,11 @@ pub trait SessionCallback {
         &self,
         session_data: &SessionData,
         context: &Context,
-        request: &mut Request<'_>,
+        request: &mut Request,
     ) -> Result<(), SessionError> {
         // silence the 'arg X not used' errors without having to prefix the parameter names with _
         let _ = (session_data, context, request);
-        Err(CallbackError::NoCallback.into())
+        Ok(())
     }
 
     /// Validate an authentication exchange
@@ -131,10 +130,10 @@ pub struct TOKEN(PhantomData<()>);
 /// ```rust
 /// # use rsasl::callback::CallbackError;
 /// let callback_error: CallbackError;
-/// # callback_error = CallbackError::NoCallback;
+/// # callback_error = CallbackError::NoCallback("");
 /// match callback_error {
 ///     CallbackError::NoValue => { /* handle NoValue case */ },
-///     CallbackError::NoCallback => { /* handle NoCallback case */ },
+///     CallbackError::NoCallback(_) => { /* handle NoCallback case */ },
 ///     _ => {}, // skip if it's an internal error type that we can't work with.
 /// }
 /// ```
@@ -146,7 +145,7 @@ pub struct TOKEN(PhantomData<()>);
 /// # use rsasl::callback::CallbackError;
 /// # use rsasl::prelude::SessionError;
 /// fn some_fn() -> Result<(), CallbackError> {
-///     Err(CallbackError::NoCallback)
+///     Err(CallbackError::NoValue)
 /// }
 ///
 /// fn callback() -> Result<(), SessionError> {
@@ -157,8 +156,8 @@ pub struct TOKEN(PhantomData<()>);
 pub enum CallbackError {
     #[error("callback could not provide a value for this query type")]
     NoValue,
-    #[error("callback does not handle this query type")]
-    NoCallback,
+    #[error("callback does not handle property {0}")]
+    NoCallback(&'static str),
 
     #[doc(hidden)]
     #[error("callback issued early return")]
@@ -170,7 +169,7 @@ impl CallbackError {
     }
     pub fn is_no_callback(&self) -> bool {
         match self {
-            Self::NoCallback => true,
+            Self::NoCallback(_) => true,
             _ => false,
         }
     }
@@ -180,43 +179,45 @@ pub(crate) trait CallbackRequest<Answer: ?Sized> {
     fn satisfy(&mut self, answer: &Answer) -> Result<(), SessionError>;
 }
 
-enum ClosureCRState<'f, F, G> {
-    Open(&'f mut F),
+enum ClosureCRState<F, G> {
+    Open(F),
     Satisfied(G),
 }
 #[repr(transparent)]
-pub(crate) struct ClosureCR<'f, T, F, G> {
-    closure: ClosureCRState<'f, F, G>,
-    _marker: PhantomData<T>,
+pub(crate) struct ClosureCR<P, F, G> {
+    closure: Option<ClosureCRState<F, G>>,
+    _marker: PhantomData<P>,
 }
-impl<'f, T, F, G> ClosureCR<'f, T, F, G>
+
+impl<P, F, G> ClosureCR<P, F, G>
 where
-    T: Property,
-    F: FnMut(&T::Value) -> Result<G, SessionError>,
+    P: for<'p> Property<'p>,
+    F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
 {
-    pub fn wrap(closure: &'f mut F) -> ClosureCR<'f, T, F, G> {
+    pub fn wrap(closure: F) -> ClosureCR<P, F, G> {
         ClosureCR {
-            closure: ClosureCRState::Open(closure),
+            closure: Some(ClosureCRState::Open(closure)),
             _marker: PhantomData,
         }
     }
     pub fn try_unwrap(self) -> Option<G> {
-        if let ClosureCRState::Satisfied(val) = self.closure {
+        if let Some(ClosureCRState::Satisfied(val)) = self.closure {
             Some(val)
         } else {
             None
         }
     }
 }
-impl<T, F, G> CallbackRequest<T::Value> for ClosureCR<'_, T, F, G>
+
+impl<P, F, G> CallbackRequest<<P as Property<'_>>::Value> for ClosureCR<P, F, G>
 where
-    T: Property,
-    F: FnMut(&T::Value) -> Result<G, SessionError>,
+    P: for<'p> Property<'p>,
+    F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
 {
-    fn satisfy(&mut self, answer: &T::Value) -> Result<(), SessionError> {
-        if let ClosureCRState::Open(closure) = &mut self.closure {
+    fn satisfy(&mut self, answer: &<P as Property<'_>>::Value) -> Result<(), SessionError> {
+        if let Some(ClosureCRState::Open(closure)) = self.closure.take() {
             let reply = closure(answer)?;
-            let _ = core::mem::replace(&mut self.closure, ClosureCRState::Satisfied(reply));
+            self.closure = Some(ClosureCRState::Satisfied(reply));
         }
         Ok(())
     }
@@ -224,14 +225,14 @@ where
 
 #[repr(transparent)]
 pub(crate) struct Satisfy<T>(PhantomData<T>);
-impl<'a, T: Property> tags::MaybeSizedType<'a> for Satisfy<T> {
+impl<'a, T: Property<'a>> tags::MaybeSizedType<'a> for Satisfy<T> {
     type Reified = dyn CallbackRequest<T::Value> + 'a;
 }
 
 #[repr(transparent)]
 pub(crate) struct Action<T>(PhantomData<T>);
-impl<'a, T: Property> tags::MaybeSizedType<'a> for Action<T> {
-    type Reified = T::Value;
+impl<'a, T: Property<'a>> tags::Type<'a> for Action<T> {
+    type Reified = Option<&'a T::Value>;
 }
 
 #[repr(transparent)]
@@ -247,24 +248,24 @@ impl<'a, T: Property> tags::MaybeSizedType<'a> for Action<T> {
 /// side and is documented in the documentation of the mechanism implementation in question.
 pub struct Request<'a>(dyn Erased<'a>);
 impl<'a> Request<'a> {
-    pub(crate) fn new_satisfy<'o, P: Property>(
-        opt: &'o mut TaggedOption<'a, tags::RefMut<Satisfy<P>>>,
-    ) -> &'o mut Self {
+    pub(crate) fn new_satisfy<P: for<'p> Property<'p>>(
+        opt: &'a mut Tagged<'a, tags::RefMut<Satisfy<P>>>,
+    ) -> &'a mut Self {
         unsafe { core::mem::transmute(opt as &mut dyn Erased) }
     }
 
-    pub(crate) fn new_action<'o, P: Property>(
-        val: &'o mut TaggedOption<'a, tags::Ref<Action<P>>>,
-    ) -> &'o mut Self {
+    pub(crate) fn new_action<'t, 'p, P: Property<'p>>(
+        val: &'t mut Tagged<'p, Action<P>>,
+    ) -> &'t mut Self {
         unsafe { core::mem::transmute(val as &mut dyn Erased) }
     }
 }
 impl<'a> Request<'a> {
-    fn is_satisfy<P: Property>(&self) -> bool {
+    fn is_satisfy<P: Property<'a>>(&self) -> bool {
         self.0.is::<tags::RefMut<Satisfy<P>>>()
     }
-    fn is_action<P: Property>(&self) -> bool {
-        self.0.is::<tags::Ref<Action<P>>>()
+    fn is_action<P: Property<'a>>(&self) -> bool {
+        self.0.is::<Action<P>>()
     }
 
     /// Returns true iff this Request is for the Property `P`.
@@ -272,7 +273,7 @@ impl<'a> Request<'a> {
     /// Using this method is generally not necessary as [`satisfy`](Request::satisfy),
     /// [`satisfy_with`](Request::satisfy_with) and [`get_action`](Request::get_action) can used
     /// efficiently without.
-    pub fn is<P: Property>(&self) -> bool {
+    pub fn is<P: Property<'a>>(&self) -> bool {
         self.is_satisfy::<P>() || self.is_action::<P>()
     }
 
@@ -304,11 +305,11 @@ impl<'a> Request<'a> {
     /// Ok(())
     /// # }
     /// ```
-    pub fn get_action<P: Property>(&mut self) -> Option<&P::Value> {
-        if let Some(TaggedOption(Some(value))) =
-            self.0.downcast_mut::<tags::Ref<Action<P>>>().take()
-        {
-            Some(*value)
+    pub fn get_action<P: Property<'a>>(&mut self) -> Option<&'a P::Value> {
+        if let Some(Tagged(value)) = self.0.downcast_mut::<Action<P>>() {
+            // We take the value here to be able to tell that `get_action` was called for the
+            // correct type. If the value still exists after the callback, then it wasn't.
+            value.take()
         } else {
             None
         }
@@ -348,26 +349,34 @@ impl<'a> Request<'a> {
     /// # use rsasl::callback::Request;
     /// # use rsasl::prelude::SessionError;
     /// # use rsasl::property::{AuthId, AuthzId, Password};
-    /// # fn ask_user_for_password<'a>() -> &'a [u8] { &[] }
-    /// # fn try_get_cached_password<'a>() -> Option<&'a [u8]> { Some(&[]) }
-    /// # fn example(request: &mut Request<'_>) -> Result<(), SessionError> {
-    /// if let Some(password) = try_get_cached_password() {
+    /// # struct C;
+    /// # impl C {
+    /// # fn ask_user_for_password(&self) -> Result<&[u8], SessionError> { Ok(&[]) }
+    /// # fn try_get_cached_password(&self) -> Option<&[u8]> { Some(&[]) }
+    /// # fn example(&self, request: &mut Request<'_>) -> Result<(), SessionError> {
+    /// if let Some(password) = self.try_get_cached_password() {
     ///     request.satisfy::<Password>(password)?;
     ///     // This is wrong, as the above call will *succeed* if `AuthId` was requested but this
     ///     // return may prevent the `satisfy` below from ever being evaluated.
     ///     return Ok(());
+    /// } else {
+    ///     let password = self.ask_user_for_password()?;
+    ///     request.satisfy::<Password>(password)?;
     /// }
-    /// request.satisfy_with::<Password, _>(|| ask_user_for_password())?;
     /// request.satisfy::<AuthId>("foobar")?;
     /// # Ok(())
+    /// # }
     /// # }
     /// # panic!("request for 'AuthId' is implemented but was not satisfied");
     /// ```
     ///
     /// If generating the value is expensive or requires interactivity using the method
     /// [`satisfy_with`](Request::satisfy_with) may be preferable.
-    pub fn satisfy<P: Property>(&mut self, answer: &P::Value) -> Result<&mut Self, SessionError> {
-        if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
+    pub fn satisfy<P: for<'p> Property<'p>>(
+        &mut self,
+        answer: &<P as Property<'_>>::Value,
+    ) -> Result<&mut Self, SessionError> {
+        if let Some(Tagged(mech)) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
             mech.satisfy(answer)?;
             Err(CallbackError::early_return().into())
         } else {
@@ -392,8 +401,8 @@ impl<'a> Request<'a> {
     /// # use rsasl::callback::Request;
     /// # use rsasl::prelude::SessionError;
     /// # use rsasl::property::{AuthId, AuthzId, Password};
-    /// # fn ask_user_for_authid<'a>() -> &'a str { unimplemented!() }
-    /// # fn ask_user_for_password<'a>() -> &'a [u8] { unimplemented!() }
+    /// # fn ask_user_for_authid<'a>() -> Result<&'a str, SessionError> { unimplemented!() }
+    /// # fn ask_user_for_password<'a>() -> Result<&'a [u8], SessionError> { unimplemented!() }
     /// # fn try_get_cached_password<'a>() -> Option<&'a [u8]> { unimplemented!() }
     /// # fn example(request: &mut Request<'_>) -> Result<(), SessionError> {
     /// // Skipping the interactive asking if the password was cached previously
@@ -403,8 +412,8 @@ impl<'a> Request<'a> {
     /// }
     ///
     /// request
-    ///     .satisfy_with::<AuthId, _>(|| ask_user_for_authid())?
-    ///     .satisfy_with::<Password, _>(|| ask_user_for_password())?;
+    ///     .satisfy::<AuthId>(ask_user_for_authid()?)?
+    ///     .satisfy::<Password>(ask_user_for_password()?)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -418,7 +427,7 @@ impl<'a> Request<'a> {
     /// # use rsasl::callback::Request;
     /// # use rsasl::prelude::SessionError;
     /// # use rsasl::property::{AuthId, AuthzId, Password};
-    /// # fn ask_user_for_password<'a>() -> &'a [u8] { &[] }
+    /// # fn ask_user_for_password<'a>() -> Result<&'a [u8], SessionError> { Ok(&[]) }
     /// # fn try_get_cached_password<'a>() -> Option<&'a [u8]> { Some(&[]) }
     /// # fn example(request: &mut Request<'_>) -> Result<(), SessionError> {
     /// if let Some(password) = try_get_cached_password() {
@@ -426,8 +435,10 @@ impl<'a> Request<'a> {
     ///     // This is wrong, as the above call will *succeed* if `AuthId` was requested but this
     ///     // return may prevent the `satisfy` below from ever being evaluated.
     ///     return Ok(());
+    /// } else {
+    ///     let password = ask_user_for_password()?;
+    ///     request.satisfy::<Password>(password)?;
     /// }
-    /// request.satisfy_with::<Password, _>(|| ask_user_for_password())?;
     /// request.satisfy::<AuthId>("foobar")?;
     /// # Ok(())
     /// # }
@@ -436,13 +447,16 @@ impl<'a> Request<'a> {
     ///
     /// If the value for a property is static or readily available using
     /// [`satisfy`](Request::satisfy) may be preferable.
-    pub fn satisfy_with<'b, P: Property, F: FnOnce() -> &'b P::Value>(
+    pub fn satisfy_with<'p, P: SizedProperty<'p>, F>(
         &mut self,
         closure: F,
-    ) -> Result<&mut Self, SessionError> {
-        if let Some(TaggedOption(Some(mech))) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
-            let answer = closure();
-            mech.satisfy(answer)?;
+    ) -> Result<&mut Self, SessionError>
+    where
+        F: FnOnce() -> Result<P::Value, SessionError>,
+    {
+        if let Some(Tagged(mech)) = self.0.downcast_mut::<tags::RefMut<Satisfy<P>>>() {
+            let answer = closure()?;
+            mech.satisfy(&answer)?;
             Err(CallbackError::early_return().into())
         } else {
             Ok(self)

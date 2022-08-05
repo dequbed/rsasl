@@ -9,7 +9,11 @@ pub enum SaslNameError {
     #[error("empty string is invalid for name")]
     Empty,
     #[error("name contains invalid utf-8: {0}")]
-    InvalidUtf8(Utf8Error),
+    InvalidUtf8(
+        #[from]
+        #[source]
+        Utf8Error,
+    ),
     #[error("name contains invalid char {0}")]
     InvalidChar(u8),
     #[error("name contains invalid escape sequence")]
@@ -99,6 +103,9 @@ impl<'a> SaslName<'a> {
     ///
     /// This will clone the given string if characters need escaping
     pub fn escape(input: &str) -> Result<Cow<'_, str>, SaslNameError> {
+        if input.is_empty() {
+            return Err(SaslNameError::Empty);
+        }
         if input.contains('\0') {
             return Err(SaslNameError::InvalidChar(0));
         }
@@ -111,30 +118,30 @@ impl<'a> SaslName<'a> {
         }
     }
 
+    #[allow(unused)]
     /// Convert a SCRAM-side string into the representation expected by Rust
     ///
     /// This will clone the given string if characters need unescaping
-    pub fn unescape(input: &'a str) -> Result<Cow<'_, str>, SaslNameError> {
+    pub fn unescape(input: &'a [u8]) -> Result<Cow<'_, str>, SaslNameError> {
         if input.is_empty() {
             return Err(SaslNameError::Empty);
         }
 
-        if let Some(c) = input.find(|byte| matches!(byte, '\0' | ',')) {
-            return Err(SaslNameError::InvalidChar(c as u8));
+        if let Some(c) = input.iter().find(|byte| matches!(**byte, b'\0' | b',')) {
+            return Err(SaslNameError::InvalidChar(*c));
         }
 
-        if let Some(bad) = input.bytes().position(|b| matches!(b, b'=')) {
+        if let Some(bad) = input.iter().position(|b| matches!(b, b'=')) {
             let mut out = String::with_capacity(input.len());
-            let good = std::str::from_utf8(&input.as_bytes()[..bad])
-                .map_err(SaslNameError::InvalidUtf8)?;
+            let good = std::str::from_utf8(&input[..bad]).map_err(SaslNameError::InvalidUtf8)?;
             out.push_str(good);
             let mut input = &input[bad..];
 
-            while let Some(bad) = input.bytes().position(|b| matches!(b, b'=')) {
-                let good = std::str::from_utf8(&input.as_bytes()[..bad])
-                    .map_err(SaslNameError::InvalidUtf8)?;
+            while let Some(bad) = input.iter().position(|b| matches!(b, b'=')) {
+                let good =
+                    std::str::from_utf8(&input[..bad]).map_err(SaslNameError::InvalidUtf8)?;
                 out.push_str(good);
-                let c = match &input.as_bytes()[bad + 1..bad + 3] {
+                let c = match &input[bad + 1..bad + 3] {
                     b"2C" => ',',
                     b"3D" => '=',
                     _ => return Err(SaslNameError::InvalidEscape),
@@ -145,7 +152,7 @@ impl<'a> SaslName<'a> {
 
             Ok(out.into())
         } else {
-            Ok(Cow::Borrowed(input))
+            Ok(Cow::Borrowed(core::str::from_utf8(input)?))
         }
     }
 }
@@ -225,15 +232,16 @@ pub struct ClientFirstMessage<'scram> {
     pub nonce: &'scram [u8],
 }
 impl<'scram> ClientFirstMessage<'scram> {
+    #[allow(unused)]
     pub fn new(
         cbflag: GS2CBindFlag<'scram>,
-        authzid: Option<&'scram String>,
+        authzid: Option<&'scram str>,
         username: &'scram str,
         nonce: &'scram [u8],
     ) -> Self {
         Self {
             cbflag,
-            authzid: authzid.map(|s| s.as_ref()),
+            authzid,
             username,
             nonce,
         }
@@ -247,7 +255,7 @@ impl<'scram> ClientFirstMessage<'scram> {
 
         let authzid = partiter.next().ok_or(ParseError::BadGS2Header)?;
         let authzid = if !authzid.is_empty() {
-            Some(std::str::from_utf8(authzid).map_err(|e| ParseError::BadUtf8(e))?)
+            Some(std::str::from_utf8(&authzid[2..]).map_err(|e| ParseError::BadUtf8(e))?)
         } else {
             None
         };
@@ -296,6 +304,7 @@ impl<'scram> ClientFirstMessage<'scram> {
         [cba, cbb, prefix, authzid]
     }
 
+    #[allow(unused)]
     pub fn to_ioslices(&self) -> [&'scram [u8]; 8] {
         let [cba, cbb, prefix, authzid] = self.gs2_header_parts();
 
@@ -364,7 +373,7 @@ impl<'scram> ServerFirst<'scram> {
 
         let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
         if next.len() < 2 {
-            println!("{:?}", input);
+            return Err(ParseError::MissingAttributes);
         }
         if &next[0..2] == b"m=" {
             return Err(ParseError::UnknownMandatoryExtensions);
@@ -439,17 +448,23 @@ impl<'scram> ClientFinal<'scram> {
         } else {
             return Err(ParseError::InvalidAttribute(next[0]));
         };
+
         let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
         let nonce = if &next[0..2] == b"r=" {
             &next[2..]
         } else {
             return Err(ParseError::InvalidAttribute(next[0]));
         };
-        let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
-        let proof = if &next[0..2] == b"p=" {
-            &next[2..]
-        } else {
-            return Err(ParseError::InvalidAttribute(next[0]));
+
+        let proof = loop {
+            // Skip all extensions in between nonce and proof since we can't handle them.
+            // If they are mandatory-to-implement extensions we error.
+            let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
+            if &next[0..2] == b"p=" {
+                break &next[2..];
+            } else if &next[0..2] == b"m=" {
+                return Err(ParseError::UnknownMandatoryExtensions);
+            };
         };
 
         if let Some(next) = partiter.next() {

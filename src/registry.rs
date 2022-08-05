@@ -35,45 +35,9 @@ pub use crate::session::Side;
 #[cfg(feature = "registry_static")]
 pub use registry_static::*;
 
-pub type MatchFn = fn(name: &Mechname) -> bool;
-
 pub type StartFn =
     fn(sasl: &SASLConfig, offered: &[&Mechname]) -> Result<Box<dyn Authentication>, SASLError>;
-pub type ServerStartFn =
-    fn(sasl: &SASLConfig) -> Result<Box<dyn Authentication>, SASLError>;
-
-trait MechanismT {
-    fn client(&self, _sasl: &SASLConfig, _offered: &[&Mechname])
-        -> Result<Box<dyn Authentication>, SASLError>
-    {
-        Err(SASLError::NoSharedMechanism)
-    }
-
-    fn server(&self, _sasl: &SASLConfig)
-        -> Result<Box<dyn Authentication>, SASLError>
-    {
-        Err(SASLError::NoSharedMechanism)
-    }
-}
-#[derive(Copy, Clone)]
-pub struct Mechanism2 {
-    mechanism: &'static dyn MechanismT,
-    pub name: &'static Mechname,
-    pub first: Side,
-}
-impl Mechanism2 {
-    pub fn client(&self, sasl: &SASLConfig, offered: &[&Mechname])
-        -> Result<Box<dyn Authentication>, SASLError>
-    {
-        self.mechanism.client(sasl, offered)
-    }
-
-    pub fn server(&self, sasl: &SASLConfig)
-        -> Result<Box<dyn Authentication>, SASLError>
-    {
-        self.mechanism.server(sasl)
-    }
-}
+pub type ServerStartFn = fn(sasl: &SASLConfig) -> Result<Box<dyn Authentication>, SASLError>;
 
 #[derive(Copy, Clone)]
 /// Mechanism Implementation
@@ -89,54 +53,26 @@ pub struct Mechanism {
     pub(crate) client: Option<StartFn>,
     pub(crate) server: Option<ServerStartFn>,
 
+    #[cfg_attr(not(feature = "provider"), allow(unused))]
     pub(crate) first: Side,
 }
 #[cfg(feature = "unstable_custom_mechanism")]
 impl Mechanism {
-    pub const fn build(mechanism: &'static Mechname, priority: usize, client: Option<StartFn>,
-                       server: Option<ServerStartFn>, first: Side) -> Self {
+    pub const fn build(
+        mechanism: &'static Mechname,
+        priority: usize,
+        client: Option<StartFn>,
+        server: Option<ServerStartFn>,
+        first: Side,
+    ) -> Self {
         Self {
             mechanism,
             priority,
             client,
             server,
-            first
+            first,
         }
     }
-}
-
-struct MechanismSecurityFactors {
-    /// Maximum possible Security Strength Factor (SSF) of the security layers installed
-    ///
-    /// SSF is a very fuzzy value but in general equates to the numbers of 'bits' of security,
-    /// usually being linked to the key size. E.g. encryption using DES has `56`, 3DES `112`,
-    /// AES128 `128`, and so on.
-    /// Security layers that do not provide confidentiality (i.e. encryption) but integrity
-    /// protection (via e.g. HMAC) usually have a SSF of 1.
-    pub max_ssf: u16,
-
-    /// This mechanism doesn't transfer secrets in plain text and is thus not susceptible to
-    /// simple eavesdropping attacks.
-    pub noplain: bool,
-    /// This mechanism supports mutual authentication, i.e. if the authentication exchange
-    /// succeeds then both the client and server have verified the identity of the other.
-    pub mutual: bool,
-
-    /// This mechanism can support channel bindings, i.e. cryptographically bind the
-    /// authentication to the (encrypted) transport layer, usually TLS or IPsec.
-    /// Using channel bindings can guard against some forms of man-in-the-middle attacks as the
-    /// authentication will not succeed if both sides are not seeing the same cryptographic
-    /// channel.
-    ///
-    /// Example: The TLS connection is being actively intercepted by an attacker that managed to
-    /// get a trusted certificate deemed valid for the connection. Channel binding data for
-    /// standard TLS cb mechanism includes either the public certificate that was used by the
-    /// server or data derived from the (TLS) session secrets, both of which would show the
-    /// MITM-attack in the above scenario.
-    ///
-    /// Channel binding *DOES NOT* guard against an attacker that has access to the channel secrets
-    /// and can decrypt the channel passively.
-    pub channel_binding: bool,
 }
 
 impl Mechanism {
@@ -148,10 +84,7 @@ impl Mechanism {
         self.client.map(|f| f(sasl, offered))
     }
 
-    pub fn server(
-        &self,
-        sasl: &SASLConfig,
-    ) -> Option<Result<Box<dyn Authentication>, SASLError>> {
+    pub fn server(&self, sasl: &SASLConfig) -> Option<Result<Box<dyn Authentication>, SASLError>> {
         self.server.map(|f| f(sasl))
     }
 }
@@ -193,16 +126,18 @@ impl Registry {
 
     pub(crate) fn credentials() -> Self {
         static MECHS: &[Mechanism] = &[
-            #[cfg(feature = "plain")] crate::mechanisms::plain::PLAIN,
-            #[cfg(feature = "login")] crate::mechanisms::login::LOGIN,
-            #[cfg(feature = "scram-sha-1")] crate::mechanisms::scram::SCRAM_SHA1,
-            #[cfg(feature = "scram-sha-2")] crate::mechanisms::scram::SCRAM_SHA256,
+            #[cfg(feature = "plain")]
+            crate::mechanisms::plain::PLAIN,
+            #[cfg(feature = "login")]
+            crate::mechanisms::login::LOGIN,
+            #[cfg(feature = "scram-sha-1")]
+            crate::mechanisms::scram::SCRAM_SHA1,
+            #[cfg(feature = "scram-sha-2")]
+            crate::mechanisms::scram::SCRAM_SHA256,
         ];
         Self::with_mechanisms(MECHS)
     }
 }
-
-
 
 pub(crate) type MechanismIter<'a> = core::slice::Iter<'a, Mechanism>;
 impl Registry {

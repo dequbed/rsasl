@@ -1,7 +1,6 @@
 use crate::mechanism::Authentication;
 use crate::session::{MechanismData, State};
 
-use crate::callback::CallbackError;
 use crate::context::EmptyProvider;
 use crate::error::SessionError;
 use std::io::Write;
@@ -20,7 +19,7 @@ impl Authentication for Plain {
         writer: &mut dyn Write,
     ) -> Result<(State, Option<usize>), SessionError> {
         let mut len = 0usize;
-        let res = session.need_with::<AuthzId, _, _>(&EmptyProvider, &mut |authzid| {
+        let res = session.need_with::<AuthzId, _, _>(&EmptyProvider, |authzid| {
             if authzid.contains('\0') {
                 return Err(SessionError::MechanismError(Box::new(
                     PlainError::ContainsNull,
@@ -32,12 +31,12 @@ impl Authentication for Plain {
         });
         match res {
             Ok(_) => {}
-            Err(SessionError::CallbackError(CallbackError::NoCallback)) => {}
+            Err(SessionError::CallbackError(_)) => {}
             Err(other) => return Err(other.into()),
         }
         len += writer.write(&[0])?;
 
-        session.need_with::<AuthId, _, _>(&EmptyProvider, &mut |authid| {
+        session.need_with::<AuthId, _, _>(&EmptyProvider, |authid| {
             if authid.contains('\0') {
                 return Err(SessionError::MechanismError(Box::new(
                     PlainError::ContainsNull,
@@ -49,7 +48,7 @@ impl Authentication for Plain {
         })?;
         len += writer.write(&[0])?;
 
-        session.need_with::<Password, _, _>(&EmptyProvider, &mut |password| {
+        session.need_with::<Password, _, _>(&EmptyProvider, |password| {
             writer.write_all(password)?;
             len += password.len();
             Ok(())

@@ -1,5 +1,5 @@
 use crate::callback::SessionCallback;
-use crate::config::{FilterFn, SASLConfig, SorterFn};
+use crate::config::{SASLConfig, SorterFn};
 use crate::error::SASLError;
 use crate::registry::{Mechanism, Registry};
 use std::cmp::Ordering;
@@ -23,9 +23,6 @@ impl<State: Debug> Debug for ConfigBuilder<State> {
     }
 }
 
-pub(crate) fn default_filter(_: &Mechanism) -> bool {
-    true
-}
 pub(crate) fn default_sorter(a: &Mechanism, b: &Mechanism) -> Ordering {
     a.priority.cmp(&b.priority)
 }
@@ -92,10 +89,6 @@ impl ConfigBuilder<WantCallback> {
         self,
         callback: CB,
     ) -> Result<Arc<SASLConfig>, SASLError> {
-        SASLConfig::new(
-            callback,
-            self.state.sorter,
-            self.state.mechanisms,
-        )
+        SASLConfig::new(callback, self.state.sorter, self.state.mechanisms)
     }
 }

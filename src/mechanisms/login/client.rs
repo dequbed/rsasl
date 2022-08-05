@@ -1,9 +1,9 @@
 use crate::context::EmptyProvider;
-use std::io::Write;
 use crate::error::SessionError;
 use crate::mechanism::{Authentication, MechanismData};
 use crate::property::{AuthId, Password};
 use crate::session::State;
+use std::io::Write;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
 enum LoginState {
@@ -17,7 +17,9 @@ pub(super) struct Login {
 }
 impl Login {
     pub(crate) fn new() -> Self {
-        Self { state: LoginState::Authid }
+        Self {
+            state: LoginState::Authid,
+        }
     }
 }
 impl Authentication for Login {
@@ -29,7 +31,7 @@ impl Authentication for Login {
     ) -> Result<(State, Option<usize>), SessionError> {
         match self.state {
             LoginState::Authid => {
-                let len = session.need_with::<AuthId, _, _>(&EmptyProvider, &mut |authid| {
+                let len = session.need_with::<AuthId, _, _>(&EmptyProvider, |authid| {
                     writer.write_all(authid.as_bytes())?;
                     Ok(authid.len())
                 })?;
@@ -37,32 +39,31 @@ impl Authentication for Login {
                 Ok((State::Running, Some(len)))
             }
             LoginState::Password => {
-                let len = session.need_with::<Password, _, _>(&EmptyProvider, &mut |password| {
+                let len = session.need_with::<Password, _, _>(&EmptyProvider, |password| {
                     writer.write_all(password)?;
                     Ok(password.len())
                 })?;
                 self.state = LoginState::Done;
                 Ok((State::Finished, Some(len)))
             }
-            LoginState::Done => {
-                Err(SessionError::MechanismDone)
-            }
+            LoginState::Done => Err(SessionError::MechanismDone),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
     use crate::config::SASLConfig;
     use crate::mechanisms::login::mechinfo::LOGIN;
-    use crate::test::test_client_session;
+    use crate::test::client_session;
+    use std::io::Cursor;
 
     #[test]
     fn simple_combination() {
-        let config = SASLConfig::with_credentials(None, "testuser".to_string(), "password".to_string())
-            .unwrap();
-        let mut login = test_client_session(config, &LOGIN);
+        let config =
+            SASLConfig::with_credentials(None, "testuser".to_string(), "password".to_string())
+                .unwrap();
+        let mut login = client_session(config, &LOGIN);
         let mut out = Cursor::new(Vec::new());
 
         assert!(login.step(None, &mut out).is_ok());
