@@ -13,14 +13,14 @@ readme = "README.md"
 
 homepage = "https://github.com/dequbed/rsasl"
 repository = "https://github.com/dequbed/rsasl"
-license = "LGPL-2.1-or-later"
+license = "Apache-2.0 OR MIT"
 
 keywords = ["sasl", "authentication", "sso", "framework", "middleware"]
 categories = ["authentication", "api-bindings", "network-programming"]
 
 # Manually list files to include; this skips examples, integration tests and testing binaries that arent useful when
 # rsasl is only used as a dependency.
-include = ["Cargo.toml", "/src/", "README.md", "CHANGELOG.md", "LICENSE", "/docs/"]
+include = ["Cargo.toml", "/src/", "README.md", "CHANGELOG.md", "LICENSE.MIT", "LICENSE.APACHE-2.0", "/docs/"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
