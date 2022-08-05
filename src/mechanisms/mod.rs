@@ -37,36 +37,6 @@ pub mod anonymous {
     pub use mechinfo::*;
 }
 
-#[cfg(feature = "cram-md5")]
-pub mod cram_md5 {
-    //! `CRAM_MD5` *mechanism. Requires feature `cram-md5`*
-    mod challenge;
-    mod client;
-    mod digest;
-    mod mechinfo;
-    mod server;
-    pub use mechinfo::*;
-}
-
-#[cfg(feature = "digest-md5")]
-pub mod digest_md5 {
-    #![allow(unused)]
-    //! `DIGEST_MD5` *mechanism. Requires feature `digest-md5`*
-    mod client;
-    mod digesthmac;
-    mod free;
-    mod getsubopt;
-    mod mechinfo;
-    mod nonascii;
-    mod parser;
-    mod printer;
-    mod qop;
-    mod server;
-    mod session;
-    mod validate;
-    pub use mechinfo::*;
-}
-
 #[cfg(feature = "external")]
 pub mod external {
     //! `EXTERNAL` *mechanism. Requires feature `external`*
@@ -83,15 +53,6 @@ pub mod login {
     //! The `LOGIN` mechanism sends authentication data in the plain without any form of hashing
     //! or encryption being applied. It should thus only be used over an encrypted channel such
     //! as TLS.
-    mod client;
-    mod mechinfo;
-    mod server;
-    pub use mechinfo::*;
-}
-
-#[cfg(feature = "openid20")]
-pub mod openid20 {
-    //! `OPENID20` *mechanism. Requires feature `openid20`*
     mod client;
     mod mechinfo;
     mod server;
@@ -131,15 +92,6 @@ pub mod plain {
     pub use mechinfo::*;
 }
 
-#[cfg(feature = "saml20")]
-pub mod saml20 {
-    //! `SAML20` *mechanism. Requires feature `saml20`*
-    mod client;
-    mod mechinfo;
-    mod server;
-    pub use mechinfo::*;
-}
-
 #[cfg(any(feature = "scram-sha-1", feature = "scram-sha-2"))]
 pub mod scram {
     //! `SCRAM-*` *mechanisms. Requires feature `scram-sha-1` (for* `-SHA1` *) and/or
@@ -170,15 +122,6 @@ pub mod scram {
     pub mod properties;
     mod server;
     mod tools;
-    pub use mechinfo::*;
-}
-
-#[cfg(feature = "securid")]
-pub mod securid {
-    //! `SECURID` *mechanism. Requires feature `securid`*
-    mod client;
-    mod mechinfo;
-    mod server;
     pub use mechinfo::*;
 }
 
