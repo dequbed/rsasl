@@ -27,6 +27,8 @@ rsasl is now licensed under Apache-2.0 and MIT dual license.
 ### Changed
 
 - `Request::satisfy_with` is now limited to `SizedProperty`.
+- The `-PLUS` variants of SCRAM aren't automatically registered by the static registry anymore. Instead they should 
+  be manually registered if they are to be used.
 
 ### Fixed
 

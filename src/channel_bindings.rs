@@ -1,9 +1,6 @@
 use crate::alloc::boxed::Box;
 
 pub trait ChannelBindingCallback {
-    fn default_cb_name(&self) -> Option<&str> {
-        None
-    }
     fn get_cb_data(&self, cbname: &str) -> Option<&[u8]>;
 }
 
