@@ -32,12 +32,10 @@ pub fn client_config<CB: SessionCallback + 'static>(cb: CB) -> Arc<SASLConfig> {
     ).expect("Failed to generate known-good sasl config")
 }
 
-pub fn server_config<F>(validation: F) -> Arc<SASLConfig>
-where
-    F: Fn(&SessionData, &Context, &mut Validate<'_>) -> Result<(), ValidationError> + 'static,
+pub fn server_config<CB: SessionCallback + 'static>(cb: CB) -> Arc<SASLConfig>
 {
     SASLConfig::new(
-        ClosureSessionCallback(validation),
+        cb,
         default_sorter,
         Registry::with_mechanisms(&MECHANISMS),
     ).expect("Failed to generate known-good sasl config")
