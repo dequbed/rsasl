@@ -6,7 +6,7 @@ use rand::distributions::{Distribution, Slice};
 use rand::Rng;
 
 /// All the characters that are valid chars for a nonce
-pub(super) const PRINTABLE: &'static [u8] =
+pub(super) const PRINTABLE: &[u8] =
     b"!\"#$%&'()*+-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxy";
 
 pub(super) fn generate_nonce<const N: usize>(rng: &mut impl Rng) -> [u8; N] {
@@ -23,6 +23,7 @@ where
     pbkdf2::pbkdf2::<SimpleHmac<D>>(password, salt, iterations, out.as_mut_slice());
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn compute_signatures<D: Digest + BlockSizeUser + FixedOutput>(
     stored_key: &GenericArray<u8, D::OutputSize>,
     server_key: &DOutput<D>,

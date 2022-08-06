@@ -11,7 +11,7 @@ use super::{client, server};
 ///
 /// See the [`plain`](super) module documentation for details and usage.
 pub static XOAUTH2: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new(b"PLAIN"),
+    mechanism: Mechname::const_new(b"PLAIN"),
     priority: 300,
     client: Some(|_sasl, _offered| Ok(Box::new(client::XOAuth2::default()))),
     server: Some(|_sasl| Ok(Box::new(server::XOAuth2::default()))),

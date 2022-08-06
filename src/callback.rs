@@ -168,10 +168,7 @@ impl CallbackError {
         Self::EarlyReturn(TOKEN(PhantomData))
     }
     pub fn is_no_callback(&self) -> bool {
-        match self {
-            Self::NoCallback(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::NoCallback(_))
     }
 }
 
@@ -315,7 +312,6 @@ impl<'a> Request<'a> {
         }
     }
 
-    #[must_use]
     /// Satisfy a 'Satisfiable' request using the provided value.
     ///
     /// If the type of the request is `P` and the request was not yet satisfied, this method
@@ -384,7 +380,6 @@ impl<'a> Request<'a> {
         }
     }
 
-    #[must_use]
     /// Satisfy a 'Satisfiable' request using the provided closure.
     ///
     /// If the type of the request is `P` and the request was not yet satisfied, this method

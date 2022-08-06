@@ -10,7 +10,7 @@ use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 #[cfg(feature = "scram-sha-1")]
 pub static SCRAM_SHA1: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new(b"SCRAM-SHA-1"),
+    mechanism: Mechname::const_new(b"SCRAM-SHA-1"),
     priority: 400,
     client: Some(|sasl, offered| {
         let mut set_cb_client_no_support = true;
@@ -47,7 +47,7 @@ pub static SCRAM_SHA1: Mechanism = Mechanism {
 
 #[cfg(feature = "scram-sha-1")]
 pub static SCRAM_SHA1_PLUS: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new(b"SCRAM-SHA-1-PLUS"),
+    mechanism: Mechname::const_new(b"SCRAM-SHA-1-PLUS"),
     priority: 500,
     client: Some(|_sasl, _offered| Ok(Box::new(client::ScramSha1Client::<NONCE_LEN>::new_plus()))),
     server: Some(|_sasl| Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new_plus()))),
@@ -57,7 +57,7 @@ pub static SCRAM_SHA1_PLUS: Mechanism = Mechanism {
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 #[cfg(feature = "scram-sha-2")]
 pub static SCRAM_SHA256: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new(b"SCRAM-SHA-256"),
+    mechanism: Mechname::const_new(b"SCRAM-SHA-256"),
     priority: 600,
     client: Some(|sasl, offered| {
         let mut set_cb_client_no_support = true;
@@ -96,7 +96,7 @@ pub static SCRAM_SHA256: Mechanism = Mechanism {
 
 #[cfg(feature = "scram-sha-2")]
 pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new(b"SCRAM-SHA-256-PLUS"),
+    mechanism: Mechname::const_new(b"SCRAM-SHA-256-PLUS"),
     priority: 700,
     client: Some(|_sasl, _offered| {
         Ok(Box::new(client::ScramSha256Client::<NONCE_LEN>::new_plus()))

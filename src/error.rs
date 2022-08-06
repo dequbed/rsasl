@@ -102,17 +102,11 @@ impl SessionError {
     }
 
     pub fn is_mechanism_error(&self) -> bool {
-        match self {
-            Self::MechanismError(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::MechanismError(_))
     }
 
     pub fn is_missing_prop(&self) -> bool {
-        match self {
-            Self::CallbackError(CallbackError::NoCallback(_)) => true,
-            _ => false,
-        }
+        matches!(self, Self::CallbackError(CallbackError::NoCallback(_)))
     }
 }
 

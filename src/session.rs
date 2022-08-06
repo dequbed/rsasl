@@ -22,7 +22,7 @@ mod provider {
     use crate::channel_bindings::NoChannelBindings;
     use crate::mechanism::Authentication;
     use crate::mechname::Mechname;
-    use crate::sasl::SASL;
+    use crate::sasl::Sasl;
     use crate::validate::{NoValidation, Validation};
     use std::io::Write;
 
@@ -49,7 +49,7 @@ mod provider {
     /// On a server-side session after a `Finished` is received validation data from the user
     /// callback may be extracted with a call to [`Session::validation`].
     pub struct Session<V: Validation = NoValidation, C = NoChannelBindings> {
-        sasl: SASL<V, C>,
+        sasl: Sasl<V, C>,
         side: Side,
         mechanism: Box<dyn Authentication>,
         mechanism_desc: Mechanism,
@@ -57,7 +57,7 @@ mod provider {
 
     impl<V: Validation, C: ChannelBindingCallback> Session<V, C> {
         pub(crate) fn new(
-            sasl: SASL<V, C>,
+            sasl: Sasl<V, C>,
             side: Side,
             mechanism: Box<dyn Authentication>,
             mechanism_desc: Mechanism,
@@ -142,7 +142,7 @@ mod provider {
                 );
                 if let Some(input) = input {
                     self.mechanism
-                        .step(&mut mechanism_data, Some(input.as_ref()), writer)
+                        .step(&mut mechanism_data, Some(input), writer)
                 } else {
                     self.mechanism.step(&mut mechanism_data, None, writer)
                 }?
@@ -312,7 +312,7 @@ impl MechanismData<'_> {
         F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
     {
         self.maybe_need_with::<P, F, G>(provider, closure)?
-            .ok_or(CallbackError::NoCallback(type_name::<P>()).into())
+            .ok_or_else(|| CallbackError::NoCallback(type_name::<P>()).into())
     }
 
     pub fn maybe_need_with<P, F, G>(
@@ -350,7 +350,7 @@ impl MechanismData<'_> {
             f(cbdata)
         } else {
             self.maybe_need_with::<ChannelBindings, F, G>(&prov, f)?
-                .ok_or(SessionError::MissingChannelBindingData(cbname.to_string()))
+                .ok_or_else(|| SessionError::MissingChannelBindingData(cbname.to_string()))
         }
     }
 }
@@ -401,10 +401,7 @@ pub enum State {
 impl State {
     #[inline(always)]
     pub fn is_running(&self) -> bool {
-        match self {
-            Self::Running => true,
-            _ => false,
-        }
+        matches!(self, Self::Running)
     }
     #[inline(always)]
     pub fn is_finished(&self) -> bool {
