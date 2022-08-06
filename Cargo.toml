@@ -110,34 +110,18 @@ stringprep = { version = "0.1", optional = true }
 
 linkme = { version = "0.2", optional = true }
 
-rustls = { version = "0.20.6", optional = true }
-
 [dev-dependencies]
 static_assertions = "1.1.0"
 
 [[example]]
-name = "scram_server"
-required-features = ["provider", "scram-sha-1"]
-[[example]]
-name = "scram_client"
-required-features = ["provider", "scram-sha-1"]
-
-[[example]]
-name = "scram256_server"
-required-features = ["provider", "scram-sha-2"]
-[[example]]
-name = "scram256_client"
-required-features = ["provider", "scram-sha-2"]
-
-[[example]]
-name = "plain_client"
+name = "client_simple"
 required-features = ["provider", "plain"]
 [[example]]
-name = "plain_server_callback"
+name = "server_plain"
 required-features = ["provider", "plain"]
 
 [[example]]
-name = "protocol"
+name = "mechanism_selection"
 required-features = ["provider", "login", "plain", "scram-sha-1", "scram-sha-2"]
 
 [workspace]

@@ -85,9 +85,19 @@ pub trait SessionCallback {
 
     /// Validate an authentication exchange
     ///
-    /// This callback will mostly be issued on the server side of an authentication exchange to
-    /// validate the data passed in by the client side like username/password for `PLAIN`.
+    /// This callback will only be issued on the server side of an authentication exchange to
+    /// validate the data passed in by the client side (e.g. authzid/username/password for `PLAIN`).
     ///
+    /// Returning an `Err` from this method should only be used to indicate a fatal unrecoverable
+    /// error, and not a completed authentication *exchange* but failed *authentication* (e.g.
+    /// client sent an invalid password, but followed the authentication protocol itself correctly).
+    /// Returning `Err` will immediately abort the authentication exchange and bubble the error up
+    /// to the protocol handler.
+    /// It will most importantly not finish the authentication exchange and may lead to invalid
+    /// data being sent to the other party.
+    ///
+    /// To signal a failed authentication the `Value` in the [`Validation`] should be a Result
+    /// type and set to the appropriate Error value by the callback instead.
     fn validate(
         &self,
         session_data: &SessionData,
