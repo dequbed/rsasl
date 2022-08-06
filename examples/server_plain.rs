@@ -8,7 +8,11 @@ use rsasl::validate::{Validate, Validation, ValidationError};
 use std::io::Cursor;
 use thiserror::Error;
 
-struct OurCallback;
+// The callback used by our server.
+struct OurCallback {
+    // This could also store shared data, e.g. a DB-handle to look up users.
+    // It's passed as &self in callbacks.
+}
 #[derive(Debug, Error)]
 enum OurCallbackError {}
 impl OurCallback {
@@ -44,19 +48,11 @@ impl OurCallback {
         }
     }
 }
-impl SessionCallback for OurCallback {
-    fn validate(
-        &self,
-        session_data: &SessionData,
-        context: &Context,
-        validate: &mut Validate<'_>,
-    ) -> Result<(), ValidationError> {
-        validate.with::<TestValidation, _>(|| {
-            self.test_validate(session_data, context)
-                .map_err(|e| ValidationError::Boxed(Box::new(e)))
-        })?;
-        Ok(())
-    }
+
+// Our validation type later used to exfiltrate data from the callback
+struct TestValidation;
+impl Validation for TestValidation {
+    type Value = Result<String, AuthError>;
 }
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
@@ -66,9 +62,26 @@ enum AuthError {
     NoSuchUser,
 }
 
-struct TestValidation;
-impl Validation for TestValidation {
-    type Value = Result<String, AuthError>;
+// As we are only going to support PLAIN, our callback doesn't have to implement `callback`.
+// The server_scram examples show how a callback that does that could look.
+impl SessionCallback for OurCallback {
+    fn validate(
+        &self,
+        session_data: &SessionData,
+        context: &Context,
+        validate: &mut Validate<'_>,
+    ) -> Result<(), ValidationError> {
+        // We only know how to handle PLAIN here
+        if session_data.mechanism().as_str() == "PLAIN" {
+            // We defined a type 'TestValidation' that we fulfill here. It expects us to return an
+            // `Result<String, AuthError>`.
+            validate.with::<TestValidation, _>(|| {
+                self.test_validate(session_data, context)
+                    .map_err(|e| ValidationError::Boxed(Box::new(e)))
+            })?;
+        }
+        Ok(())
+    }
 }
 
 pub fn main() {
