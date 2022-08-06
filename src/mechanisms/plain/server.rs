@@ -51,16 +51,16 @@ impl Authentication for Plain {
 
         let authzid = if !authzid.is_empty() {
             let s = std::str::from_utf8(authzid).map_err(PlainError::BadAuthzid)?;
-            Some(saslprep(s).map_err(|e| PlainError::from(e))?)
+            Some(saslprep(s).map_err(PlainError::from)?)
         } else {
             None
         };
 
         let authcid = std::str::from_utf8(authcid).map_err(PlainError::BadAuthcid)?;
-        let authcid = saslprep(authcid).map_err(|e| PlainError::from(e))?;
+        let authcid = saslprep(authcid).map_err(PlainError::from)?;
 
         let password = std::str::from_utf8(password).map_err(PlainError::BadPassword)?;
-        let password = saslprep(password).map_err(|e| PlainError::from(e))?;
+        let password = saslprep(password).map_err(PlainError::from)?;
 
         let provider = PlainProvider {
             authzid: authzid.as_deref(),

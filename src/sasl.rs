@@ -16,17 +16,17 @@ use std::sync::Arc;
 ///
 /// A SASL Client starts authentication using the
 pub struct SASLClient<CB = NoChannelBindings> {
-    inner: SASL<NoValidation, CB>,
+    inner: Sasl<NoValidation, CB>,
 }
 
 pub struct SASLServer<V: Validation, CB = NoChannelBindings> {
-    inner: SASL<V, CB>,
+    inner: Sasl<V, CB>,
 }
 
 #[derive(Debug)]
 /// SASL Provider context
 ///
-pub(crate) struct SASL<V: Validation = NoValidation, CB = NoChannelBindings> {
+pub(crate) struct Sasl<V: Validation = NoValidation, CB = NoChannelBindings> {
     pub(crate) config: Arc<SASLConfig>,
     pub(crate) cb: CB,
     pub(crate) validation: Option<V::Value>,
@@ -43,7 +43,7 @@ mod provider {
     impl SASLClient {
         pub fn new(config: Arc<SASLConfig>) -> Self {
             Self {
-                inner: SASL::client(config),
+                inner: Sasl::client(config),
             }
         }
     }
@@ -57,7 +57,7 @@ mod provider {
     impl<CB: ChannelBindingCallback> SASLClient<CB> {
         pub fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
             Self {
-                inner: SASL::with_cb(config, cb),
+                inner: Sasl::with_cb(config, cb),
             }
         }
 
@@ -82,14 +82,14 @@ mod provider {
     impl<V: Validation> SASLServer<V> {
         pub fn new(config: Arc<SASLConfig>) -> Self {
             Self {
-                inner: SASL::server(config),
+                inner: Sasl::server(config),
             }
         }
     }
     impl<V: Validation, CB: ChannelBindingCallback> SASLServer<V, CB> {
         pub fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
             Self {
-                inner: SASL::with_cb(config, cb),
+                inner: Sasl::with_cb(config, cb),
             }
         }
 
@@ -115,7 +115,7 @@ mod provider {
      * SHARED impls
      ************************************************************/
 
-    impl SASL {
+    impl Sasl {
         fn client(config: Arc<SASLConfig>) -> Self {
             Self {
                 config,
@@ -124,7 +124,7 @@ mod provider {
             }
         }
     }
-    impl<V: Validation> SASL<V> {
+    impl<V: Validation> Sasl<V> {
         fn server(config: Arc<SASLConfig>) -> Self {
             Self {
                 config,
@@ -133,7 +133,7 @@ mod provider {
             }
         }
     }
-    impl<CB: ChannelBindingCallback, V: Validation> SASL<V, CB> {
+    impl<CB: ChannelBindingCallback, V: Validation> Sasl<V, CB> {
         fn with_cb(config: Arc<SASLConfig>, cb: CB) -> Self {
             Self {
                 config,
@@ -142,16 +142,16 @@ mod provider {
             }
         }
 
-        fn client_start_suggested<'a>(
+        fn client_start_suggested(
             self,
             offered: &[&Mechname],
         ) -> Result<Session<V, CB>, SASLError> {
-            let (auth, selected) = self.config.select_mechanism(offered)?;
-            let selected = selected.clone();
-            Ok(Session::new(self, Side::Client, auth, selected))
+            let (mechanism, mechanism_desc) = self.config.select_mechanism(offered)?;
+            let mechanism_desc = *mechanism_desc;
+            Ok(Session::new(self, Side::Client, mechanism, mechanism_desc))
         }
 
-        fn server_start_suggested<'a>(
+        fn server_start_suggested(
             self,
             selected: &Mechname,
         ) -> Result<Session<V, CB>, SASLError> {
@@ -163,7 +163,7 @@ mod provider {
             let auth = mech
                 .server(config.as_ref())
                 .ok_or(SASLError::NoSharedMechanism)??;
-            Ok(Session::new(self, Side::Server, auth, mech.clone()))
+            Ok(Session::new(self, Side::Server, auth, *mech))
         }
 
         pub fn get_available<'a>(&self) -> impl Iterator<Item = &'a Mechanism> {

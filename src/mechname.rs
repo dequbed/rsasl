@@ -35,7 +35,7 @@ impl Mechname {
     ///
     ///
     pub fn new(input: &[u8]) -> Result<&Mechname, MechanismNameError> {
-        if input.len() < 1 {
+        if input.is_empty() {
             Err(MechanismNameError::TooShort)
         } else {
             let len = input.iter().try_fold(0usize, |index, value| {

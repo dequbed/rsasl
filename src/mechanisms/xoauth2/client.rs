@@ -79,16 +79,16 @@ impl Authentication for XOAuth2 {
                 // calling step in that case too. Which, granted, is a good thing! We want that!
                 if input.is_empty() {
                     return Ok((State::Finished, None));
-                } else {
-                    // We can't exactly validate much of the error response so let the user
-                    // callback handle that.
-                    let error = std::str::from_utf8(input).map_err(|error| {
-                        SessionError::MechanismError(Box::new(Error::Utf8(error)))
-                    })?;
-                    // If the user callback *doesn't*, we mut error, so '?' is correct.
-                    session.action::<XOAuth2Error>(&EmptyProvider, error)?;
-                    return Ok((State::Finished, None));
                 }
+
+                // We can't exactly validate much of the error response so let the user
+                // callback handle that.
+                let error = std::str::from_utf8(input).map_err(|error| {
+                    SessionError::MechanismError(Box::new(Error::Utf8(error)))
+                })?;
+                // If the user callback *doesn't*, we mut error, so '?' is correct.
+                session.action::<XOAuth2Error>(&EmptyProvider, error)?;
+                Ok((State::Finished, None))
             }
             XOAuth2State::Done => Err(SessionError::MechanismDone),
         }

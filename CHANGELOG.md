@@ -16,9 +16,11 @@ release. They will however *never* happen in a patch release.
 <!-- next-header -->
 ## [Unreleased] — ReleaseDate
 
+### Changed
 
 ### Fixed
 - XOAUTH2 now compiles with the msrv 1.56.0 
+- clippy passes the code with default lints now
 
 ## [v2.0.0-preview8] — 2022-08-05
 
