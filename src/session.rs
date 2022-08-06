@@ -101,6 +101,13 @@ mod provider {
         /// A protocol implementation calls this method with data provided by the other party,
         /// returning response data written to the other party until after a [`State::Finished`] is
         /// returned.
+        ///  **Note:** If the other side indicates a completed authentication and sends no further
+        /// authentication data but the last call to `step` returned `State::Running` you **MUST**
+        /// call `step` a final time with a `None` input!
+        /// This is critical to upholding all security guarantees that different mechanisms offer.
+        ///
+        /// SASL itself can usually not tell you if an authentication was successful or not,
+        /// instead this is done by the protocol itself.
         ///
         /// If the current side is going first, generate the first batch of data by calling this
         /// method with an input of `None`.
@@ -113,6 +120,10 @@ mod provider {
         /// Keep in mind that SASL makes a distinction between zero-sized data to send and no data to
         /// send. In the former case the second element of the return tuple is `Some(0)`, in the
         /// latter case it is `None`.
+        /// This data **MUST** be sent even if `step` returned `State::Finished`. This means that
+        /// e.g. when `Ok((State::Finished, Some(0)))` is returned from step a final empty
+        /// response **MUST** be sent to the other side to finish the authentication.
+        /// Only if a `None` is returned in the tuple no message needs to be sent.
         pub fn step(
             &mut self,
             input: Option<&[u8]>,
