@@ -54,6 +54,7 @@ use std::sync::Arc;
 /// ```
 /// # use std::sync::Arc;
 /// # use rsasl::callback::SessionCallback;
+/// # use rsasl::registry::{Mechanism, Registry};
 /// # struct Callback;
 /// # impl SessionCallback for Callback {}
 /// # impl Callback {
@@ -61,9 +62,10 @@ use std::sync::Arc;
 /// # }
 /// # use rsasl::mechanisms::external::EXTERNAL;
 /// # use rsasl::mechanisms::plain::PLAIN;
-/// use rsasl::config::SASLConfig;
+/// # use rsasl::config::SASLConfig;
+/// static MECHANISMS: &[Mechanism] = &[PLAIN, EXTERNAL];
 /// let config: Arc<SASLConfig> = SASLConfig::builder()
-///     .with_registry(Registry::with_mechanisms(&[PLAIN, EXTERNAL]))
+///     .with_registry(Registry::with_mechanisms(MECHANISMS))
 ///     .with_defaults()
 ///     .with_callback(Callback::new())
 ///     .unwrap();

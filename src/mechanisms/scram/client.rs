@@ -332,12 +332,7 @@ where
                     let mut salted_password = DOutput::<D>::default();
 
                     // Derive the PBKDF2 key from the password and salt. This is the expensive part
-                    hash_password::<D>(
-                        plain_password,
-                        iterations,
-                        &salt[..],
-                        &mut salted_password,
-                    );
+                    hash_password::<D>(plain_password, iterations, &salt[..], &mut salted_password);
 
                     Ok(derive_keys::<D>(salted_password.as_slice()))
                 })?,
