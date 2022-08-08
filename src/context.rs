@@ -62,10 +62,10 @@ impl fmt::Display for Token {
     }
 }
 
-/// Control-flow utility to help shortcut [`Demand::provide`]
+/// Control-flow utility to help shortcut [`Demand::provide_ref`]/[`Demand::provide_mut`]
 ///
-/// This type allows to easily chain calls to [`provide`](Demand::provide) while exiting as soon
-/// as possible by using [`std::ops::ControlFlow`].
+/// This type allows to easily chain calls while exiting as soon as possible by using
+/// [`std::ops::ControlFlow`].
 pub type DemandReply<T> = ControlFlow<Token, T>;
 
 struct DemandTag<T>(PhantomData<T>);

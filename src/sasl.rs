@@ -105,7 +105,7 @@ mod provider {
         /// An application acting as server will most likely need to implement a callback to check the
         /// authentication data provided by the user.
         ///
-        /// See [SessionCallback] on how to implement callbacks.
+        /// See [`SessionCallback`](crate::callback::SessionCallback) on how to implement callbacks.
         pub fn start_suggested(self, selected: &Mechname) -> Result<Session<V, CB>, SASLError> {
             self.inner.server_start_suggested(selected)
         }
