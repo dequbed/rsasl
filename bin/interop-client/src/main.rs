@@ -122,7 +122,7 @@ pub fn main() -> miette::Result<()> {
 
     let config = SASLConfig::builder()
         .with_default_mechanisms()
-        .with_default_sorting()
+        .with_defaults()
         .with_callback(EnvCallback)
         .into_diagnostic()
         .wrap_err("Failed to generate SASL config")?;
