@@ -43,7 +43,7 @@ impl fmt::Debug for SASLConfig {
     }
 }
 
-#[cfg(any(feature = "provider", feature = "testutils"))]
+#[cfg(any(test, feature = "provider", feature = "testutils"))]
 mod provider {
     use super::*;
     use crate::mechname::Mechname;
@@ -167,7 +167,7 @@ mod instance {
 
             Self::builder()
                 .with_credentials_mechanisms(has_authzid)
-                .with_default_sorting()
+                .with_defaults()
                 .with_callback(callback)
         }
     }
