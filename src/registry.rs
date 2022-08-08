@@ -114,28 +114,54 @@ pub struct Registry {
     static_mechanisms: &'static [Mechanism],
 }
 
-#[cfg(feature = "config_builder")]
-impl Registry {
-    #[inline(always)]
-    /// Construct a registry with the given set of mechanisms, overwriting the default set.
-    pub fn with_mechanisms(mechanisms: &'static [Mechanism]) -> Self {
-        Self {
-            static_mechanisms: mechanisms,
+#[cfg(any(test, feature = "config_builder", feature = "testutils"))]
+mod config {
+    use super::Registry;
+    use crate::registry::Mechanism;
+
+    static BUILTIN: &[Mechanism] = &[
+        #[cfg(feature = "scram-sha-2")] crate::mechanisms::scram::SCRAM_SHA256,
+        #[cfg(feature = "scram-sha-1")] crate::mechanisms::scram::SCRAM_SHA1,
+        #[cfg(feature = "plain")] crate::mechanisms::plain::PLAIN,
+        #[cfg(feature = "login")] crate::mechanisms::login::LOGIN,
+        #[cfg(feature = "anonymous")] crate::mechanisms::anonymous::ANONYMOUS,
+        #[cfg(feature = "external")] crate::mechanisms::external::EXTERNAL,
+        #[cfg(feature = "xoauth2")] crate::mechanisms::xoauth2::XOAUTH2,
+    ];
+
+    #[cfg(feature = "config_builder")]
+    impl Registry {
+        #[inline(always)]
+        /// Construct a registry with the given set of mechanisms, overwriting the default set.
+        pub fn with_mechanisms(mechanisms: &'static [Mechanism]) -> Self {
+            Self {
+                static_mechanisms: mechanisms,
+            }
+        }
+
+        pub(crate) fn credentials(authzid: bool) -> Self {
+            // Only ever enable LOGIN if no authzid is provided
+            let mechanisms = if authzid {
+                &BUILTIN[0..3]
+            } else {
+                &BUILTIN[0..4]
+            };
+            Self::with_mechanisms(mechanisms)
         }
     }
 
-    pub(crate) fn credentials() -> Self {
-        static MECHS: &[Mechanism] = &[
-            #[cfg(feature = "plain")]
-            crate::mechanisms::plain::PLAIN,
-            #[cfg(feature = "login")]
-            crate::mechanisms::login::LOGIN,
-            #[cfg(feature = "scram-sha-1")]
-            crate::mechanisms::scram::SCRAM_SHA1,
-            #[cfg(feature = "scram-sha-2")]
-            crate::mechanisms::scram::SCRAM_SHA256,
-        ];
-        Self::with_mechanisms(MECHS)
+    #[cfg(feature = "registry_static")]
+    impl Default for Registry {
+        fn default() -> Self {
+            Registry::with_mechanisms(&super::registry_static::MECHANISMS)
+        }
+    }
+
+    #[cfg(not(feature = "registry_static"))]
+    impl Default for Registry {
+        fn default() -> Self {
+            Registry::with_mechanisms(BUILTIN)
+        }
     }
 }
 
@@ -144,13 +170,6 @@ impl Registry {
     #[inline(always)]
     pub(crate) fn get_mechanisms<'a>(&self) -> MechanismIter<'a> {
         self.static_mechanisms.iter()
-    }
-}
-
-#[cfg(feature = "config_builder")]
-impl Default for Registry {
-    fn default() -> Self {
-        Registry::with_mechanisms(&registry_static::MECHANISMS)
     }
 }
 
@@ -165,5 +184,6 @@ mod registry_static {
 #[cfg(not(feature = "registry_static"))]
 mod registry_static {
     use super::Mechanism;
+
     pub static MECHANISMS: [Mechanism; 0] = [];
 }

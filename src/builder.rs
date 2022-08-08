@@ -7,12 +7,8 @@ use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
 #[derive(Clone)]
-/// Type-checking Builder for a [`ClientConfig`](crate::config::ClientConfig) or
-/// [`ServerConfig`](crate::config::ServerConfig)
-///
-/// This builder allows to construct sided [`SASLConfig`]s using the type system to ensure all
-/// relevant information is provided.
-pub struct ConfigBuilder<State> {
+/// Type-checking and linker-friendly builder for a [`SASLConfig`](crate::config::SASLConfig)
+pub struct ConfigBuilder<State = WantMechanisms> {
     pub(crate) state: State,
 }
 impl<State: Debug> Debug for ConfigBuilder<State> {
@@ -30,24 +26,17 @@ pub(crate) fn default_sorter(a: &Mechanism, b: &Mechanism) -> Ordering {
 #[derive(Clone, Debug)]
 #[doc(hidden)]
 pub struct WantMechanisms(());
-impl ConfigBuilder<WantMechanisms> {
+/// ConfigBuilder first stage
+///
+///
+impl ConfigBuilder {
     pub(crate) fn new() -> Self {
         ConfigBuilder {
             state: WantMechanisms(()),
         }
     }
-    pub fn with_registry(self, mechanisms: Registry) -> ConfigBuilder<WantSorter> {
-        ConfigBuilder {
-            state: WantSorter { mechanisms },
-        }
-    }
-    pub fn with_default_mechanisms(self) -> ConfigBuilder<WantSorter> {
-        self.with_registry(Registry::default())
-    }
-    pub(crate) fn with_credentials_mechanisms(self) -> ConfigBuilder<WantSorter> {
-        self.with_registry(Registry::credentials())
-    }
 
+    /// Use the default configuration for each state and only provide a custom callback
     pub fn with_defaults(self) -> ConfigBuilder<WantCallback> {
         ConfigBuilder {
             state: WantCallback {
@@ -55,6 +44,25 @@ impl ConfigBuilder<WantMechanisms> {
                 sorter: default_sorter,
             },
         }
+    }
+
+    /// Use a pre-initialized mechanism registry, giving the most control over available mechanisms
+    pub fn with_registry(self, mechanisms: Registry) -> ConfigBuilder<WantSorter> {
+        ConfigBuilder {
+            state: WantSorter { mechanisms },
+        }
+    }
+
+    /// Make the default set of mechanisms available
+    ///
+    /// This is equivalent to `Self::with_registry(Registry::default())`. The default set of
+    /// mechanisms depends on the enabled cargo features.
+    pub fn with_default_mechanisms(self) -> ConfigBuilder<WantSorter> {
+        self.with_registry(Registry::default())
+    }
+
+    pub(crate) fn with_credentials_mechanisms(self, authzid: bool) -> ConfigBuilder<WantSorter> {
+        self.with_registry(Registry::credentials(authzid))
     }
 }
 
@@ -64,7 +72,10 @@ pub struct WantSorter {
     mechanisms: Registry,
 }
 impl ConfigBuilder<WantSorter> {
-    pub fn with_default_sorting(self) -> ConfigBuilder<WantCallback> {
+    /// Use the default mechanisms prioritizations
+    ///
+    /// This method is required to allow backwards-compatible expansion of the configuration builder
+    pub fn with_defaults(self) -> ConfigBuilder<WantCallback> {
         ConfigBuilder {
             state: WantCallback {
                 mechanisms: self.state.mechanisms,
@@ -82,9 +93,6 @@ pub struct WantCallback {
 }
 impl ConfigBuilder<WantCallback> {
     /// Install a callback for querying properties
-    ///
-    /// `cbsupport` dicates the availability of channel binding support. See [`CBSupport`] for
-    /// available values and their meaning.
     pub fn with_callback<CB: SessionCallback + 'static>(
         self,
         callback: CB,
