@@ -32,7 +32,6 @@ impl<'a, P: SizedProperty<'a>> Property<'a> for P {
     const DESCRIPTION: &'static str = P::DESCRIPTION;
 }
 
-// TODO: cfg guard them away in the provider-only case.
 pub use properties::*;
 mod properties {
     use super::*;

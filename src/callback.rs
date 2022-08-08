@@ -96,8 +96,9 @@ pub trait SessionCallback {
     /// It will most importantly not finish the authentication exchange and may lead to invalid
     /// data being sent to the other party.
     ///
-    /// To signal a failed authentication the `Value` in the [`Validation`] should be a Result
-    /// type and set to the appropriate Error value by the callback instead.
+    /// To signal a failed authentication the `Value` in the
+    /// [`Validation`](crate::validate::Validation) should be a Result type and set to the
+    /// appropriate Error value by the callback instead.
     fn validate(
         &self,
         session_data: &SessionData,

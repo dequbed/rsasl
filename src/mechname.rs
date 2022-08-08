@@ -16,7 +16,7 @@ use crate::mechname::MechanismNameError::InvalidChar;
 /// reason to have this struct is to ensure at type level and with no run-time overhead that a
 /// passed mechanism name was verified.
 ///
-/// The main way to construct a `Mechname` is by calling [`Mechname::new`].
+/// The main way to construct a `Mechname` is by calling [`Mechname::parse`].
 ///
 /// This type implements `Deref<Target=str>` so it can be used anywhere where `&str` is expected.
 /// Alternatively the methods [`Mechname::as_str`] and [`Mechname::as_bytes`] can be used to

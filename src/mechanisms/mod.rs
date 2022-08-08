@@ -86,6 +86,7 @@ pub mod plain {
     //!
     //! `Authzid`, `AuthId` and `Password` are valid UTF-8, contain no NULL bytes and have
     //! `saslprep` applied.
+    use super::*;
     mod client;
     mod mechinfo;
     mod server;
@@ -116,6 +117,7 @@ pub mod scram {
     //! supplied available from the provider as [`ChannelBindingName`].
     //!
     //!
+    use super::*;
     mod client;
     mod mechinfo;
     mod parser;
@@ -130,13 +132,14 @@ pub mod xoauth2 {
     //!
     //!
     //! # Server
-    ///
-    /// Since XOAUTH2 can return almost arbitrary error responses a callback must be used to be able
-    /// to set the error message to be returned.
-    ///
-    /// A 'satisfiable' callback for the property [`XOAuth2Validate`](properties::XOAuth2Validate)
-    /// will be issued on the server side, with a provider provider giving access to [`AuthId`]
-    /// and [`OAuthBearerToken`].
+    //!
+    //! Since XOAUTH2 can return almost arbitrary error responses a callback must be used to be able
+    //! to set the error message to be returned.
+    //!
+    //! A 'satisfiable' callback for the property [`XOAuth2Validate`](properties::XOAuth2Validate)
+    //! will be issued on the server side, with a provider provider giving access to [`AuthId`]
+    //! and [`OAuthBearerToken`].
+    use super::*;
     mod client;
     mod mechinfo;
     pub mod properties;

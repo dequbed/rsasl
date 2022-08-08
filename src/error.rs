@@ -117,7 +117,8 @@ impl<T: MechanismError + 'static> From<T> for SessionError {
 }
 
 #[derive(Debug, Error)]
-/// The error type for rsasl errors originating from [`SASLClient`] or [`SASLServer`]
+/// The error type for rsasl errors originating from [`SASLClient`](crate::sasl::SASLClient) or
+/// [`SASLServer`](crate::sasl::SASLServer).
 ///
 /// This is one of two error types a protocol implementation needs to be aware of, the other
 /// being [`SessionError`].
