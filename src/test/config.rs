@@ -1,5 +1,6 @@
 //! Mock `SASLConfig` useful for testing
 //!
+
 use super::mechanism::{RSASLTEST_CF, RSASLTEST_SF};
 use crate::builder::default_sorter;
 use crate::callback::SessionCallback;
@@ -13,7 +14,10 @@ struct ClosureSessionCallback<F>(F);
 
 impl<F> SessionCallback for ClosureSessionCallback<F>
 where
-    F: Fn(&SessionData, &Context, &mut Validate<'_>) -> Result<(), ValidationError> + 'static,
+    F: Fn(&SessionData, &Context, &mut Validate<'_>) -> Result<(), ValidationError>
+        + Send
+        + Sync
+        + 'static,
 {
     fn validate(
         &self,

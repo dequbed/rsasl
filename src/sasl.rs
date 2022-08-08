@@ -171,3 +171,14 @@ mod provider {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sasl_autoimpls() {
+        static_assertions::assert_impl_all!(Sasl: Send, Sync);
+        assert!(true)
+    }
+}

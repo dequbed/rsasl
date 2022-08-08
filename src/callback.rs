@@ -17,7 +17,7 @@ use crate::validate::{Validate, ValidationError};
 pub use crate::context::Context;
 pub use crate::session::SessionData;
 
-pub trait SessionCallback {
+pub trait SessionCallback: Send + Sync {
     /// Answer requests by mechanism implementation for some Properties
     ///
     /// These requests come in one of two flavours: 'Satisfiable' requests asking that a value for

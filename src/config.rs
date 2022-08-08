@@ -15,7 +15,7 @@ pub use crate::builder::ConfigBuilder;
 
 pub(crate) type SorterFn = fn(a: &Mechanism, b: &Mechanism) -> Ordering;
 
-trait ConfigInstance: fmt::Debug {
+trait ConfigInstance: fmt::Debug + Send + Sync {
     fn get_mech_iter<'a>(&self) -> MechanismIter<'a>;
     fn get_callback(&self) -> &dyn SessionCallback;
     fn sort(&self, left: &Mechanism, right: &Mechanism) -> Ordering;
@@ -46,8 +46,8 @@ impl fmt::Debug for SASLConfig {
 #[cfg(any(test, feature = "provider", feature = "testutils"))]
 mod provider {
     use super::*;
-    use crate::mechname::Mechname;
     use crate::mechanism::Authentication;
+    use crate::mechname::Mechname;
 
     impl SASLConfig {
         #[inline(always)]
