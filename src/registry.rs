@@ -120,13 +120,20 @@ mod config {
     use crate::registry::Mechanism;
 
     static BUILTIN: &[Mechanism] = &[
-        #[cfg(feature = "scram-sha-2")] crate::mechanisms::scram::SCRAM_SHA256,
-        #[cfg(feature = "scram-sha-1")] crate::mechanisms::scram::SCRAM_SHA1,
-        #[cfg(feature = "plain")] crate::mechanisms::plain::PLAIN,
-        #[cfg(feature = "login")] crate::mechanisms::login::LOGIN,
-        #[cfg(feature = "anonymous")] crate::mechanisms::anonymous::ANONYMOUS,
-        #[cfg(feature = "external")] crate::mechanisms::external::EXTERNAL,
-        #[cfg(feature = "xoauth2")] crate::mechanisms::xoauth2::XOAUTH2,
+        #[cfg(feature = "scram-sha-2")]
+        crate::mechanisms::scram::SCRAM_SHA256,
+        #[cfg(feature = "scram-sha-1")]
+        crate::mechanisms::scram::SCRAM_SHA1,
+        #[cfg(feature = "plain")]
+        crate::mechanisms::plain::PLAIN,
+        #[cfg(feature = "login")]
+        crate::mechanisms::login::LOGIN,
+        #[cfg(feature = "anonymous")]
+        crate::mechanisms::anonymous::ANONYMOUS,
+        #[cfg(feature = "external")]
+        crate::mechanisms::external::EXTERNAL,
+        #[cfg(feature = "xoauth2")]
+        crate::mechanisms::xoauth2::XOAUTH2,
     ];
 
     #[cfg(feature = "config_builder")]

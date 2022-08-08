@@ -277,10 +277,7 @@ impl<'scram> ClientFirstMessage<'scram> {
         } else {
             return Err(ParseError::InvalidAttribute(next[0] as u8));
         };
-        if !nonce
-            .iter()
-            .all(|b| matches!(b, 0x21..=0x2B | 0x2D..=0x7E))
-        {
+        if !nonce.iter().all(|b| matches!(b, 0x21..=0x2B | 0x2D..=0x7E)) {
             return Err(ParseError::BadNonce);
         }
 

@@ -37,9 +37,7 @@ impl Mechname {
         if input.is_empty() {
             Err(MechanismNameError::TooShort)
         } else {
-            input.iter()
-                .enumerate()
-                .try_for_each(|(index, value)| {
+            input.iter().enumerate().try_for_each(|(index, value)| {
                 if is_invalid(*value) {
                     Err(InvalidChar {
                         index,

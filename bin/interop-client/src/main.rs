@@ -80,10 +80,11 @@ impl TypedValueParser for UrlParser {
                 "tls" | "tcp" => Ok(url),
                 x => Err(Error::raw(
                     ErrorKind::InvalidValue,
-                    format!("Listen URL scheme {} is unknown, only 'tls' and 'tcp' are possible.",
+                    format!(
+                        "Listen URL scheme {} is unknown, only 'tls' and 'tcp' are possible.",
                         x,
-                    )
-                ))
+                    ),
+                )),
             }
         } else {
             Err(Error::raw(
@@ -102,12 +103,13 @@ pub fn main() -> miette::Result<()> {
                 .short('l')
                 .takes_value(true)
                 .value_parser(UrlParser)
-                .help("address to listen to. Either '-' for STDIN or an url with scheme tcp or tls")
+                .help(
+                    "address to listen to. Either '-' for STDIN or an url with scheme tcp or tls",
+                ),
         )
         .get_matches();
 
-    if let Some(listen) = matches.get_one::<url::Url>("listen") {
-    }
+    if let Some(listen) = matches.get_one::<url::Url>("listen") {}
 
     let mech = std::env::var("RSASL_MECH")
         .into_diagnostic()
