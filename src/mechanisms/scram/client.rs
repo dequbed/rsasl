@@ -451,7 +451,7 @@ struct StateServerFinal {}
 
 impl<D, const N: usize> Authentication for ScramClient<D, N>
 where
-    D: Digest + BlockSizeUser + FixedOutputReset + Clone + Sync,
+    D: Digest + BlockSizeUser + FixedOutputReset + Clone + Send + Sync,
 {
     fn step(
         &mut self,

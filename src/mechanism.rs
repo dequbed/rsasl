@@ -16,7 +16,7 @@ pub use crate::session::{MechanismData, State};
 /// distinct types representing the client and server side:
 ///
 /// and register the two types separately
-pub trait Authentication {
+pub trait Authentication: Send + Sync {
     /// Do a single step of authentication with the other party
     ///
     /// rsasl has a few assumptions about the behaviour of any implementor of this trait:
