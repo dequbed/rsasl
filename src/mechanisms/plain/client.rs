@@ -32,7 +32,7 @@ impl Authentication for Plain {
         match res {
             Ok(_) => {}
             Err(SessionError::CallbackError(_)) => {}
-            Err(other) => return Err(other.into()),
+            Err(other) => return Err(other),
         }
         len += writer.write(&[0])?;
 

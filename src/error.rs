@@ -102,17 +102,11 @@ impl SessionError {
     }
 
     pub fn is_mechanism_error(&self) -> bool {
-        match self {
-            Self::MechanismError(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::MechanismError(_))
     }
 
     pub fn is_missing_prop(&self) -> bool {
-        match self {
-            Self::CallbackError(CallbackError::NoCallback(_)) => true,
-            _ => false,
-        }
+        matches!(self, Self::CallbackError(CallbackError::NoCallback(_)))
     }
 }
 
@@ -123,7 +117,8 @@ impl<T: MechanismError + 'static> From<T> for SessionError {
 }
 
 #[derive(Debug, Error)]
-/// The error type for rsasl errors originating from [`SASLClient`] or [`SASLServer`]
+/// The error type for rsasl errors originating from [`SASLClient`](crate::sasl::SASLClient) or
+/// [`SASLServer`](crate::sasl::SASLServer).
 ///
 /// This is one of two error types a protocol implementation needs to be aware of, the other
 /// being [`SessionError`].

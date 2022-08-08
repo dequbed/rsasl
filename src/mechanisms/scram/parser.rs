@@ -199,7 +199,7 @@ impl<'scram> GS2CBindFlag<'scram> {
             b"y" => Ok(Self::SupportedNotUsed),
             _x if input.len() > 2 && input[0] == b'p' && input[1] == b'=' => {
                 let cbname = &input[2..];
-                if let Some(bad) = cbname.into_iter().find(|b|
+                if let Some(bad) = cbname.iter().find(|b|
                           // According to [RFC5056 Section 7](https://www.rfc-editor.org/rfc/rfc5056#section-7)
                           // valid cb names are only composed of ASCII alphanumeric, '.' and '-'
                           !(matches!(b, b'.' | b'-' | b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z')))
@@ -215,7 +215,7 @@ impl<'scram> GS2CBindFlag<'scram> {
         }
     }
 
-    pub fn to_ioslices(&self) -> [&'scram [u8]; 2] {
+    pub fn as_ioslices(&self) -> [&'scram [u8]; 2] {
         match self {
             Self::NotSupported => [b"n", &[]],
             Self::SupportedNotUsed => [b"y", &[]],
@@ -255,7 +255,7 @@ impl<'scram> ClientFirstMessage<'scram> {
 
         let authzid = partiter.next().ok_or(ParseError::BadGS2Header)?;
         let authzid = if !authzid.is_empty() {
-            Some(std::str::from_utf8(&authzid[2..]).map_err(|e| ParseError::BadUtf8(e))?)
+            Some(std::str::from_utf8(&authzid[2..]).map_err(ParseError::BadUtf8)?)
         } else {
             None
         };
@@ -266,7 +266,7 @@ impl<'scram> ClientFirstMessage<'scram> {
         }
 
         let username = if &next[0..2] == b"n=" {
-            std::str::from_utf8(&next[2..]).map_err(|e| ParseError::BadUtf8(e))?
+            std::str::from_utf8(&next[2..]).map_err(ParseError::BadUtf8)?
         } else {
             return Err(ParseError::InvalidAttribute(next[0] as u8));
         };
@@ -277,10 +277,7 @@ impl<'scram> ClientFirstMessage<'scram> {
         } else {
             return Err(ParseError::InvalidAttribute(next[0] as u8));
         };
-        if !nonce
-            .into_iter()
-            .all(|b| matches!(b, 0x21..=0x2B | 0x2D..=0x7E))
-        {
+        if !nonce.iter().all(|b| matches!(b, 0x21..=0x2B | 0x2D..=0x7E)) {
             return Err(ParseError::BadNonce);
         }
 
@@ -293,7 +290,7 @@ impl<'scram> ClientFirstMessage<'scram> {
     }
 
     fn gs2_header_parts(&self) -> [&'scram [u8]; 4] {
-        let [cba, cbb] = self.cbflag.to_ioslices();
+        let [cba, cbb] = self.cbflag.as_ioslices();
 
         let (prefix, authzid): (&[u8], &[u8]) = if let Some(authzid) = self.authzid {
             (b",a=", authzid.as_bytes())
@@ -305,7 +302,7 @@ impl<'scram> ClientFirstMessage<'scram> {
     }
 
     #[allow(unused)]
-    pub fn to_ioslices(&self) -> [&'scram [u8]; 8] {
+    pub fn as_ioslices(&self) -> [&'scram [u8]; 8] {
         let [cba, cbb, prefix, authzid] = self.gs2_header_parts();
 
         [
@@ -364,7 +361,7 @@ impl<'scram> ServerFirst<'scram> {
             nonce: client_nonce,
             server_nonce: Some(server_nonce),
             salt,
-            iteration_count: iteration_count,
+            iteration_count,
         }
     }
 
@@ -411,7 +408,7 @@ impl<'scram> ServerFirst<'scram> {
         })
     }
 
-    pub fn to_ioslices(&self) -> [&'scram [u8]; 7] {
+    pub fn as_ioslices(&self) -> [&'scram [u8]; 7] {
         [
             b"r=",
             self.nonce,

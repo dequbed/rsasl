@@ -5,11 +5,11 @@ fn main() {
     let sasl = SASLClient::new(config);
 
     let presented = &[
-        Mechname::new(b"LOGIN").unwrap(),
-        Mechname::new(b"PLAIN").unwrap(),
-        Mechname::new(b"GSSAPI").unwrap(),
-        Mechname::new(b"SCRAM-SHA-1").unwrap(),
-        Mechname::new(b"SCRAM-SHA-256").unwrap(),
+        Mechname::parse(b"LOGIN").unwrap(),
+        Mechname::parse(b"PLAIN").unwrap(),
+        Mechname::parse(b"GSSAPI").unwrap(),
+        Mechname::parse(b"SCRAM-SHA-1").unwrap(),
+        Mechname::parse(b"SCRAM-SHA-256").unwrap(),
     ];
 
     let suggested = sasl.start_suggested(presented).unwrap();

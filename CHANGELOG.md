@@ -16,6 +16,16 @@ release. They will however *never* happen in a patch release.
 <!-- next-header -->
 ## [Unreleased] — ReleaseDate
 
+## [v2.0.0-preview9] — 2022-08-08
+
+### Changed
+- `Mechname::new` is now more appropiately named `Mechname::parse`
+- `SASLConfig::with_credentials` only enabled `LOGIN` if no authzid is provided
+- Session is now `Send` + `Sync`
+
+### Fixed
+- XOAUTH2 now compiles with the msrv 1.56.0 
+- clippy passes the code with default lints now
 
 ## [v2.0.0-preview8] — 2022-08-05
 
@@ -78,7 +88,8 @@ making this release possible.**
 * Initial stabilized release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview8...development
+[Unreleased]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview9...development
+[v2.0.0-preview9]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview8...v2.0.0-preview9
 [v2.0.0-preview8]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview7...v2.0.0-preview8
 [v2.0.0-preview7]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview1...v2.0.0-preview7
 [v2.0.0-preview1]: https://github.com/dequbed/rsasl/compare/v1.4.1...v2.0.0-preview1

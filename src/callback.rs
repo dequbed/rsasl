@@ -17,7 +17,7 @@ use crate::validate::{Validate, ValidationError};
 pub use crate::context::Context;
 pub use crate::session::SessionData;
 
-pub trait SessionCallback {
+pub trait SessionCallback: Send + Sync {
     /// Answer requests by mechanism implementation for some Properties
     ///
     /// These requests come in one of two flavours: 'Satisfiable' requests asking that a value for
@@ -85,9 +85,20 @@ pub trait SessionCallback {
 
     /// Validate an authentication exchange
     ///
-    /// This callback will mostly be issued on the server side of an authentication exchange to
-    /// validate the data passed in by the client side like username/password for `PLAIN`.
+    /// This callback will only be issued on the server side of an authentication exchange to
+    /// validate the data passed in by the client side (e.g. authzid/username/password for `PLAIN`).
     ///
+    /// Returning an `Err` from this method should only be used to indicate a fatal unrecoverable
+    /// error, and not a completed authentication *exchange* but failed *authentication* (e.g.
+    /// client sent an invalid password, but followed the authentication protocol itself correctly).
+    /// Returning `Err` will immediately abort the authentication exchange and bubble the error up
+    /// to the protocol handler.
+    /// It will most importantly not finish the authentication exchange and may lead to invalid
+    /// data being sent to the other party.
+    ///
+    /// To signal a failed authentication the `Value` in the
+    /// [`Validation`](crate::validate::Validation) should be a Result type and set to the
+    /// appropriate Error value by the callback instead.
     fn validate(
         &self,
         session_data: &SessionData,
@@ -168,10 +179,7 @@ impl CallbackError {
         Self::EarlyReturn(TOKEN(PhantomData))
     }
     pub fn is_no_callback(&self) -> bool {
-        match self {
-            Self::NoCallback(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::NoCallback(_))
     }
 }
 
@@ -315,7 +323,6 @@ impl<'a> Request<'a> {
         }
     }
 
-    #[must_use]
     /// Satisfy a 'Satisfiable' request using the provided value.
     ///
     /// If the type of the request is `P` and the request was not yet satisfied, this method
@@ -384,7 +391,6 @@ impl<'a> Request<'a> {
         }
     }
 
-    #[must_use]
     /// Satisfy a 'Satisfiable' request using the provided closure.
     ///
     /// If the type of the request is `P` and the request was not yet satisfied, this method
