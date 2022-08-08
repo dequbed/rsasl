@@ -7,7 +7,68 @@ use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
 #[derive(Clone)]
-/// Type-checking and linker-friendly builder for a [`SASLConfig`](crate::config::SASLConfig)
+/// Type-checking, complete and linker-friendly builder for [`SASLConfig`](crate::config::SASLConfig)
+///
+/// Due to `ConfigBuilder` using the `State` generic the compiler can enforce that all required
+/// information is provided at compile time.
+/// Since the configuration is generated statically with an enforced order unused mechanisms,
+/// structs and code can be discarded by the compiler, reducing binary size and compile time.
+///
+/// Examples:
+/// ```
+/// # use std::sync::Arc;
+/// # use rsasl::callback::SessionCallback;
+/// # struct Callback;
+/// # impl SessionCallback for Callback {}
+/// # impl Callback {
+/// # fn new() -> Self { Self }
+/// # }
+/// use rsasl::config::SASLConfig;
+/// let config: Arc<SASLConfig> = SASLConfig::builder()
+///     .with_default_mechanisms()
+///     .with_defaults()
+///     .with_callback(Callback::new())
+///     .unwrap();
+/// ```
+///
+/// Which can be shortened to:
+///
+/// ```
+/// # use std::sync::Arc;
+/// # use rsasl::callback::SessionCallback;
+/// # struct Callback;
+/// # impl SessionCallback for Callback {}
+/// # impl Callback {
+/// # fn new() -> Self { Self }
+/// # }
+/// use rsasl::config::SASLConfig;
+/// let config: Arc<SASLConfig> = SASLConfig::builder()
+///     .with_defaults()
+///     .with_callback(Callback::new())
+///     .unwrap();
+/// ```
+///
+/// If explicit control over the mechanisms that need to be available is required `with_registry`
+/// must be used:
+///
+/// ```
+/// # use std::sync::Arc;
+/// # use rsasl::callback::SessionCallback;
+/// # struct Callback;
+/// # impl SessionCallback for Callback {}
+/// # impl Callback {
+/// # fn new() -> Self { Self }
+/// # }
+/// # use rsasl::mechanisms::external::EXTERNAL;
+/// # use rsasl::mechanisms::plain::PLAIN;
+/// use rsasl::config::SASLConfig;
+/// let config: Arc<SASLConfig> = SASLConfig::builder()
+///     .with_registry(Registry::with_mechanisms(&[PLAIN, EXTERNAL]))
+///     .with_defaults()
+///     .with_callback(Callback::new())
+///     .unwrap();
+/// ```
+///
 pub struct ConfigBuilder<State = WantMechanisms> {
     pub(crate) state: State,
 }
