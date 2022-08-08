@@ -123,8 +123,8 @@ mod tests {
         client_start(
             SUPPORTED,
             &[
-                Mechname::new_unchecked(b"SCRAM-SHA-1-PLUS"),
-                Mechname::new_unchecked(b"SCRAM-SHA-1"),
+                Mechname::const_new(b"SCRAM-SHA-1-PLUS"),
+                Mechname::const_new(b"SCRAM-SHA-1"),
             ],
             "SCRAM-SHA-1-PLUS",
         );
@@ -133,8 +133,8 @@ mod tests {
         client_start(
             SUPPORTED,
             &[
-                Mechname::new_unchecked(b"SCRAM-SHA-1"),
-                Mechname::new_unchecked(b"SCRAM-SHA-1-PLUS"),
+                Mechname::const_new(b"SCRAM-SHA-1"),
+                Mechname::const_new(b"SCRAM-SHA-1-PLUS"),
             ],
             "SCRAM-SHA-1-PLUS",
         );
@@ -149,8 +149,8 @@ mod tests {
         client_start(
             SUPPORTED,
             &[
-                Mechname::new_unchecked(b"SCRAM-SHA-256-PLUS"),
-                Mechname::new_unchecked(b"SCRAM-SHA-256"),
+                Mechname::const_new(b"SCRAM-SHA-256-PLUS"),
+                Mechname::const_new(b"SCRAM-SHA-256"),
             ],
             "SCRAM-SHA-256-PLUS",
         );
@@ -159,8 +159,8 @@ mod tests {
         client_start(
             SUPPORTED,
             &[
-                Mechname::new_unchecked(b"SCRAM-SHA-256"),
-                Mechname::new_unchecked(b"SCRAM-SHA-256-PLUS"),
+                Mechname::const_new(b"SCRAM-SHA-256"),
+                Mechname::const_new(b"SCRAM-SHA-256-PLUS"),
             ],
             "SCRAM-SHA-256-PLUS",
         );

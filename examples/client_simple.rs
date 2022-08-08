@@ -35,7 +35,7 @@ pub fn main() {
 
     // There are often more than one Mechanisms offered by the server, `start_suggested` will
     // select the best ones from those available to both sides.
-    let offered = [Mechname::new(b"PLAIN").unwrap()];
+    let offered = [Mechname::parse(b"PLAIN").unwrap()];
     let mut session = sasl.start_suggested(&offered).unwrap();
 
     // Do the authentication steps.

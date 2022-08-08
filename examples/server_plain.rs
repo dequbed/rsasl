@@ -72,7 +72,7 @@ impl SessionCallback for OurCallback {
         validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
         // We only know how to handle PLAIN here
-        if session_data.mechanism().as_str() == "PLAIN" {
+        if session_data.mechanism().mechanism == "PLAIN" {
             // We defined a type 'TestValidation' that we fulfill here. It expects us to return an
             // `Result<String, AuthError>`.
             validate.with::<TestValidation, _>(|| {
@@ -87,7 +87,7 @@ impl SessionCallback for OurCallback {
 pub fn main() {
     let config = SASLConfig::builder()
         .with_defaults()
-        .with_callback(OurCallback)
+        .with_callback(OurCallback {})
         .unwrap();
 
     // Authentication exchange 1
@@ -96,7 +96,7 @@ pub fn main() {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with correct password:\n   ");
         let mut session = sasl
-            .start_suggested(Mechname::new(b"PLAIN").unwrap())
+            .start_suggested(Mechname::parse(b"PLAIN").unwrap())
             .unwrap();
         let step_result = session.step(Some(b"\0username\0secret"), &mut out);
         print_outcome(&step_result, out.into_inner());
@@ -109,7 +109,7 @@ pub fn main() {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with wrong password:\n   ");
         let mut session = sasl
-            .start_suggested(Mechname::new(b"PLAIN").unwrap())
+            .start_suggested(Mechname::parse(b"PLAIN").unwrap())
             .unwrap();
         let step_result = session.step(Some(b"\0username\0badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());
@@ -122,7 +122,7 @@ pub fn main() {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with unknown user:\n   ");
         let mut session = sasl
-            .start_suggested(Mechname::new(b"PLAIN").unwrap())
+            .start_suggested(Mechname::parse(b"PLAIN").unwrap())
             .unwrap();
         let step_result = session.step(Some(b"\0somebody\0somepass"), &mut out);
         print_outcome(&step_result, out.into_inner());
@@ -135,7 +135,7 @@ pub fn main() {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with bad authzid:\n   ");
         let mut session = sasl
-            .start_suggested(Mechname::new(b"PLAIN").unwrap())
+            .start_suggested(Mechname::parse(b"PLAIN").unwrap())
             .unwrap();
         let step_result = session.step(Some(b"username\0somebody\0badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());
@@ -148,7 +148,7 @@ pub fn main() {
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with malformed data:\n   ");
         let mut session = sasl
-            .start_suggested(Mechname::new(b"PLAIN").unwrap())
+            .start_suggested(Mechname::parse(b"PLAIN").unwrap())
             .unwrap();
         let step_result = session.step(Some(b"\0username badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());
