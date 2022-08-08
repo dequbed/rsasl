@@ -9,7 +9,7 @@ use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionD
 use rsasl::mechanisms::scram::properties::{Iterations, Salt, ScramCachedPassword};
 use rsasl::prelude::*;
 use rsasl::property::*;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use std::io;
 use std::io::Cursor;
 

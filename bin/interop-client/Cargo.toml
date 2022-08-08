@@ -7,6 +7,8 @@ edition = "2021"
 
 [dependencies]
 rsasl = { path = "../..", features = ["provider_base64"] }
+rustls = "0.20"
+url = "2"
 
 clap = "3.2"
 
