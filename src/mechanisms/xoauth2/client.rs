@@ -83,9 +83,8 @@ impl Authentication for XOAuth2 {
 
                 // We can't exactly validate much of the error response so let the user
                 // callback handle that.
-                let error = std::str::from_utf8(input).map_err(|error| {
-                    SessionError::MechanismError(Box::new(Error::Utf8(error)))
-                })?;
+                let error = std::str::from_utf8(input)
+                    .map_err(|error| SessionError::MechanismError(Box::new(Error::Utf8(error))))?;
                 // If the user callback *doesn't*, we mut error, so '?' is correct.
                 session.action::<XOAuth2Error>(&EmptyProvider, error)?;
                 Ok((State::Finished, None))

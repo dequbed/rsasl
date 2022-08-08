@@ -151,10 +151,7 @@ mod provider {
             Ok(Session::new(self, Side::Client, mechanism, mechanism_desc))
         }
 
-        fn server_start_suggested(
-            self,
-            selected: &Mechname,
-        ) -> Result<Session<V, CB>, SASLError> {
+        fn server_start_suggested(self, selected: &Mechname) -> Result<Session<V, CB>, SASLError> {
             let config = self.config.clone();
             let mech = self
                 .get_available()

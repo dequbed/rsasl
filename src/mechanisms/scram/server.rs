@@ -300,18 +300,13 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
                 ServerFinal::Error(ServerErrorValue::ChannelBindingsDontMatch)
             } else if let Some(remainder) = nonce.strip_prefix(&client_nonce[..]) {
                 if remainder == server_nonce {
-                    if proof.len()
-                        > (<SimpleHmac<D> as OutputSizeUser>::output_size() * 4 / 3) + 3
+                    if proof.len() > (<SimpleHmac<D> as OutputSizeUser>::output_size() * 4 / 3) + 3
                     {
                         ServerFinal::Error(ServerErrorValue::InvalidProof)
                     } else {
                         let mut proof_decoded = DOutput::<D>::default();
-                        base64::decode_config_slice(
-                            proof,
-                            base64::STANDARD,
-                            &mut proof_decoded,
-                        )
-                        .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
+                        base64::decode_config_slice(proof, base64::STANDARD, &mut proof_decoded)
+                            .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
 
                         let mut client_signature = DOutput::<D>::default();
                         let mut server_signature = DOutput::<D>::default();
