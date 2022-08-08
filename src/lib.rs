@@ -125,7 +125,7 @@
 //! fn sasl_authenticate(config: Arc<SASLConfig>, writer: &mut impl io::Write) {
 //!     let sasl = SASLClient::new(config);
 //!     // These would normally be provided via the protocol in question
-//!     let offered_mechs = &[Mechname::new(b"PLAIN").unwrap(), Mechname::new(b"GSSAPI").unwrap()];
+//!     let offered_mechs = &[Mechname::parse(b"PLAIN").unwrap(), Mechname::parse(b"GSSAPI").unwrap()];
 //!
 //!     // select the best offered mechanism that the user enabled in the `config`
 //!     let mut session = sasl.start_suggested(offered_mechs).expect("no shared mechanisms");

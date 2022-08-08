@@ -1,6 +1,5 @@
 //! Utilities for handling and validating names of Mechanisms
 //!
-use crate::alloc::boxed::Box;
 use core::convert::TryFrom;
 
 use core::fmt;
@@ -10,16 +9,16 @@ use thiserror::Error;
 use crate::mechname::MechanismNameError::InvalidChar;
 
 #[repr(transparent)]
-#[derive(Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 /// A validated Mechanism name (akin to [`str`])
 ///
 /// This struct, like `str`, is only ever passed by reference since it's `!Sized`. The main
 /// reason to have this struct is to ensure at type level and with no run-time overhead that a
 /// passed mechanism name was verified.
 ///
-/// The main way to construct a `Mechname` is by calling [`Mechname::new`].
+/// The main way to construct a `Mechname` is by calling [`Mechname::parse`].
 ///
-/// This type implements `Deref<Target=[u8]>` so it can be used anywhere where `&[u8]` is expected.
+/// This type implements `Deref<Target=str>` so it can be used anywhere where `&str` is expected.
 /// Alternatively the methods [`Mechname::as_str`] and [`Mechname::as_bytes`] can be used to
 /// manually extract a `&str` and `&[u8]` respectively.
 ///
@@ -27,62 +26,41 @@ use crate::mechname::MechanismNameError::InvalidChar;
 /// **SHOULD NOT** rely on this behaviour as there are mechanisms in use that break this
 /// rule, e.g. `ECDSA-NIST256P-CHALLENGE` (25 chars) used by some IRCv3 implementations.
 pub struct Mechname {
-    inner: [u8],
+    inner: str,
 }
 
 impl Mechname {
     /// Convert a byte slice into a `&Mechname` after checking it for validity.
     ///
     ///
-    pub fn new(input: &[u8]) -> Result<&Mechname, MechanismNameError> {
-        if input.len() < 1 {
+    pub fn parse(input: &[u8]) -> Result<&Mechname, MechanismNameError> {
+        if input.is_empty() {
             Err(MechanismNameError::TooShort)
         } else {
-            let len = input.iter().try_fold(0usize, |index, value| {
+            input.iter().enumerate().try_for_each(|(index, value)| {
                 if is_invalid(*value) {
                     Err(InvalidChar {
                         index,
                         value: *value,
                     })
                 } else {
-                    Ok(index + 1)
+                    Ok(())
                 }
             })?;
-            // The above fold should have run for *all* bytes in input and thus the index should
-            // be equivalent to the length of the input
-            debug_assert_eq!(len, input.len());
-
             Ok(Self::const_new(input))
         }
     }
 
-    /// Copy a Mechname to the heap
-    pub fn to_boxed(&self) -> Box<Mechname> {
-        let boxed = self.inner.to_vec().into_boxed_slice();
-        unsafe { core::mem::transmute(boxed) }
-    }
-
+    #[must_use]
     #[inline(always)]
-    /// Convert a `&[u8]` into an `&Mechname` without checking validity.
-    ///
-    /// Like [`Mechname::const_new_unchecked`] this is not marked `unsafe` because it is save
-    /// from a Memory protection POV, and does not validate the implicit UTF-8 assertion of
-    /// Rust, it just potentially may result in (memory-safe!) bugs if the given slice contains
-    /// invalid bytes.
-    pub fn new_unchecked(input: &[u8]) -> &Mechname {
-        Self::const_new(input)
-    }
-
-    #[must_use]
-    #[inline]
     pub fn as_str(&self) -> &str {
-        unsafe { core::str::from_utf8_unchecked(&self.inner) }
+        &self.inner
     }
 
     #[must_use]
-    #[inline]
+    #[inline(always)]
     pub fn as_bytes(&self) -> &[u8] {
-        &self.inner
+        self.inner.as_bytes()
     }
 
     pub(crate) const fn const_new(s: &[u8]) -> &Mechname {
@@ -130,11 +108,30 @@ impl PartialEq<Mechname> for [u8] {
     }
 }
 
+impl PartialEq<str> for Mechname {
+    fn eq(&self, other: &str) -> bool {
+        self.as_str() == other
+    }
+}
+impl PartialEq<Mechname> for str {
+    fn eq(&self, other: &Mechname) -> bool {
+        self == other.as_str()
+    }
+}
+
 impl<'a> TryFrom<&'a [u8]> for &'a Mechname {
     type Error = MechanismNameError;
 
     fn try_from(value: &'a [u8]) -> Result<Self, Self::Error> {
-        Mechname::new(value)
+        Mechname::parse(value)
+    }
+}
+
+impl<'a> TryFrom<&'a str> for &'a Mechname {
+    type Error = MechanismNameError;
+
+    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+        Mechname::parse(value.as_bytes())
     }
 }
 
@@ -153,14 +150,18 @@ const fn is_invalid(byte: u8) -> bool {
 
 #[inline(always)]
 const fn is_valid(byte: u8) -> bool {
-    // VALID characters are one of A-Z, 0-9 or - or _
-    byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'-' || byte == b'_'
+    // RFC 4422 section 3.1 limits mechanism names to:
+    //     sasl-mech    = 1*20mech-char
+    //     mech-char    = UPPER-ALPHA / DIGIT / HYPHEN / UNDERSCORE
+    //     ; mech-char is restricted to A-Z (uppercase only), 0-9, -, and _
+    //     ; from ASCII character set.
+    core::matches!(byte, b'A'..=b'Z' | b'0'..=b'9' | b'-' | b'_')
 }
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Error)]
 pub enum MechanismNameError {
-    /// Mechanism name shorter than 1 character
-    #[error("can not be the empty string")]
+    /// Mechanism name is shorter than 1 character
+    #[error("a mechanism name can not be empty")]
     TooShort,
 
     /// Mechanism name contained a character outside of [A-Z0-9-_] at `index`
@@ -201,11 +202,11 @@ mod tests {
 
         for m in valids {
             println!("Checking {}", m);
-            let res = Mechname::new(m.as_bytes()).map(|m| m.as_bytes());
+            let res = Mechname::parse(m.as_bytes()).map(|m| m.as_bytes());
             assert_eq!(res, Ok(m.as_bytes()));
         }
         for (m, index, value) in invalidchars {
-            let e = Mechname::new(m.as_bytes())
+            let e = Mechname::parse(m.as_bytes())
                 .map(|m| m.as_bytes())
                 .unwrap_err();
             println!("Checking {}: {}", m, e);

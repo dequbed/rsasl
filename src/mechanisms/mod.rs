@@ -24,13 +24,10 @@
 //! making use of [feature unification](https://doc.rust-lang.org/cargo/reference/features.html#feature-unification)
 //! to not compile in mechanisms that aren't needed.
 
-#[cfg(doc)]
-// import all props here so we can use them in the doc-comments below
-use crate::property::*;
-
 #[cfg(feature = "anonymous")]
 pub mod anonymous {
     //! `ANONYMOUS` *mechanism. Requires feature `anonymous`*
+
     mod client;
     mod mechinfo;
     mod server;
@@ -40,6 +37,7 @@ pub mod anonymous {
 #[cfg(feature = "external")]
 pub mod external {
     //! `EXTERNAL` *mechanism. Requires feature `external`*
+
     mod client;
     mod mechinfo;
     mod server;
@@ -53,6 +51,7 @@ pub mod login {
     //! The `LOGIN` mechanism sends authentication data in the plain without any form of hashing
     //! or encryption being applied. It should thus only be used over an encrypted channel such
     //! as TLS.
+
     mod client;
     mod mechinfo;
     mod server;
@@ -86,6 +85,10 @@ pub mod plain {
     //!
     //! `Authzid`, `AuthId` and `Password` are valid UTF-8, contain no NULL bytes and have
     //! `saslprep` applied.
+
+    #[cfg(doc)]
+    use crate::property::*;
+
     mod client;
     mod mechinfo;
     mod server;
@@ -114,8 +117,10 @@ pub mod scram {
     //!
     //! Afterwards [`ChannelBindings`] is queried, with the name of channel bindings to be
     //! supplied available from the provider as [`ChannelBindingName`].
-    //!
-    //!
+
+    #[cfg(doc)]
+    use crate::property::*;
+
     mod client;
     mod mechinfo;
     mod parser;
@@ -130,13 +135,17 @@ pub mod xoauth2 {
     //!
     //!
     //! # Server
-    ///
-    /// Since XOAUTH2 can return almost arbitrary error responses a callback must be used to be able
-    /// to set the error message to be returned.
-    ///
-    /// A 'satisfiable' callback for the property [`XOAuth2Validate`](properties::XOAuth2Validate)
-    /// will be issued on the server side, with a provider provider giving access to [`AuthId`]
-    /// and [`OAuthBearerToken`].
+    //!
+    //! Since XOAUTH2 can return almost arbitrary error responses a callback must be used to be able
+    //! to set the error message to be returned.
+    //!
+    //! A 'satisfiable' callback for the property [`XOAuth2Validate`](properties::XOAuth2Validate)
+    //! will be issued on the server side, with a provider provider giving access to [`AuthId`]
+    //! and [`OAuthBearerToken`].
+
+    #[cfg(doc)]
+    use crate::property::*;
+
     mod client;
     mod mechinfo;
     pub mod properties;

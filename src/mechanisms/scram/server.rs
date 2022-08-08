@@ -32,7 +32,7 @@ trait ScramConfig {
     const ABORT_IMMEDIATELY: bool = false;
 }
 
-const DEFAULT_ITERATIONS: &'static [u8] = b"16384"; // 2u32.pow(14) TODO check if still reasonable
+const DEFAULT_ITERATIONS: &[u8] = b"16384"; // 2u32.pow(14) TODO check if still reasonable
 const DEFAULT_SALT_LEN: usize = 32;
 
 #[cfg(feature = "scram-sha-1")]
@@ -188,12 +188,12 @@ impl<const N: usize> WaitingClientFirst<N> {
 
         if let Some((iterations, salt, stored_key, server_key)) = params {
             let msg = ServerFirst::new(
-                &client_nonce,
+                client_nonce,
                 &server_nonce,
                 salt.as_bytes(),
                 iterations.as_bytes(),
             );
-            let mut vecw = VectoredWriter::new(msg.to_ioslices());
+            let mut vecw = VectoredWriter::new(msg.as_ioslices());
             *written = vecw.write_all_vectored(writer)?;
 
             Ok(WaitingClientFinal::new(
@@ -212,12 +212,12 @@ impl<const N: usize> WaitingClientFirst<N> {
             let salt = base64::encode(salt);
 
             let msg = ServerFirst::new(
-                &client_nonce,
+                client_nonce,
                 &server_nonce,
                 salt.as_bytes(),
                 DEFAULT_ITERATIONS,
             );
-            let mut vecw = VectoredWriter::new(msg.to_ioslices());
+            let mut vecw = VectoredWriter::new(msg.as_ioslices());
             *written = vecw.write_all_vectored(writer)?;
 
             Ok(WaitingClientFinal::bad_user())
@@ -239,6 +239,9 @@ struct FinalInner<D: Digest + BlockSizeUser + FixedOutput, const N: usize> {
     server_key: DOutput<D>,
 }
 impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal<D, N> {
+    // There really isn't a good way of cutting down on the number of args and they are *pretty*
+    // self-explanatory.
+    #[allow(clippy::too_many_arguments)]
     fn new(
         client_nonce: Vec<u8>,
         server_nonce: [u8; N],
@@ -293,69 +296,62 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
             let cb = base64::decode(channel_binding)
                 .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
 
-            if &gs2_header[..] != &cb[..] {
+            if gs2_header[..] != cb[..] {
                 ServerFinal::Error(ServerErrorValue::ChannelBindingsDontMatch)
-            } else {
-                if let Some(remainder) = nonce.strip_prefix(&client_nonce[..]) {
-                    if remainder == server_nonce {
-                        if proof.len()
-                            > (<SimpleHmac<D> as OutputSizeUser>::output_size() * 4 / 3) + 3
-                        {
-                            ServerFinal::Error(ServerErrorValue::InvalidProof)
-                        } else {
-                            let mut proof_decoded = DOutput::<D>::default();
-                            base64::decode_config_slice(
-                                proof,
-                                base64::STANDARD,
-                                &mut proof_decoded,
-                            )
+            } else if let Some(remainder) = nonce.strip_prefix(&client_nonce[..]) {
+                if remainder == server_nonce {
+                    if proof.len() > (<SimpleHmac<D> as OutputSizeUser>::output_size() * 4 / 3) + 3
+                    {
+                        ServerFinal::Error(ServerErrorValue::InvalidProof)
+                    } else {
+                        let mut proof_decoded = DOutput::<D>::default();
+                        base64::decode_config_slice(proof, base64::STANDARD, &mut proof_decoded)
                             .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
 
-                            let mut client_signature = DOutput::<D>::default();
-                            let mut server_signature = DOutput::<D>::default();
+                        let mut client_signature = DOutput::<D>::default();
+                        let mut server_signature = DOutput::<D>::default();
 
-                            compute_signatures::<D>(
-                                &stored_key,
-                                &server_key,
-                                &username,
-                                &client_nonce,
-                                &server_nonce,
-                                salt.as_bytes(),
-                                iterations.as_bytes(),
-                                channel_binding,
-                                &mut client_signature,
-                                &mut server_signature,
-                            );
+                        compute_signatures::<D>(
+                            &stored_key,
+                            &server_key,
+                            &username,
+                            &client_nonce,
+                            &server_nonce,
+                            salt.as_bytes(),
+                            iterations.as_bytes(),
+                            channel_binding,
+                            &mut client_signature,
+                            &mut server_signature,
+                        );
 
-                            // Calculate the client_key by XORing the provided proof with the
-                            // calculated client signature
-                            let client_key = DOutput::<D>::from_exact_iter(
-                                proof_decoded
-                                    .into_iter()
-                                    .zip(client_signature)
-                                    .map(|(x, y)| x ^ y),
-                            )
-                            .expect("XOR of two same-sized arrays was not of that size?");
+                        // Calculate the client_key by XORing the provided proof with the
+                        // calculated client signature
+                        let client_key = DOutput::<D>::from_exact_iter(
+                            proof_decoded
+                                .into_iter()
+                                .zip(client_signature)
+                                .map(|(x, y)| x ^ y),
+                        )
+                        .expect("XOR of two same-sized arrays was not of that size?");
 
-                            let calculated_stored_key = D::digest(client_key);
+                        let calculated_stored_key = D::digest(client_key);
 
-                            if stored_key != calculated_stored_key {
-                                ServerFinal::Error(ServerErrorValue::InvalidProof)
-                            } else {
-                                let encoded = base64::encode(server_signature);
-                                let msg = ServerFinal::Verifier(encoded.as_bytes());
-                                let mut vecw = VectoredWriter::new(msg.to_ioslices());
-                                *written = vecw.write_all_vectored(writer)?;
+                        if stored_key != calculated_stored_key {
+                            ServerFinal::Error(ServerErrorValue::InvalidProof)
+                        } else {
+                            let encoded = base64::encode(server_signature);
+                            let msg = ServerFinal::Verifier(encoded.as_bytes());
+                            let mut vecw = VectoredWriter::new(msg.to_ioslices());
+                            *written = vecw.write_all_vectored(writer)?;
 
-                                return Ok(());
-                            }
+                            return Ok(());
                         }
-                    } else {
-                        ServerFinal::Error(ServerErrorValue::InvalidProof)
                     }
                 } else {
                     ServerFinal::Error(ServerErrorValue::InvalidProof)
                 }
+            } else {
+                ServerFinal::Error(ServerErrorValue::InvalidProof)
             }
         } else {
             ServerFinal::Error(ServerErrorValue::UnknownUser)
@@ -399,8 +395,8 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> ScramState<Waiting
         writer: impl Write,
         written: &mut usize,
     ) -> Result<ScramState<()>, SessionError> {
-        let state = self.state.handle_client_final(input, writer, written)?;
-        Ok(ScramState { state })
+        self.state.handle_client_final(input, writer, written)?;
+        Ok(ScramState { state: () })
     }
 }
 

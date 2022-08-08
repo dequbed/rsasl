@@ -71,7 +71,7 @@ impl SessionCallback for EnvCallback {
 pub fn main() -> miette::Result<()> {
     let config = SASLConfig::builder()
         .with_default_mechanisms()
-        .with_default_sorting()
+        .with_defaults()
         .with_callback(EnvCallback)
         .into_diagnostic()
         .wrap_err("Failed to generate SASL config")?;
@@ -87,7 +87,7 @@ pub fn main() -> miette::Result<()> {
         .read_line(&mut line)
         .into_diagnostic()
         .wrap_err("failed to read line from stdin")?;
-    let selected = Mechname::new(line.trim().as_bytes())
+    let selected = Mechname::parse(line.trim().as_bytes())
         .into_diagnostic()
         .wrap_err(format!("selected mechanism '{}' is invalid", line))?;
 

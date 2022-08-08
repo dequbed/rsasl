@@ -55,7 +55,7 @@ impl Authentication for Login {
             LoginState::WaitingForUsername => {
                 if let Some(input) = input {
                     let username = std::str::from_utf8(input)
-                        .map_err(|e| LoginError::Utf8(e))?
+                        .map_err(LoginError::Utf8)?
                         .to_string();
 
                     let out = b"Password\0";

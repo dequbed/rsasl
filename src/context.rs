@@ -49,24 +49,24 @@ impl<'a, L: Provider<'a>, R: Provider<'a>> Provider<'a> for And<L, R> {
 }
 
 #[doc(hidden)]
-pub struct TOKEN(PhantomData<()>);
+pub struct Token(PhantomData<()>);
 
-impl fmt::Debug for TOKEN {
+impl fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("TOKEN")
     }
 }
-impl fmt::Display for TOKEN {
+impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_char('_')
     }
 }
 
-/// Control-flow utility to help shortcut [`Demand::provide`]
+/// Control-flow utility to help shortcut [`Demand::provide_ref`]/[`Demand::provide_mut`]
 ///
-/// This type allows to easily chain calls to [`provide`](Demand::provide) while exiting as soon
-/// as possible by using [`std::ops::ControlFlow`].
-pub type DemandReply<T> = ControlFlow<TOKEN, T>;
+/// This type allows to easily chain calls while exiting as soon as possible by using
+/// [`std::ops::ControlFlow`].
+pub type DemandReply<T> = ControlFlow<Token, T>;
 
 struct DemandTag<T>(PhantomData<T>);
 impl<'a, T: Property<'a>> MaybeSizedType<'a> for DemandTag<T> {
@@ -95,7 +95,7 @@ impl<'a> Demand<'a> {
     fn provide<T: tags::Type<'a>>(&mut self, value: T::Reified) -> DemandReply<&mut Self> {
         if let Some(res) = self.0.downcast_mut::<tags::Optional<T>>() {
             res.0 = Some(value);
-            DemandReply::Break(TOKEN(PhantomData))
+            DemandReply::Break(Token(PhantomData))
         } else {
             DemandReply::Continue(self)
         }

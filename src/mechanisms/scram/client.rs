@@ -124,7 +124,7 @@ impl<D: Digest + BlockSizeUser> ScramState<WaitingServerFinal<D>> {
     ) -> Result<(), SessionError> {
         match self.state.handle_server_final(session, server_final) {
             Ok(StateServerFinal { .. }) => Ok(()),
-            Err(e) => Err(e.into()),
+            Err(e) => Err(e),
         }
     }
 }
@@ -175,7 +175,7 @@ impl<const N: usize> StateClientFirst<N> {
                 let o =
                     session.maybe_need_with::<OverrideCBType, _, _>(&EmptyProvider, |cbname| {
                         gs2_header.extend_from_slice(cbname.as_bytes());
-                        session.need_cb_data(&cbname, EmptyProvider, |i_cbdata| {
+                        session.need_cb_data(cbname, EmptyProvider, |i_cbdata| {
                             cbdata = Some(i_cbdata.into());
                             Ok(())
                         })?;
@@ -332,12 +332,7 @@ where
                     let mut salted_password = DOutput::<D>::default();
 
                     // Derive the PBKDF2 key from the password and salt. This is the expensive part
-                    hash_password::<D>(
-                        &plain_password,
-                        iterations,
-                        &salt[..],
-                        &mut salted_password,
-                    );
+                    hash_password::<D>(plain_password, iterations, &salt[..], &mut salted_password);
 
                     Ok(derive_keys::<D>(salted_password.as_slice()))
                 })?,
@@ -451,7 +446,7 @@ struct StateServerFinal {}
 
 impl<D, const N: usize> Authentication for ScramClient<D, N>
 where
-    D: Digest + BlockSizeUser + FixedOutputReset + Clone + Sync,
+    D: Digest + BlockSizeUser + FixedOutputReset + Clone + Send + Sync,
 {
     fn step(
         &mut self,

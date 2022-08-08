@@ -12,11 +12,16 @@ pub struct XOAuth2 {
     state: XOAuth2State,
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 enum XOAuth2State {
-    #[default]
     Initial,
     Errored,
+}
+
+impl Default for XOAuth2State {
+    fn default() -> Self {
+        Self::Initial
+    }
 }
 
 #[derive(Debug, Error)]
@@ -34,8 +39,8 @@ impl MechanismError for Error {
     }
 }
 
-const USER: &'static str = "username";
-const TOKN: &'static str = "bearer token";
+const USER: &str = "username";
+const TOKN: &str = "bearer token";
 
 impl Authentication for XOAuth2 {
     fn step(
@@ -53,18 +58,18 @@ impl Authentication for XOAuth2 {
                 let mid = input
                     .iter()
                     .position(|b| *b == ASCII_SOH)
-                    .ok_or(SessionError::MechanismError(Box::new(Error::InvalidFormat)))?;
+                    .ok_or_else(|| SessionError::MechanismError(Box::new(Error::InvalidFormat)))?;
 
                 let (userpart, tokenpart) = input.split_at(mid);
 
                 let raw_authid = userpart
                     .strip_prefix(b"user=")
-                    .ok_or(SessionError::MechanismError(Box::new(Error::InvalidFormat)))?;
+                    .ok_or_else(|| SessionError::MechanismError(Box::new(Error::InvalidFormat)))?;
 
                 let raw_token = tokenpart
                     .strip_prefix(b"\x01auth=Bearer ")
                     .and_then(|token| token.strip_suffix(b"\x01\x01"))
-                    .ok_or(SessionError::MechanismError(Box::new(Error::InvalidFormat)))?;
+                    .ok_or_else(|| SessionError::MechanismError(Box::new(Error::InvalidFormat)))?;
 
                 let authid = core::str::from_utf8(raw_authid)
                     .map_err(|e| SessionError::MechanismError(Box::new(Error::NotUtf8(USER, e))))?;

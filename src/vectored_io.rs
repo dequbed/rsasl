@@ -41,7 +41,7 @@ impl<'io, const N: usize> VectoredWriter<'io, N> {
         if self.skip < N {
             let rem = len - accumulated_len;
             self.data[self.skip] = &self.data[self.skip][rem..];
-            bufs[self.skip] = IoSlice::new(&self.data[self.skip]);
+            bufs[self.skip] = IoSlice::new(self.data[self.skip]);
         }
 
         Ok(len)

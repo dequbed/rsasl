@@ -16,8 +16,32 @@ pub use crate::session::{MechanismData, State};
 /// distinct types representing the client and server side:
 ///
 /// and register the two types separately
-pub trait Authentication {
+pub trait Authentication: Send + Sync {
     /// Do a single step of authentication with the other party
+    ///
+    /// rsasl has a few assumptions about the behaviour of any implementor of this trait:
+    ///
+    /// - The two fields of the returned tuple return the **new state** of the mechanism and the
+    ///   **amount of data written** into the writer.
+    /// - [`State::Finished`] must only be returned if no further calls to `step` are expected in
+    ///   **any case**. If another `step` may occur on e.g. an error [`State::Running`] **MUST**
+    ///   be returned.
+    /// - The written amount **MUST** be returned as `Some(0)` if an empty response needs to be
+    ///   sent to the other side. `None` can only be returned if *no* response shall be sent to
+    ///   the other party.
+    /// - Calling `step` after the last call returned `State::Finished` is undefined behaviour.
+    ///   An implementation is free to write garbage data into the writer, return an error or panic.
+    ///
+    /// - If the current/local side of the authentication is going **first** a call to `step` with
+    ///   an input of `None` will generate the first batch of data.
+    /// - When a mechanism is called with no input or an empty input when this was not expected, a
+    ///   mechanism **MUST** return an Error. [`SessionError::InputDataRequired`] is a safe
+    ///   default here, but if this behaviour results in e.g. the server not being
+    ///   mutually authenticated other [`SessionError`]s or [`MechanismError`]s can be appropriate.
+    ///
+    ///   Most importantly, a mechanisms **MUST NOT** return `Ok((State::Running, None))` as this
+    ///   can result in an infinite loop if both sides of the authentication think the other
+    ///   should go first.
     fn step(
         &mut self,
         session: &mut MechanismData,

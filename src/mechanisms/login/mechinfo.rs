@@ -8,7 +8,7 @@ use super::{client, server};
 use crate::registry::{distributed_slice, MECHANISMS};
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 pub static LOGIN: Mechanism = Mechanism {
-    mechanism: &Mechname::const_new(b"LOGIN"),
+    mechanism: Mechname::const_new(b"LOGIN"),
     priority: 200,
     client: Some(|_sasl, _offered| Ok(Box::new(client::Login::new()))),
     server: Some(|_sasl| Ok(Box::new(server::Login::new()))),
