@@ -2,11 +2,14 @@
 //!
 //! This client allows testing interoperability between different SASL implementations.
 
+use clap::builder::TypedValueParser;
+use clap::{Arg, Command, Error, ErrorKind};
 use miette::{IntoDiagnostic, WrapErr};
 use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
 use rsasl::mechanisms::scram::properties::{Iterations, Salt, ScramCachedPassword};
 use rsasl::prelude::*;
 use rsasl::property::*;
+use std::ffi::{OsStr, OsString};
 use std::io;
 use std::io::Cursor;
 
@@ -60,12 +63,57 @@ impl SessionCallback for EnvCallback {
     }
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct UrlParser;
+impl TypedValueParser for UrlParser {
+    type Value = url::Url;
+    fn parse_ref(
+        &self,
+        _cmd: &Command,
+        _arg: Option<&Arg>,
+        value: &OsStr,
+    ) -> Result<Self::Value, Error> {
+        if let Some(value) = value.to_str() {
+            let url = url::Url::parse(value)
+                .map_err(|error| Error::raw(ErrorKind::InvalidValue, error))?;
+            match url.scheme() {
+                "tls" | "tcp" => Ok(url),
+                x => Err(Error::raw(
+                    ErrorKind::InvalidValue,
+                    format!("Listen URL scheme {} is unknown, only 'tls' and 'tcp' are possible.",
+                        x,
+                    )
+                ))
+            }
+        } else {
+            Err(Error::raw(
+                ErrorKind::InvalidUtf8,
+                "URL arguments must be valid UTF-8",
+            ))
+        }
+    }
+}
+
 pub fn main() -> miette::Result<()> {
+    let matches = Command::new("interop-client")
+        .arg(
+            Arg::new("listen")
+                .long("listen")
+                .short('l')
+                .takes_value(true)
+                .value_parser(UrlParser)
+                .help("address to listen to. Either '-' for STDIN or an url with scheme tcp or tls")
+        )
+        .get_matches();
+
+    if let Some(listen) = matches.get_one::<url::Url>("listen") {
+    }
+
     let mech = std::env::var("RSASL_MECH")
         .into_diagnostic()
         .wrap_err("The env variable 'RSASL_MECH' must be set to the mechanism to use")?;
 
-    let mechname = Mechname::new(mech.as_bytes())
+    let mechname = Mechname::parse(mech.as_bytes())
         .into_diagnostic()
         .wrap_err(format!(
             "The provided RSASL_MECH={} is not a valid mechanism name",

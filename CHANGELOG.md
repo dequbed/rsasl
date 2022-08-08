@@ -17,6 +17,7 @@ release. They will however *never* happen in a patch release.
 ## [Unreleased] — ReleaseDate
 
 ### Changed
+- `Mechname::new` is now more appropiately named `Mechname::parse`
 
 ### Fixed
 - XOAUTH2 now compiles with the msrv 1.56.0 

@@ -52,7 +52,7 @@ mod tests {
         let config = SASLConfig::with_credentials(None, String::new(), String::new()).unwrap();
         let sasl = SASLClient::with_cb(config, thiscb);
         let session = sasl
-            .start_suggested(&[&Mechname::new(b"PLAIN").unwrap()])
+            .start_suggested(&[&Mechname::parse(b"PLAIN").unwrap()])
             .unwrap();
 
         let mut tagged_option = Tagged::<'_, NoValidation>(None);
