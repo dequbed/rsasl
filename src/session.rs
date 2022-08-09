@@ -95,7 +95,8 @@ mod provider {
         /// instead this is done by the protocol itself.
         ///
         /// If the current side is going first, generate the first batch of data by calling this
-        /// method with an input of `None`.
+        /// method with an input of `None`. Wether or not the current side is expected to go
+        /// first can be checked with [`Session::are_we_first`].
         ///
         /// Not all protocols support both client-first and server-first Mechanisms, i.e. mechanisms in
         /// which the client sends the first batch of data and mechanisms in which the server sends
