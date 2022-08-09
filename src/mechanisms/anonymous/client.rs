@@ -3,7 +3,7 @@ use crate::error::SessionError;
 use crate::mechanism::Authentication;
 use crate::session::{MechanismData, State};
 use std::io::Write;
-use super::mechinfo::AnonymousToken;
+use super::AnonymousToken;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Anonymous;

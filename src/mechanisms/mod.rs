@@ -27,6 +27,13 @@
 #[cfg(feature = "anonymous")]
 pub mod anonymous {
     //! `ANONYMOUS` *mechanism. Requires feature `anonymous`*
+    //!
+    //! Clients will try to request a value for [`AnonymousToken`]. If none is provided no token
+    //! is sent to the server.
+    //!
+    //! Server side wil request no values. The provider passed to validate will grant access to
+    //! the provided token without validating anything but UTF-8 conformity. If no token was
+    //! provided then the provider will return an empty string for `AnonymousToken`.
 
     mod client;
     mod mechinfo;
