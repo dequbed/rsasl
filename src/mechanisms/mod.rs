@@ -44,6 +44,12 @@ pub mod anonymous {
 #[cfg(feature = "external")]
 pub mod external {
     //! `EXTERNAL` *mechanism. Requires feature `external`*
+    //!
+    //! Client will request an optional `AuthzId`. If none is provided no authzid will be sent to
+    //! the server.
+    //!
+    //! The provider passed to validation will allow access to the `authzid`. If no authzid was
+    //! sent the the provider will return the empty string as authzid.
 
     mod client;
     mod mechinfo;
