@@ -20,6 +20,7 @@ release. They will however *never* happen in a patch release.
 - `ANONYMOUS` client now correctly allows no token to be provided
 - `ANONYMOUS` server will now correctly allow no token to be provided by a client
 - `EXTERNAL` client now correctly requests an optional `AuthzId` instead of a required `AuthId`
+- `EXTERNAL` server now correctly provides `Authzid` instead of `Authid`
 
 ## [v2.0.0-preview9] — 2022-08-08
 
