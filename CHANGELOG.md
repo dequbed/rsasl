@@ -16,6 +16,9 @@ release. They will however *never* happen in a patch release.
 <!-- next-header -->
 ## [Unreleased] — ReleaseDate
 
+## Fixed
+- `ANONYMOUS` client now correctly allows no token to be provided
+
 ## [v2.0.0-preview9] — 2022-08-08
 
 ### Changed
