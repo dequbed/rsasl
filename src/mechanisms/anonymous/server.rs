@@ -1,9 +1,9 @@
-use core::str::Utf8Error;
+use super::AnonymousToken;
 use crate::context::ThisProvider;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
 use crate::session::{MechanismData, State};
-use super::AnonymousToken;
+use core::str::Utf8Error;
 use std::io::Write;
 use thiserror::Error;
 
@@ -27,10 +27,99 @@ impl Authentication for Anonymous {
     ) -> Result<(State, Option<usize>), SessionError> {
         // Treat an input of `None` like an empty slice. This is a gray zone in behaviour but can
         // not lead to loops since this mechanism will *always* return State::Finished.
-        let input = core::str::from_utf8(input.unwrap_or(&[]))
-            .map_err(ParseError)?;
+        let input = core::str::from_utf8(input.unwrap_or(&[])).map_err(ParseError)?;
         // The input is not further validated and passed to the user as-is.
         session.validate(&ThisProvider::<AnonymousToken>::with(input))?;
         Ok((State::Finished, None))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::callback::{Context, Request, SessionCallback, SessionData};
+    use crate::error::SessionError;
+    use crate::mechanisms::anonymous::AnonymousToken;
+    use crate::test;
+    use crate::validate::{Validate, ValidationError};
+    use std::io::Cursor;
+
+    struct C<'a> {
+        token: &'a str,
+    }
+    impl SessionCallback for C<'_> {
+        fn validate(
+            &self,
+            _session_data: &SessionData,
+            context: &Context,
+            _validate: &mut Validate<'_>,
+        ) -> Result<(), ValidationError> {
+            let token = context.get_ref::<AnonymousToken>().unwrap();
+            println!("expected: {:?} provided: {:?}", self.token, token);
+            assert_eq!(token, self.token);
+            Ok(())
+        }
+    }
+    impl Default for C<'static> {
+        fn default() -> Self {
+            Self { token: "" }
+        }
+    }
+
+    fn test_token(token: &'static str, input: &[u8]) {
+        let config = test::server_config(C { token });
+        let mut session = test::server_session(config, &super::super::mechinfo::ANONYMOUS);
+        let mut out = Cursor::new(Vec::new());
+
+        let (state, written) = session.step(Some(input), &mut out).unwrap();
+
+        assert!(state.is_finished());
+        assert!(written.is_none());
+    }
+
+    #[test]
+    fn test_successful() {
+        let tokens = [
+            "",
+            "thisisatesttoken",
+        ];
+        for token in tokens {
+            test_token(token, token.as_bytes());
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_reject_invalid_1() {
+        test_token("token", b"");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_reject_invalid_2() {
+        test_token("", b"someunexpectedtoken");
+    }
+
+    #[test]
+    fn test_weird_utf8() {
+        let tokens = [
+            "«küßî»",
+            "“ЌύБЇ”",
+        ];
+        for token in tokens {
+            test_token(token, token.as_bytes());
+        }
+    }
+
+    #[test]
+    // `None` input should read as empty token
+    fn test_no_input() {
+        let config = test::server_config(C { token: "" });
+        let mut session = test::server_session(config, &super::super::mechinfo::ANONYMOUS);
+        let mut out = Cursor::new(Vec::new());
+
+        let (state, written) = session.step(None, &mut out).unwrap();
+
+        assert!(state.is_finished());
+        assert!(written.is_none());
     }
 }
