@@ -1,14 +1,15 @@
+use core::str::Utf8Error;
 use crate::context::ThisProvider;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
-use crate::mechanisms::anonymous::client::AnonymousToken;
 use crate::session::{MechanismData, State};
+use super::AnonymousToken;
 use std::io::Write;
 use thiserror::Error;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]
 #[error("anonymous token received is invalid UTF-8 or longer than 255 chars")]
-pub struct ParseError;
+pub struct ParseError(Utf8Error);
 impl MechanismError for ParseError {
     fn kind(&self) -> MechanismErrorKind {
         MechanismErrorKind::Parse
@@ -24,25 +25,12 @@ impl Authentication for Anonymous {
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
     ) -> Result<(State, Option<usize>), SessionError> {
-        let input = if let Some(buf) = input {
-            buf
-        } else {
-            return Err(SessionError::InputDataRequired);
-        };
-
-        if let Ok(input) = std::str::from_utf8(input) {
-            /* token       = 1*255TCHAR
-            The <token> production is restricted to 255 UTF-8 encoded Unicode
-            characters.   As the encoding of a characters uses a sequence of 1
-            to 4 octets, a token may be long as 1020 octets. */
-            if input.is_empty() || input.chars().count() > 255 {
-                return Err(ParseError.into());
-            }
-
-            session.validate(&ThisProvider::<AnonymousToken>::with(input))?;
-            Ok((State::Finished, None))
-        } else {
-            Err(ParseError.into())
-        }
+        // Treat an input of `None` like an empty slice. This is a gray zone in behaviour but can
+        // not lead to loops since this mechanism will *always* return State::Finished.
+        let input = core::str::from_utf8(input.unwrap_or(&[]))
+            .map_err(ParseError)?;
+        // The input is not further validated and passed to the user as-is.
+        session.validate(&ThisProvider::<AnonymousToken>::with(input))?;
+        Ok((State::Finished, None))
     }
 }
