@@ -32,8 +32,7 @@ pub(super) enum PlainError {
     BadAuthzid(#[source] Utf8Error),
     #[error("authcid is invalid UTF-8: {0}")]
     BadAuthcid(#[source] Utf8Error),
-    #[error("password is invalid UTF-8: {0}")]
-    BadPassword(#[source] Utf8Error),
+
     #[error("saslprep failed: {0}")]
     Saslprep(
         #[from]
