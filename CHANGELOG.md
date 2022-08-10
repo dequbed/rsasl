@@ -21,6 +21,7 @@ release. They will however *never* happen in a patch release.
 - `ANONYMOUS` server will now correctly allow no token to be provided by a client
 - `EXTERNAL` client now correctly requests an optional `AuthzId` instead of a required `AuthId`
 - `EXTERNAL` server now correctly provides `Authzid` instead of `Authid`
+- `PLAIN` client correctly rejects empty authid or password. Empty authzid is still treated as no authzid provided.
 
 ## [v2.0.0-preview9] — 2022-08-08
 
