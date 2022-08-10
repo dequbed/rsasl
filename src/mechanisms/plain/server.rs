@@ -51,17 +51,20 @@ impl Authentication for Plain {
             return Err(PlainError::BadFormat.into());
         }
 
-        // Authcid and Password must be at least one byte long
-        if authcid.is_empty() || password.is_empty() {
-            return Err(PlainError::BadFormat.into());
-        }
-
         let authzid = core::str::from_utf8(authzid).map_err(PlainError::BadAuthzid)?;
         let authcid = core::str::from_utf8(authcid).map_err(PlainError::BadAuthcid)?;
         let authcid = saslprep(authcid).map_err(PlainError::Saslprep)?;
 
+        if authcid.is_empty() {
+            return Err(PlainError::Empty.into());
+        }
+
         if let Ok(password) = core::str::from_utf8(password) {
             let password = saslprep(password).map_err(PlainError::Saslprep)?;
+
+            if password.is_empty() {
+                return Err(PlainError::Empty.into());
+            }
 
             let provider = PlainProvider {
                 authzid: authzid.as_deref(),
@@ -72,6 +75,10 @@ impl Authentication for Plain {
             session.validate(&provider)?;
 
         } else {
+            if password.is_empty() {
+                return Err(PlainError::Empty.into());
+            }
+
             let provider = PlainProvider {
                 authzid: authzid.as_deref(),
                 authcid: authcid.as_ref(),
