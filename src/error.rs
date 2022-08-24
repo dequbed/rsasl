@@ -90,10 +90,6 @@ pub enum SessionError {
 
     #[error("channel binding data for '{0}' is required")]
     MissingChannelBindingData(String),
-
-    #[cfg(feature = "gsasl")]
-    #[error(transparent)]
-    Gsasl(Gsasl),
 }
 
 impl SessionError {
