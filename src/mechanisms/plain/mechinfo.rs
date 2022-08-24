@@ -24,14 +24,15 @@ pub static PLAIN: Mechanism = Mechanism {
 pub(super) enum PlainError {
     #[error("The given value contains a NULL-byte")]
     ContainsNull,
+    #[error("authid and password must not be empty")]
+    Empty,
     #[error("invalid format, expected three strings separated by two NULL-bytes")]
     BadFormat,
     #[error("authzid is invalid UTF-8: {0}")]
     BadAuthzid(#[source] Utf8Error),
     #[error("authcid is invalid UTF-8: {0}")]
     BadAuthcid(#[source] Utf8Error),
-    #[error("password is invalid UTF-8: {0}")]
-    BadPassword(#[source] Utf8Error),
+
     #[error("saslprep failed: {0}")]
     Saslprep(
         #[from]

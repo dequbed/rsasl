@@ -1,6 +1,6 @@
 [package]
 name = "rsasl"
-version = "2.0.0-preview9"
+version = "2.0.0-preview10"
 authors = ["Nadja Reitzenstein <me@dequbed.space>"]
 edition = "2021"
 rust-version = "1.56.0"
@@ -118,6 +118,9 @@ required-features = ["provider", "plain"]
 [[example]]
 name = "server_plain"
 required-features = ["provider", "plain"]
+[[example]]
+name = "server_scram"
+required-features = ["provider", "plain", "scram-sha-2"]
 
 [[example]]
 name = "mechanism_selection"

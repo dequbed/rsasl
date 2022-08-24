@@ -31,21 +31,6 @@ mod provider {
     /// An authentication exchange may have multiple steps, with each step potentially sending data
     /// to the other party and/or receiving data from the other party.
     ///
-    /// A step is performed using either the [`Session::step`] method, or — base64-wrapped — using
-    /// [`Session::step64`]. These methods will return [`State::Running`] if another call to `step`
-    /// is expected, or [`State::Finished`] when the exchange has concluded and no more calls to
-    /// `step` are necessary. After a `Finished` is received calling `step` again is undefined
-    /// behaviour. Mechanisms may write garbage data, hang forever or return an `Err`.
-    ///
-    /// However, `Finished` only indicates that no further calls to `step`
-    /// are possible, mechanisms will have likely generated data that must still be forwarded to the
-    /// other party.
-    ///
-    /// Similarly, a return of `Finished` does *not* indicate that the authentication was
-    /// **successful**, only that it was completed. SASL mechanisms usually have no provisions for
-    /// returning authentication results inline, meaning the outcome of the authentication is
-    /// indicated by the outer protocol using SASL in some protocol-specific way.
-    ///
     /// On a server-side session after a `Finished` is received validation data from the user
     /// callback may be extracted with a call to [`Session::validation`].
     pub struct Session<V: Validation = NoValidation, C = NoChannelBindings> {
@@ -110,7 +95,8 @@ mod provider {
         /// instead this is done by the protocol itself.
         ///
         /// If the current side is going first, generate the first batch of data by calling this
-        /// method with an input of `None`.
+        /// method with an input of `None`. Wether or not the current side is expected to go
+        /// first can be checked with [`Session::are_we_first`].
         ///
         /// Not all protocols support both client-first and server-first Mechanisms, i.e. mechanisms in
         /// which the client sends the first batch of data and mechanisms in which the server sends
