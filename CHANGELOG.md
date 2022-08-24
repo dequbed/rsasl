@@ -16,6 +16,8 @@ release. They will however *never* happen in a patch release.
 <!-- next-header -->
 ## [Unreleased] — ReleaseDate
 
+## [v2.0.0-preview10] — 2022-08-24
+
 ## Fixed
 - `ANONYMOUS` client now correctly allows no token to be provided
 - `ANONYMOUS` server will now correctly allow no token to be provided by a client
@@ -98,7 +100,8 @@ making this release possible.**
 * Initial stabilized release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview9...development
+[Unreleased]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview10...development
+[v2.0.0-preview10]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview9...v2.0.0-preview10
 [v2.0.0-preview9]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview8...v2.0.0-preview9
 [v2.0.0-preview8]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview7...v2.0.0-preview8
 [v2.0.0-preview7]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview1...v2.0.0-preview7
