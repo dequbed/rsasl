@@ -3,7 +3,7 @@ use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
 use thiserror::Error;
 
-use crate::context::{EmptyProvider, ThisProvider};
+use crate::context::ThisProvider;
 use crate::property::AuthzId;
 use crate::session::{MechanismData, State};
 use std::io::Write;
