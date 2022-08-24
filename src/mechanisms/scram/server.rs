@@ -87,6 +87,21 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> ScramServer<D, N> 
     }
 }
 
+#[derive(Copy, Clone)]
+struct Prov<'a> {
+    authid: &'a str,
+    authzid: Option<&'a str>,
+}
+impl<'a> Provider<'a> for Prov<'a> {
+    fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
+        req.provide_ref::<AuthId>(self.authid)?;
+        if let Some(authzid) = self.authzid {
+            req.provide_ref::<AuthzId>(authzid)?;
+        }
+        req.done()
+    }
+}
+
 pub(crate) struct WaitingClientFirst<const N: usize> {
     plus: CBSupport,
     nonce: PhantomData<&'static [u8; N]>,
@@ -123,21 +138,6 @@ impl<const N: usize> WaitingClientFirst<N> {
         let mut gs2_header = client_first.build_gs2_header_vec();
 
         // FIXME: Escape Username from SCRAM format to whatever
-        #[derive(Copy, Clone)]
-        struct Prov<'a> {
-            authid: &'a str,
-            authzid: Option<&'a str>,
-        }
-        impl<'a> Provider<'a> for Prov<'a> {
-            fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
-                req.provide_ref::<AuthId>(self.authid)?;
-                if let Some(authzid) = self.authzid {
-                    req.provide_ref::<AuthzId>(authzid)?;
-                }
-                req.done()
-            }
-        }
-
         // TODO: This must at this stage provide so much more info <.<
         let provider = Prov { authid, authzid };
 
@@ -201,6 +201,7 @@ impl<const N: usize> WaitingClientFirst<N> {
                 server_nonce,
                 gs2_header,
                 authid.to_string(),
+                authzid.map(|s| s.to_string()),
                 salt,
                 iterations,
                 stored_key,
@@ -233,6 +234,7 @@ struct FinalInner<D: Digest + BlockSizeUser + FixedOutput, const N: usize> {
     server_nonce: [u8; N],
     gs2_header: Vec<u8>,
     username: String,
+    authzid: Option<String>,
     salt: String,
     iterations: String,
     stored_key: GenericArray<u8, D::OutputSize>,
@@ -247,6 +249,7 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
         server_nonce: [u8; N],
         gs2_header: Vec<u8>,
         username: String,
+        authzid: Option<String>,
         salt: String,
         iterations: String,
         stored_key: GenericArray<u8, D::OutputSize>,
@@ -258,6 +261,7 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
                 server_nonce,
                 gs2_header,
                 username,
+                authzid,
                 salt,
                 iterations,
                 stored_key,
@@ -273,6 +277,7 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
     fn handle_client_final(
         self,
         client_final: &[u8],
+        session_data: &mut MechanismData,
         writer: impl Write,
         written: &mut usize,
     ) -> Result<(), SessionError> {
@@ -287,6 +292,7 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
             server_nonce,
             gs2_header,
             username,
+            authzid,
             salt,
             iterations,
             stored_key,
@@ -344,6 +350,12 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
                             let mut vecw = VectoredWriter::new(msg.to_ioslices());
                             *written = vecw.write_all_vectored(writer)?;
 
+                            let prov = Prov {
+                                authid: username.as_str(),
+                                authzid: authzid.as_deref(),
+                            };
+                            session_data.validate(&prov)?;
+
                             return Ok(());
                         }
                     }
@@ -392,10 +404,11 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> ScramState<Waiting
     fn step(
         self,
         input: &[u8],
+        session_data: &mut MechanismData,
         writer: impl Write,
         written: &mut usize,
     ) -> Result<ScramState<()>, SessionError> {
-        self.state.handle_client_final(input, writer, written)?;
+        self.state.handle_client_final(input, session_data, writer, written)?;
         Ok(ScramState { state: () })
     }
 }
@@ -428,7 +441,7 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> Authentication for
             Some(WaitingClientFinal(state)) => {
                 let client_final = input.ok_or(SessionError::InputDataRequired)?;
                 let mut written = 0;
-                let new_state = state.step(client_final, writer, &mut written)?;
+                let new_state = state.step(client_final, session, writer, &mut written)?;
                 self.state = Some(Finished(new_state));
                 Ok((State::Finished, Some(written)))
             }
