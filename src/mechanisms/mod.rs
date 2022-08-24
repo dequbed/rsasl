@@ -27,6 +27,13 @@
 #[cfg(feature = "anonymous")]
 pub mod anonymous {
     //! `ANONYMOUS` *mechanism. Requires feature `anonymous`*
+    //!
+    //! Clients will try to request a value for [`AnonymousToken`]. If none is provided no token
+    //! is sent to the server.
+    //!
+    //! Server side wil request no values. The provider passed to validate will grant access to
+    //! the provided token without validating anything but UTF-8 conformity. If no token was
+    //! provided then the provider will return an empty string for `AnonymousToken`.
 
     mod client;
     mod mechinfo;
@@ -37,6 +44,12 @@ pub mod anonymous {
 #[cfg(feature = "external")]
 pub mod external {
     //! `EXTERNAL` *mechanism. Requires feature `external`*
+    //!
+    //! Client will request an optional `AuthzId`. If none is provided no authzid will be sent to
+    //! the server.
+    //!
+    //! The provider passed to validation will allow access to the `authzid`. If no authzid was
+    //! sent the the provider will return the empty string as authzid.
 
     mod client;
     mod mechinfo;
@@ -74,17 +87,20 @@ pub mod plain {
     //! `AuthzId` and `AuthId` may not contain a NULL-byte.
     //!
     //! `Password` must be valid UTF-8 and must not contain NULL according to
-    //! [RFC 4616](https://www.rfc-editor.org/rfc/rfc4616.html), but rsasl will not validate a
-    //! password and instead send it as-is.
-    //!
+    //! [RFC 4616](https://www.rfc-editor.org/rfc/rfc4616.html), but rsasl will not validate
+    //! UTF-8 validity for a password and instead send it as-is.
     //!
     //! # Server
     //! Plain will not query any properties.
     //!
     //! The provider passed to `validate` will allow access to [`AuthzId`], [`AuthId`] and [`Password`].
     //!
-    //! `Authzid`, `AuthId` and `Password` are valid UTF-8, contain no NULL bytes and have
-    //! `saslprep` applied.
+    //! - If no `AuthzId` was sent then `AuthzId` will be an empty string. It is validated for
+    //!   UTF-8 but otherwise provided as-is with no stringprep algorithm applied.
+    //! - `AuthId` will not contain NULL and has the saslprep algorithm applied to it.
+    //! - `Password` may or may not be UTF-8. If it is UTF-8 saslprep will have been applied to it.
+    //!   If it is not UTF-8 the input bytes are provided verbatim with no modification or
+    //!   preparation algorithm applied.
 
     #[cfg(doc)]
     use crate::property::*;
@@ -126,7 +142,7 @@ pub mod scram {
     mod parser;
     pub mod properties;
     mod server;
-    mod tools;
+    pub mod tools;
     pub use mechinfo::*;
 }
 
