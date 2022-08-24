@@ -142,7 +142,7 @@ pub mod scram {
     mod parser;
     pub mod properties;
     mod server;
-    mod tools;
+    pub mod tools;
     pub use mechinfo::*;
 }
 

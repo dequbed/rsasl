@@ -118,6 +118,9 @@ required-features = ["provider", "plain"]
 [[example]]
 name = "server_plain"
 required-features = ["provider", "plain"]
+[[example]]
+name = "server_scram"
+required-features = ["provider", "plain", "scram-sha-2"]
 
 [[example]]
 name = "mechanism_selection"
