@@ -1,4 +1,3 @@
-use alloc::borrow::Cow;
 use std::io::Write;
 
 use stringprep::saslprep;
@@ -67,7 +66,7 @@ impl Authentication for Plain {
             }
 
             let provider = PlainProvider {
-                authzid: authzid.as_deref(),
+                authzid,
                 authcid: authcid.as_ref(),
                 password: password.as_bytes(),
             };
@@ -80,7 +79,7 @@ impl Authentication for Plain {
             }
 
             let provider = PlainProvider {
-                authzid: authzid.as_deref(),
+                authzid,
                 authcid: authcid.as_ref(),
                 password,
             };
