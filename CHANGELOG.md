@@ -24,6 +24,7 @@ release. They will however *never* happen in a patch release.
 - `PLAIN` client correctly rejects empty authid or password. Empty authzid is still treated as no authzid provided.
 - `PLAIN` server now allows non-UTF8 passwords, and does not apply saslprep to the authzid anymore. If authid or 
   password are empty after saslprep an error is returned.
+- `SCRAM` server now calls validate correctly
 
 ## [v2.0.0-preview9] — 2022-08-08
 
