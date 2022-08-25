@@ -314,6 +314,7 @@ where
 
         // If the user has not cached the keys directly, maybe they have cached the salted
         // password. This still skips the biggest amount of work, namely running PBKDF2
+        // TODO: This is probably really unlikely over having the actual keys cached. Remove?
         if keys.is_none() {
             keys = session_data.maybe_need_with::<SaltedPassword, _, _>(&prov, |password| {
                 if password.is_empty() {

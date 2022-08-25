@@ -9,7 +9,6 @@ use crate::mechanism::Authentication;
 use crate::property::{AuthId, AuthzId, Password};
 use crate::session::{MechanismData, State};
 
-pub struct Plain;
 #[derive(Debug)]
 pub struct PlainProvider<'a> {
     pub authcid: &'a str,
@@ -26,6 +25,7 @@ impl<'a> Provider<'a> for PlainProvider<'a> {
     }
 }
 
+pub struct Plain;
 impl Authentication for Plain {
     fn step(
         &mut self,
