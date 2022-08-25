@@ -3,6 +3,7 @@ use rsasl::prelude::{Mechname, SASLConfig};
 mod common;
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn plain_client() {
     let config = SASLConfig::with_credentials(None, "testuser".to_string(), "secret".to_string())
         .expect("failed to construct SASL config");
