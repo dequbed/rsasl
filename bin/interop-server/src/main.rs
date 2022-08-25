@@ -2,16 +2,22 @@
 //!
 //! This client allows testing interoperability between different SASL implementations.
 
-use miette::{IntoDiagnostic, WrapErr};
+use std::borrow::Cow;
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
+use miette::{Diagnostic, GraphicalReportHandler, IntoDiagnostic, miette, MietteHandler, ReportHandler, WrapErr};
 use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
 use rsasl::mechanisms::scram::properties::*;
 use rsasl::prelude::*;
 use rsasl::property::*;
 use rsasl::validate::{NoValidation, Validate, ValidationError};
 use std::io;
-use std::io::Cursor;
+use std::io::{BufRead, BufReader, Cursor, Write};
+use std::net::{TcpListener, TcpStream};
+use std::sync::Arc;
 
 struct EnvCallback;
+
 impl SessionCallback for EnvCallback {
     fn callback(
         &self,
@@ -53,22 +59,184 @@ impl SessionCallback for EnvCallback {
         &self,
         session_data: &SessionData,
         context: &Context,
-        _validate: &mut Validate<'_>,
+        validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
         if session_data.mechanism().mechanism.as_str() == "PLAIN" {
-            let authid = context.get_ref::<AuthId>();
-            let authzid = context.get_ref::<AuthzId>();
-            let password = context.get_ref::<Password>();
-            println!(
-                "plain validation; authid={:?}, authzid={:?}, password={:?}",
-                authid, authzid, password
-            );
+            let authid = context.get_ref::<AuthId>()
+                .ok_or(ValidationError::MissingRequiredProperty)?;
+            let authzid = context.get_ref::<AuthzId>().map(|s| s.to_string());
+            let password = context.get_ref::<Password>()
+                .ok_or(ValidationError::MissingRequiredProperty)?;
+            validate.finalize::<InteropValidation>(InteropValidation {
+                authid: authid.to_string(), authzid, password: password.to_vec()
+            });
         }
         Ok(())
     }
 }
 
+struct InteropValidation {
+    authid: String,
+    authzid: Option<String>,
+    password: Vec<u8>,
+}
+impl Display for InteropValidation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("VALID authid=")?;
+        f.write_str(self.authid.as_str())?;
+        f.write_str(" authzid=")?;
+        self.authzid.fmt(f)?;
+        f.write_str(" password=")?;
+        if let Ok(s) = std::str::from_utf8(self.password.as_slice()) {
+            f.write_str(s)?;
+        } else {
+            self.password.fmt(f)?;
+        }
+        Ok(())
+    }
+}
+
+impl Validation for InteropValidation {
+    type Value = Self;
+}
+
+fn handle_client(config: Arc<SASLConfig>, stream: TcpStream) -> miette::Result<()> {
+    println!("new connection: {:?}", &stream);
+
+    let mut write_end = stream.try_clone().expect("failed to clone TcpStream");
+
+    let mut lines = BufReader::new(stream).lines();
+
+    let server = SASLServer::<InteropValidation>::new(config);
+
+    // First, write all supported mechanisms to the other end
+    for mech in server.get_available() {
+        write_end.write_all(mech.mechanism.as_bytes())
+                 .into_diagnostic()
+                 .wrap_err("failed to write supported mechanism")?;
+        write_end.write_all(b" ")
+                 .into_diagnostic()
+                 .wrap_err("failed to write supported mechanism")?;
+    }
+    write_end.write_all(b"\n")
+             .into_diagnostic()
+             .wrap_err("failed to write supported mechanism")?;
+
+    let selected = lines.next()
+                        .ok_or(miette!("Client disconnected!"))?
+        .into_diagnostic()
+        .wrap_err("failed to decode selected mechanism line")?;
+
+    let mut parts = selected.split_whitespace();
+    let mechname_part = parts.next()
+                             .ok_or(miette!("protocol error: Client must send selected mechanism"))?;
+
+    let mechanism = Mechname::parse(mechname_part.as_bytes())
+        .into_diagnostic()
+        .wrap_err("failed to parse selected Mechanism")?;
+
+    println!("client selected [{}]", &mechanism);
+
+    let mut session = server.start_suggested(mechanism)
+                            .into_diagnostic()
+                            .wrap_err(format!("[{}] failed to start server session", mechanism))?;
+
+    let mut buffer = Vec::new();
+
+    let mut input_data = if session.are_we_first() {
+        None
+    } else {
+        let data = if let Some(initial_data) = parts.next() {
+            Cow::Borrowed(initial_data)
+        } else {
+            // If we expect initial data and didn't get any yet, send a single '-' to indicate
+            // that to the client. Otherwise it's impossible for the client to distinguish
+            // between a hanging server and a server waiting for more data.
+            write_end.write_all(b"-\n").into_diagnostic()
+                .wrap_err("failed to write empty response")?;
+
+            let input = lines.next()
+                .ok_or(miette!("Client disconnected!"))?
+                .into_diagnostic()
+                .wrap_err("Protocol error: Client must send valid UTF-8 lines")?;
+
+            Cow::Owned(input)
+        };
+        Some(data)
+    };
+
+    while {
+        let input = input_data.as_deref().map(|s| s.as_bytes());
+        let (state, written) = session.step64(input, &mut buffer)
+            .map_err(|error| {
+                let error_fmt = format!("ERR {:?}: {}\n", &error, &error);
+                let _  = write_end.write_all(error_fmt.as_bytes());
+                error
+            })
+                          .into_diagnostic()
+                          .wrap_err("failed to step mechanism")?;
+
+        if let Some(len) = written {
+            assert!(buffer.len() >= len, "mechanism returned too large `written`!");
+
+            let buf = if len == 0 {
+                b"-\n"
+            } else {
+                // Add an ASCII newline at the end to make this a line-delimited protocol
+                buffer.truncate(len);
+                buffer.push(b'\n');
+
+                // Since we truncated the buffer, this will only output exactly the part indicated by
+                // `written`
+                &buffer[..]
+            };
+
+            // Write the mechanism output with appended newline to the other party
+            write_end.write_all(buf).expect("failed to write output");
+        } else {
+            assert!(state.is_finished(), "state is running but a step did not send any output?");
+        }
+
+        state.is_running()
+    } {
+        let line = lines.next().ok_or(miette!("Client disconnected!"))?
+            .into_diagnostic()
+            .wrap_err("Protocol error: Client must send valid UTF-8 lines")?;
+        input_data = Some(Cow::Owned(line))
+    }
+
+    let out = if let Some(v) = session.validation() {
+        Cow::Owned(format!("OK {}\n", v))
+    } else {
+        Cow::Borrowed("ERR NOTVALID\n")
+    };
+
+    write_end.write_all(out.as_bytes()).into_diagnostic()
+        .wrap_err("failed to send outcome string")?;
+
+    Ok(())
+}
+
+struct PrintError<'a, H> {
+    handler: &'a H,
+    error: &'a dyn Diagnostic,
+}
+
+impl<'a, H: ReportHandler> Debug for PrintError<'a, H> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.handler.debug(self.error, f)
+    }
+}
+
 pub fn main() -> miette::Result<()> {
+    let report_handler = MietteHandler::new();
+    let addr = std::env::var("RSASL_TEST_REMOTE")
+        .map(|string| Cow::Owned(string))
+        .unwrap_or(Cow::Borrowed("localhost:62185"));
+
+    let listener = TcpListener::bind(addr.as_ref())
+        .expect(&format!("[addr={}] failed to bind tcp stream", addr));
+
     let config = SASLConfig::builder()
         .with_default_mechanisms()
         .with_defaults()
@@ -76,59 +244,41 @@ pub fn main() -> miette::Result<()> {
         .into_diagnostic()
         .wrap_err("Failed to generate SASL config")?;
 
-    let server = SASLServer::<NoValidation>::new(config);
-    for mech in server.get_available() {
-        print!("{} ", mech.mechanism.as_str());
-    }
-    println!();
-
-    let mut line = String::new();
-    io::stdin()
-        .read_line(&mut line)
-        .into_diagnostic()
-        .wrap_err("failed to read line from stdin")?;
-    let selected = Mechname::parse(line.trim().as_bytes())
-        .into_diagnostic()
-        .wrap_err(format!("selected mechanism '{}' is invalid", line))?;
-
-    let mut session = server
-        .start_suggested(selected)
-        .into_diagnostic()
-        .wrap_err("Failed to start SASL server session")?;
-
-    let mut input = if session.are_we_first() {
-        None
-    } else {
-        // Then we wait on the first line sent by the client.
-        let mut line = String::new();
-        io::stdin()
-            .read_line(&mut line)
+    for stream in listener.incoming() {
+        let stream = stream
             .into_diagnostic()
-            .wrap_err("failed to read line from stdin")?;
-        Some(line)
-    };
-
-    while {
-        let mut out = Cursor::new(Vec::new());
-        let (state, _) = session
-            .step64(input.as_deref().map(|s| s.trim().as_bytes()), &mut out)
-            .into_diagnostic()
-            .wrap_err("Unexpected error occurred during stepping the session")?;
-        let output = out.into_inner();
-
-        let output =
-            String::from_utf8(output).expect("base64 encoded output is somehow not valid UTF-8");
-        println!("{}", output);
-
-        state.is_running()
-    } {
-        let mut line = String::new();
-        io::stdin()
-            .read_line(&mut line)
-            .into_diagnostic()
-            .wrap_err("failed to read line from stdin")?;
-        input = Some(line);
+            .wrap_err("failed to open stream")
+            .and_then(|stream| handle_client(config.clone(), stream));
+        if let Err(report) = stream {
+            let p = PrintError {
+                handler: &report_handler,
+                error: report.as_ref(),
+            };
+            println!("{:?}", p);
+        }
     }
 
     Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_split_whitespace() {
+        let lineA = "MECHANISM ";
+        let mut it = lineA.split_whitespace();
+        assert_eq!(it.next(), Some("MECHANISM"));
+        assert_eq!(it.next(), None);
+
+        let lineB = "MECHANISM InitialData";
+        let mut it = lineB.split_whitespace();
+        assert_eq!(it.next(), Some("MECHANISM"));
+        assert_eq!(it.next(), Some("InitialData"));
+
+        let lineC = "MECHANISM";
+        let mut it = lineC.split_whitespace();
+        assert_eq!(it.next(), Some("MECHANISM"));
+        assert_eq!(it.next(), None);
+    }
 }
