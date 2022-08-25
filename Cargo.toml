@@ -130,5 +130,9 @@ required-features = ["provider", "login", "plain", "scram-sha-1", "scram-sha-2"]
 name = "plain"
 required-features = ["provider_base64", "plain"]
 
+[[test]]
+name = "scram"
+required-features = ["provider_base64", "plain"]
+
 [workspace]
 members = ["bin/interop-client", "bin/interop-server"]

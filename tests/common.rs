@@ -45,8 +45,12 @@ pub fn test_client(mechanism: &Mechname, config: Arc<SASLConfig>) -> String {
                           .expect("failed to step mechanism");
         state = step.0;
 
-        write_end.write_all(b" ").expect("failed to write initial line");
-        write_end.write_all(&buffer[..]).expect("failed to write initial line");
+        if step.1 {
+            let o = std::str::from_utf8(&buffer[..]).unwrap();
+            println!("> {}", o);
+            write_end.write_all(b" ").expect("failed to write initial line");
+            write_end.write_all(&buffer[..]).expect("failed to write initial line");
+        }
     }
 
     write_end.write_all(b"\n").expect("failed to  newline");
@@ -55,6 +59,7 @@ pub fn test_client(mechanism: &Mechname, config: Arc<SASLConfig>) -> String {
         let step_line = lines.next()
                              .expect("server disconnected unexpectedly")
                              .expect("protocol error, server should send valid UTF-8 lines");
+        println!("< {}", &step_line);
         let input = step_line.as_bytes();
 
         buffer.clear();
@@ -63,26 +68,15 @@ pub fn test_client(mechanism: &Mechname, config: Arc<SASLConfig>) -> String {
         state = step.0;
         written = step.1;
 
-        if let Some(len) = written {
-            assert!(buffer.len() >= len, "mechanism returned too large `written`!");
-
-            let buf = if len == 0 {
-                b"-\n"
-            } else {
-                // Add an ASCII newline at the end to make this a line-delimited protocol
-                buffer.truncate(len);
-                buffer.push(b'\n');
-
-                // Since we truncated the buffer, this will only output exactly the part indicated by
-                // `written`
-                &buffer[..]
-            };
-
-            // Write the mechanism output with appended newline to the other party
-            write_end.write_all(buf).expect("failed to write output");
+        let buf = if written {
+            buffer.push(b'\n');
+            &buffer[..]
         } else {
-            assert!(state.is_finished(), "state is running but a step did not send any output?");
-        }
+            b"-\n"
+        };
+        let o = std::str::from_utf8(buf).unwrap();
+        println!("> {}", o);
+        write_end.write_all(buf).expect("failed to write output");
     }
 
     lines.next()
