@@ -68,7 +68,14 @@ impl SessionCallback for EnvCallback {
             let password = context.get_ref::<Password>()
                 .ok_or(ValidationError::MissingRequiredProperty)?;
             validate.finalize::<InteropValidation>(InteropValidation {
-                authid: authid.to_string(), authzid, password: password.to_vec()
+                authid: authid.to_string(), authzid, password: Some(password.to_vec())
+            });
+        } else if session_data.mechanism().mechanism.as_str().starts_with("SCRAM-") {
+            let authid = context.get_ref::<AuthId>()
+                                .ok_or(ValidationError::MissingRequiredProperty)?;
+            let authzid = context.get_ref::<AuthzId>().map(|s| s.to_string());
+            validate.finalize::<InteropValidation>(InteropValidation {
+                authid: authid.to_string(), authzid, password: None
             });
         }
         Ok(())
@@ -78,20 +85,27 @@ impl SessionCallback for EnvCallback {
 struct InteropValidation {
     authid: String,
     authzid: Option<String>,
-    password: Vec<u8>,
+    password: Option<Vec<u8>>,
 }
 impl Display for InteropValidation {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str("VALID authid=")?;
         f.write_str(self.authid.as_str())?;
-        f.write_str(" authzid=")?;
-        self.authzid.fmt(f)?;
-        f.write_str(" password=")?;
-        if let Ok(s) = std::str::from_utf8(self.password.as_slice()) {
-            f.write_str(s)?;
-        } else {
-            self.password.fmt(f)?;
+
+        if let Some(ref authz) = self.authzid {
+            f.write_str(" authzid=")?;
+            f.write_str(authz.as_str())?;
         }
+
+        if let Some(ref pass) = self.password {
+            f.write_str(" password=")?;
+            if let Ok(s) = std::str::from_utf8(pass.as_slice()) {
+                f.write_str(s)?;
+            } else {
+                pass.fmt(f)?;
+            }
+        }
+
         Ok(())
     }
 }
@@ -176,26 +190,13 @@ fn handle_client(config: Arc<SASLConfig>, stream: TcpStream) -> miette::Result<(
                           .into_diagnostic()
                           .wrap_err("failed to step mechanism")?;
 
-        if let Some(len) = written {
-            assert!(buffer.len() >= len, "mechanism returned too large `written`!");
-
-            let buf = if len == 0 {
-                b"-\n"
-            } else {
-                // Add an ASCII newline at the end to make this a line-delimited protocol
-                buffer.truncate(len);
-                buffer.push(b'\n');
-
-                // Since we truncated the buffer, this will only output exactly the part indicated by
-                // `written`
-                &buffer[..]
-            };
-
-            // Write the mechanism output with appended newline to the other party
-            write_end.write_all(buf).expect("failed to write output");
+        let buf = if written {
+            buffer.push(b'\n');
+            &buffer[..]
         } else {
-            assert!(state.is_finished(), "state is running but a step did not send any output?");
-        }
+            b"-\n"
+        };
+        write_end.write_all(buf).expect("failed to write output");
 
         state.is_running()
     } {
