@@ -16,6 +16,10 @@ release. They will however *never* happen in a patch release.
 <!-- next-header -->
 ## [Unreleased] — ReleaseDate
 
+## [v2.0.0-preview11] — 2022-08-25
+## Fixed
+- Fixed a bug where the XOAUTH2 mechanisms were registered as `PLAIN` instead, making all `PLAIN` authentication fail.
+
 ## [v2.0.0-preview10] — 2022-08-24
 
 ## Fixed
@@ -100,7 +104,8 @@ making this release possible.**
 * Initial stabilized release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview10...development
+[Unreleased]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview11...development
+[v2.0.0-preview11]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview10...v2.0.0-preview11
 [v2.0.0-preview10]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview9...v2.0.0-preview10
 [v2.0.0-preview9]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview8...v2.0.0-preview9
 [v2.0.0-preview8]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview7...v2.0.0-preview8
