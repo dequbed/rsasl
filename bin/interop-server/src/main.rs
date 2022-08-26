@@ -190,13 +190,11 @@ fn handle_client(config: Arc<SASLConfig>, stream: TcpStream) -> miette::Result<(
                           .into_diagnostic()
                           .wrap_err("failed to step mechanism")?;
 
-        let buf = if written {
+        if written || state.is_running() {
             buffer.push(b'\n');
-            &buffer[..]
-        } else {
-            b"-\n"
-        };
-        write_end.write_all(buf).expect("failed to write output");
+            write_end.write_all(&buffer[..]).expect("failed to write output");
+            buffer.clear();
+        }
 
         state.is_running()
     } {
@@ -266,6 +264,8 @@ pub fn main() -> miette::Result<()> {
 #[cfg(test)]
 mod tests {
     #[test]
+    // Ensure that the stdlib .split_whitespace() method handles tailing whitespace as we expect
+    // it to.
     fn test_split_whitespace() {
         let lineA = "MECHANISM ";
         let mut it = lineA.split_whitespace();
