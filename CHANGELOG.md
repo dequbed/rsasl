@@ -14,7 +14,7 @@ The MSRV (minimum supported Rust version) of the project is documented in the [`
 release. They will however *never* happen in a patch release.
 
 <!-- next-header -->
-# [Upcoming Changes]
+# [Upcoming Changes] — Not Yet ;)
 
 [Changes rendered on GitHub][Upcoming/diff]
 

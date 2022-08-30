@@ -1,0 +1,46 @@
+publish = false
+push = false
+tag = false
+pre-release-hook = ["./.git/hooks/pre-release.sh", "{{version}}"]
+pre-release-commit-message = "Bump version numbers to {{version}}"
+
+[[pre-release-replacements]]
+file = "CHANGELOG.md"
+search = "\\[Upcoming Changes\\] — Not Yet ;\\)"
+replace = "[v{{version}}] — {{date}}"
+exactly = 1
+prerelease = true
+
+[[pre-release-replacements]]
+file = "CHANGELOG.md"
+search = "\\.\\.\\.development"
+replace = "...v{{version}}"
+exactly = 1
+prerelease = true
+
+[[pre-release-replacements]]
+file = "CHANGELOG.md"
+search = "Upcoming/diff"
+replace = "v{{version}}/diff"
+prerelease = true
+
+[[pre-release-replacements]]
+file = "CHANGELOG.md"
+search = "<!-- next-header -->"
+replace = """<!-- next-header -->
+# [Upcoming Changes] — Not Yet ;)
+
+[Changes rendered on GitHub][Upcoming/diff]
+
+"""
+exactly = 1
+prerelease = true
+
+[[pre-release-replacements]]
+file = "CHANGELOG.md"
+search = "<!-- next-url -->"
+replace = """<!-- next-url -->
+[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/{{version}}...development
+[v{{version}}]: https://github.com/dequbed/rsasl/releases/tag/v{{version}}"""
+exactly = 1
+prerelease = true

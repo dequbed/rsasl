@@ -20,7 +20,7 @@ categories = ["authentication", "api-bindings", "network-programming"]
 
 # Manually list files to include; out-of-tree integration tests and testing binaries that arent useful when
 # rsasl is only used as a dependency.
-include = ["Cargo.toml", "/src/", "README.md", "CHANGELOG.md", "LICENSE.MIT", "LICENSE.APACHE-2.0", "/docs/", "/examples/"]
+include = ["Cargo.toml", "/src/", "README.md", "CHANGELOG.md", "LICENSE.MIT", "LICENSE.APACHE-2.0", "/docs/", "/tests/", "/examples/"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
