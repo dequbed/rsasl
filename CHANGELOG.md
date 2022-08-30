@@ -16,13 +16,20 @@ release. They will however *never* happen in a patch release.
 <!-- next-header -->
 ## [Unreleased] — ReleaseDate
 
+### Added
+- New integration tests that should make it easier to test rsasl against other implementations
+
+### Changed
+- `Session::step64` did not return the actual bytes written but the bytes encoded into base64. As the exact length 
+  isn't know step64 now returns a `bool` instead of an `Option<usize>` to indicate if a message should be sent.
+
 ## [v2.0.0-preview11] — 2022-08-25
-## Fixed
+### Fixed
 - Fixed a bug where the XOAUTH2 mechanisms were registered as `PLAIN` instead, making all `PLAIN` authentication fail.
 
 ## [v2.0.0-preview10] — 2022-08-24
 
-## Fixed
+### Fixed
 - `ANONYMOUS` client now correctly allows no token to be provided
 - `ANONYMOUS` server will now correctly allow no token to be provided by a client
 - `EXTERNAL` client now correctly requests an optional `AuthzId` instead of a required `AuthId`
