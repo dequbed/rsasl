@@ -61,7 +61,7 @@ impl SessionCallback for EnvCallback {
         context: &Context,
         validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
-        if session_data.mechanism().mechanism.as_str() == "PLAIN" {
+        if matches!(session_data.mechanism().mechanism.as_str(), "PLAIN" | "LOGIN") {
             let authid = context.get_ref::<AuthId>()
                 .ok_or(ValidationError::MissingRequiredProperty)?;
             let authzid = context.get_ref::<AuthzId>().map(|s| s.to_string());
