@@ -50,6 +50,8 @@ dependencies with much more recent msrv.
 
 # Versions
 
+The [CHANGELOG.md](CHANGELOG.md) contains a detailed release history, including added features and fixed bugs.
+
 Major version 1 of this crate uses [gsasl-sys](https://crates.io/crates/gsasl-sys) which are binding
 to [GNU gsasl](https://www.gnu.org/software/gsasl). This makes the use of `unsafe` code and FFI necessary.
 You can find the latest 1.X.Y version in the [branch `1.X.X`](https://github.com/dequbed/rsasl/tree/1.X.X)
