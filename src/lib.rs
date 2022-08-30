@@ -2,6 +2,16 @@
 //! `rsasl` is the Rust SASL framework designed to make supporting SASL in protocols and doing SASL
 //! authentication in application code simple and safe.
 //!
+//! # Important note for users of this crate:
+//!
+//! Please do check out the documentation for [CHANGELOG](docs::changelog). The module
+//! documentation is a render of the `CHANGELOG.md` distributed with rsasl. It contains
+//! information about added features, bugfixes and other code changes in the different released
+//! versions.
+//!
+//! Reading the changelog can help you decide the minimum version of rsasl you need to depend on
+//! and will inform you of any bugfixes that may introduce backwards-incompatible changes.
+//!
 //! # SASL primer
 //!
 //! *you can safely skip this section if you know your way around SASL and just want to know
@@ -324,6 +334,11 @@ pub mod docs {
         pub mod adr0001_property_and_validation_newtype {
             #![doc = include_str!("../docs/decisions/0001-property-and-validation-newtype.md")]
         }
+    }
+
+    pub mod changelog {
+        //! Render of the CHANGELOG file for rsasl
+        #![doc = include_str!("../CHANGELOG.md")]
     }
 
     /*
