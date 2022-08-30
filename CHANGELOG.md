@@ -19,6 +19,11 @@ release. They will however *never* happen in a patch release.
 [Changes rendered on GitHub][Upcoming/diff]
 
 
+# [v2.0.0-rc.1] — 2022-08-30
+
+[Changes rendered on GitHub][v2.0.0-rc.1/diff]
+
+
 # [v2.0.0-preview12] — 2022-08-30
 
 [Changes rendered on GitHub][v2.0.0-preview12/diff]
@@ -135,7 +140,9 @@ making this release possible.**
 
 [Upcoming Changes]: https://github.com/dequbed/rsasl/tree/development
 <!-- next-url -->
-[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-preview12...development
+[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-rc.1...development
+[v2.0.0-rc.1]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.1
+[v2.0.0-rc.1/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-preview12...v2.0.0-rc.1
 [v2.0.0-preview12]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-preview12
 [v2.0.0-preview12/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview11...v2.0.0-preview12
 [v2.0.0-preview11]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-preview11
