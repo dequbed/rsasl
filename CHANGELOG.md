@@ -18,6 +18,11 @@ release. They will however *never* happen in a patch release.
 
 [Changes rendered on GitHub][Upcoming/diff]
 
+
+# [v2.0.0-preview12] — 2022-08-30
+
+[Changes rendered on GitHub][v2.0.0-preview12/diff]
+
 ## Added
 - New integration tests that should make it easier to test rsasl against other implementations
 
@@ -130,7 +135,9 @@ making this release possible.**
 
 [Upcoming Changes]: https://github.com/dequbed/rsasl/tree/development
 <!-- next-url -->
-[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview11...development
+[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-preview12...development
+[v2.0.0-preview12]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-preview12
+[v2.0.0-preview12/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview11...v2.0.0-preview12
 [v2.0.0-preview11]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-preview11
 [v2.0.0-preview11/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview10...v2.0.0-preview11
 [v2.0.0-preview10]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-preview10
