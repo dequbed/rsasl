@@ -110,6 +110,9 @@ mod provider {
         /// e.g. when `Ok((State::Finished, Some(0)))` is returned from step a final empty
         /// response **MUST** be sent to the other side to finish the authentication.
         /// Only if a `None` is returned in the tuple no message needs to be sent.
+        // TODO: We should not return the usize in `written` like that doesn't contain any
+        //       actually useable info. The writer may have written much more data than it
+        //       consumed from the input. Instead, just return Message or No Message.
         pub fn step(
             &mut self,
             input: Option<&[u8]>,
@@ -176,16 +179,17 @@ mod provider {
             &mut self,
             input: Option<&[u8]>,
             writer: &mut impl Write,
-        ) -> Result<(State, Option<usize>), SessionError> {
+        ) -> Result<(State, bool), SessionError> {
             use base64::write::EncoderWriter;
             let mut writer64 = EncoderWriter::new(writer, base64::STANDARD);
 
-            if let Some(input) = input {
+            let (state, written) = if let Some(input) = input {
                 let input = base64::decode_config(input, base64::STANDARD)?;
                 self.step(Some(&input[..]), &mut writer64)
             } else {
                 self.step(None, &mut writer64)
-            }
+            }?;
+            Ok((state, written.is_some()))
         }
     }
 
