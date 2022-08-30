@@ -3,3 +3,4 @@ Cargo.lock
 tags
 /.idea/
 TODO.md
+cmake-build-*/

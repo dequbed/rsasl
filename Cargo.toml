@@ -1,6 +1,6 @@
 [package]
 name = "rsasl"
-version = "2.0.0-preview11"
+version = "2.0.0-preview12"
 authors = ["Nadja Reitzenstein <me@dequbed.space>"]
 edition = "2021"
 rust-version = "1.56.0"
@@ -20,7 +20,7 @@ categories = ["authentication", "api-bindings", "network-programming"]
 
 # Manually list files to include; out-of-tree integration tests and testing binaries that arent useful when
 # rsasl is only used as a dependency.
-include = ["Cargo.toml", "/src/", "README.md", "CHANGELOG.md", "LICENSE.MIT", "LICENSE.APACHE-2.0", "/docs/", "/examples/"]
+include = ["Cargo.toml", "/src/", "README.md", "CHANGELOG.md", "LICENSE.MIT", "LICENSE.APACHE-2.0", "/docs/", "/tests/", "/examples/"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
@@ -125,6 +125,14 @@ required-features = ["provider", "plain", "scram-sha-2"]
 [[example]]
 name = "mechanism_selection"
 required-features = ["provider", "login", "plain", "scram-sha-1", "scram-sha-2"]
+
+[[test]]
+name = "plain"
+required-features = ["provider_base64", "plain"]
+
+[[test]]
+name = "scram"
+required-features = ["provider_base64", "plain"]
 
 [workspace]
 members = ["bin/interop-client", "bin/interop-server"]
