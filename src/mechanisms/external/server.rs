@@ -5,7 +5,7 @@ use thiserror::Error;
 
 use crate::context::ThisProvider;
 use crate::property::AuthzId;
-use crate::session::{MechanismData, State};
+use crate::session::{MechanismData, MessageSent, State};
 use std::io::Write;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]
@@ -26,11 +26,11 @@ impl Authentication for External {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
+    ) -> Result<State, SessionError> {
         let input = input.unwrap_or(&[]);
         let authzid = core::str::from_utf8(input).map_err(ParseError)?;
         session.validate(&ThisProvider::<AuthzId>::with(authzid))?;
-        Ok((State::Finished, None))
+        Ok(State::Finished(MessageSent::No))
     }
 }
 

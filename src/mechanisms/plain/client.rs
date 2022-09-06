@@ -1,5 +1,5 @@
 use crate::mechanism::Authentication;
-use crate::session::{MechanismData, State};
+use crate::session::{MechanismData, MessageSent, State};
 
 use crate::context::EmptyProvider;
 use crate::error::SessionError;
@@ -17,8 +17,8 @@ impl Authentication for Plain {
         session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
-        let authzid_len = session
+    ) -> Result<State, SessionError> {
+        session
             .maybe_need_with::<AuthzId, _, _>(&EmptyProvider, |authzid| {
                 if authzid.contains('\0') {
                     return Err(SessionError::MechanismError(Box::new(
@@ -26,13 +26,12 @@ impl Authentication for Plain {
                     )));
                 }
                 writer.write_all(authzid.as_bytes())?;
-                Ok(authzid.len())
-            })?
-            .unwrap_or(0);
+                Ok(())
+            })?;
 
         writer.write_all(&[0])?;
 
-        let authid_len = session.need_with::<AuthId, _, _>(&EmptyProvider, |authid| {
+        session.need_with::<AuthId, _, _>(&EmptyProvider, |authid| {
             if authid.is_empty() {
                 return Err(SessionError::MechanismError(Box::new(PlainError::Empty)));
             }
@@ -42,12 +41,12 @@ impl Authentication for Plain {
                 )));
             }
             writer.write_all(authid.as_bytes())?;
-            Ok(authid.len())
+            Ok(())
         })?;
 
         writer.write_all(&[0])?;
 
-        let password_length = session.need_with::<Password, _, _>(&EmptyProvider, |password| {
+        session.need_with::<Password, _, _>(&EmptyProvider, |password| {
             if password.is_empty() {
                 return Err(SessionError::MechanismError(Box::new(PlainError::Empty)));
             }
@@ -57,12 +56,10 @@ impl Authentication for Plain {
                 )));
             }
             writer.write_all(password)?;
-            Ok(password.len())
+            Ok(())
         })?;
 
-        // Two UTF8NUL and three fields
-        let len = 2 + authzid_len + authid_len + password_length;
-        Ok((State::Finished, Some(len)))
+        Ok(State::Finished(MessageSent::Yes))
     }
 }
 

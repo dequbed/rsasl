@@ -6,6 +6,7 @@ use crate::property::{AuthId, OAuthBearerToken};
 use core::str::Utf8Error;
 use std::io::Write;
 use thiserror::Error;
+use crate::session::MessageSent;
 
 #[derive(Debug, Clone, Default)]
 pub struct XOAuth2 {
@@ -48,7 +49,7 @@ impl Authentication for XOAuth2 {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
+    ) -> Result<State, SessionError> {
         match self.state {
             XOAuth2State::Initial => {
                 let input = input.ok_or(SessionError::InputDataRequired)?;
@@ -92,14 +93,14 @@ impl Authentication for XOAuth2 {
                 let prov = Prov { authid, token };
 
                 // if the mechanism has one step or three depends on if the token is valid or not.
-                let (state, written) =
+                let state =
                     session.need_with::<XOAuth2Validate, _, _>(&prov, |result| {
                         if let Err(error) = result {
                             writer.write_all(error.as_bytes())?;
                             self.state = XOAuth2State::Errored;
-                            Ok((State::Running, Some(error.len())))
+                            Ok(State::Running)
                         } else {
-                            Ok((State::Finished, None))
+                            Ok(State::Finished(MessageSent::No))
                         }
                     })?;
 
@@ -108,11 +109,11 @@ impl Authentication for XOAuth2 {
                 // protocol crate if the token was invalid.
                 session.validate(&prov)?;
 
-                Ok((state, written))
+                Ok(state)
             }
             // This will ignore any input data. input *should* be nothing or an empty slice, so a
             // misbehaving client implementation can still be accepted.
-            XOAuth2State::Errored => Ok((State::Finished, None)),
+            XOAuth2State::Errored => Ok(State::Finished(MessageSent::No)),
         }
     }
 }

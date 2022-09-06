@@ -25,6 +25,10 @@ release. They will however *never* happen in a patch release.
   the exact length of output written (e.g. because the surrounding protocol includes length values, or they need to 
   special-case zero-length messages) should use a length-tracking writer.
 
+## Fixed
+- The client-side XOAUTH2 implementation now correctly indicates a final (empty) message to be sent when an error 
+  was returned by the server.
+
 # [v2.0.0-rc.1] — 2022-08-30
 
 [Changes rendered on GitHub][v2.0.0-rc.1/diff]

@@ -104,7 +104,7 @@ impl Authentication for RSaslTest {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
+    ) -> Result<State, SessionError> {
         let _ = (session, input, writer);
         todo!()
     }

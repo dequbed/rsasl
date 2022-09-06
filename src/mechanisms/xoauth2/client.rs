@@ -6,6 +6,7 @@ use crate::property::{AuthId, OAuthBearerToken};
 use crate::vectored_io::VectoredWriter;
 use std::io::Write;
 use thiserror::Error;
+use crate::session::MessageSent;
 
 #[derive(Debug, Default)]
 pub struct XOAuth2 {
@@ -46,26 +47,26 @@ impl Authentication for XOAuth2 {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         mut writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
+    ) -> Result<State, SessionError> {
         match self.state {
             XOAuth2State::Initial => {
-                let mut written = session.need_with::<AuthId, _, _>(&EmptyProvider, |authid| {
+                session.need_with::<AuthId, _, _>(&EmptyProvider, |authid| {
                     let data = [b"user=", authid.as_bytes(), b"\x01auth=Bearer "];
                     let mut vecw = VectoredWriter::new(data);
-                    let written = vecw.write_all_vectored(&mut writer)?;
-                    Ok(written)
+                    vecw.write_all_vectored(&mut writer)?;
+                    Ok(())
                 })?;
-                written +=
-                    session.need_with::<OAuthBearerToken, _, _>(&EmptyProvider, |token| {
-                        let data = [token.as_bytes(), b"\x01\x01"];
-                        let mut vecw = VectoredWriter::new(data);
-                        let written = vecw.write_all_vectored(writer)?;
-                        Ok(written)
-                    })?;
+
+                session.need_with::<OAuthBearerToken, _, _>(&EmptyProvider, |token| {
+                    let data = [token.as_bytes(), b"\x01\x01"];
+                    let mut vecw = VectoredWriter::new(data);
+                    vecw.write_all_vectored(writer)?;
+                    Ok(())
+                })?;
 
                 self.state = XOAuth2State::WaitingServerResponse;
 
-                Ok((State::Running, Some(written)))
+                Ok(State::Running)
             }
             XOAuth2State::WaitingServerResponse => {
                 // whatever happens, afterwards this mechanisms won't be stepable again, so we
@@ -78,16 +79,16 @@ impl Authentication for XOAuth2 {
                 // should only be hit if we get protocol handlers being overly cautious and
                 // calling step in that case too. Which, granted, is a good thing! We want that!
                 if input.is_empty() {
-                    return Ok((State::Finished, None));
+                    return Ok(State::Finished(MessageSent::No));
                 }
 
                 // We can't exactly validate much of the error response so let the user
                 // callback handle that.
                 let error = std::str::from_utf8(input)
                     .map_err(|error| SessionError::MechanismError(Box::new(Error::Utf8(error))))?;
-                // If the user callback *doesn't*, we mut error, so '?' is correct.
+                // If the user callback *doesn't*, we must error, so '?' is correct.
                 session.action::<XOAuth2Error>(&EmptyProvider, error)?;
-                Ok((State::Finished, None))
+                Ok(State::Finished(MessageSent::Yes))
             }
             XOAuth2State::Done => Err(SessionError::MechanismDone),
         }

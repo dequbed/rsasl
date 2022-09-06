@@ -23,7 +23,7 @@ use crate::mechanisms::scram::tools::{
     compute_signatures, derive_keys, generate_nonce, hash_password, DOutput,
 };
 use crate::property::{AuthId, AuthzId, OverrideCBType, Password};
-use crate::session::{MechanismData, State};
+use crate::session::{MechanismData, MessageSent, State};
 use crate::vectored_io::VectoredWriter;
 
 #[cfg(feature = "scram-sha-2")]
@@ -454,7 +454,7 @@ where
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
+    ) -> Result<State, SessionError> {
         use ScramClientState::*;
         match self.state.take() {
             Some(Initial(state)) => {
@@ -463,7 +463,7 @@ where
                 let new_state = state.step(&mut rng, session, writer, &mut written)?;
                 self.state = Some(ClientFirst(new_state));
 
-                Ok((State::Running, Some(written)))
+                Ok(State::Running)
             }
             Some(ClientFirst(state)) => {
                 let server_first = input.ok_or(SessionError::InputDataRequired)?;
@@ -472,12 +472,12 @@ where
                 let new_state = state.step(session, server_first, writer, &mut written)?;
                 self.state = Some(ServerFirst(new_state));
 
-                Ok((State::Running, Some(written)))
+                Ok(State::Running)
             }
             Some(ServerFirst(state)) => {
                 let server_final = input.ok_or(SessionError::InputDataRequired)?;
                 state.step(session, server_final)?;
-                Ok((State::Finished, None))
+                Ok(State::Finished(MessageSent::No))
             }
             None => panic!("State machine in invalid state"),
         }

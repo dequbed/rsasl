@@ -7,7 +7,7 @@ use crate::context::{Demand, DemandReply, Provider};
 use crate::error::SessionError;
 use crate::mechanism::Authentication;
 use crate::property::{AuthId, AuthzId, Password};
-use crate::session::{MechanismData, State};
+use crate::session::{MechanismData, MessageSent, State};
 
 #[derive(Debug)]
 pub struct PlainProvider<'a> {
@@ -32,7 +32,7 @@ impl Authentication for Plain {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
+    ) -> Result<State, SessionError> {
         let input = input.ok_or(SessionError::InputDataRequired)?;
 
         if input.len() < 4 {
@@ -87,6 +87,6 @@ impl Authentication for Plain {
             session.validate(&provider)?;
         };
 
-        Ok((State::Finished, None))
+        Ok(State::Finished(MessageSent::No))
     }
 }

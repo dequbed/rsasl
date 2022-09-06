@@ -2,7 +2,7 @@ use super::AnonymousToken;
 use crate::context::ThisProvider;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
-use crate::session::{MechanismData, State};
+use crate::session::{MechanismData, MessageSent, State};
 use core::str::Utf8Error;
 use std::io::Write;
 use thiserror::Error;
@@ -24,13 +24,13 @@ impl Authentication for Anonymous {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
+    ) -> Result<State, SessionError> {
         // Treat an input of `None` like an empty slice. This is a gray zone in behaviour but can
         // not lead to loops since this mechanism will *always* return State::Finished.
         let input = core::str::from_utf8(input.unwrap_or(&[])).map_err(ParseError)?;
         // The input is not further validated and passed to the user as-is.
         session.validate(&ThisProvider::<AnonymousToken>::with(input))?;
-        Ok((State::Finished, None))
+        Ok(State::Finished(MessageSent::No))
     }
 }
 

@@ -2,7 +2,7 @@ use crate::context::EmptyProvider;
 use crate::error::SessionError;
 use crate::mechanism::Authentication;
 use crate::property::AuthzId;
-use crate::session::{MechanismData, State};
+use crate::session::{MechanismData, MessageSent, State};
 use std::io::Write;
 
 #[derive(Copy, Clone, Debug)]
@@ -14,13 +14,13 @@ impl Authentication for External {
         session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
-        let len = session.maybe_need_with::<AuthzId, _, _>(&EmptyProvider, |authzid| {
+    ) -> Result<State, SessionError> {
+        session.maybe_need_with::<AuthzId, _, _>(&EmptyProvider, |authzid| {
             writer.write_all(authzid.as_bytes())?;
-            Ok(authzid.len())
-        })?.unwrap_or(0);
+            Ok(())
+        })?;
 
-        Ok((State::Finished, Some(len)))
+        Ok(State::Finished(MessageSent::Yes))
     }
 }
 

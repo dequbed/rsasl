@@ -1,7 +1,7 @@
 use crate::context::EmptyProvider;
 use crate::error::SessionError;
 use crate::mechanism::Authentication;
-use crate::session::{MechanismData, State};
+use crate::session::{MechanismData, MessageSent, State};
 use std::io::Write;
 use super::AnonymousToken;
 
@@ -13,12 +13,12 @@ impl Authentication for Anonymous {
         session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
-        let len = session.maybe_need_with::<AnonymousToken, _, _>(&EmptyProvider, |token| {
+    ) -> Result<State, SessionError> {
+        session.maybe_need_with::<AnonymousToken, _, _>(&EmptyProvider, |token| {
             writer.write_all(token.as_bytes())?;
-            Ok(token.len())
-        })?.unwrap_or(0);
-        Ok((State::Finished, Some(len)))
+            Ok(())
+        })?;
+        Ok(State::Finished(MessageSent::Yes))
     }
 }
 
