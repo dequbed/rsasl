@@ -18,6 +18,12 @@ release. They will however *never* happen in a patch release.
 
 [Changes rendered on GitHub][Upcoming/diff]
 
+## Changed
+- Finished the changes started in `-preview12` and `-rc.1`; instead of `Session::step` and `Session::step64` 
+  returning a tuple they now only return a `State` which contains a two-valued enum for "was a message produced". 
+  This means the previous (potentially wrong!) "message size" is now not returned anymore. Clients that must know 
+  the exact length of output written (e.g. because the surrounding protocol includes length values, or they need to 
+  special-case zero-length messages) should use a length-tracking writer.
 
 # [v2.0.0-rc.1] — 2022-08-30
 

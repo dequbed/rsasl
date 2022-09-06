@@ -110,17 +110,16 @@ mod provider {
         /// e.g. when `Ok((State::Finished, Some(0)))` is returned from step a final empty
         /// response **MUST** be sent to the other side to finish the authentication.
         /// Only if a `None` is returned in the tuple no message needs to be sent.
-        // TODO: We should not return the usize in `written` like that doesn't contain any
-        //       actually useable info. The writer may have written much more data than it
-        //       consumed from the input. Instead, just return Message or No Message.
         pub fn step(
             &mut self,
             input: Option<&[u8]>,
             writer: &mut impl Write,
-        ) -> Result<(State, Option<usize>), SessionError> {
+        ) -> Result<State, SessionError> {
+            // Temporary storage location for the typed validation output.
+            // TODO: can we instead put this Tagged into `Sasl` and save on that copy?
             let mut tagged_option = Tagged::<'_, V>(None);
 
-            let (state, written) = {
+            let state = {
                 let validate = Validate::new::<V>(&mut tagged_option);
                 let mut mechanism_data = MechanismData::new(
                     self.sasl.config.get_callback(),
@@ -137,11 +136,11 @@ mod provider {
                 }?
             };
 
-            if state == State::Finished {
+            if state.is_finished() {
                 self.sasl.validation = tagged_option.0.take();
             }
 
-            Ok((state, written))
+            Ok(state)
         }
 
         /// Extract the [`Validation`] result of an authentication exchange
@@ -179,7 +178,7 @@ mod provider {
             &mut self,
             input: Option<&[u8]>,
             writer: &mut impl Write,
-        ) -> Result<(State, bool), SessionError> {
+        ) -> Result<State, SessionError> {
             use base64::write::EncoderWriter;
             let mut writer64 = EncoderWriter::new(writer, base64::STANDARD);
 
@@ -372,12 +371,16 @@ impl fmt::Debug for MechanismData<'_> {
 /// State result of the underlying Mechanism implementation
 pub enum State {
     /// The Mechanism has not yet completed the authentication exchange
+    ///
+    /// If this is returned the mechanism has written a message to be sent to the other
+    /// party into the provided writer and is expecting a response.
     Running,
 
     /// The Mechanism has received all required information from the other party.
     ///
     /// However, a Mechanism returning `Finished` may still have *written* data. This data MUST be
-    /// sent to the other party to ensure both sides have received all required data.
+    /// sent to the other party to ensure both sides have received all required data. The fact if
+    /// a message is to be sent is indicated by the contained [`MessageSent`].
     ///
     /// After a `Finished` is returned `step` or `step64` MUST NOT be called further.
     ///
@@ -386,7 +389,7 @@ pub enum State {
     /// Most SASL mechanisms have no way of returning the authentication outcome inline.
     /// Instead the outer protocol will indicate the authentication outcome in a protocol-specific
     /// way.
-    Finished,
+    Finished(MessageSent),
 }
 impl State {
     #[inline(always)]
@@ -397,6 +400,28 @@ impl State {
     pub fn is_finished(&self) -> bool {
         !self.is_running()
     }
+    #[inline(always)]
+    pub fn has_sent_message(&self) -> bool {
+        matches!(self, Self::Running | Self::Finished(MessageSent::Yes))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+/// Indication if a message was written into the provided writer.
+///
+/// This enum is returned by a call to `step` or `step64` and indicates if a message was written
+/// into the provided writer. It serves as a hint to a caller to inform them that they need to
+/// ensure the message will reach the other party, be that by flushing the writer or copying the
+/// written bytes.
+///
+/// Note that SASL explicitly allows the option of sending an *empty* message. In that case a
+/// `MessageSent::Yes` will be returned but no bytes will have been written into the writer. How
+/// to indicate an empty message differs from protocol to protocol.
+pub enum MessageSent {
+    /// Yes a message was written and needs to be sent
+    Yes,
+    /// No message needs to be sent to the other end.
+    No,
 }
 
 #[cfg(test)]
