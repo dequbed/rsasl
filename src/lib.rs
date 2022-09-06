@@ -160,7 +160,7 @@
 //!         // each call to step writes the generated auth data into the provided writer.
 //!         // Normally this data would then have to be sent to the other party, but this goes
 //!         // beyond the scope of this example
-//!         let (state, _) = session.step(data.as_deref(), writer).expect("step errored!");
+//!         let state = session.step(data.as_deref(), writer).expect("step errored!");
 //!         // returns `true` if step needs to be called again with another batch of data
 //!         state.is_running()
 //!     } {

@@ -216,6 +216,8 @@ mod tests {
         // second call to step, with None as input again. This should not error.
         let state = session.step(Some(error_input), &mut out).unwrap();
         assert!(state.is_finished());
-        assert!(!state.has_sent_message());
+        // As we received an error we finish up the authentication with an empty message to the
+        // server
+        assert!(state.has_sent_message());
     }
 }
