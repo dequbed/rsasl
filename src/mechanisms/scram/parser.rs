@@ -1,7 +1,7 @@
 use crate::error::{MechanismError, MechanismErrorKind};
-use std::borrow::Cow;
-use std::fmt::{Display, Formatter};
-use std::str::Utf8Error;
+use crate::alloc::{string::String, vec::Vec, borrow::Cow};
+use core::fmt::{Display, Formatter};
+use core::str::Utf8Error;
 use thiserror::Error;
 
 #[derive(Debug, Error, Copy, Clone, Eq, PartialEq)]
@@ -133,13 +133,13 @@ impl<'a> SaslName<'a> {
 
         if let Some(bad) = input.iter().position(|b| matches!(b, b'=')) {
             let mut out = String::with_capacity(input.len());
-            let good = std::str::from_utf8(&input[..bad]).map_err(SaslNameError::InvalidUtf8)?;
+            let good = core::str::from_utf8(&input[..bad]).map_err(SaslNameError::InvalidUtf8)?;
             out.push_str(good);
             let mut input = &input[bad..];
 
             while let Some(bad) = input.iter().position(|b| matches!(b, b'=')) {
                 let good =
-                    std::str::from_utf8(&input[..bad]).map_err(SaslNameError::InvalidUtf8)?;
+                    core::str::from_utf8(&input[..bad]).map_err(SaslNameError::InvalidUtf8)?;
                 out.push_str(good);
                 let c = match &input[bad + 1..bad + 3] {
                     b"2C" => ',',
@@ -207,7 +207,7 @@ impl<'scram> GS2CBindFlag<'scram> {
                     Err(ParseError::BadCBName(*bad))
                 } else {
                     // SAFE because we just checked for a subset of ASCII which is always UTF-8
-                    let name = unsafe { std::str::from_utf8_unchecked(cbname) };
+                    let name = unsafe { core::str::from_utf8_unchecked(cbname) };
                     Ok(Self::Used(name))
                 }
             }
@@ -255,7 +255,7 @@ impl<'scram> ClientFirstMessage<'scram> {
 
         let authzid = partiter.next().ok_or(ParseError::BadGS2Header)?;
         let authzid = if !authzid.is_empty() {
-            Some(std::str::from_utf8(&authzid[2..]).map_err(ParseError::BadUtf8)?)
+            Some(core::str::from_utf8(&authzid[2..]).map_err(ParseError::BadUtf8)?)
         } else {
             None
         };
@@ -266,7 +266,7 @@ impl<'scram> ClientFirstMessage<'scram> {
         }
 
         let username = if &next[0..2] == b"n=" {
-            std::str::from_utf8(&next[2..]).map_err(ParseError::BadUtf8)?
+            core::str::from_utf8(&next[2..]).map_err(ParseError::BadUtf8)?
         } else {
             return Err(ParseError::InvalidAttribute(next[0] as u8));
         };
@@ -535,7 +535,7 @@ impl ServerErrorValue {
     }
 }
 impl Display for ServerErrorValue {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str(self.as_str())
     }
 }

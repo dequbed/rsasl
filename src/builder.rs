@@ -2,9 +2,9 @@ use crate::callback::SessionCallback;
 use crate::config::{SASLConfig, SorterFn};
 use crate::error::SASLError;
 use crate::registry::{Mechanism, Registry};
-use std::cmp::Ordering;
-use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
+use core::cmp::Ordering;
+use core::fmt::{Debug, Formatter};
+use crate::alloc::sync::Arc;
 
 #[derive(Clone)]
 /// Type-checking, complete and linker-friendly builder for [`SASLConfig`](crate::config::SASLConfig)
@@ -75,7 +75,7 @@ pub struct ConfigBuilder<State = WantMechanisms> {
     pub(crate) state: State,
 }
 impl<State: Debug> Debug for ConfigBuilder<State> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("ConfigBuilder<_>")
             .field("state", &self.state)
             .finish()

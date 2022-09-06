@@ -1,4 +1,4 @@
-use std::io::Write;
+use acid_io::Write;
 
 use stringprep::saslprep;
 

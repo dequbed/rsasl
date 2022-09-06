@@ -6,7 +6,7 @@ use thiserror::Error;
 use crate::context::ThisProvider;
 use crate::property::AuthzId;
 use crate::session::{MechanismData, MessageSent, State};
-use std::io::Write;
+use acid_io::Write;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]
 #[error("the given external token is invalid UTF-8")]

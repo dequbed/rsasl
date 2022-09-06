@@ -2,7 +2,7 @@
 //!
 //!
 use crate::error::SessionError::NoSecurityLayer;
-use std::io::Write;
+use acid_io::Write;
 
 pub use crate::context::{Demand, DemandReply, Provider, ProviderExt, ThisProvider};
 pub use crate::error::{MechanismError, MechanismErrorKind, SessionError};

@@ -1,3 +1,4 @@
+use crate::alloc::boxed::Box;
 use crate::mechname::Mechname;
 use crate::registry::{Mechanism, Side};
 

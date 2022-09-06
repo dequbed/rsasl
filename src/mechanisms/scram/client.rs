@@ -1,6 +1,7 @@
-use std::fmt::{Display, Formatter};
-use std::io::Write;
-use std::marker::PhantomData;
+use crate::alloc::{vec::Vec, string::String};
+use core::fmt::{Display, Formatter};
+use acid_io::Write;
+use core::marker::PhantomData;
 
 use thiserror::Error;
 
@@ -279,7 +280,7 @@ where
             return Err(SCRAMError::Protocol(ProtocolError::InvalidNonce).into());
         }
 
-        let iterations: u32 = std::str::from_utf8(iteration_count)
+        let iterations: u32 = core::str::from_utf8(iteration_count)
             .map_err(|e| SCRAMError::ParseError(super::parser::ParseError::BadUtf8(e)))?
             .parse()
             .map_err(|_| SCRAMError::Protocol(ProtocolError::IterationCountFormat))?;
@@ -493,7 +494,7 @@ pub enum ProtocolError {
 }
 
 impl Display for ProtocolError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             ProtocolError::InvalidNonce => f.write_str("returned server nonce is invalid"),
             ProtocolError::IterationCountFormat => f.write_str("iteration count must be decimal"),

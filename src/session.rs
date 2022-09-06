@@ -1,6 +1,8 @@
 use core::any::type_name;
 use core::fmt;
 
+use crate::alloc::boxed::Box;
+
 use crate::callback::{Action, CallbackError, ClosureCR, Request, Satisfy, SessionCallback};
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::context::{build_context, Provider, ProviderExt, ThisProvider};
@@ -24,7 +26,7 @@ mod provider {
     use crate::mechname::Mechname;
     use crate::sasl::Sasl;
     use crate::validate::{NoValidation, Validation};
-    use std::io::Write;
+    use acid_io::Write;
 
     /// This represents a single authentication exchange
     ///

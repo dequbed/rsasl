@@ -3,7 +3,7 @@ use crate::error::SessionError;
 use crate::mechanism::{Authentication, MechanismData};
 use crate::property::{AuthId, Password};
 use crate::session::{MessageSent, State};
-use std::io::Write;
+use acid_io::Write;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
 enum LoginState {
