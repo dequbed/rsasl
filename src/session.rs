@@ -113,12 +113,8 @@ mod provider {
             input: Option<&[u8]>,
             writer: &mut impl Write,
         ) -> Result<State, SessionError> {
-            // Temporary storage location for the typed validation output.
-            // TODO: can we instead put this Tagged into `Sasl` and save on that copy?
-            let mut tagged_option = Tagged::<'_, V>(None);
-
             let state = {
-                let validate = Validate::new::<V>(&mut tagged_option);
+                let validate = Validate::new::<V>(&mut self.sasl.validation);
                 let mut mechanism_data = MechanismData::new(
                     self.sasl.config.get_callback(),
                     &self.sasl.cb,
@@ -133,10 +129,6 @@ mod provider {
                     self.mechanism.step(&mut mechanism_data, None, writer)
                 }?
             };
-
-            if state.is_finished() {
-                self.sasl.validation = tagged_option.0.take();
-            }
 
             Ok(state)
         }
