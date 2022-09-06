@@ -86,13 +86,15 @@ unstable_custom_mechanism = ["std"]
 ## Enable use of libstd
 ## If this flag is not set, rsasl is marked ![no_std]. However, currently this flag will *always* be enabled as core
 ## parts of rsasl depend on the stdlib.
-std = []
+std = ["acid_io/std"]
 
-# Dependency flag, shouldn't be set explicitly
+## Dependency flag, shouldn't be set explicitly
 saslprep = ["std", "stringprep"]
 
 [dependencies]
 thiserror = "1.0"
+# An #[no_std]-enabled version of std::io.
+acid_io = "0.1.0"
 
 base64 = { version = "0.13", optional = true }
 
