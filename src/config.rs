@@ -1,6 +1,6 @@
 //! Configuration supplied by the downstream user
 
-use crate::alloc::boxed::Box;
+use crate::alloc::{boxed::Box, string::String};
 use crate::callback::SessionCallback;
 use crate::error::SASLError;
 use crate::registry::{Mechanism, MechanismIter};
@@ -101,7 +101,7 @@ mod instance {
 
     impl SASLConfig {
         fn cast(arc: Arc<dyn ConfigInstance>) -> Arc<Self> {
-            unsafe { std::mem::transmute(arc) }
+            unsafe { core::mem::transmute(arc) }
         }
 
         pub(crate) fn new<CB: SessionCallback + 'static>(
@@ -179,7 +179,7 @@ mod instance {
     }
 
     impl fmt::Debug for Inner {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             f.debug_struct("SASLConfig")
                 .field("mechanisms", &self.mechanisms)
                 .finish()

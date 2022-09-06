@@ -7,7 +7,7 @@
 
 use core::any::TypeId;
 use core::ops::Deref;
-use std::ops::DerefMut;
+use core::ops::DerefMut;
 
 pub(crate) mod tags {
     use core::marker::PhantomData;

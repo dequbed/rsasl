@@ -1,9 +1,10 @@
+use crate::alloc::boxed::Box;
 use crate::mechanism::Authentication;
 use crate::session::{MechanismData, MessageSent, State};
 
 use crate::context::EmptyProvider;
 use crate::error::SessionError;
-use std::io::Write;
+use acid_io::Write;
 
 use super::mechinfo::PlainError;
 use crate::property::{AuthId, AuthzId, Password};
@@ -67,13 +68,10 @@ impl Authentication for Plain {
 mod tests {
     use crate::callback::{Context, Request, SessionCallback, SessionData};
     use crate::error::SessionError;
-    use crate::mechanisms::plain::client::Plain;
     use crate::mechanisms::plain::mechinfo::PlainError;
     use crate::property::{AuthId, AuthzId, Password};
     use crate::session::State;
     use crate::test;
-    use core::fmt::Display;
-    use std::any::Any;
     use std::io::Cursor;
 
     struct C<'a> {

@@ -2,7 +2,7 @@ use crate::context::EmptyProvider;
 use crate::error::SessionError;
 use crate::mechanism::Authentication;
 use crate::session::{MechanismData, MessageSent, State};
-use std::io::Write;
+use acid_io::Write;
 use super::AnonymousToken;
 
 #[derive(Copy, Clone, Debug)]

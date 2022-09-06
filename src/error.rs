@@ -1,6 +1,6 @@
-use crate::alloc::boxed::Box;
-use std::error::Error;
+use crate::alloc::{boxed::Box, string::String};
 
+#[cfg(feature = "std")]
 use thiserror::Error;
 
 use crate::callback::CallbackError;
@@ -20,8 +20,14 @@ pub enum MechanismErrorKind {
     Outcome,
 }
 
+#[cfg(feature = "std")]
 /// Errors specific to a certain mechanism
 pub trait MechanismError: fmt::Debug + fmt::Display + Send + Sync + std::error::Error {
+    fn kind(&self) -> MechanismErrorKind;
+}
+#[cfg(not(feature = "std"))]
+/// Errors specific to a certain mechanism
+pub trait MechanismError: fmt::Debug + fmt::Display + Send + Sync {
     fn kind(&self) -> MechanismErrorKind;
 }
 
@@ -33,7 +39,7 @@ pub enum SessionError {
     #[error("IO error occurred")]
     Io {
         #[from]
-        source: std::io::Error,
+        source: acid_io::Error,
     },
 
     #[cfg(feature = "provider_base64")]
@@ -72,7 +78,8 @@ pub enum SessionError {
     ),
 
     #[error(transparent)]
-    Boxed(#[from] Box<dyn Error + Send + Sync>),
+    #[cfg(feature = "std")]
+    Boxed(#[from] Box<dyn std::error::Error + Send + Sync>),
 
     #[error("callback did not validate the authentication exchange")]
     NoValidate,

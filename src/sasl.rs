@@ -10,7 +10,7 @@ use crate::registry::Mechanism;
 use crate::session::{Session, Side};
 use crate::validate::{NoValidation, Validation};
 
-use std::sync::Arc;
+use crate::alloc::{sync::Arc, vec::Vec};
 use crate::typed::Tagged;
 
 #[derive(Debug)]

@@ -1,3 +1,4 @@
+use crate::alloc::{boxed::Box, string::String, vec::Vec};
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanisms::scram::client::{ProtocolError, SCRAMError};
 use crate::mechanisms::scram::parser::{
@@ -6,13 +7,14 @@ use crate::mechanisms::scram::parser::{
 use crate::mechanisms::scram::tools::{compute_signatures, generate_nonce, DOutput};
 use crate::session::{MechanismData, MessageSent, State};
 use crate::vectored_io::VectoredWriter;
+use crate::alloc::format;
 use digest::crypto_common::BlockSizeUser;
 use digest::generic_array::GenericArray;
 use digest::{Digest, FixedOutput, OutputSizeUser};
 use hmac::SimpleHmac;
 use rand::{thread_rng, Rng, RngCore};
-use std::io::Write;
-use std::marker::PhantomData;
+use acid_io::Write;
+use core::marker::PhantomData;
 use thiserror::Error;
 
 use crate::context::{Demand, DemandReply, Provider};

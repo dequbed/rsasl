@@ -1,11 +1,12 @@
+use crate::alloc::string::String;
 use crate::context::{Demand, DemandReply, Provider};
 use crate::error::MechanismErrorKind;
 use crate::mechanism::{Authentication, MechanismError};
 use crate::prelude::SessionError;
 use crate::property::{AuthId, Password};
 use crate::session::{MechanismData, MessageSent, State};
-use std::io::Write;
-use std::str::Utf8Error;
+use acid_io::Write;
+use core::str::Utf8Error;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -54,7 +55,7 @@ impl Authentication for Login {
             }
             LoginState::WaitingForUsername => {
                 if let Some(input) = input {
-                    let username = std::str::from_utf8(input)
+                    let username = core::str::from_utf8(input)
                         .map_err(LoginError::Utf8)?
                         .to_string();
 

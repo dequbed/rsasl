@@ -1,3 +1,4 @@
+use crate::alloc::boxed::Box;
 use crate::mechanisms::scram::{client, server};
 use crate::mechname::Mechname;
 use crate::registry::Mechanism;

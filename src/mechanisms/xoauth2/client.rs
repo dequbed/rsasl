@@ -1,10 +1,11 @@
+use crate::alloc::boxed::Box;
 use crate::context::EmptyProvider;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::{Authentication, MechanismData, State};
 use crate::mechanisms::xoauth2::properties::XOAuth2Error;
 use crate::property::{AuthId, OAuthBearerToken};
 use crate::vectored_io::VectoredWriter;
-use std::io::Write;
+use acid_io::Write;
 use thiserror::Error;
 use crate::session::MessageSent;
 
@@ -32,7 +33,7 @@ enum Error {
     Utf8(
         #[from]
         #[source]
-        std::str::Utf8Error,
+        core::str::Utf8Error,
     ),
 }
 impl MechanismError for Error {
@@ -84,7 +85,7 @@ impl Authentication for XOAuth2 {
 
                 // We can't exactly validate much of the error response so let the user
                 // callback handle that.
-                let error = std::str::from_utf8(input)
+                let error = core::str::from_utf8(input)
                     .map_err(|error| SessionError::MechanismError(Box::new(Error::Utf8(error))))?;
                 // If the user callback *doesn't*, we must error, so '?' is correct.
                 session.action::<XOAuth2Error>(&EmptyProvider, error)?;

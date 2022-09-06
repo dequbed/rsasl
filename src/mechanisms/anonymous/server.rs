@@ -4,7 +4,7 @@ use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
 use crate::session::{MechanismData, MessageSent, State};
 use core::str::Utf8Error;
-use std::io::Write;
+use acid_io::Write;
 use thiserror::Error;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]

@@ -1,10 +1,11 @@
+use crate::alloc::boxed::Box;
 use crate::context::{Demand, DemandReply, Provider};
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::{Authentication, MechanismData, State};
 use crate::mechanisms::xoauth2::properties::XOAuth2Validate;
 use crate::property::{AuthId, OAuthBearerToken};
 use core::str::Utf8Error;
-use std::io::Write;
+use acid_io::Write;
 use thiserror::Error;
 use crate::session::MessageSent;
 
