@@ -23,6 +23,11 @@ release. They will however *never* happen in a patch release.
 
 [Changes rendered on GitHub][v2.0.0-rc.1/diff]
 
+`v2.0.0-rc.1` is a re-release of the `v2.0.0-preview12` version due to me messing up the pre-release version 
+numbering of the `preview` releases. `preview12` is ordered alphanumerically as mixed ASCII and thus considered smaller 
+than `preview9`. To enforce numeric sorting the number must be separated using a dot, so e.g. `preview.12`. However 
+`preview.12` is considered smaller than *all* `previewXX` releases because it is shorter. Thus rsasl now uses `rc` 
+as 'r' is sorted after 'p' and thus 'rc.X' > 'previewYZ'. Sorry for the confusion.
 
 # [v2.0.0-preview12] — 2022-08-30
 
