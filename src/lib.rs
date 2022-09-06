@@ -307,7 +307,7 @@ pub mod prelude {
     pub use crate::mechname::Mechname;
     pub use crate::property::Property;
     pub use crate::registry::Registry;
-    pub use crate::session::State;
+    pub use crate::session::{State, MessageSent};
     pub use crate::validate::Validation;
 
     #[cfg(feature = "provider")]

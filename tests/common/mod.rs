@@ -37,15 +37,12 @@ pub fn test_client(mechanism: &Mechname, config: Arc<SASLConfig>) -> String {
     // Otherwise we have to special case one-step mechanisms such as PLAIN since we send initial
     // data
     let mut state = State::Running;
-    let mut written;
 
     // Send the initial request, with initial data if we are going first
     if session.are_we_first() {
-        let step = session.step64(None, &mut buffer)
+        state = session.step64(None, &mut buffer)
                           .expect("failed to step mechanism");
-        state = step.0;
-
-        if step.1 {
+        if state.has_sent_message() {
             let o = std::str::from_utf8(&buffer[..]).unwrap();
             println!("> {}", o);
             write_end.write_all(b" ").expect("failed to write initial line");
@@ -63,12 +60,10 @@ pub fn test_client(mechanism: &Mechname, config: Arc<SASLConfig>) -> String {
         let input = step_line.as_bytes();
 
         buffer.clear();
-        let step = session.step64(Some(input), &mut buffer)
+        state = session.step64(Some(input), &mut buffer)
                           .expect("failed to step mechanism");
-        state = step.0;
-        written = step.1;
 
-        let buf = if written {
+        let buf = if state.has_sent_message() {
             buffer.push(b'\n');
             &buffer[..]
         } else {

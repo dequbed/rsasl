@@ -175,10 +175,10 @@ mod tests {
         let mut out = Cursor::new(Vec::new());
 
         let data = b"user=username@host.tld\x01auth=Bearer ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg\x01\x01";
-        let (state, written) = session.step(Some(data), &mut out).unwrap();
+        let state = session.step(Some(data), &mut out).unwrap();
 
         assert!(state.is_finished());
-        assert!(written.is_none());
+        assert!(!state.has_sent_message());
     }
 
     #[test]
@@ -192,12 +192,12 @@ mod tests {
         let mut out = Cursor::new(Vec::<u8>::new());
 
         let data = b"user=username@host.tld\x01auth=Bearer ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg\x01\x01";
-        let (state, written) = session.step(Some(data), &mut out).unwrap();
+        let state = session.step(Some(data), &mut out).unwrap();
 
         let data = out.into_inner();
 
         assert!(state.is_running());
-        assert_eq!(written, Some(errstr.len()));
+        assert!(state.has_sent_message());
         assert_eq!(&data[..], errstr.as_bytes());
     }
 }

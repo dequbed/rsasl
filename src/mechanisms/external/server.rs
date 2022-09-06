@@ -36,8 +36,7 @@ impl Authentication for External {
 
 #[cfg(test)]
 mod tests {
-    use crate::callback::{Context, Request, SessionCallback, SessionData};
-    use crate::error::SessionError;
+    use crate::callback::{Context, SessionCallback, SessionData};
     use crate::test;
     use crate::validate::{Validate, ValidationError};
     use std::io::Cursor;
@@ -70,10 +69,10 @@ mod tests {
         let mut session = test::server_session(config, &super::super::mechinfo::EXTERNAL);
         let mut out = Cursor::new(Vec::new());
 
-        let (state, written) = session.step(Some(input), &mut out).unwrap();
+        let state = session.step(Some(input), &mut out).unwrap();
 
         assert!(state.is_finished());
-        assert!(written.is_none());
+        assert!(!state.has_sent_message());
     }
 
     #[test]
@@ -109,9 +108,9 @@ mod tests {
         let mut session = test::server_session(config, &super::super::mechinfo::EXTERNAL);
         let mut out = Cursor::new(Vec::new());
 
-        let (state, written) = session.step(None, &mut out).unwrap();
+        let state = session.step(None, &mut out).unwrap();
 
         assert!(state.is_finished());
-        assert!(written.is_none());
+        assert!(!state.has_sent_message());
     }
 }

@@ -1,9 +1,8 @@
-use std::io;
 use rsasl::callback::{Context, Request, SessionCallback, SessionData};
 use rsasl::mechname::Mechname;
-use rsasl::prelude::{SASLClient, SASLServer, State};
+use rsasl::prelude::{SASLClient, SASLServer};
 use rsasl::prelude::{SASLConfig, SessionError};
-use rsasl::property::{AuthId, AuthzId, Password};
+use rsasl::property::{AuthId, AuthzId};
 use rsasl::validate::{Validate, Validation, ValidationError};
 use std::io::Cursor;
 use digest::{Digest, Output};
@@ -63,12 +62,11 @@ impl Validation for TestValidation {
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
 enum AuthError {
     AuthzBad,
-    PasswdBad,
     NoSuchUser,
 }
 
 impl SessionCallback for OurCallback {
-    fn callback(&self, session_data: &SessionData, context: &Context, request: &mut Request) -> Result<(), SessionError> {
+    fn callback(&self, _session_data: &SessionData, context: &Context, request: &mut Request) -> Result<(), SessionError> {
         if let Some("username") = context.get_ref::<AuthId>() {
             request.satisfy::<ScramStoredPassword>(&ScramStoredPassword {
                 iterations: 4096,
@@ -144,7 +142,7 @@ pub fn main() {
 
     while {
         let mut server_out = Cursor::new(Vec::new());
-        let (state, _) = server_session
+        let state = server_session
             .step(Some(client_out.get_ref().as_slice()), &mut server_out)
             .expect("Unexpected error occurred during stepping the session");
 

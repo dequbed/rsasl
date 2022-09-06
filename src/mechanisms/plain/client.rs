@@ -85,7 +85,7 @@ mod tests {
         fn callback(
             &self,
             _session_data: &SessionData,
-            context: &Context,
+            _context: &Context,
             request: &mut Request,
         ) -> Result<(), SessionError> {
             if let Some(authzid) = self.authzid {
@@ -134,10 +134,9 @@ mod tests {
         let mut session = test::client_session(config, &super::super::mechinfo::PLAIN);
         let mut out = Cursor::new(Vec::new());
 
-        let (state, written) = session.step(None, &mut out)?;
+        let state = session.step(None, &mut out)?;
 
         let data = out.into_inner();
-        assert_eq!(written, Some(data.len()));
 
         Ok((state, data))
     }

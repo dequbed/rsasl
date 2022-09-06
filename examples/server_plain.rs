@@ -1,6 +1,6 @@
 use rsasl::callback::{Context, SessionCallback, SessionData};
 use rsasl::mechname::Mechname;
-use rsasl::prelude::SASLServer;
+use rsasl::prelude::{MessageSent, SASLServer};
 use rsasl::prelude::State;
 use rsasl::prelude::{SASLConfig, SessionError};
 use rsasl::property::{AuthId, AuthzId, Password};
@@ -100,7 +100,7 @@ pub fn main() {
             .unwrap();
         let step_result = session.step(Some(b"\0username\0secret"), &mut out);
         print_outcome(&step_result, out.into_inner());
-        assert_eq!(step_result.unwrap(), (State::Finished, None));
+        assert_eq!(step_result.unwrap(), State::Finished(MessageSent::No));
         assert_eq!(session.validation(), Some(Ok(String::from("username"))))
     }
     // Authentication exchange 2
@@ -113,7 +113,7 @@ pub fn main() {
             .unwrap();
         let step_result = session.step(Some(b"\0username\0badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());
-        assert_eq!(step_result.unwrap(), (State::Finished, None));
+        assert_eq!(step_result.unwrap(), State::Finished(MessageSent::No));
         assert_eq!(session.validation(), Some(Err(AuthError::PasswdBad)));
     }
 
@@ -126,7 +126,7 @@ pub fn main() {
             .unwrap();
         let step_result = session.step(Some(b"\0somebody\0somepass"), &mut out);
         print_outcome(&step_result, out.into_inner());
-        assert_eq!(step_result.unwrap(), (State::Finished, None));
+        assert_eq!(step_result.unwrap(), State::Finished(MessageSent::No));
         assert_eq!(session.validation(), Some(Err(AuthError::NoSuchUser)));
     }
 
@@ -139,7 +139,7 @@ pub fn main() {
             .unwrap();
         let step_result = session.step(Some(b"username\0somebody\0badpass"), &mut out);
         print_outcome(&step_result, out.into_inner());
-        assert_eq!(step_result.unwrap(), (State::Finished, None));
+        assert_eq!(step_result.unwrap(), State::Finished(MessageSent::No));
         assert_eq!(session.validation(), Some(Err(AuthError::AuthzBad)));
     }
     // Authentication exchange 2
@@ -156,18 +156,18 @@ pub fn main() {
     }
 }
 
-fn print_outcome(step_result: &Result<(State, Option<usize>), SessionError>, buffer: Vec<u8>) {
+fn print_outcome(step_result: &Result<State, SessionError>, buffer: Vec<u8>) {
     match step_result {
-        Ok((State::Finished, Some(_))) => {
+        Ok(State::Finished(MessageSent::Yes)) => {
             println!(
                 "Authentication finished, bytes to return to client: {:?}",
                 buffer
             );
         }
-        Ok((State::Finished, None)) => {
+        Ok(State::Finished(MessageSent::No)) => {
             println!("Authentication finished, no data to return");
         }
-        Ok((State::Running, _)) => assert!(false, "PLAIN exchange took more than one step"),
+        Ok(State::Running) => assert!(false, "PLAIN exchange took more than one step"),
         Err(e) => println!("Authentication errored: {}", e),
     }
 }

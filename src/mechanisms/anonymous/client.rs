@@ -37,7 +37,7 @@ mod tests {
         fn callback(
             &self,
             _session_data: &SessionData,
-            context: &Context,
+            _context: &Context,
             request: &mut Request,
         ) -> Result<(), SessionError> {
             if let Some(token) = self.token {
@@ -53,10 +53,9 @@ mod tests {
         let mut session = test::client_session(config, &super::super::mechinfo::ANONYMOUS);
         let mut out = Cursor::new(Vec::new());
 
-        let (state, written) = session.step(None, &mut out).unwrap();
+        let state = session.step(None, &mut out).unwrap();
 
         let data = out.into_inner();
-        assert_eq!(written, Some(data.len()));
         assert_eq!(output, &data[..]);
         assert!(state.is_finished());
     }

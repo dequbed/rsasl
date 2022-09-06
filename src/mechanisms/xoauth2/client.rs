@@ -156,10 +156,10 @@ mod tests {
     fn test_xoauth2() {
         let mut session = prepare_session(C::default());
         let mut out = Cursor::new(Vec::new());
-        let (state, written) = session.step(None, &mut out).unwrap();
+        let state = session.step(None, &mut out).unwrap();
         let data = out.into_inner();
         assert!(state.is_running());
-        assert_eq!(Some(data.len()), written);
+        assert!(state.has_sent_message());
         assert_eq!(
             &data[..],
             b"user=username@host.tld\x01auth=Bearer ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg\x01\x01"
@@ -172,14 +172,14 @@ mod tests {
         let mut session = prepare_session(C::default());
 
         let mut out = Cursor::new(Vec::new());
-        let (state, written) = session.step(None, &mut out).unwrap();
+        let state = session.step(None, &mut out).unwrap();
         assert!(state.is_running());
-        assert!(written.is_some());
+        assert!(state.has_sent_message());
 
         // second call to step, with None as input again. This should not error.
-        let (state, written) = session.step(None, &mut out).unwrap();
+        let state = session.step(None, &mut out).unwrap();
         assert!(state.is_finished());
-        assert!(written.is_none());
+        assert!(!state.has_sent_message());
     }
 
     #[test]
@@ -188,14 +188,14 @@ mod tests {
         let mut session = prepare_session(C::default());
 
         let mut out = Cursor::new(Vec::new());
-        let (state, written) = session.step(None, &mut out).unwrap();
+        let state = session.step(None, &mut out).unwrap();
         assert!(state.is_running());
-        assert!(written.is_some());
+        assert!(state.has_sent_message());
 
         // second call to step, with None as input again. This should not error.
-        let (state, written) = session.step(Some(&[]), &mut out).unwrap();
+        let state = session.step(Some(&[]), &mut out).unwrap();
         assert!(state.is_finished());
-        assert!(written.is_none());
+        assert!(!state.has_sent_message());
     }
 
     #[test]
@@ -209,13 +209,13 @@ mod tests {
         });
 
         let mut out = Cursor::new(Vec::new());
-        let (state, written) = session.step(None, &mut out).unwrap();
+        let state = session.step(None, &mut out).unwrap();
         assert!(state.is_running());
-        assert!(written.is_some());
+        assert!(state.has_sent_message());
 
         // second call to step, with None as input again. This should not error.
-        let (state, written) = session.step(Some(error_input), &mut out).unwrap();
+        let state = session.step(Some(error_input), &mut out).unwrap();
         assert!(state.is_finished());
-        assert!(written.is_none());
+        assert!(!state.has_sent_message());
     }
 }

@@ -3,16 +3,14 @@
 //! This client allows testing interoperability between different SASL implementations.
 
 use std::borrow::Cow;
-use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use miette::{Diagnostic, GraphicalReportHandler, IntoDiagnostic, miette, MietteHandler, ReportHandler, WrapErr};
+use miette::{Diagnostic, IntoDiagnostic, miette, MietteHandler, ReportHandler, WrapErr};
 use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
 use rsasl::mechanisms::scram::properties::*;
 use rsasl::prelude::*;
 use rsasl::property::*;
-use rsasl::validate::{NoValidation, Validate, ValidationError};
-use std::io;
-use std::io::{BufRead, BufReader, Cursor, Write};
+use rsasl::validate::{Validate, ValidationError};
+use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
 
@@ -181,7 +179,7 @@ fn handle_client(config: Arc<SASLConfig>, stream: TcpStream) -> miette::Result<(
 
     while {
         let input = input_data.as_deref().map(|s| s.as_bytes());
-        let (state, written) = session.step64(input, &mut buffer)
+        let state = session.step64(input, &mut buffer)
             .map_err(|error| {
                 let error_fmt = format!("ERR {:?}: {}\n", &error, &error);
                 let _  = write_end.write_all(error_fmt.as_bytes());
@@ -190,7 +188,7 @@ fn handle_client(config: Arc<SASLConfig>, stream: TcpStream) -> miette::Result<(
                           .into_diagnostic()
                           .wrap_err("failed to step mechanism")?;
 
-        if written || state.is_running() {
+        if state.has_sent_message() {
             buffer.push(b'\n');
             write_end.write_all(&buffer[..]).expect("failed to write output");
             buffer.clear();
@@ -198,7 +196,7 @@ fn handle_client(config: Arc<SASLConfig>, stream: TcpStream) -> miette::Result<(
 
         state.is_running()
     } {
-        let line = lines.next().ok_or(miette!("Client disconnected!"))?
+        let line = lines.next().ok_or_else(|| miette!("Client disconnected!"))?
             .into_diagnostic()
             .wrap_err("Protocol error: Client must send valid UTF-8 lines")?;
         input_data = Some(Cow::Owned(line))
