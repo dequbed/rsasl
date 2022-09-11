@@ -166,9 +166,9 @@ mod tests {
             type Value = str;
         }
         let value = "hello ";
-        let p = ThisProvider::<TestTag>::with(&value);
+        let p = ThisProvider::<TestTag>::with(value);
         let value2 = "world!";
-        let p2 = ThisProvider::<TestTag>::with(&value2);
+        let p2 = ThisProvider::<TestTag>::with(value2);
         let ctx = build_context(&p);
         assert_eq!(ctx.get_ref::<TestTag>().unwrap(), value);
         let ctx2 = build_context(&p2);

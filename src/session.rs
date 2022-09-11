@@ -423,6 +423,5 @@ mod tests {
     #[test]
     fn session_autoimpl() {
         static_assertions::assert_impl_all!(Session: Send, Sync);
-        assert!(true)
     }
 }

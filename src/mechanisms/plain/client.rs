@@ -19,16 +19,15 @@ impl Authentication for Plain {
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
     ) -> Result<State, SessionError> {
-        session
-            .maybe_need_with::<AuthzId, _, _>(&EmptyProvider, |authzid| {
-                if authzid.contains('\0') {
-                    return Err(SessionError::MechanismError(Box::new(
-                        PlainError::ContainsNull,
-                    )));
-                }
-                writer.write_all(authzid.as_bytes())?;
-                Ok(())
-            })?;
+        session.maybe_need_with::<AuthzId, _, _>(&EmptyProvider, |authzid| {
+            if authzid.contains('\0') {
+                return Err(SessionError::MechanismError(Box::new(
+                    PlainError::ContainsNull,
+                )));
+            }
+            writer.write_all(authzid.as_bytes())?;
+            Ok(())
+        })?;
 
         writer.write_all(&[0])?;
 
@@ -179,7 +178,12 @@ mod tests {
     #[test]
     fn password_as_is() {
         let password = &[0x80, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC, 0xFE, 0xFF];
-        test(None, "a", password, b"\0a\0\x80\xC0\xE0\xF0\xF8\xFC\xFE\xFF");
+        test(
+            None,
+            "a",
+            password,
+            b"\0a\0\x80\xC0\xE0\xF0\xF8\xFC\xFE\xFF",
+        );
     }
 
     #[test]

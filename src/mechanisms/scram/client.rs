@@ -1,6 +1,6 @@
-use crate::alloc::{vec::Vec, string::String};
-use core::fmt::{Display, Formatter};
+use crate::alloc::{string::String, vec::Vec};
 use acid_io::Write;
+use core::fmt::{Display, Formatter};
 use core::marker::PhantomData;
 
 use thiserror::Error;

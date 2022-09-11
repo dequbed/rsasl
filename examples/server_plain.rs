@@ -1,7 +1,7 @@
 use rsasl::callback::{Context, SessionCallback, SessionData};
 use rsasl::mechname::Mechname;
-use rsasl::prelude::{MessageSent, SASLServer};
 use rsasl::prelude::State;
+use rsasl::prelude::{MessageSent, SASLServer};
 use rsasl::prelude::{SASLConfig, SessionError};
 use rsasl::property::{AuthId, AuthzId, Password};
 use rsasl::validate::{Validate, Validation, ValidationError};
@@ -144,7 +144,7 @@ pub fn main() {
     }
     // Authentication exchange 2
     {
-        let sasl = SASLServer::<TestValidation>::new(config.clone());
+        let sasl = SASLServer::<TestValidation>::new(config);
         let mut out = Cursor::new(Vec::new());
         print!("Authenticating to server with malformed data:\n   ");
         let mut session = sasl
@@ -167,7 +167,7 @@ fn print_outcome(step_result: &Result<State, SessionError>, buffer: Vec<u8>) {
         Ok(State::Finished(MessageSent::No)) => {
             println!("Authentication finished, no data to return");
         }
-        Ok(State::Running) => assert!(false, "PLAIN exchange took more than one step"),
+        Ok(State::Running) => panic!("PLAIN exchange took more than one step"),
         Err(e) => println!("Authentication errored: {}", e),
     }
 }

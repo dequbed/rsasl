@@ -4,10 +4,10 @@ use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::{Authentication, MechanismData, State};
 use crate::mechanisms::xoauth2::properties::XOAuth2Validate;
 use crate::property::{AuthId, OAuthBearerToken};
-use core::str::Utf8Error;
-use acid_io::Write;
-use thiserror::Error;
 use crate::session::MessageSent;
+use acid_io::Write;
+use core::str::Utf8Error;
+use thiserror::Error;
 
 #[derive(Debug, Clone, Default)]
 pub struct XOAuth2 {
@@ -94,16 +94,15 @@ impl Authentication for XOAuth2 {
                 let prov = Prov { authid, token };
 
                 // if the mechanism has one step or three depends on if the token is valid or not.
-                let state =
-                    session.need_with::<XOAuth2Validate, _, _>(&prov, |result| {
-                        if let Err(error) = result {
-                            writer.write_all(error.as_bytes())?;
-                            self.state = XOAuth2State::Errored;
-                            Ok(State::Running)
-                        } else {
-                            Ok(State::Finished(MessageSent::No))
-                        }
-                    })?;
+                let state = session.need_with::<XOAuth2Validate, _, _>(&prov, |result| {
+                    if let Err(error) = result {
+                        writer.write_all(error.as_bytes())?;
+                        self.state = XOAuth2State::Errored;
+                        Ok(State::Running)
+                    } else {
+                        Ok(State::Finished(MessageSent::No))
+                    }
+                })?;
 
                 // Let the user callback validate. This must be called no matter what `need_with`
                 // above returned as the callback will likely need to generate an Error for the

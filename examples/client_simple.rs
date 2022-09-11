@@ -22,7 +22,7 @@ pub fn main() {
         println!("error: {}", error);
         return;
     }
-    print!("\n");
+    println!();
 
     // Construct a a config from only the credentials.
     // This takes the authzid, authid/username and password that are to be used.
@@ -50,7 +50,7 @@ pub fn main() {
         State::Finished(MessageSent::Yes) => {
             let buffer = out.into_inner();
             println!("Encoded bytes: {:?}", buffer);
-            println!("As string: {:?}", std::str::from_utf8(&buffer.as_ref()));
+            println!("As string: {:?}", std::str::from_utf8(buffer.as_ref()));
         }
         State::Finished(MessageSent::No) => {
             panic!("PLAIN exchange produced no output")

@@ -1,6 +1,6 @@
-use core::fmt::{Debug, Formatter};
 use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
 use crate::config::SASLConfig;
+use core::fmt::{Debug, Formatter};
 
 use crate::error::SASLError;
 
@@ -185,6 +185,5 @@ mod tests {
     #[test]
     fn test_sasl_autoimpls() {
         static_assertions::assert_impl_all!(Sasl: Send, Sync);
-        assert!(true)
     }
 }

@@ -17,8 +17,7 @@ pub struct PlainProvider<'a> {
 }
 impl<'a> Provider<'a> for PlainProvider<'a> {
     fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
-        req
-            .provide_ref::<AuthId>(self.authcid)?
+        req.provide_ref::<AuthId>(self.authcid)?
             .provide_ref::<Password>(self.password)?
             .provide_ref::<AuthzId>(self.authzid)?
             .done()
@@ -72,7 +71,6 @@ impl Authentication for Plain {
             };
 
             session.validate(&provider)?;
-
         } else {
             if password.is_empty() {
                 return Err(PlainError::Empty.into());

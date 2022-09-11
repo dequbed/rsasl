@@ -3,8 +3,8 @@ use crate::context::ThisProvider;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
 use crate::session::{MechanismData, MessageSent, State};
-use core::str::Utf8Error;
 use acid_io::Write;
+use core::str::Utf8Error;
 use thiserror::Error;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]
@@ -42,6 +42,7 @@ mod tests {
     use crate::validate::{Validate, ValidationError};
     use std::io::Cursor;
 
+    #[derive(Default)]
     struct C<'a> {
         token: &'a str,
     }
@@ -58,11 +59,6 @@ mod tests {
             Ok(())
         }
     }
-    impl Default for C<'static> {
-        fn default() -> Self {
-            Self { token: "" }
-        }
-    }
 
     fn test_token(token: &'static str, input: &[u8]) {
         let config = test::server_config(C { token });
@@ -77,10 +73,7 @@ mod tests {
 
     #[test]
     fn test_successful() {
-        let tokens = [
-            "",
-            "thisisatesttoken",
-        ];
+        let tokens = ["", "thisisatesttoken"];
         for token in tokens {
             test_token(token, token.as_bytes());
         }
@@ -100,10 +93,7 @@ mod tests {
 
     #[test]
     fn test_weird_utf8() {
-        let tokens = [
-            "«küßî»",
-            "“ЌύБЇ”",
-        ];
+        let tokens = ["«küßî»", "“ЌύБЇ”"];
         for token in tokens {
             test_token(token, token.as_bytes());
         }

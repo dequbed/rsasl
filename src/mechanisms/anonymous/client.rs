@@ -1,9 +1,9 @@
+use super::AnonymousToken;
 use crate::context::EmptyProvider;
 use crate::error::SessionError;
 use crate::mechanism::Authentication;
 use crate::session::{MechanismData, MessageSent, State};
 use acid_io::Write;
-use super::AnonymousToken;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Anonymous;
@@ -24,11 +24,11 @@ impl Authentication for Anonymous {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
     use crate::callback::{Context, Request, SessionCallback, SessionData};
     use crate::error::SessionError;
     use crate::mechanisms::anonymous::AnonymousToken;
     use crate::test;
+    use std::io::Cursor;
 
     struct C<'a> {
         token: Option<&'a str>,

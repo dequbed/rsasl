@@ -90,7 +90,7 @@ mod tests {
                     println!("Partial write: {:?}", &buf[0..self.cnt]);
                     self.data.write(&buf[0..self.cnt])?
                 } else {
-                    println!("Complete write: {:?}", &buf[..]);
+                    println!("Complete write: {:?}", buf);
                     self.data.write(buf)?
                 };
                 self.cnt = self.cnt.saturating_sub(wrt);

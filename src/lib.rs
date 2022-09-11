@@ -301,8 +301,8 @@ pub mod prelude {
     pub use crate::config::SASLConfig;
     pub use crate::mechname::Mechname;
     pub use crate::property::Property;
-    pub use crate::registry::Registry;
-    pub use crate::session::{State, MessageSent};
+    pub use crate::registry::{Mechanism, Registry};
+    pub use crate::session::{MessageSent, State};
     pub use crate::validate::Validation;
 
     #[cfg(feature = "provider")]

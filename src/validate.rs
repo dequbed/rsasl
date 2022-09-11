@@ -14,6 +14,8 @@
 //! visible to the user providing the callback.
 //!
 //! ```
+//! # #[cfg(not(miri))]
+//! # {
 //! # use std::convert::Infallible;
 //! use std::sync::Arc;
 //! use rsasl::prelude::*;
@@ -40,6 +42,7 @@
 //!     // `Option<MyDataType>`
 //!     let my_data_type: MyDataType = session.validation().expect("user callback didn't validate");
 //! }
+//! # }
 //! ```
 
 use crate::alloc::boxed::Box;

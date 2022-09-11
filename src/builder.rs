@@ -1,10 +1,10 @@
+use crate::alloc::sync::Arc;
 use crate::callback::SessionCallback;
 use crate::config::{SASLConfig, SorterFn};
 use crate::error::SASLError;
 use crate::registry::{Mechanism, Registry};
 use core::cmp::Ordering;
 use core::fmt::{Debug, Formatter};
-use crate::alloc::sync::Arc;
 
 #[derive(Clone)]
 /// Type-checking, complete and linker-friendly builder for [`SASLConfig`](crate::config::SASLConfig)
@@ -16,6 +16,8 @@ use crate::alloc::sync::Arc;
 ///
 /// Examples:
 /// ```
+/// # #[cfg(not(miri))]
+/// # {
 /// # use std::sync::Arc;
 /// # use rsasl::callback::SessionCallback;
 /// # struct Callback;
@@ -29,11 +31,14 @@ use crate::alloc::sync::Arc;
 ///     .with_defaults()
 ///     .with_callback(Callback::new())
 ///     .unwrap();
+/// # }
 /// ```
 ///
 /// Which can be shortened to:
 ///
 /// ```
+/// # #[cfg(not(miri))]
+/// # {
 /// # use std::sync::Arc;
 /// # use rsasl::callback::SessionCallback;
 /// # struct Callback;
@@ -46,6 +51,7 @@ use crate::alloc::sync::Arc;
 ///     .with_defaults()
 ///     .with_callback(Callback::new())
 ///     .unwrap();
+/// # }
 /// ```
 ///
 /// If explicit control over the mechanisms that need to be available is required `with_registry`
@@ -54,7 +60,7 @@ use crate::alloc::sync::Arc;
 /// ```
 /// # use std::sync::Arc;
 /// # use rsasl::callback::SessionCallback;
-/// # use rsasl::registry::{Mechanism, Registry};
+/// # use rsasl::prelude::{Mechanism, Registry};
 /// # struct Callback;
 /// # impl SessionCallback for Callback {}
 /// # impl Callback {

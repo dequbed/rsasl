@@ -26,11 +26,11 @@ impl Authentication for External {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
     use crate::callback::{Context, Request, SessionCallback, SessionData};
     use crate::error::SessionError;
     use crate::property::AuthzId;
     use crate::test;
+    use std::io::Cursor;
 
     struct C<'a> {
         authzid: Option<&'a str>,

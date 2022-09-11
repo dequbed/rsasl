@@ -1,6 +1,6 @@
-use core::str::Utf8Error;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
+use core::str::Utf8Error;
 use thiserror::Error;
 
 use crate::context::ThisProvider;
@@ -37,11 +37,12 @@ impl Authentication for External {
 #[cfg(test)]
 mod tests {
     use crate::callback::{Context, SessionCallback, SessionData};
+    use crate::property::AuthzId;
     use crate::test;
     use crate::validate::{Validate, ValidationError};
     use std::io::Cursor;
-    use crate::property::AuthzId;
 
+    #[derive(Default)]
     struct C<'a> {
         authzid: &'a str,
     }
@@ -56,11 +57,6 @@ mod tests {
             println!("expected: {:?} provided: {:?}", self.authzid, authzid);
             assert_eq!(authzid, self.authzid);
             Ok(())
-        }
-    }
-    impl Default for C<'static> {
-        fn default() -> Self {
-            Self { authzid: "" }
         }
     }
 

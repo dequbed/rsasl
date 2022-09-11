@@ -1,5 +1,5 @@
+use crate::alloc::{borrow::Cow, string::String, vec::Vec};
 use crate::error::{MechanismError, MechanismErrorKind};
-use crate::alloc::{string::String, vec::Vec, borrow::Cow};
 use core::fmt::{Display, Formatter};
 use core::str::Utf8Error;
 use thiserror::Error;

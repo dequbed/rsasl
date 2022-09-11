@@ -4,10 +4,10 @@ use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::{Authentication, MechanismData, State};
 use crate::mechanisms::xoauth2::properties::XOAuth2Error;
 use crate::property::{AuthId, OAuthBearerToken};
+use crate::session::MessageSent;
 use crate::vectored_io::VectoredWriter;
 use acid_io::Write;
 use thiserror::Error;
-use crate::session::MessageSent;
 
 #[derive(Debug, Default)]
 pub struct XOAuth2 {

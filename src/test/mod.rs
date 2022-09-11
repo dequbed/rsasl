@@ -11,9 +11,9 @@ use crate::config::SASLConfig;
 use crate::registry::Mechanism;
 use crate::sasl::Sasl;
 use crate::session::{Session, Side};
+use crate::typed::Tagged;
 pub use config::{client_config, server_config, EmptyCallback};
 use std::sync::Arc;
-use crate::typed::Tagged;
 
 pub fn client_session(config: Arc<SASLConfig>, mechanism: &Mechanism) -> Session {
     let mech = mechanism
