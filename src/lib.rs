@@ -203,7 +203,6 @@
 //! may lead to a situation where users can't use any mechanisms since they only depend on
 //! rsasl via a transient dependency that has no mechanism features enabled.
 //!
-// TODO: How to handle EXTERNAL?
 // TODO:
 //     Bonus minus points: sasl.wrap(data) and sasl.unwrap(data) for security layers. Prefer to
 //     not and instead do TLS. Needs better explanation I fear.
@@ -238,10 +237,6 @@
 //! mechanisms in `COMMON` use that are implemented by rsasl. See the module documentation for
 //! [`mechanisms`] for further details on how to en-/disable mechanisms.
 //!
-// TODO:
-//     - Static vs Dynamic Registry
-//     - Enable/Disable mechanisms at runtime
-//     - Explicit dependency because feature unification
 //!
 //! # Custom Mechanisms
 //!
@@ -260,7 +255,7 @@
 // Mark rsasl `no_std` if the `std` feature flag is not enabled.
 #![cfg_attr(not(any(feature = "std", test)), no_std)]
 #[cfg(not(any(feature = "std", test)))]
-extern crate alloc;
+compile_error!("rsasl can't be compiled without the std feature at the moment, sorry");
 #[cfg(any(feature = "std", test))]
 extern crate std as alloc;
 
