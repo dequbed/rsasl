@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - development
+
+env:
+  RUSTFLAGS: -Dwarnings
+  RUST_BACKTRACE: full
+
+jobs:
+  rustfmt:
+    name: rustfmt / stable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+
+  clippy:
+    name: clippy / stable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: cargo clippy --all-features --all-targets --tests -- -Dwarnings
+
+  check:
+    name: check / stable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Setup dependency cache
+        uses: Swatinem/rust-cache@v2
+      - name: install cargo-hack
+        run: cargo install cargo-hack
+      - run: cargo hack check --each-feature --features=std
+
+  test:
+    name: test / ${{matrix.rust}}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: [ beta, stable ]
+        include:
+          - rust: nightly
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{matrix.rust}}
+      - run: cargo test --all
+        env:
+          RUSTFLAGS: ${{matrix.rustflags}} ${{env.RUSTFLAGS}}
+
+  miri:
+    name: miri / stable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@miri
+      - run: cargo miri test --all --all-features
+        env:
+          MIRIFLAGS: -Zmiri-strict-provenance
+
+  msrv:
+    name: Rust 1.56.0
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@1.56.0
+        with:
+          components: rust-src
+      - run: cargo check
