@@ -1,8 +1,6 @@
 use core::any::type_name;
 use core::fmt;
 
-use crate::alloc::boxed::Box;
-
 use crate::callback::{Action, CallbackError, ClosureCR, Request, Satisfy, SessionCallback};
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::context::{build_context, Provider, ProviderExt, ThisProvider};
@@ -21,6 +19,7 @@ pub enum Side {
 #[cfg(any(feature = "provider", feature = "testutils", test))]
 mod provider {
     use super::*;
+    use crate::alloc::boxed::Box;
     use crate::channel_bindings::NoChannelBindings;
     use crate::mechanism::Authentication;
     use crate::mechname::Mechname;
