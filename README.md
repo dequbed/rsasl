@@ -66,7 +66,7 @@ Version 2 and later of this library are dual licensed under both [Apache-2.0](LI
 
 # Examples
 
-You can find a few examples on [GitHub](examples/).
+You can find a few examples on [GitHub](https://github.com/dequbed/rsasl/tree/main/examples).
 
 [Latest Version]: https://img.shields.io/crates/v/rsasl.svg
 [crates.io]: https://crates.io/crates/rsasl
