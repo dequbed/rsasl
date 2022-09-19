@@ -56,9 +56,8 @@ Major version 1 of this crate uses [gsasl-sys](https://crates.io/crates/gsasl-sy
 to [GNU gsasl](https://www.gnu.org/software/gsasl). This makes the use of `unsafe` code and FFI necessary.
 You can find the latest 1.X.Y version in the [branch `1.X.X`](https://github.com/dequbed/rsasl/tree/1.X.X)
 
-Version `2.0.0-preview` is a pure-Rust rewrite using sources transpiled using [c2rust](https://github.com/immunant/c2rust).
-Keep in mind that despite being Rust this code is as least as unsafe as the original C code. Most of this unsafe 
-code will be removed before the first non-preview `2.0.0` release.
+Version `2.0.0` is a pure-Rust rewrite of this crate that is able to drop almost all `unsafe` code from the crate. 
+It is currently in a release-candidate testing phase as `2.0.0-rc.X` to ensure the API is usable as is. 
 
 # License
 
