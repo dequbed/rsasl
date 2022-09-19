@@ -18,7 +18,7 @@ license = "Apache-2.0 OR MIT"
 keywords = ["sasl", "authentication", "sso", "framework", "middleware"]
 categories = ["authentication", "api-bindings", "network-programming"]
 
-# Manually list files to include; out-of-tree integration tests and testing binaries that arent useful when
+# Manually list files to include; excluding out-of-tree integration tests and testing binaries that arent useful when
 # rsasl is only used as a dependency.
 include = ["Cargo.toml", "/src/", "README.md", "CHANGELOG.md", "LICENSE.MIT", "LICENSE.APACHE-2.0", "/docs/", "/tests/", "/examples/"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -32,7 +32,7 @@ default = [
     "xoauth2", "plain", "login",
 ]
 
-#! ## Compile-time mechanism selection
+#! # Compile-time mechanism selection
 ## Enable `SCRAM-SHA-1` and `SCRAM-SHA-1-PLUS`
 scram-sha-1 = ["std", "saslprep", "hmac", "digest", "sha-1", "base64", "rand", "pbkdf2"]
 ## Enable `SCRAM-*` and `SCRAM-*-PLUS` mechanisms using `SHA-2`, i.e. `SHA-256` and `SHA-512`
@@ -48,7 +48,7 @@ login = ["std"]
 ## Enable `XOAUTH2`
 xoauth2 = ["std"]
 
-#! ## Provider flags
+#! # Provider flags
 #! These flags are relevant for crates that want to use rsasl as authentication provider, i.e. crates implementing
 #! network protocols
 
@@ -61,7 +61,7 @@ provider = ["std"]
 ## This enables the `step64` method to wrap a call to `step` in base64-encoding. Adds a dependency on the `base64` crate
 provider_base64 = ["std", "provider", "base64"]
 
-#! ## Supplier flags
+#! # Supplier flags
 #! These flags are relevant for crates that want to use rsasl as supplier, i.e. applications and libraries making use
 #! of protocol implementations with rsasl support
 ## Enable the ConfigBuilder
@@ -70,7 +70,7 @@ config_builder = ["std"]
 ## Enables the static registry using `linkme`
 registry_static = ["std", "linkme"]
 
-#! ## Misc flags
+#! # Misc flags
 #! Other miscellanious flags
 
 ## Enable utilities for testing authentication and SASL handling
@@ -79,12 +79,13 @@ testutils = ["std", "config_builder"]
 ## Enable adding custom mechanisms.
 ##
 ## **NOTE: This flag indicates an opt-out of SemVer stability guarantees**
+##
 ## The code for adding mechanism from other crates has not stabilized yet and is subject to *breaking* changes even in
 ## a minor release.
 unstable_custom_mechanism = ["std"]
 
 ## Enable use of libstd
-## If this flag is not set, rsasl is marked ![no_std]. However, currently this flag will *always* be enabled as core
+## If this flag is not set, rsasl is marked !\[no_std\]. However, currently this flag will *always* be enabled as core
 ## parts of rsasl depend on the stdlib.
 std = ["acid_io/std"]
 
@@ -111,8 +112,13 @@ stringprep = { version = "0.1", optional = true }
 
 linkme = { version = "0.2", optional = true }
 
+document-features = { version = "0.2.5", optional = true }
+
 [dev-dependencies]
 static_assertions = "1.1.0"
+
+[package.metadata.docs.rs]
+all-features = true
 
 [[example]]
 name = "client_simple"
