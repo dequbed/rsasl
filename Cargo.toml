@@ -34,15 +34,15 @@ default = [
 
 #! # Compile-time mechanism selection
 ## Enable `SCRAM-SHA-1` and `SCRAM-SHA-1-PLUS`
-scram-sha-1 = ["std", "saslprep", "hmac", "digest", "sha-1", "base64", "rand", "pbkdf2"]
+scram-sha-1 = ["std", "stringprep", "hmac", "digest", "sha-1", "base64", "rand", "pbkdf2"]
 ## Enable `SCRAM-*` and `SCRAM-*-PLUS` mechanisms using `SHA-2`, i.e. `SHA-256` and `SHA-512`
-scram-sha-2 = ["std", "saslprep", "hmac", "digest", "sha2", "base64", "rand", "pbkdf2"]
+scram-sha-2 = ["std", "stringprep", "hmac", "digest", "sha2", "base64", "rand", "pbkdf2"]
 ## Enable `ANONYMOUS`
 anonymous = ["std"]
 ## Enable `EXTERNAL`
 external = ["std"]
 ## Enable `PLAIN`
-plain = ["std", "saslprep"]
+plain = ["std", "stringprep"]
 ## Enable `LOGIN`
 login = ["std"]
 ## Enable `XOAUTH2`
@@ -88,9 +88,6 @@ unstable_custom_mechanism = ["std"]
 ## If this flag is not set, rsasl is marked !\[no_std\]. However, currently this flag will *always* be enabled as core
 ## parts of rsasl depend on the stdlib.
 std = ["acid_io/std"]
-
-## Dependency flag, shouldn't be set explicitly
-saslprep = ["std", "stringprep"]
 
 [dependencies]
 thiserror = "1.0"
