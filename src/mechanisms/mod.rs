@@ -168,3 +168,15 @@ pub mod xoauth2 {
     mod server;
     pub use mechinfo::*;
 }
+
+#[cfg(feature = "oauthbearer")]
+pub mod oauthbearer {
+    #[cfg(doc)]
+    use crate::property::*;
+
+    mod client;
+    mod mechinfo;
+    mod parser;
+    mod server;
+    pub use mechinfo::*;
+}

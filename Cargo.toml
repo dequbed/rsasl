@@ -47,6 +47,8 @@ plain = ["std", "stringprep"]
 login = ["std"]
 ## Enable `XOAUTH2`
 xoauth2 = ["std"]
+## Enable the OAuth2 based `OAUTHBEARER`
+oauthbearer = ["std"]
 
 #! # Provider flags
 #! These flags are relevant for crates that want to use rsasl as authentication provider, i.e. crates implementing
