@@ -23,6 +23,7 @@ release. They will however *never* happen in a patch release.
   This will make moving towards a `#[no_std]`-enabled version of rsasl easier, as the move of `std::io` into `core` 
   is still somewhat far off. All types implementing `std::io::Write` also automatically implement `acid_io::Write`, 
   so no changes to downstream code should be necessary.
+- An `OAUTHBEARER` mechanism implementation
 
 ## Changed
 - Finished the changes started in `-preview12` and `-rc.1`; instead of `Session::step` and `Session::step64` 
@@ -30,6 +31,17 @@ release. They will however *never* happen in a patch release.
   This means the previous (potentially wrong!) "message size" is now not returned anymore. Clients that must know 
   the exact length of output written (e.g. because the surrounding protocol includes length values, or they need to 
   special-case zero-length messages) should use a length-tracking writer.
+
+  To move to the new version, instead of e.g. the following:
+  ```rust
+  let (state, written) = session.step(input, &mut output)?;
+  ```
+  code must now use
+  ```rust
+  let state = session.step(input, &mut output)?;
+  let written = state.has_sent_message();
+  ```
+  for the same effect.
 
 ## Fixed
 - The client-side XOAUTH2 implementation now correctly indicates a final (empty) message to be sent when an error 

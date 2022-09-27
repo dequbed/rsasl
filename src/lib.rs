@@ -258,6 +258,7 @@
 compile_error!("rsasl can't be compiled without the std feature at the moment, sorry");
 #[cfg(any(feature = "std", test))]
 extern crate std as alloc;
+extern crate core;
 
 // none of these should be necessary for a provider to compile
 #[cfg(feature = "config_builder")]
@@ -336,11 +337,10 @@ pub mod docs {
         #![doc = include_str!("../CHANGELOG.md")]
     }
 
-    /*
+    #[cfg(feature = "document-features")]
     pub mod features {
         //! primer on the use of cargo features in rsasl
         //!
         #![doc = document_features::document_features!()]
     }
-     */
 }
