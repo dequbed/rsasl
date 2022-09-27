@@ -14,7 +14,7 @@ use super::{client, server};
 pub static GSSAPI: Mechanism = Mechanism {
     mechanism: Mechname::const_new(b"GSSAPI"),
     priority: 300,
-    client: None,
+    client: Some(|_sasl, _offered| Ok(Box::new(client::Gssapi::default()))),
     server: None,
     first: Side::Client,
 };
