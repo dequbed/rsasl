@@ -50,6 +50,9 @@ xoauth2 = ["std"]
 ## Enable the OAuth2 based `OAUTHBEARER`
 oauthbearer = ["std", "serde", "serde_json"]
 
+## Enable the KerberosV5 mechanism `GSSAPI`
+gssapi = ["std", "libgssapi"]
+
 #! # Provider flags
 #! These flags are relevant for crates that want to use rsasl as authentication provider, i.e. crates implementing
 #! network protocols
@@ -115,6 +118,8 @@ document-features = { version = "0.2.5", optional = true }
 
 serde = { version = "1", optional = true, default_features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1", optional = true, default_features = false, features = ["alloc"] }
+
+libgssapi = { version = "0.6", optional = true }
 
 [dev-dependencies]
 static_assertions = "1.1.0"
