@@ -2,7 +2,7 @@ use alloc::io::Write;
 use crate::context::{Demand, DemandReply, Provider};
 use crate::error::SessionError;
 use crate::mechanism::{Authentication, MechanismData, State};
-use crate::mechanisms::oauthbearer::properties::{OAuthBearerError, OAuthBearerValidate};
+use crate::mechanisms::oauthbearer::properties::{Error, OAuthBearerValidate};
 use crate::mechanisms::oauthbearer::parser::OAuthBearerMsg;
 use crate::property::{AuthzId, OAuthBearerToken, OAuthBearerKV};
 use crate::session::MessageSent;
@@ -31,7 +31,7 @@ impl Authentication for OAuthBearer {
 
                 let OAuthBearerMsg {
                     authzid, token, fields
-                } = OAuthBearerMsg::parse(input).map_err(OAuthBearerError::Parse)?;
+                } = OAuthBearerMsg::parse(input).map_err(Error::Parse)?;
 
                 struct Prov<'a> {
                     pub authzid: Option<&'a str>,
@@ -53,7 +53,7 @@ impl Authentication for OAuthBearer {
 
                 let state = session.need_with::<OAuthBearerValidate, _, _>(&prov, |result| {
                     if let Err(error) = result {
-                        serde_json::to_writer(writer, error).map_err(OAuthBearerError::Serialize)?;
+                        serde_json::to_writer(writer, error).map_err(Error::Serde)?;
                         self.state = OAuthBearerState::Errored;
                         Ok(State::Running)
                     } else {
@@ -81,12 +81,12 @@ mod tests {
     use crate::session::{Session, SessionData};
     use crate::test;
     use std::io::Cursor;
-    use crate::mechanisms::oauthbearer::properties::OAuthBearerValidateError;
+    use crate::mechanisms::oauthbearer::properties::OAuthBearerError;
 
     struct C<'a> {
         authzid: &'a str,
         token: &'a str,
-        result: Result<(), OAuthBearerValidateError<'a>>,
+        result: Result<(), OAuthBearerError<'a>>,
     }
 
     impl SessionCallback for C<'_> {
@@ -138,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_errored() {
-        let err = OAuthBearerValidateError {
+        let err = OAuthBearerError {
             status: "invalid_token",
             scope: None,
             openid_config: None
@@ -157,7 +157,7 @@ mod tests {
 
         assert!(state.is_running());
         assert!(state.has_sent_message());
-        let err_parsed: OAuthBearerValidateError = serde_json::from_slice(&data).unwrap();
+        let err_parsed: OAuthBearerError = serde_json::from_slice(&data).unwrap();
         assert_eq!(err, err_parsed);
     }
 }

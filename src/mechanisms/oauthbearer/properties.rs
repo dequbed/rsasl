@@ -4,20 +4,20 @@ use crate::property::SizedProperty;
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Error)]
-pub enum OAuthBearerError {
+pub enum Error {
     #[error("failed to parse message")]
     Parse(#[source] #[from] super::parser::ParseError),
     #[error("failed to serialize error message")]
-    Serialize(#[source] #[from] serde_json::Error),
+    Serde(#[source] #[from] serde_json::Error),
 }
-impl MechanismError for OAuthBearerError {
+impl MechanismError for Error {
     fn kind(&self) -> MechanismErrorKind {
         MechanismErrorKind::Parse
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct OAuthBearerValidateError<'a> {
+pub struct OAuthBearerError<'a> {
     /// Authorization error code
     ///
     /// Valid error codes are defined in the
@@ -58,5 +58,10 @@ pub struct OAuthBearerValidateError<'a> {
 
 pub struct OAuthBearerValidate;
 impl<'a> SizedProperty<'a> for OAuthBearerValidate {
-    type Value = Result<(), OAuthBearerValidateError<'a>>;
+    type Value = Result<(), OAuthBearerError<'a>>;
+}
+
+pub struct OAuthBearerErrored;
+impl<'a> SizedProperty<'a> for OAuthBearerErrored {
+    type Value = OAuthBearerError<'a>;
 }

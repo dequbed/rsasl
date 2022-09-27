@@ -78,25 +78,4 @@ impl<'a> OAuthBearerMsg<'a> {
             Err(ParseError::MissingEnd)
         }
     }
-
-    pub fn write_into(&self, w: &mut impl Write) -> acid_io::Result<()> {
-        w.write_all(b"n,")?;
-        if let Some(authzid) = self.authzid {
-            w.write_all(b"a=")?;
-            w.write_all(authzid.as_bytes())?;
-        }
-        w.write_all(b",")?;
-
-        for (k,v) in self.fields.iter() {
-            w.write_all(b"\x01")?;
-            w.write_all(k.as_bytes())?;
-            w.write_all(b"=")?;
-            w.write_all(v.as_bytes())?;
-        }
-        w.write_all(b"\x01auth=")?;
-        w.write_all(self.token.as_bytes())?;
-
-        w.write_all(b"\x01\x01")?;
-        Ok(())
-    }
 }
