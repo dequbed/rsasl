@@ -7,6 +7,8 @@ use crate::property::SizedProperty;
 pub enum Error {
     #[error("GSS-API error")]
     Gss(#[source] #[from] libgssapi::error::Error),
+    #[error("final token is invalid")]
+    BadFinalToken,
 }
 
 impl MechanismError for Error {

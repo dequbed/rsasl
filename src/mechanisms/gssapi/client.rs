@@ -19,6 +19,7 @@ pub struct Gssapi {
 enum GssapiState {
     Initial,
     Pending(ClientCtx),
+    Last(ClientCtx),
     Completed(ClientCtx, bool),
     Errored,
 }
@@ -34,6 +35,7 @@ impl fmt::Debug for GssapiState {
         match self {
             Self::Initial => f.write_str("Initial"),
             Self::Pending(..) => f.write_str("Pending"),
+            Self::Last(..) => f.write_str("Last"),
             Self::Completed(..) => f.write_str("Completed"),
             Self::Errored => f.write_str("Errored")
         }
@@ -52,13 +54,11 @@ impl Authentication for Gssapi {
                 })?;
                 let target = Name::new(targ_name.as_bytes(), Some(&GSS_NT_HOSTBASED_SERVICE))
                     .map_err(Error::Gss)?;
-                let mut flags = CtxFlags::GSS_C_INTEG_FLAG;
+                let mut flags = CtxFlags::GSS_C_INTEG_FLAG | CtxFlags::GSS_C_MUTUAL_FLAG;
                 session.maybe_need_with::<GssSecurityLayer, _, _>(&EmptyProvider, |seclayer| if *seclayer {
                     // set mutual authentication, sequence numbering and confidential flags when a
                     // security layer is to be installed.
-                    flags |= CtxFlags::GSS_C_MUTUAL_FLAG
-                        | CtxFlags::GSS_C_SEQUENCE_FLAG
-                        | CtxFlags::GSS_C_CONF_FLAG;
+                    flags |= CtxFlags::GSS_C_SEQUENCE_FLAG | CtxFlags::GSS_C_CONF_FLAG;
                     Ok(())
                 } else { Ok(()) })?;
                 let mut krb5 = OidSet::new().map_err(Error::Gss)?;
@@ -72,15 +72,36 @@ impl Authentication for Gssapi {
             },
             GssapiState::Pending(mut ctx) => {
                 if let Some(token) = ctx.step(input, None).map_err(Error::Gss)? {
-                    writer.write_all(&token)?;
-                    self.state = GssapiState::Pending(ctx);
-                    Ok(State::Running)
-                } else {
-                    let has_security_layer = ctx.open().map_err(Error::Gss)?;
-                    self.state = GssapiState::Completed(ctx, has_security_layer);
-                    Ok(State::Finished(MessageSent::No))
+                    if !token.is_empty() {
+                        writer.write_all(&token)?;
+                    }
                 }
+                if ctx.is_complete() {
+                    self.state = GssapiState::Last(ctx);
+                } else {
+                    self.state = GssapiState::Pending(ctx);
+                }
+
+                Ok(State::Running)
             },
+            GssapiState::Last(mut ctx) => {
+                let input = input.ok_or(SessionError::InputDataRequired)?;
+                let unwrapped = ctx.unwrap(input).map_err(Error::Gss)?;
+                if unwrapped.len() != 4 {
+                    Err(Error::BadFinalToken)?;
+                }
+                let bitmask = unwrapped[0];
+                let len1 = unwrapped[1];
+                let len2 = unwrapped[2];
+                let len3 = unwrapped[3];
+                let max_body = u32::from_be_bytes([0,len1,len2,len3]);
+
+                let response = 0u32.to_be_bytes();
+                let wrapped = ctx.wrap(false, &response).map_err(Error::Gss)?;
+                writer.write_all(&wrapped)?;
+                self.state = GssapiState::Completed(ctx, bitmask != 0);
+                Ok(State::Finished(MessageSent::Yes))
+            }
             GssapiState::Completed(..) | GssapiState::Errored => {
                 Err(SessionError::MechanismDone)
             }
