@@ -34,7 +34,7 @@ impl<'a, P: SizedProperty<'a>> Property<'a> for P {
 
 pub use properties::*;
 mod properties {
-    use super::*;
+    use super::Property;
 
     #[derive(Debug)]
     /// The username to authenticate with
@@ -47,6 +47,7 @@ mod properties {
     /// server would first verify if "secret" is Bobs password. If so, it would then create a session
     /// as if *Alice* has logged in with her password, letting Bob act on her behalf. (Given of
     /// course that Bob has the required permission to do so)
+    #[non_exhaustive]
     pub struct AuthId;
     impl Property<'_> for AuthId {
         type Value = str;
@@ -62,69 +63,86 @@ mod properties {
     /// server would first verify if "secret" is Bobs password. If so, it would then create a session
     /// as if *Alice* has logged in with her password, letting Bob act on her behalf. (Given of
     /// course that Bob has the required permission to do so)
+    #[non_exhaustive]
     pub struct AuthzId;
     impl Property<'_> for AuthzId {
         type Value = str;
     }
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct OpenID20AuthenticateInBrowser;
     impl Property<'_> for OpenID20AuthenticateInBrowser {
         type Value = str;
     }
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct Saml20AuthenticateInBrowser;
     impl Property<'_> for Saml20AuthenticateInBrowser {
         type Value = str;
     }
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct OpenID20OutcomeData;
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct OpenID20RedirectUrl;
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct SAML20RedirectUrl;
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct SAML20IDPIdentifier;
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct Qop;
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct Qops;
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct DigestMD5HashedPassword;
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct Realm;
     impl Property<'_> for Realm {
         type Value = str;
     }
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct Pin;
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct SuggestedPin;
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct Passcode;
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct GssapiDisplayName;
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct Hostname;
     impl Property<'_> for Hostname {
         type Value = str;
     }
 
     #[derive(Debug)]
+    #[non_exhaustive]
     pub struct Service;
     impl Property<'_> for Service {
         type Value = str;
@@ -135,6 +153,7 @@ mod properties {
     ///
     /// Additional constraints may be put on this property by some mechanisms, refer to their
     /// documentation for further details.
+    #[non_exhaustive]
     pub struct Password;
     impl Property<'_> for Password {
         type Value = [u8];
@@ -144,6 +163,7 @@ mod properties {
     /// An OAuth 2.0 Bearer token
     ///
     /// The token is required to be [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) format.
+    #[non_exhaustive]
     pub struct OAuthBearerToken;
     impl Property<'_> for OAuthBearerToken {
         type Value = str;
@@ -156,6 +176,7 @@ mod properties {
     /// authentication to the encrypted transport layer (e.g. TLS or IPsec), usually indicated by the
     /// mechanism name ending in `-PLUS`. Since this channel binding data may be only be available to
     /// the protocol crate it will be requested from both the protocol crate and the user callback.
+    #[non_exhaustive]
     pub struct ChannelBindings;
     impl Property<'_> for ChannelBindings {
         type Value = [u8];
@@ -163,6 +184,7 @@ mod properties {
 
     #[derive(Debug)]
     /// Name of the channel bindings used
+    #[non_exhaustive]
     pub struct ChannelBindingName;
     impl Property<'_> for ChannelBindingName {
         type Value = str;
@@ -179,6 +201,7 @@ mod properties {
     /// [`ChannelBindings`] property from both the protocol crate and the user callback.
     ///
     /// Refer to the documentation of the [`ChannelBindings`] property for further information.
+    #[non_exhaustive]
     pub struct OverrideCBType;
     impl Property<'_> for OverrideCBType {
         type Value = str;

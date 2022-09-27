@@ -427,7 +427,7 @@ impl<D: Digest + BlockSizeUser> WaitingServerFinal<D> {
                     };
 
                     // `let _` because the client doesn't have to save the generated keys
-                    let _ = session.action::<ScramCachedPassword>(
+                    let _unused = session.action::<ScramCachedPassword>(
                         &prov,
                         &ScramCachedPassword {
                             client_key: self.client_key.as_slice(),
@@ -456,7 +456,7 @@ where
         input: Option<&[u8]>,
         writer: &mut dyn Write,
     ) -> Result<State, SessionError> {
-        use ScramClientState::*;
+        use ScramClientState::{ClientFirst, Initial, ServerFirst};
         match self.state.take() {
             Some(Initial(state)) => {
                 let mut rng = rand::thread_rng();

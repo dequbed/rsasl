@@ -73,7 +73,7 @@ impl<'a> dyn Erased<'a> {
     #[inline]
     pub(crate) fn downcast_mut<'p, T: tags::Type<'p>>(&mut self) -> Option<&mut Tagged<'p, T>> {
         if self.is::<T>() {
-            Some(unsafe { &mut *(self as *mut Self as *mut Tagged<'p, T>) })
+            Some(unsafe { &mut *(self as *mut Self).cast::<Tagged<T>>() })
         } else {
             None
         }

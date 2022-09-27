@@ -44,6 +44,7 @@ impl SessionCallback for EnvCallback {
             if let Some(ScramCachedPassword {
                 client_key,
                 server_key,
+                ..
             }) = request.get_action::<ScramCachedPassword>()
             {
                 let salt = context.get_ref::<Salt>().unwrap();
@@ -109,7 +110,7 @@ pub fn main() -> miette::Result<()> {
         )
         .get_matches();
 
-    if let Some(listen) = matches.get_one::<url::Url>("listen") {}
+    if let Some(_listen) = matches.get_one::<url::Url>("listen") {}
 
     let mech = std::env::var("RSASL_MECH")
         .into_diagnostic()

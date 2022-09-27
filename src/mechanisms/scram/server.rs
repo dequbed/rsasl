@@ -203,7 +203,7 @@ impl<const N: usize> WaitingClientFirst<N> {
                 server_nonce,
                 gs2_header,
                 authid.to_string(),
-                authzid.map(|s| s.to_string()),
+                authzid.map(ToString::to_string),
                 salt,
                 iterations,
                 stored_key,
@@ -344,9 +344,7 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
 
                         let calculated_stored_key = D::digest(client_key);
 
-                        if stored_key != calculated_stored_key {
-                            ServerFinal::Error(ServerErrorValue::InvalidProof)
-                        } else {
+                        if stored_key == calculated_stored_key {
                             let encoded = base64::encode(server_signature);
                             let msg = ServerFinal::Verifier(encoded.as_bytes());
                             let mut vecw = VectoredWriter::new(msg.to_ioslices());
@@ -360,6 +358,8 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
 
                             return Ok(());
                         }
+
+                        ServerFinal::Error(ServerErrorValue::InvalidProof)
                     }
                 } else {
                     ServerFinal::Error(ServerErrorValue::InvalidProof)
@@ -429,7 +429,7 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> Authentication for
         input: Option<&[u8]>,
         writer: &mut dyn Write,
     ) -> Result<State, SessionError> {
-        use ScramServerState::*;
+        use ScramServerState::{Finished, WaitingClientFinal, WaitingClientFirst};
         match self.state.take() {
             Some(WaitingClientFirst(state)) => {
                 let client_first = input.ok_or(SessionError::InputDataRequired)?;

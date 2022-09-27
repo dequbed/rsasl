@@ -146,6 +146,7 @@ mod config {
     #[cfg(feature = "config_builder")]
     impl Registry {
         #[inline(always)]
+        #[must_use]
         /// Construct a registry with the given set of mechanisms, overwriting the default set.
         pub fn with_mechanisms(mechanisms: &'static [Mechanism]) -> Self {
             Self {

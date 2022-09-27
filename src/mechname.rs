@@ -159,6 +159,7 @@ const fn is_valid(byte: u8) -> bool {
 }
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Error)]
+#[non_exhaustive]
 pub enum MechanismNameError {
     /// Mechanism name is shorter than 1 character
     #[error("a mechanism name can not be empty")]
@@ -202,15 +203,15 @@ mod tests {
 
         for m in valids {
             println!("Checking {}", m);
-            let res = Mechname::parse(m.as_bytes()).map(|m| m.as_bytes());
+            let res = Mechname::parse(m.as_bytes()).map(Mechname::as_bytes);
             assert_eq!(res, Ok(m.as_bytes()));
         }
         for (m, index, value) in invalidchars {
             let e = Mechname::parse(m.as_bytes())
-                .map(|m| m.as_bytes())
+                .map(Mechname::as_bytes)
                 .unwrap_err();
             println!("Checking {}: {}", m, e);
-            assert_eq!(e, MechanismNameError::InvalidChar { index, value })
+            assert_eq!(e, MechanismNameError::InvalidChar { index, value });
         }
     }
 }
