@@ -14,7 +14,7 @@ use super::{client, server};
 pub static OAUTHBEARER: Mechanism = Mechanism {
     mechanism: Mechname::const_new(b"OAUTHBEARER"),
     priority: 300,
-    client: None,
+    client: Some(|_sasl, _offered| Ok(Box::new(client::OAuthBearer::default()))),
     server: Some(|_sasl| Ok(Box::new(server::OAuthBearer::default()))),
     first: Side::Client,
 };
