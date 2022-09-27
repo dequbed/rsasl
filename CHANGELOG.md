@@ -23,6 +23,7 @@ release. They will however *never* happen in a patch release.
   This will make moving towards a `#[no_std]`-enabled version of rsasl easier, as the move of `std::io` into `core` 
   is still somewhat far off. All types implementing `std::io::Write` also automatically implement `acid_io::Write`, 
   so no changes to downstream code should be necessary.
+- An `OAUTHBEARER` mechanism implementation
 
 ## Changed
 - Finished the changes started in `-preview12` and `-rc.1`; instead of `Session::step` and `Session::step64` 
