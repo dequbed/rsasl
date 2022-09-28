@@ -271,6 +271,7 @@
 compile_error!("rsasl can't be compiled without the std feature at the moment, sorry");
 #[cfg(any(feature = "std", test))]
 extern crate std as alloc;
+extern crate core;
 
 // none of these should be necessary for a provider to compile
 #[cfg(feature = "config_builder")]
@@ -327,7 +328,7 @@ pub mod prelude {
 #[cfg(any(test, feature = "testutils"))]
 pub mod test;
 
-#[cfg(doc)]
+#[cfg(all(doc, not(doctest)))]
 pub mod docs {
     //! Modules purely for documentation
 

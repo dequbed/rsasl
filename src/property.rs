@@ -170,6 +170,14 @@ mod properties {
     }
 
     #[derive(Debug)]
+    /// OAUTHBEARER K/V pairs
+    ///
+    pub struct OAuthBearerKV;
+    impl<'a> Property<'a> for OAuthBearerKV {
+        type Value = [(&'a str, &'a str)];
+    }
+
+    #[derive(Debug)]
     /// Provide channel binding data
     ///
     /// Channel binding data can be used by some mechanisms to cryptographically bind the
