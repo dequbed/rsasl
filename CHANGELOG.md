@@ -18,6 +18,11 @@ release. They will however *never* happen in a patch release.
 
 [Changes rendered on GitHub][Upcoming/diff]
 
+
+# [v2.0.0-rc.2] — 2022-09-28
+
+[Changes rendered on GitHub][v2.0.0-rc.2/diff]
+
 ## Added
 - All dependencies on `std::io::Write` have been moved to `acid_io::Write` from the [`acid_io` crate](https://github.com/dataphract/acid_io).
   This will make moving towards a `#[no_std]`-enabled version of rsasl easier, as the move of `std::io` into `core` 
@@ -173,7 +178,9 @@ making this release possible.**
 
 [Upcoming Changes]: https://github.com/dequbed/rsasl/tree/development
 <!-- next-url -->
-[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-rc.1...development
+[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-rc.2...development
+[v2.0.0-rc.2]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.2
+[v2.0.0-rc.2/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-rc.1...v2.0.0-rc.2
 [v2.0.0-rc.1]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.1
 [v2.0.0-rc.1/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-preview12...v2.0.0-rc.1
 [v2.0.0-preview12]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-preview12

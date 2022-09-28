@@ -1,6 +1,5 @@
 use alloc::str::Utf8Error;
 use thiserror::Error;
-use acid_io::Write;
 
 #[derive(Debug, Error)]
 pub enum ParseError {
