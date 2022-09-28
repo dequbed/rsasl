@@ -2,7 +2,7 @@
 //!
 //!
 use crate::error::SessionError::NoSecurityLayer;
-use std::io::Write;
+use acid_io::Write;
 
 pub use crate::context::{Demand, DemandReply, Provider, ProviderExt, ThisProvider};
 pub use crate::error::{MechanismError, MechanismErrorKind, SessionError};
@@ -51,7 +51,7 @@ pub trait Authentication: Send + Sync {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError>;
+    ) -> Result<State, SessionError>;
 
     // TODO: Document the problems with SASL security layers before release
     // TODO: Split Authentication & Security Layer stuff?

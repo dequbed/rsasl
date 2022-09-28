@@ -154,7 +154,7 @@ pub fn main() -> miette::Result<()> {
 
     while {
         let mut out = Cursor::new(Vec::new());
-        let (state, _) = session
+        let state = session
             .step64(input.as_deref().map(|s| s.trim().as_bytes()), &mut out)
             .into_diagnostic()
             .wrap_err("Unexpected error occurred during stepping the session")?;

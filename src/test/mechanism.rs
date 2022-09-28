@@ -6,7 +6,7 @@
 use crate::mechanism::{Authentication, MechanismData};
 use crate::prelude::*;
 use crate::registry::{Mechanism, Side};
-use std::io::Write;
+use acid_io::Write;
 
 /// X-RSASLTEST implementation
 ///
@@ -104,7 +104,7 @@ impl Authentication for RSaslTest {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
+    ) -> Result<State, SessionError> {
         let _ = (session, input, writer);
         todo!()
     }

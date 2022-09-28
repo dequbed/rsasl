@@ -1,3 +1,4 @@
+use crate::alloc::boxed::Box;
 use crate::mechanisms::scram::{client, server};
 use crate::mechname::Mechname;
 use crate::registry::Mechanism;
@@ -118,7 +119,7 @@ mod tests {
     #[test]
     /// Test if SCRAM will correctly set the CB support flag depending on the offered mechanisms.
     fn scram_sha1_plus_selection() {
-        static SUPPORTED: &'static [Mechanism] = &[SCRAM_SHA1, SCRAM_SHA1_PLUS];
+        static SUPPORTED: &[Mechanism] = &[SCRAM_SHA1, SCRAM_SHA1_PLUS];
 
         client_start(
             SUPPORTED,
@@ -144,7 +145,7 @@ mod tests {
     #[test]
     /// Test if SCRAM will correctly set the CB support flag depending on the offered mechanisms.
     fn scram_sha2_plus_selection() {
-        static SUPPORTED: &'static [Mechanism] = &[SCRAM_SHA256, SCRAM_SHA256_PLUS];
+        static SUPPORTED: &[Mechanism] = &[SCRAM_SHA256, SCRAM_SHA256_PLUS];
 
         client_start(
             SUPPORTED,
@@ -171,7 +172,7 @@ mod tests {
         let config = SASLConfig::new(cb, default_sorter, Registry::with_mechanisms(supported))
             .expect("failed to construct sasl config");
 
-        let client = SASLClient::new(config.clone());
+        let client = SASLClient::new(config);
         let session = client
             .start_suggested(offered)
             .expect("failed to start session");

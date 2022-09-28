@@ -10,6 +10,9 @@ rsasl welcomes contributions from everyone. Here are the guidelines if you are t
 
 Contributions to rsasl should be made in the form of GitHub Pull Requests. 
 
+Issues that we think are easy to get started on are marked with the label ["good first issue"](https://github.com/dequbed/rsasl/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+These issues will generally also contain a sentence or two on the reasons why this issue is considered a good first issue.
+
 Should you want to work on an issue please claim the issue first by commenting that you want to work on it. This is 
 to prevent duplicate work on the same issue. If somebody else is already working on an issue they may be happy to work 
 together with you too!

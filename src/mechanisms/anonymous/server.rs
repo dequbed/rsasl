@@ -2,9 +2,9 @@ use super::AnonymousToken;
 use crate::context::ThisProvider;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
-use crate::session::{MechanismData, State};
+use crate::session::{MechanismData, MessageSent, State};
+use acid_io::Write;
 use core::str::Utf8Error;
-use std::io::Write;
 use thiserror::Error;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]
@@ -24,25 +24,25 @@ impl Authentication for Anonymous {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
+    ) -> Result<State, SessionError> {
         // Treat an input of `None` like an empty slice. This is a gray zone in behaviour but can
         // not lead to loops since this mechanism will *always* return State::Finished.
         let input = core::str::from_utf8(input.unwrap_or(&[])).map_err(ParseError)?;
         // The input is not further validated and passed to the user as-is.
         session.validate(&ThisProvider::<AnonymousToken>::with(input))?;
-        Ok((State::Finished, None))
+        Ok(State::Finished(MessageSent::No))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::callback::{Context, Request, SessionCallback, SessionData};
-    use crate::error::SessionError;
+    use crate::callback::{Context, SessionCallback, SessionData};
     use crate::mechanisms::anonymous::AnonymousToken;
     use crate::test;
     use crate::validate::{Validate, ValidationError};
     use std::io::Cursor;
 
+    #[derive(Default)]
     struct C<'a> {
         token: &'a str,
     }
@@ -59,29 +59,21 @@ mod tests {
             Ok(())
         }
     }
-    impl Default for C<'static> {
-        fn default() -> Self {
-            Self { token: "" }
-        }
-    }
 
     fn test_token(token: &'static str, input: &[u8]) {
         let config = test::server_config(C { token });
         let mut session = test::server_session(config, &super::super::mechinfo::ANONYMOUS);
         let mut out = Cursor::new(Vec::new());
 
-        let (state, written) = session.step(Some(input), &mut out).unwrap();
+        let state = session.step(Some(input), &mut out).unwrap();
 
         assert!(state.is_finished());
-        assert!(written.is_none());
+        assert!(!state.has_sent_message())
     }
 
     #[test]
     fn test_successful() {
-        let tokens = [
-            "",
-            "thisisatesttoken",
-        ];
+        let tokens = ["", "thisisatesttoken"];
         for token in tokens {
             test_token(token, token.as_bytes());
         }
@@ -101,10 +93,7 @@ mod tests {
 
     #[test]
     fn test_weird_utf8() {
-        let tokens = [
-            "«küßî»",
-            "“ЌύБЇ”",
-        ];
+        let tokens = ["«küßî»", "“ЌύБЇ”"];
         for token in tokens {
             test_token(token, token.as_bytes());
         }
@@ -117,9 +106,9 @@ mod tests {
         let mut session = test::server_session(config, &super::super::mechinfo::ANONYMOUS);
         let mut out = Cursor::new(Vec::new());
 
-        let (state, written) = session.step(None, &mut out).unwrap();
+        let state = session.step(None, &mut out).unwrap();
 
         assert!(state.is_finished());
-        assert!(written.is_none());
+        assert!(!state.has_sent_message());
     }
 }

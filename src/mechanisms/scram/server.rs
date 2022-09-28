@@ -1,18 +1,20 @@
+use crate::alloc::format;
+use crate::alloc::{boxed::Box, string::String, vec::Vec};
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanisms::scram::client::{ProtocolError, SCRAMError};
 use crate::mechanisms::scram::parser::{
     ClientFinal, ClientFirstMessage, GS2CBindFlag, ServerErrorValue, ServerFinal, ServerFirst,
 };
 use crate::mechanisms::scram::tools::{compute_signatures, generate_nonce, DOutput};
-use crate::session::{MechanismData, State};
+use crate::session::{MechanismData, MessageSent, State};
 use crate::vectored_io::VectoredWriter;
+use acid_io::Write;
+use core::marker::PhantomData;
 use digest::crypto_common::BlockSizeUser;
 use digest::generic_array::GenericArray;
 use digest::{Digest, FixedOutput, OutputSizeUser};
 use hmac::SimpleHmac;
 use rand::{thread_rng, Rng, RngCore};
-use std::io::Write;
-use std::marker::PhantomData;
 use thiserror::Error;
 
 use crate::context::{Demand, DemandReply, Provider};
@@ -408,7 +410,8 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> ScramState<Waiting
         writer: impl Write,
         written: &mut usize,
     ) -> Result<ScramState<()>, SessionError> {
-        self.state.handle_client_final(input, session_data, writer, written)?;
+        self.state
+            .handle_client_final(input, session_data, writer, written)?;
         Ok(ScramState { state: () })
     }
 }
@@ -425,7 +428,7 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> Authentication for
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
+    ) -> Result<State, SessionError> {
         use ScramServerState::*;
         match self.state.take() {
             Some(WaitingClientFirst(state)) => {
@@ -436,14 +439,14 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> Authentication for
                 let new_state =
                     state.step(&mut rng, session, client_first, writer, &mut written)?;
                 self.state = Some(WaitingClientFinal(new_state));
-                Ok((State::Running, Some(written)))
+                Ok(State::Running)
             }
             Some(WaitingClientFinal(state)) => {
                 let client_final = input.ok_or(SessionError::InputDataRequired)?;
                 let mut written = 0;
                 let new_state = state.step(client_final, session, writer, &mut written)?;
                 self.state = Some(Finished(new_state));
-                Ok((State::Finished, Some(written)))
+                Ok(State::Finished(MessageSent::Yes))
             }
             Some(Finished(_state)) => Err(SessionError::MechanismDone),
 

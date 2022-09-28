@@ -2,8 +2,8 @@ use crate::context::EmptyProvider;
 use crate::error::SessionError;
 use crate::mechanism::Authentication;
 use crate::property::AuthzId;
-use crate::session::{MechanismData, State};
-use std::io::Write;
+use crate::session::{MechanismData, MessageSent, State};
+use acid_io::Write;
 
 #[derive(Copy, Clone, Debug)]
 pub struct External;
@@ -14,23 +14,23 @@ impl Authentication for External {
         session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
-        let len = session.maybe_need_with::<AuthzId, _, _>(&EmptyProvider, |authzid| {
+    ) -> Result<State, SessionError> {
+        session.maybe_need_with::<AuthzId, _, _>(&EmptyProvider, |authzid| {
             writer.write_all(authzid.as_bytes())?;
-            Ok(authzid.len())
-        })?.unwrap_or(0);
+            Ok(())
+        })?;
 
-        Ok((State::Finished, Some(len)))
+        Ok(State::Finished(MessageSent::Yes))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
     use crate::callback::{Context, Request, SessionCallback, SessionData};
     use crate::error::SessionError;
     use crate::property::AuthzId;
     use crate::test;
+    use std::io::Cursor;
 
     struct C<'a> {
         authzid: Option<&'a str>,
@@ -39,7 +39,7 @@ mod tests {
         fn callback(
             &self,
             _session_data: &SessionData,
-            context: &Context,
+            _context: &Context,
             request: &mut Request,
         ) -> Result<(), SessionError> {
             if let Some(authzid) = self.authzid {
@@ -55,10 +55,9 @@ mod tests {
         let mut session = test::client_session(config, &super::super::mechinfo::EXTERNAL);
         let mut out = Cursor::new(Vec::new());
 
-        let (state, written) = session.step(None, &mut out).unwrap();
+        let state = session.step(None, &mut out).unwrap();
 
         let data = out.into_inner();
-        assert_eq!(written, Some(data.len()));
         assert_eq!(output, &data[..]);
         assert!(state.is_finished());
     }

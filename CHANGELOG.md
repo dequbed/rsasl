@@ -19,10 +19,48 @@ release. They will however *never* happen in a patch release.
 [Changes rendered on GitHub][Upcoming/diff]
 
 
+# [v2.0.0-rc.2] — 2022-09-28
+
+[Changes rendered on GitHub][v2.0.0-rc.2/diff]
+
+## Added
+- All dependencies on `std::io::Write` have been moved to `acid_io::Write` from the [`acid_io` crate](https://github.com/dataphract/acid_io).
+  This will make moving towards a `#[no_std]`-enabled version of rsasl easier, as the move of `std::io` into `core` 
+  is still somewhat far off. All types implementing `std::io::Write` also automatically implement `acid_io::Write`, 
+  so no changes to downstream code should be necessary.
+- An `OAUTHBEARER` mechanism implementation
+
+## Changed
+- Finished the changes started in `-preview12` and `-rc.1`; instead of `Session::step` and `Session::step64` 
+  returning a tuple they now only return a `State` which contains a two-valued enum for "was a message produced". 
+  This means the previous (potentially wrong!) "message size" is now not returned anymore. Clients that must know 
+  the exact length of output written (e.g. because the surrounding protocol includes length values, or they need to 
+  special-case zero-length messages) should use a length-tracking writer.
+
+  To move to the new version, instead of e.g. the following:
+  ```rust
+  let (state, written) = session.step(input, &mut output)?;
+  ```
+  code must now use
+  ```rust
+  let state = session.step(input, &mut output)?;
+  let written = state.has_sent_message();
+  ```
+  for the same effect.
+
+## Fixed
+- The client-side XOAUTH2 implementation now correctly indicates a final (empty) message to be sent when an error 
+  was returned by the server.
+
 # [v2.0.0-rc.1] — 2022-08-30
 
 [Changes rendered on GitHub][v2.0.0-rc.1/diff]
 
+`v2.0.0-rc.1` is a re-release of the `v2.0.0-preview12` version due to me messing up the pre-release version 
+numbering of the `preview` releases. `preview12` is ordered alphanumerically as mixed ASCII and thus considered smaller 
+than `preview9`. To enforce numeric sorting the number must be separated using a dot, so e.g. `preview.12`. However 
+`preview.12` is considered smaller than *all* `previewXX` releases because it is shorter. Thus rsasl now uses `rc` 
+as 'r' is sorted after 'p' and thus 'rc.X' > 'previewYZ'. Sorry for the confusion.
 
 # [v2.0.0-preview12] — 2022-08-30
 
@@ -140,7 +178,9 @@ making this release possible.**
 
 [Upcoming Changes]: https://github.com/dequbed/rsasl/tree/development
 <!-- next-url -->
-[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-rc.1...development
+[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-rc.2...development
+[v2.0.0-rc.2]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.2
+[v2.0.0-rc.2/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-rc.1...v2.0.0-rc.2
 [v2.0.0-rc.1]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.1
 [v2.0.0-rc.1/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-preview12...v2.0.0-rc.1
 [v2.0.0-preview12]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-preview12

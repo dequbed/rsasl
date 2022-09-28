@@ -11,6 +11,7 @@ use crate::config::SASLConfig;
 use crate::registry::Mechanism;
 use crate::sasl::Sasl;
 use crate::session::{Session, Side};
+use crate::typed::Tagged;
 pub use config::{client_config, server_config, EmptyCallback};
 use std::sync::Arc;
 
@@ -22,7 +23,7 @@ pub fn client_session(config: Arc<SASLConfig>, mechanism: &Mechanism) -> Session
     let sasl = Sasl {
         config,
         cb: NoChannelBindings,
-        validation: None,
+        validation: Tagged(None),
     };
     Session::new(sasl, Side::Client, mech, *mechanism)
 }
@@ -32,7 +33,7 @@ pub fn server_session(config: Arc<SASLConfig>, mechanism: &Mechanism) -> Session
     let sasl = Sasl {
         config,
         cb: NoChannelBindings,
-        validation: None,
+        validation: Tagged(None),
     };
     Session::new(sasl, Side::Server, mech, *mechanism)
 }

@@ -1,12 +1,12 @@
-use core::str::Utf8Error;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
+use core::str::Utf8Error;
 use thiserror::Error;
 
 use crate::context::ThisProvider;
 use crate::property::AuthzId;
-use crate::session::{MechanismData, State};
-use std::io::Write;
+use crate::session::{MechanismData, MessageSent, State};
+use acid_io::Write;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]
 #[error("the given external token is invalid UTF-8")]
@@ -26,23 +26,23 @@ impl Authentication for External {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         _writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
+    ) -> Result<State, SessionError> {
         let input = input.unwrap_or(&[]);
         let authzid = core::str::from_utf8(input).map_err(ParseError)?;
         session.validate(&ThisProvider::<AuthzId>::with(authzid))?;
-        Ok((State::Finished, None))
+        Ok(State::Finished(MessageSent::No))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::callback::{Context, Request, SessionCallback, SessionData};
-    use crate::error::SessionError;
+    use crate::callback::{Context, SessionCallback, SessionData};
+    use crate::property::AuthzId;
     use crate::test;
     use crate::validate::{Validate, ValidationError};
     use std::io::Cursor;
-    use crate::property::AuthzId;
 
+    #[derive(Default)]
     struct C<'a> {
         authzid: &'a str,
     }
@@ -59,21 +59,16 @@ mod tests {
             Ok(())
         }
     }
-    impl Default for C<'static> {
-        fn default() -> Self {
-            Self { authzid: "" }
-        }
-    }
 
     fn test_token(authzid: &'static str, input: &[u8]) {
         let config = test::server_config(C { authzid });
         let mut session = test::server_session(config, &super::super::mechinfo::EXTERNAL);
         let mut out = Cursor::new(Vec::new());
 
-        let (state, written) = session.step(Some(input), &mut out).unwrap();
+        let state = session.step(Some(input), &mut out).unwrap();
 
         assert!(state.is_finished());
-        assert!(written.is_none());
+        assert!(!state.has_sent_message());
     }
 
     #[test]
@@ -109,9 +104,9 @@ mod tests {
         let mut session = test::server_session(config, &super::super::mechinfo::EXTERNAL);
         let mut out = Cursor::new(Vec::new());
 
-        let (state, written) = session.step(None, &mut out).unwrap();
+        let state = session.step(None, &mut out).unwrap();
 
         assert!(state.is_finished());
-        assert!(written.is_none());
+        assert!(!state.has_sent_message());
     }
 }

@@ -1,9 +1,10 @@
+use crate::alloc::boxed::Box;
 use crate::mechanism::Authentication;
-use crate::session::{MechanismData, State};
+use crate::session::{MechanismData, MessageSent, State};
 
 use crate::context::EmptyProvider;
 use crate::error::SessionError;
-use std::io::Write;
+use acid_io::Write;
 
 use super::mechinfo::PlainError;
 use crate::property::{AuthId, AuthzId, Password};
@@ -17,22 +18,20 @@ impl Authentication for Plain {
         session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
-        let authzid_len = session
-            .maybe_need_with::<AuthzId, _, _>(&EmptyProvider, |authzid| {
-                if authzid.contains('\0') {
-                    return Err(SessionError::MechanismError(Box::new(
-                        PlainError::ContainsNull,
-                    )));
-                }
-                writer.write_all(authzid.as_bytes())?;
-                Ok(authzid.len())
-            })?
-            .unwrap_or(0);
+    ) -> Result<State, SessionError> {
+        session.maybe_need_with::<AuthzId, _, _>(&EmptyProvider, |authzid| {
+            if authzid.contains('\0') {
+                return Err(SessionError::MechanismError(Box::new(
+                    PlainError::ContainsNull,
+                )));
+            }
+            writer.write_all(authzid.as_bytes())?;
+            Ok(())
+        })?;
 
         writer.write_all(&[0])?;
 
-        let authid_len = session.need_with::<AuthId, _, _>(&EmptyProvider, |authid| {
+        session.need_with::<AuthId, _, _>(&EmptyProvider, |authid| {
             if authid.is_empty() {
                 return Err(SessionError::MechanismError(Box::new(PlainError::Empty)));
             }
@@ -42,12 +41,12 @@ impl Authentication for Plain {
                 )));
             }
             writer.write_all(authid.as_bytes())?;
-            Ok(authid.len())
+            Ok(())
         })?;
 
         writer.write_all(&[0])?;
 
-        let password_length = session.need_with::<Password, _, _>(&EmptyProvider, |password| {
+        session.need_with::<Password, _, _>(&EmptyProvider, |password| {
             if password.is_empty() {
                 return Err(SessionError::MechanismError(Box::new(PlainError::Empty)));
             }
@@ -57,12 +56,10 @@ impl Authentication for Plain {
                 )));
             }
             writer.write_all(password)?;
-            Ok(password.len())
+            Ok(())
         })?;
 
-        // Two UTF8NUL and three fields
-        let len = 2 + authzid_len + authid_len + password_length;
-        Ok((State::Finished, Some(len)))
+        Ok(State::Finished(MessageSent::Yes))
     }
 }
 
@@ -70,13 +67,10 @@ impl Authentication for Plain {
 mod tests {
     use crate::callback::{Context, Request, SessionCallback, SessionData};
     use crate::error::SessionError;
-    use crate::mechanisms::plain::client::Plain;
     use crate::mechanisms::plain::mechinfo::PlainError;
     use crate::property::{AuthId, AuthzId, Password};
     use crate::session::State;
     use crate::test;
-    use core::fmt::Display;
-    use std::any::Any;
     use std::io::Cursor;
 
     struct C<'a> {
@@ -90,7 +84,7 @@ mod tests {
         fn callback(
             &self,
             _session_data: &SessionData,
-            context: &Context,
+            _context: &Context,
             request: &mut Request,
         ) -> Result<(), SessionError> {
             if let Some(authzid) = self.authzid {
@@ -139,10 +133,9 @@ mod tests {
         let mut session = test::client_session(config, &super::super::mechinfo::PLAIN);
         let mut out = Cursor::new(Vec::new());
 
-        let (state, written) = session.step(None, &mut out)?;
+        let state = session.step(None, &mut out)?;
 
         let data = out.into_inner();
-        assert_eq!(written, Some(data.len()));
 
         Ok((state, data))
     }
@@ -185,7 +178,12 @@ mod tests {
     #[test]
     fn password_as_is() {
         let password = &[0x80, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC, 0xFE, 0xFF];
-        test(None, "a", password, b"\0a\0\x80\xC0\xE0\xF0\xF8\xFC\xFE\xFF");
+        test(
+            None,
+            "a",
+            password,
+            b"\0a\0\x80\xC0\xE0\xF0\xF8\xFC\xFE\xFF",
+        );
     }
 
     #[test]

@@ -1,9 +1,9 @@
+use super::AnonymousToken;
 use crate::context::EmptyProvider;
 use crate::error::SessionError;
 use crate::mechanism::Authentication;
-use crate::session::{MechanismData, State};
-use std::io::Write;
-use super::AnonymousToken;
+use crate::session::{MechanismData, MessageSent, State};
+use acid_io::Write;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Anonymous;
@@ -13,22 +13,22 @@ impl Authentication for Anonymous {
         session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
-        let len = session.maybe_need_with::<AnonymousToken, _, _>(&EmptyProvider, |token| {
+    ) -> Result<State, SessionError> {
+        session.maybe_need_with::<AnonymousToken, _, _>(&EmptyProvider, |token| {
             writer.write_all(token.as_bytes())?;
-            Ok(token.len())
-        })?.unwrap_or(0);
-        Ok((State::Finished, Some(len)))
+            Ok(())
+        })?;
+        Ok(State::Finished(MessageSent::Yes))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
     use crate::callback::{Context, Request, SessionCallback, SessionData};
     use crate::error::SessionError;
     use crate::mechanisms::anonymous::AnonymousToken;
     use crate::test;
+    use std::io::Cursor;
 
     struct C<'a> {
         token: Option<&'a str>,
@@ -37,7 +37,7 @@ mod tests {
         fn callback(
             &self,
             _session_data: &SessionData,
-            context: &Context,
+            _context: &Context,
             request: &mut Request,
         ) -> Result<(), SessionError> {
             if let Some(token) = self.token {
@@ -53,10 +53,9 @@ mod tests {
         let mut session = test::client_session(config, &super::super::mechinfo::ANONYMOUS);
         let mut out = Cursor::new(Vec::new());
 
-        let (state, written) = session.step(None, &mut out).unwrap();
+        let state = session.step(None, &mut out).unwrap();
 
         let data = out.into_inner();
-        assert_eq!(written, Some(data.len()));
         assert_eq!(output, &data[..]);
         assert!(state.is_finished());
     }

@@ -22,7 +22,7 @@ pub fn main() {
         println!("error: {}", error);
         return;
     }
-    print!("\n");
+    println!();
 
     // Construct a a config from only the credentials.
     // This takes the authzid, authid/username and password that are to be used.
@@ -43,18 +43,17 @@ pub fn main() {
     // PLAIN is client-first, and thus takes no input data on the first step.
     let input: Option<&[u8]> = None;
     // Actually generate the authentication data to send to a server
-    let (state, written) = session.step(input, &mut out).unwrap();
+    let state = session.step(input, &mut out).unwrap();
 
     match state {
         State::Running => panic!("PLAIN exchange took more than one step"),
-        State::Finished => {
-            if written.is_some() {
-                let buffer = out.into_inner();
-                println!("Encoded bytes: {:?}", buffer);
-                println!("As string: {:?}", std::str::from_utf8(&buffer.as_ref()));
-            } else {
-                panic!("PLAIN exchange produced no output")
-            }
+        State::Finished(MessageSent::Yes) => {
+            let buffer = out.into_inner();
+            println!("Encoded bytes: {:?}", buffer);
+            println!("As string: {:?}", std::str::from_utf8(buffer.as_ref()));
+        }
+        State::Finished(MessageSent::No) => {
+            panic!("PLAIN exchange produced no output")
         }
     }
 }

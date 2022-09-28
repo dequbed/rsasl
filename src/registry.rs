@@ -42,6 +42,9 @@ pub type ServerStartFn = fn(sasl: &SASLConfig) -> Result<Box<dyn Authentication>
 #[derive(Copy, Clone)]
 /// Mechanism Implementation
 ///
+/// **NOTE:** The API of custom mechanisms is *not stable*. You MUST NOT rely on API
+/// stability over minor version releases of rsasl.
+///
 /// All mechanisms need to export a `static Mechanism` to be usable by rsasl, see the
 /// [registry module documentation][crate::registry] for details.
 pub struct Mechanism {
@@ -58,6 +61,10 @@ pub struct Mechanism {
 }
 #[cfg(feature = "unstable_custom_mechanism")]
 impl Mechanism {
+    /// Construct a Mechanism constant for custom mechanisms
+    ///
+    /// **NOTE:** The API of custom mechanisms is *not stable*. You MUST NOT rely on API
+    /// stability over minor version releases of rsasl.
     pub const fn build(
         mechanism: &'static Mechname,
         priority: usize,
@@ -134,6 +141,8 @@ mod config {
         crate::mechanisms::external::EXTERNAL,
         #[cfg(feature = "xoauth2")]
         crate::mechanisms::xoauth2::XOAUTH2,
+        #[cfg(feature = "oauthbearer")]
+        crate::mechanisms::oauthbearer::OAUTHBEARER,
     ];
 
     #[cfg(feature = "config_builder")]

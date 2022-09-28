@@ -1,17 +1,16 @@
-use std::io;
-use rsasl::callback::{Context, Request, SessionCallback, SessionData};
-use rsasl::mechname::Mechname;
-use rsasl::prelude::{SASLClient, SASLServer, State};
-use rsasl::prelude::{SASLConfig, SessionError};
-use rsasl::property::{AuthId, AuthzId, Password};
-use rsasl::validate::{Validate, Validation, ValidationError};
-use std::io::Cursor;
-use digest::{Digest, Output};
 use digest::generic_array::GenericArray;
-use sha2::Sha256;
-use thiserror::Error;
+use digest::{Digest, Output};
+use rsasl::callback::{Context, Request, SessionCallback, SessionData};
 use rsasl::mechanisms::scram;
 use rsasl::mechanisms::scram::properties::ScramStoredPassword;
+use rsasl::mechname::Mechname;
+use rsasl::prelude::{SASLClient, SASLServer};
+use rsasl::prelude::{SASLConfig, SessionError};
+use rsasl::property::{AuthId, AuthzId};
+use rsasl::validate::{Validate, Validation, ValidationError};
+use sha2::Sha256;
+use std::io::Cursor;
+use thiserror::Error;
 
 // The callback used by our server.
 struct OurCallback {
@@ -38,8 +37,7 @@ impl OurCallback {
 
         println!(
             "Validation for (authzid: {:?}, authid: {})",
-            authzid,
-            authid,
+            authzid, authid,
         );
 
         use AuthError::*;
@@ -63,12 +61,16 @@ impl Validation for TestValidation {
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
 enum AuthError {
     AuthzBad,
-    PasswdBad,
     NoSuchUser,
 }
 
 impl SessionCallback for OurCallback {
-    fn callback(&self, session_data: &SessionData, context: &Context, request: &mut Request) -> Result<(), SessionError> {
+    fn callback(
+        &self,
+        _session_data: &SessionData,
+        context: &Context,
+        request: &mut Request,
+    ) -> Result<(), SessionError> {
         if let Some("username") = context.get_ref::<AuthId>() {
             request.satisfy::<ScramStoredPassword>(&ScramStoredPassword {
                 iterations: 4096,
@@ -113,48 +115,49 @@ pub fn main() {
 
     let config = SASLConfig::builder()
         .with_defaults()
-        .with_callback(OurCallback { salt, server_key, stored_key })
+        .with_callback(OurCallback {
+            salt,
+            server_key,
+            stored_key,
+        })
         .unwrap();
     let server = SASLServer::<TestValidation>::new(config);
 
     let mechname = Mechname::parse(b"SCRAM-SHA-256").unwrap();
 
-    let mut server_session = server.start_suggested(mechname)
+    let mut server_session = server
+        .start_suggested(mechname)
         .expect("Failed to start SASL server session");
-
-
 
     /* ==============================
      * Change the below authid/password to change the authentication outcome
      * ============================== */
-    let client = SASLClient::new(SASLConfig::with_credentials(
-        None,
-        "username".to_string(),
-        "secret".to_string(),
-    ).unwrap());
+    let client = SASLClient::new(
+        SASLConfig::with_credentials(None, "username".to_string(), "secret".to_string()).unwrap(),
+    );
 
-
-
-    let mut client_session = client.start_suggested(&[mechname])
+    let mut client_session = client
+        .start_suggested(&[mechname])
         .expect("Failed to start SASL client session");
 
     let mut client_out = Cursor::new(Vec::new());
-    client_session.step(None, &mut client_out).expect("SCRAM step failed");
-
+    client_session
+        .step(None, &mut client_out)
+        .expect("SCRAM step failed");
 
     while {
         let mut server_out = Cursor::new(Vec::new());
-        let (state, _) = server_session
+        let state = server_session
             .step(Some(client_out.get_ref().as_slice()), &mut server_out)
             .expect("Unexpected error occurred during stepping the session");
 
         client_out = Cursor::new(Vec::new());
-        client_session.step(Some(server_out.get_ref().as_slice()), &mut client_out)
+        client_session
+            .step(Some(server_out.get_ref().as_slice()), &mut client_out)
             .expect("SCRAM step failed");
 
         state.is_running()
-    } {
-    }
+    } {}
     let v = server_session.validation();
     println!("Validation: {:?}", v);
 }

@@ -1,6 +1,7 @@
-use std::fmt::{Display, Formatter};
-use std::io::Write;
-use std::marker::PhantomData;
+use crate::alloc::{string::String, vec::Vec};
+use acid_io::Write;
+use core::fmt::{Display, Formatter};
+use core::marker::PhantomData;
 
 use thiserror::Error;
 
@@ -23,7 +24,7 @@ use crate::mechanisms::scram::tools::{
     compute_signatures, derive_keys, generate_nonce, hash_password, DOutput,
 };
 use crate::property::{AuthId, AuthzId, OverrideCBType, Password};
-use crate::session::{MechanismData, State};
+use crate::session::{MechanismData, MessageSent, State};
 use crate::vectored_io::VectoredWriter;
 
 #[cfg(feature = "scram-sha-2")]
@@ -279,7 +280,7 @@ where
             return Err(SCRAMError::Protocol(ProtocolError::InvalidNonce).into());
         }
 
-        let iterations: u32 = std::str::from_utf8(iteration_count)
+        let iterations: u32 = core::str::from_utf8(iteration_count)
             .map_err(|e| SCRAMError::ParseError(super::parser::ParseError::BadUtf8(e)))?
             .parse()
             .map_err(|_| SCRAMError::Protocol(ProtocolError::IterationCountFormat))?;
@@ -454,7 +455,7 @@ where
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
+    ) -> Result<State, SessionError> {
         use ScramClientState::*;
         match self.state.take() {
             Some(Initial(state)) => {
@@ -463,7 +464,7 @@ where
                 let new_state = state.step(&mut rng, session, writer, &mut written)?;
                 self.state = Some(ClientFirst(new_state));
 
-                Ok((State::Running, Some(written)))
+                Ok(State::Running)
             }
             Some(ClientFirst(state)) => {
                 let server_first = input.ok_or(SessionError::InputDataRequired)?;
@@ -472,12 +473,12 @@ where
                 let new_state = state.step(session, server_first, writer, &mut written)?;
                 self.state = Some(ServerFirst(new_state));
 
-                Ok((State::Running, Some(written)))
+                Ok(State::Running)
             }
             Some(ServerFirst(state)) => {
                 let server_final = input.ok_or(SessionError::InputDataRequired)?;
                 state.step(session, server_final)?;
-                Ok((State::Finished, None))
+                Ok(State::Finished(MessageSent::No))
             }
             None => panic!("State machine in invalid state"),
         }
@@ -493,7 +494,7 @@ pub enum ProtocolError {
 }
 
 impl Display for ProtocolError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             ProtocolError::InvalidNonce => f.write_str("returned server nonce is invalid"),
             ProtocolError::IterationCountFormat => f.write_str("iteration count must be decimal"),

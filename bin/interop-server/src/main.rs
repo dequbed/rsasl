@@ -2,17 +2,15 @@
 //!
 //! This client allows testing interoperability between different SASL implementations.
 
-use std::borrow::Cow;
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
-use miette::{Diagnostic, GraphicalReportHandler, IntoDiagnostic, miette, MietteHandler, ReportHandler, WrapErr};
+use miette::{miette, Diagnostic, IntoDiagnostic, MietteHandler, ReportHandler, WrapErr};
 use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
 use rsasl::mechanisms::scram::properties::*;
 use rsasl::prelude::*;
 use rsasl::property::*;
-use rsasl::validate::{NoValidation, Validate, ValidationError};
-use std::io;
-use std::io::{BufRead, BufReader, Cursor, Write};
+use rsasl::validate::{Validate, ValidationError};
+use std::borrow::Cow;
+use std::fmt::{Debug, Display, Formatter};
+use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
 
@@ -61,21 +59,36 @@ impl SessionCallback for EnvCallback {
         context: &Context,
         validate: &mut Validate<'_>,
     ) -> Result<(), ValidationError> {
-        if matches!(session_data.mechanism().mechanism.as_str(), "PLAIN" | "LOGIN") {
-            let authid = context.get_ref::<AuthId>()
+        if matches!(
+            session_data.mechanism().mechanism.as_str(),
+            "PLAIN" | "LOGIN"
+        ) {
+            let authid = context
+                .get_ref::<AuthId>()
                 .ok_or(ValidationError::MissingRequiredProperty)?;
             let authzid = context.get_ref::<AuthzId>().map(|s| s.to_string());
-            let password = context.get_ref::<Password>()
+            let password = context
+                .get_ref::<Password>()
                 .ok_or(ValidationError::MissingRequiredProperty)?;
             validate.finalize::<InteropValidation>(InteropValidation {
-                authid: authid.to_string(), authzid, password: Some(password.to_vec())
+                authid: authid.to_string(),
+                authzid,
+                password: Some(password.to_vec()),
             });
-        } else if session_data.mechanism().mechanism.as_str().starts_with("SCRAM-") {
-            let authid = context.get_ref::<AuthId>()
-                                .ok_or(ValidationError::MissingRequiredProperty)?;
+        } else if session_data
+            .mechanism()
+            .mechanism
+            .as_str()
+            .starts_with("SCRAM-")
+        {
+            let authid = context
+                .get_ref::<AuthId>()
+                .ok_or(ValidationError::MissingRequiredProperty)?;
             let authzid = context.get_ref::<AuthzId>().map(|s| s.to_string());
             validate.finalize::<InteropValidation>(InteropValidation {
-                authid: authid.to_string(), authzid, password: None
+                authid: authid.to_string(),
+                authzid,
+                password: None,
             });
         }
         Ok(())
@@ -125,25 +138,30 @@ fn handle_client(config: Arc<SASLConfig>, stream: TcpStream) -> miette::Result<(
 
     // First, write all supported mechanisms to the other end
     for mech in server.get_available() {
-        write_end.write_all(mech.mechanism.as_bytes())
-                 .into_diagnostic()
-                 .wrap_err("failed to write supported mechanism")?;
-        write_end.write_all(b" ")
-                 .into_diagnostic()
-                 .wrap_err("failed to write supported mechanism")?;
+        write_end
+            .write_all(mech.mechanism.as_bytes())
+            .into_diagnostic()
+            .wrap_err("failed to write supported mechanism")?;
+        write_end
+            .write_all(b" ")
+            .into_diagnostic()
+            .wrap_err("failed to write supported mechanism")?;
     }
-    write_end.write_all(b"\n")
-             .into_diagnostic()
-             .wrap_err("failed to write supported mechanism")?;
+    write_end
+        .write_all(b"\n")
+        .into_diagnostic()
+        .wrap_err("failed to write supported mechanism")?;
 
-    let selected = lines.next()
-                        .ok_or(miette!("Client disconnected!"))?
+    let selected = lines
+        .next()
+        .ok_or(miette!("Client disconnected!"))?
         .into_diagnostic()
         .wrap_err("failed to decode selected mechanism line")?;
 
     let mut parts = selected.split_whitespace();
-    let mechname_part = parts.next()
-                             .ok_or(miette!("protocol error: Client must send selected mechanism"))?;
+    let mechname_part = parts.next().ok_or(miette!(
+        "protocol error: Client must send selected mechanism"
+    ))?;
 
     let mechanism = Mechname::parse(mechname_part.as_bytes())
         .into_diagnostic()
@@ -151,9 +169,10 @@ fn handle_client(config: Arc<SASLConfig>, stream: TcpStream) -> miette::Result<(
 
     println!("client selected [{}]", &mechanism);
 
-    let mut session = server.start_suggested(mechanism)
-                            .into_diagnostic()
-                            .wrap_err(format!("[{}] failed to start server session", mechanism))?;
+    let mut session = server
+        .start_suggested(mechanism)
+        .into_diagnostic()
+        .wrap_err(format!("[{}] failed to start server session", mechanism))?;
 
     let mut buffer = Vec::new();
 
@@ -166,10 +185,13 @@ fn handle_client(config: Arc<SASLConfig>, stream: TcpStream) -> miette::Result<(
             // If we expect initial data and didn't get any yet, send a single '-' to indicate
             // that to the client. Otherwise it's impossible for the client to distinguish
             // between a hanging server and a server waiting for more data.
-            write_end.write_all(b"-\n").into_diagnostic()
+            write_end
+                .write_all(b"-\n")
+                .into_diagnostic()
                 .wrap_err("failed to write empty response")?;
 
-            let input = lines.next()
+            let input = lines
+                .next()
                 .ok_or(miette!("Client disconnected!"))?
                 .into_diagnostic()
                 .wrap_err("Protocol error: Client must send valid UTF-8 lines")?;
@@ -181,24 +203,29 @@ fn handle_client(config: Arc<SASLConfig>, stream: TcpStream) -> miette::Result<(
 
     while {
         let input = input_data.as_deref().map(|s| s.as_bytes());
-        let (state, written) = session.step64(input, &mut buffer)
+        let state = session
+            .step64(input, &mut buffer)
             .map_err(|error| {
                 let error_fmt = format!("ERR {:?}: {}\n", &error, &error);
-                let _  = write_end.write_all(error_fmt.as_bytes());
+                let _ = write_end.write_all(error_fmt.as_bytes());
                 error
             })
-                          .into_diagnostic()
-                          .wrap_err("failed to step mechanism")?;
+            .into_diagnostic()
+            .wrap_err("failed to step mechanism")?;
 
-        if written || state.is_running() {
+        if state.has_sent_message() {
             buffer.push(b'\n');
-            write_end.write_all(&buffer[..]).expect("failed to write output");
+            write_end
+                .write_all(&buffer[..])
+                .expect("failed to write output");
             buffer.clear();
         }
 
         state.is_running()
     } {
-        let line = lines.next().ok_or(miette!("Client disconnected!"))?
+        let line = lines
+            .next()
+            .ok_or_else(|| miette!("Client disconnected!"))?
             .into_diagnostic()
             .wrap_err("Protocol error: Client must send valid UTF-8 lines")?;
         input_data = Some(Cow::Owned(line))
@@ -210,7 +237,9 @@ fn handle_client(config: Arc<SASLConfig>, stream: TcpStream) -> miette::Result<(
         Cow::Borrowed("ERR NOTVALID\n")
     };
 
-    write_end.write_all(out.as_bytes()).into_diagnostic()
+    write_end
+        .write_all(out.as_bytes())
+        .into_diagnostic()
         .wrap_err("failed to send outcome string")?;
 
     Ok(())
@@ -259,7 +288,6 @@ pub fn main() -> miette::Result<()> {
 
     Ok(())
 }
-
 
 #[cfg(test)]
 mod tests {

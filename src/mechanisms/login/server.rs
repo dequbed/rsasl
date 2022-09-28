@@ -1,11 +1,12 @@
+use crate::alloc::string::String;
 use crate::context::{Demand, DemandReply, Provider};
 use crate::error::MechanismErrorKind;
 use crate::mechanism::{Authentication, MechanismError};
 use crate::prelude::SessionError;
 use crate::property::{AuthId, Password};
-use crate::session::{MechanismData, State};
-use std::io::Write;
-use std::str::Utf8Error;
+use crate::session::{MechanismData, MessageSent, State};
+use acid_io::Write;
+use core::str::Utf8Error;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -44,24 +45,24 @@ impl Authentication for Login {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
+    ) -> Result<State, SessionError> {
         match self.state {
             LoginState::New => {
                 let out = b"User Name\0";
                 writer.write_all(out)?;
                 self.state = LoginState::WaitingForUsername;
-                Ok((State::Running, Some(out.len())))
+                Ok(State::Running)
             }
             LoginState::WaitingForUsername => {
                 if let Some(input) = input {
-                    let username = std::str::from_utf8(input)
+                    let username = core::str::from_utf8(input)
                         .map_err(LoginError::Utf8)?
                         .to_string();
 
                     let out = b"Password\0";
                     writer.write_all(out)?;
                     self.state = LoginState::WaitingForPassword(username);
-                    Ok((State::Running, Some(out.len())))
+                    Ok(State::Running)
                 } else {
                     Err(SessionError::InputDataRequired)
                 }
@@ -85,7 +86,7 @@ impl Authentication for Login {
                     };
                     session.validate(&prov)?;
                     self.state = LoginState::Done;
-                    Ok((State::Finished, None))
+                    Ok(State::Finished(MessageSent::No))
                 } else {
                     Err(SessionError::InputDataRequired)
                 }

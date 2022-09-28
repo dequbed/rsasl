@@ -2,8 +2,8 @@ use crate::context::EmptyProvider;
 use crate::error::SessionError;
 use crate::mechanism::{Authentication, MechanismData};
 use crate::property::{AuthId, Password};
-use crate::session::State;
-use std::io::Write;
+use crate::session::{MessageSent, State};
+use acid_io::Write;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
 enum LoginState {
@@ -28,23 +28,23 @@ impl Authentication for Login {
         session: &mut MechanismData,
         _input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
+    ) -> Result<State, SessionError> {
         match self.state {
             LoginState::Authid => {
-                let len = session.need_with::<AuthId, _, _>(&EmptyProvider, |authid| {
+                session.need_with::<AuthId, _, _>(&EmptyProvider, |authid| {
                     writer.write_all(authid.as_bytes())?;
-                    Ok(authid.len())
+                    Ok(())
                 })?;
                 self.state = LoginState::Password;
-                Ok((State::Running, Some(len)))
+                Ok(State::Running)
             }
             LoginState::Password => {
-                let len = session.need_with::<Password, _, _>(&EmptyProvider, |password| {
+                session.need_with::<Password, _, _>(&EmptyProvider, |password| {
                     writer.write_all(password)?;
-                    Ok(password.len())
+                    Ok(())
                 })?;
                 self.state = LoginState::Done;
-                Ok((State::Finished, Some(len)))
+                Ok(State::Finished(MessageSent::Yes))
             }
             LoginState::Done => Err(SessionError::MechanismDone),
         }

@@ -160,7 +160,7 @@
 //!         // each call to step writes the generated auth data into the provided writer.
 //!         // Normally this data would then have to be sent to the other party, but this goes
 //!         // beyond the scope of this example
-//!         let (state, _) = session.step(data.as_deref(), writer).expect("step errored!");
+//!         let state = session.step(data.as_deref(), writer).expect("step errored!");
 //!         // returns `true` if step needs to be called again with another batch of data
 //!         state.is_running()
 //!     } {
@@ -203,7 +203,6 @@
 //! may lead to a situation where users can't use any mechanisms since they only depend on
 //! rsasl via a transient dependency that has no mechanism features enabled.
 //!
-// TODO: How to handle EXTERNAL?
 // TODO:
 //     Bonus minus points: sasl.wrap(data) and sasl.unwrap(data) for security layers. Prefer to
 //     not and instead do TLS. Needs better explanation I fear.
@@ -238,10 +237,6 @@
 //! mechanisms in `COMMON` use that are implemented by rsasl. See the module documentation for
 //! [`mechanisms`] for further details on how to en-/disable mechanisms.
 //!
-// TODO:
-//     - Static vs Dynamic Registry
-//     - Enable/Disable mechanisms at runtime
-//     - Explicit dependency because feature unification
 //!
 //! # Custom Mechanisms
 //!
@@ -260,9 +255,10 @@
 // Mark rsasl `no_std` if the `std` feature flag is not enabled.
 #![cfg_attr(not(any(feature = "std", test)), no_std)]
 #[cfg(not(any(feature = "std", test)))]
-extern crate alloc;
+compile_error!("rsasl can't be compiled without the std feature at the moment, sorry");
 #[cfg(any(feature = "std", test))]
 extern crate std as alloc;
+extern crate core;
 
 // none of these should be necessary for a provider to compile
 #[cfg(feature = "config_builder")]
@@ -306,8 +302,8 @@ pub mod prelude {
     pub use crate::config::SASLConfig;
     pub use crate::mechname::Mechname;
     pub use crate::property::Property;
-    pub use crate::registry::Registry;
-    pub use crate::session::State;
+    pub use crate::registry::{Mechanism, Registry};
+    pub use crate::session::{MessageSent, State};
     pub use crate::validate::Validation;
 
     #[cfg(feature = "provider")]
@@ -319,7 +315,7 @@ pub mod prelude {
 #[cfg(any(test, feature = "testutils"))]
 pub mod test;
 
-#[cfg(doc)]
+#[cfg(all(doc, not(doctest)))]
 pub mod docs {
     //! Modules purely for documentation
 
@@ -341,11 +337,10 @@ pub mod docs {
         #![doc = include_str!("../CHANGELOG.md")]
     }
 
-    /*
+    #[cfg(feature = "document-features")]
     pub mod features {
         //! primer on the use of cargo features in rsasl
         //!
         #![doc = document_features::document_features!()]
     }
-     */
 }

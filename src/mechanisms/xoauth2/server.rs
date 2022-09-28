@@ -1,10 +1,12 @@
+use crate::alloc::boxed::Box;
 use crate::context::{Demand, DemandReply, Provider};
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::{Authentication, MechanismData, State};
 use crate::mechanisms::xoauth2::properties::XOAuth2Validate;
 use crate::property::{AuthId, OAuthBearerToken};
+use crate::session::MessageSent;
+use acid_io::Write;
 use core::str::Utf8Error;
-use std::io::Write;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Default)]
@@ -48,7 +50,7 @@ impl Authentication for XOAuth2 {
         session: &mut MechanismData,
         input: Option<&[u8]>,
         writer: &mut dyn Write,
-    ) -> Result<(State, Option<usize>), SessionError> {
+    ) -> Result<State, SessionError> {
         match self.state {
             XOAuth2State::Initial => {
                 let input = input.ok_or(SessionError::InputDataRequired)?;
@@ -92,27 +94,26 @@ impl Authentication for XOAuth2 {
                 let prov = Prov { authid, token };
 
                 // if the mechanism has one step or three depends on if the token is valid or not.
-                let (state, written) =
-                    session.need_with::<XOAuth2Validate, _, _>(&prov, |result| {
-                        if let Err(error) = result {
-                            writer.write_all(error.as_bytes())?;
-                            self.state = XOAuth2State::Errored;
-                            Ok((State::Running, Some(error.len())))
-                        } else {
-                            Ok((State::Finished, None))
-                        }
-                    })?;
+                let state = session.need_with::<XOAuth2Validate, _, _>(&prov, |result| {
+                    if let Err(error) = result {
+                        writer.write_all(error.as_bytes())?;
+                        self.state = XOAuth2State::Errored;
+                        Ok(State::Running)
+                    } else {
+                        Ok(State::Finished(MessageSent::No))
+                    }
+                })?;
 
                 // Let the user callback validate. This must be called no matter what `need_with`
                 // above returned as the callback will likely need to generate an Error for the
                 // protocol crate if the token was invalid.
                 session.validate(&prov)?;
 
-                Ok((state, written))
+                Ok(state)
             }
             // This will ignore any input data. input *should* be nothing or an empty slice, so a
             // misbehaving client implementation can still be accepted.
-            XOAuth2State::Errored => Ok((State::Finished, None)),
+            XOAuth2State::Errored => Ok(State::Finished(MessageSent::No)),
         }
     }
 }
@@ -173,10 +174,10 @@ mod tests {
         let mut out = Cursor::new(Vec::new());
 
         let data = b"user=username@host.tld\x01auth=Bearer ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg\x01\x01";
-        let (state, written) = session.step(Some(data), &mut out).unwrap();
+        let state = session.step(Some(data), &mut out).unwrap();
 
         assert!(state.is_finished());
-        assert!(written.is_none());
+        assert!(!state.has_sent_message());
     }
 
     #[test]
@@ -190,12 +191,12 @@ mod tests {
         let mut out = Cursor::new(Vec::<u8>::new());
 
         let data = b"user=username@host.tld\x01auth=Bearer ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg\x01\x01";
-        let (state, written) = session.step(Some(data), &mut out).unwrap();
+        let state = session.step(Some(data), &mut out).unwrap();
 
         let data = out.into_inner();
 
         assert!(state.is_running());
-        assert_eq!(written, Some(errstr.len()));
+        assert!(state.has_sent_message());
         assert_eq!(&data[..], errstr.as_bytes());
     }
 }

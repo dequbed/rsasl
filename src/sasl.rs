@@ -1,5 +1,6 @@
 use crate::channel_bindings::{ChannelBindingCallback, NoChannelBindings};
 use crate::config::SASLConfig;
+use core::fmt::{Debug, Formatter};
 
 use crate::error::SASLError;
 
@@ -9,7 +10,8 @@ use crate::registry::Mechanism;
 use crate::session::{Session, Side};
 use crate::validate::{NoValidation, Validation};
 
-use std::sync::Arc;
+use crate::alloc::{sync::Arc, vec::Vec};
+use crate::typed::Tagged;
 
 #[derive(Debug)]
 /// SASL Client context
@@ -23,13 +25,20 @@ pub struct SASLServer<V: Validation, CB = NoChannelBindings> {
     inner: Sasl<V, CB>,
 }
 
-#[derive(Debug)]
 /// SASL Provider context
 ///
 pub(crate) struct Sasl<V: Validation = NoValidation, CB = NoChannelBindings> {
     pub(crate) config: Arc<SASLConfig>,
     pub(crate) cb: CB,
-    pub(crate) validation: Option<V::Value>,
+    pub(crate) validation: Tagged<'static, V>,
+}
+impl<V: Validation + Debug, CB: Debug> Debug for Sasl<V, CB> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Sasl")
+            .field("config", &self.config)
+            .field("cb", &self.cb)
+            .finish_non_exhaustive()
+    }
 }
 
 #[cfg(any(feature = "provider", test))]
@@ -120,7 +129,7 @@ mod provider {
             Self {
                 config,
                 cb: NoChannelBindings,
-                validation: None,
+                validation: Tagged(None),
             }
         }
     }
@@ -129,7 +138,7 @@ mod provider {
             Self {
                 config,
                 cb: NoChannelBindings,
-                validation: None,
+                validation: Tagged(None),
             }
         }
     }
@@ -138,7 +147,7 @@ mod provider {
             Self {
                 config,
                 cb,
-                validation: None,
+                validation: Tagged(None),
             }
         }
 
@@ -176,6 +185,5 @@ mod tests {
     #[test]
     fn test_sasl_autoimpls() {
         static_assertions::assert_impl_all!(Sasl: Send, Sync);
-        assert!(true)
     }
 }
