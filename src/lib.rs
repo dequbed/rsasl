@@ -315,7 +315,7 @@ pub mod prelude {
 #[cfg(any(test, feature = "testutils"))]
 pub mod test;
 
-#[cfg(doc)]
+#[cfg(all(doc, not(doctest)))]
 pub mod docs {
     //! Modules purely for documentation
 
