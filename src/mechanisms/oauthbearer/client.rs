@@ -1,8 +1,8 @@
 use alloc::io::Write;
 use crate::context::EmptyProvider;
-use crate::error::{MechanismErrorKind, SessionError};
+use crate::error::SessionError;
 use crate::mechanism::{Authentication, MechanismData, State};
-use crate::mechanisms::oauthbearer::properties::{Error, OAuthBearerError, OAuthBearerErrored};
+use crate::mechanisms::oauthbearer::properties::{Error, OAuthBearerErrored};
 use crate::property::{AuthzId, OAuthBearerKV, OAuthBearerToken};
 use crate::session::MessageSent;
 use crate::vectored_io::VectoredWriter;
