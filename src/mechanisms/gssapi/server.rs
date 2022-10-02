@@ -1,15 +1,15 @@
-use alloc::io::Read;
-use alloc::mem;
+use crate::context::EmptyProvider;
 use crate::error::SessionError;
 use crate::mechanism::{Authentication, MechanismData, State};
-use crate::mechanisms::gssapi::properties::{Error, SecurityLayer};
+use crate::mechanisms::gssapi::properties::{Error, GssSecurityLayer, SecurityLayer};
+use crate::prelude::State::Finished;
+use crate::session::MessageSent;
 use acid_io::Write;
+use alloc::mem;
 use core::fmt;
 use libgssapi::context::{CtxFlags, SecurityContext, ServerCtx};
 use libgssapi::credential::{Cred, CredUsage};
-use libgssapi::oid::{GSS_MECH_KRB5, OidSet};
-use crate::prelude::State::Finished;
-use crate::session::MessageSent;
+use libgssapi::oid::{OidSet, GSS_MECH_KRB5};
 
 #[derive(Debug, Default)]
 pub struct Gssapi {
@@ -19,8 +19,8 @@ pub struct Gssapi {
 enum GssapiState {
     Initial,
     Pending(ServerCtx),
-    Installed(ServerCtx),
-    Final(ServerCtx),
+    Installed(ServerCtx, SecurityLayer),
+    Final(ServerCtx, SecurityLayer),
     Done(Option<(ServerCtx, bool)>),
     Errored,
 }
@@ -29,9 +29,9 @@ impl fmt::Debug for GssapiState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             GssapiState::Initial => f.write_str("Initial"),
-            GssapiState::Pending(_) => f.write_str("Pending"),
-            GssapiState::Installed(_) => f.write_str("Installed"),
-            GssapiState::Final(_) => f.write_str("Final"),
+            GssapiState::Pending(..) => f.write_str("Pending"),
+            GssapiState::Installed(..) => f.write_str("Installed"),
+            GssapiState::Final(..) => f.write_str("Final"),
             GssapiState::Done(Some((_, true))) => f.write_str("Done<Confidentiality>"),
             GssapiState::Done(Some((_, false))) => f.write_str("Done<Integrity>"),
             GssapiState::Done(None) => f.write_str("Done<NoSecurity>"),
@@ -65,51 +65,73 @@ impl Authentication for Gssapi {
             }
             GssapiState::Pending(mut ctx) => {
                 let input = input.ok_or(SessionError::InputDataRequired)?;
-                if let Some(token) = ctx.step(input).map_err(Error::Gss)? {
-                    writer.write_all(&token)?;
-                    if ctx.is_complete() {
-                        self.state = GssapiState::Installed(ctx);
+                let token = ctx.step(input).map_err(Error::Gss)?;
+                if ctx.is_complete() {
+                    // Query the user for acceptable security layers
+                    let mut acceptable = session
+                        .maybe_need_with::<GssSecurityLayer, _, _>(&EmptyProvider, |acceptable| {
+                            Ok(*acceptable)
+                        })?
+                        .unwrap_or_default();
+
+                    let ctx_flags = ctx.flags().map_err(Error::Gss)?;
+
+                    if !ctx_flags.contains(CtxFlags::GSS_C_MUTUAL_FLAG | CtxFlags::GSS_C_CONF_FLAG)
+                    {
+                        acceptable.set(SecurityLayer::CONFIDENTIALITY, false);
                     }
+                    if !ctx_flags.contains(CtxFlags::GSS_C_INTEG_FLAG) {
+                        acceptable.set(SecurityLayer::INTEGRITY, false);
+                    }
+
+                    // if unsetting all layers not supported or not acceptable leaves us with none,
+                    // we error out.
+                    if acceptable.is_empty() {
+                        return Err(Error::BadContext.into());
+                    }
+
+                    self.state = GssapiState::Installed(ctx, acceptable);
+                }
+                // If an auth exchange token was produced we need to do another loop, otherwise we
+                // immediately produce the supported security layer token.
+                if let Some(token) = token {
+                    writer.write_all(&token)?;
                     Ok(State::Running)
                 } else {
-                    // if no token was produced we're done and immediately produce the token
-                    // indicating the installed security layer
-                    self.state = GssapiState::Installed(ctx);
                     self.step(session, None, writer)
                 }
             }
-            GssapiState::Installed(mut ctx) => {
-                let ctx_flags = ctx.flags().map_err(Error::Gss)?;
-                let mut flags = SecurityLayer::NO_SECURITY_LAYER;
-                if ctx_flags.contains(CtxFlags::GSS_C_INTEG_FLAG) {
-                    flags |= SecurityLayer::INTEGRITY;
-                    if ctx_flags.contains(CtxFlags::GSS_C_CONF_FLAG) {
-                        flags |= SecurityLayer::CONFIDENTIALITY;
-                    }
-                }
-                let out_bytes = if flags.bits() > 1 {
+            GssapiState::Installed(mut ctx, supported) => {
+                let out_bytes = if supported
+                    .intersects(SecurityLayer::CONFIDENTIALITY | SecurityLayer::INTEGRITY)
+                {
                     // TODO: This should come from a call to `GSS_Wrap_size_limit` instead of
                     //       being a static 2^25 - 1
-                    [flags.bits(), 0xFF, 0xFF, 0xFF]
+                    [supported.bits(), 0xFF, 0xFF, 0xFF]
                 } else {
-                    [flags.bits(), 0x00, 0x00, 0x00]
+                    [supported.bits(), 0x00, 0x00, 0x00]
                 };
                 let wrapped = ctx.wrap(false, &out_bytes).map_err(Error::Gss)?;
                 writer.write_all(&wrapped)?;
-                self.state = GssapiState::Final(ctx);
+                self.state = GssapiState::Final(ctx, supported);
                 Ok(State::Running)
             }
-            GssapiState::Final(mut ctx) => {
+            GssapiState::Final(mut ctx, supported) => {
                 let input = input.ok_or(SessionError::InputDataRequired)?;
                 let unwrapped = ctx.unwrap(input).map_err(Error::Gss)?;
                 if unwrapped.len() != 4 {
                     Err(Error::BadFinalToken)?;
                 }
-                let flags = SecurityLayer::from_bits(unwrapped[0]).ok_or(Error::BadFinalToken)?;
+                let selected = SecurityLayer::from_bits(unwrapped[0]).ok_or(Error::BadFinalToken)?;
 
-                let wrap_state = if flags.contains(SecurityLayer::CONFIDENTIALITY) {
+                // If the client selected a layer we don't support or accept, error.
+                if !selected.intersects(supported) {
+                    Err(Error::BadFinalToken)?;
+                }
+
+                let wrap_state = if selected.contains(SecurityLayer::CONFIDENTIALITY) {
                     Some((ctx, true))
-                } else if flags.contains(SecurityLayer::INTEGRITY) {
+                } else if selected.contains(SecurityLayer::INTEGRITY) {
                     Some((ctx, false))
                 } else {
                     None
@@ -134,8 +156,8 @@ impl Authentication for Gssapi {
                 let wrapped = ctx.wrap(encrypt, input).map_err(Error::Gss)?;
                 writer.write_all(&wrapped)?;
                 Ok(wrapped.len())
-            },
-            _ => Err(SessionError::NoSecurityLayer)
+            }
+            _ => Err(SessionError::NoSecurityLayer),
         }
     }
 
@@ -145,8 +167,8 @@ impl Authentication for Gssapi {
                 let unwrapped = ctx.unwrap(input).map_err(Error::Gss)?;
                 writer.write_all(&unwrapped)?;
                 Ok(unwrapped.len())
-            },
-            _ => Err(SessionError::NoSecurityLayer)
+            }
+            _ => Err(SessionError::NoSecurityLayer),
         }
     }
 }

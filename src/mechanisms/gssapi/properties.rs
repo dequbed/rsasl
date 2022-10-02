@@ -9,6 +9,8 @@ pub enum Error {
     Gss(#[source] #[from] libgssapi::error::Error),
     #[error("final token is invalid")]
     BadFinalToken,
+    #[error("produced context is not secure enough")]
+    BadContext,
 }
 
 impl MechanismError for Error {
@@ -22,10 +24,10 @@ impl Property<'_> for GssService {
     type Value = str;
 }
 
-/// Should a security layer be installed?
+/// Acceptable security layers
 pub struct GssSecurityLayer;
 impl SizedProperty<'_> for GssSecurityLayer {
-    type Value = bool;
+    type Value = SecurityLayer;
 }
 
 bitflags::bitflags! {
@@ -34,5 +36,11 @@ bitflags::bitflags! {
         const NO_SECURITY_LAYER = 0b001;
         const INTEGRITY = 0b010;
         const CONFIDENTIALITY = 0b100;
+    }
+}
+
+impl Default for SecurityLayer {
+    fn default() -> Self {
+        SecurityLayer::all()
     }
 }
