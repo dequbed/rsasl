@@ -108,13 +108,6 @@ impl Authentication for Gssapi {
         }
     }
 
-    fn has_security_layer(&self) -> bool {
-        match self.state {
-            GssapiState::Completed(_, has_security_layer) => has_security_layer,
-            _ => false,
-        }
-    }
-
     fn encode(&mut self, input: &[u8], writer: &mut dyn Write) -> Result<usize, SessionError> {
         match self.state {
             GssapiState::Completed(ref mut ctx, true) => {
@@ -134,6 +127,13 @@ impl Authentication for Gssapi {
                 Ok(unwrapped.len())
             }
             _ => Err(SessionError::NoSecurityLayer)
+        }
+    }
+
+    fn has_security_layer(&self) -> bool {
+        match self.state {
+            GssapiState::Completed(_, has_security_layer) => has_security_layer,
+            _ => false,
         }
     }
 }

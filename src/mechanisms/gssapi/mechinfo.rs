@@ -15,6 +15,6 @@ pub static GSSAPI: Mechanism = Mechanism {
     mechanism: Mechname::const_new(b"GSSAPI"),
     priority: 300,
     client: Some(|_sasl, _offered| Ok(Box::new(client::Gssapi::default()))),
-    server: None,
+    server: Some(|_sasl| Ok(Box::new(server::Gssapi::default()))),
     first: Side::Client,
 };

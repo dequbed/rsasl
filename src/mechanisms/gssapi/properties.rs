@@ -27,3 +27,12 @@ pub struct GssSecurityLayer;
 impl SizedProperty<'_> for GssSecurityLayer {
     type Value = bool;
 }
+
+bitflags::bitflags! {
+    #[repr(transparent)]
+    pub struct SecurityLayer: u8 {
+        const NO_SECURITY_LAYER = 0b001;
+        const INTEGRITY = 0b010;
+        const CONFIDENTIALITY = 0b100;
+    }
+}
