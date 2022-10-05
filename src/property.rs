@@ -172,6 +172,7 @@ mod properties {
     #[derive(Debug)]
     /// OAUTHBEARER K/V pairs
     ///
+    #[non_exhaustive]
     pub struct OAuthBearerKV;
     impl<'a> Property<'a> for OAuthBearerKV {
         type Value = [(&'a str, &'a str)];
