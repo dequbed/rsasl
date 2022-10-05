@@ -404,6 +404,7 @@ impl State {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[allow(clippy::exhaustive_enums)]
 /// Indication if a message was written into the provided writer.
 ///
 /// This enum is returned by a call to `step` or `step64` and indicates if a message was written
@@ -414,7 +415,6 @@ impl State {
 /// Note that SASL explicitly allows the option of sending an *empty* message. In that case a
 /// `MessageSent::Yes` will be returned but no bytes will have been written into the writer. How
 /// to indicate an empty message differs from protocol to protocol.
-#[non_exhaustive]
 pub enum MessageSent {
     /// Yes a message was written and needs to be sent
     Yes,

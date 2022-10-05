@@ -55,6 +55,5 @@ pub fn main() {
         State::Finished(MessageSent::No) => {
             panic!("PLAIN exchange produced no output")
         }
-        _ => unimplemented!(),
     }
 }

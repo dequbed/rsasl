@@ -169,6 +169,5 @@ fn print_outcome(step_result: &Result<State, SessionError>, buffer: Vec<u8>) {
         }
         Ok(State::Running) => panic!("PLAIN exchange took more than one step"),
         Err(e) => println!("Authentication errored: {}", e),
-        _ => unimplemented!(),
     }
 }
