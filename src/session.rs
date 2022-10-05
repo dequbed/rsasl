@@ -264,7 +264,7 @@ impl MechanismData<'_> {
     ) -> Result<(), SessionError> {
         let context = build_context(provider);
         match self.callback.callback(&self.session_data, context, request) {
-            Err(SessionError::CallbackError(CallbackError::EarlyReturn(_))) | Ok(()) => Ok(()),
+            Ok(()) | Err(SessionError::CallbackError(CallbackError::EarlyReturn(_))) => Ok(()),
             Err(e) => Err(e),
         }
     }
@@ -361,8 +361,8 @@ impl fmt::Debug for MechanismData<'_> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[allow(clippy::exhaustive_enums)]
 /// State result of the underlying Mechanism implementation
-#[non_exhaustive]
 pub enum State {
     /// The Mechanism has not yet completed the authentication exchange
     ///
