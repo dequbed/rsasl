@@ -141,6 +141,8 @@ mod config {
         crate::mechanisms::external::EXTERNAL,
         #[cfg(feature = "xoauth2")]
         crate::mechanisms::xoauth2::XOAUTH2,
+        #[cfg(feature = "oauthbearer")]
+        crate::mechanisms::oauthbearer::OAUTHBEARER,
     ];
 
     #[cfg(feature = "config_builder")]
