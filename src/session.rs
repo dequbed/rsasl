@@ -10,6 +10,7 @@ use crate::registry::Mechanism;
 use crate::typed::{tags, Tagged};
 use crate::validate::{Validate, ValidationError};
 
+#[allow(clippy::exhaustive_enums)]
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
     Client,

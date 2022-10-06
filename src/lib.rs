@@ -265,6 +265,8 @@
     clippy::inline_always,
     clippy::missing_errors_doc
 )]
+// FIXME: problems with `registry_static::MECHANISMS` and `linkme::distributed_slice`
+#![allow(clippy::exhaustive_enums)]
 // Mark rsasl `no_std` if the `std` feature flag is not enabled.
 #![cfg_attr(not(any(feature = "std", test)), no_std)]
 #[cfg(not(any(feature = "std", test)))]

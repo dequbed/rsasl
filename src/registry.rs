@@ -65,6 +65,7 @@ impl Mechanism {
     ///
     /// **NOTE:** The API of custom mechanisms is *not stable*. You MUST NOT rely on API
     /// stability over minor version releases of rsasl.
+    #[must_use]
     pub const fn build(
         mechanism: &'static Mechname,
         priority: usize,

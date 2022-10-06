@@ -80,6 +80,7 @@ impl Mechname {
     /// containing a subset of ASCII, which may result in undefined behaviour.
     ///
     /// Uses transmute due to [rustc issue #51911](https://github.com/rust-lang/rust/issues/51911)
+    #[must_use]
     pub const fn const_new_unchecked(s: &[u8]) -> &Mechname {
         Self::const_new(s)
     }

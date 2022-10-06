@@ -8,6 +8,7 @@ use crate::validate::ValidationError;
 use core::fmt;
 
 /// Different high-level kinds of errors that can happen in mechanisms
+#[non_exhaustive]
 pub enum MechanismErrorKind {
     /// Parsing failed for the given reason (syntactical error)
     Parse,
