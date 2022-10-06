@@ -16,7 +16,11 @@ pub enum ParseError {
     #[error("K/V pair is invalid")]
     InvalidKVPair,
     #[error("Invalid UTF-8")]
-    InvalidUtf8(#[from] #[source] Utf8Error),
+    InvalidUtf8(
+        #[from]
+        #[source]
+        Utf8Error,
+    ),
 }
 
 pub struct OAuthBearerMsg<'a> {

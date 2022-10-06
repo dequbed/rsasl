@@ -269,9 +269,9 @@
 #![cfg_attr(not(any(feature = "std", test)), no_std)]
 #[cfg(not(any(feature = "std", test)))]
 compile_error!("rsasl can't be compiled without the std feature at the moment, sorry");
+extern crate core;
 #[cfg(any(feature = "std", test))]
 extern crate std as alloc;
-extern crate core;
 
 // none of these should be necessary for a provider to compile
 #[cfg(feature = "config_builder")]
