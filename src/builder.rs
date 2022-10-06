@@ -95,7 +95,7 @@ pub(crate) fn default_sorter(a: &Mechanism, b: &Mechanism) -> Ordering {
 #[derive(Clone, Debug)]
 #[doc(hidden)]
 pub struct WantMechanisms(());
-/// ConfigBuilder first stage
+/// `ConfigBuilder` first stage
 ///
 ///
 impl ConfigBuilder {
@@ -106,6 +106,7 @@ impl ConfigBuilder {
     }
 
     /// Use the default configuration for each state and only provide a custom callback
+    #[must_use]
     pub fn with_defaults(self) -> ConfigBuilder<WantCallback> {
         ConfigBuilder {
             state: WantCallback {
@@ -116,6 +117,7 @@ impl ConfigBuilder {
     }
 
     /// Use a pre-initialized mechanism registry, giving the most control over available mechanisms
+    #[must_use]
     pub fn with_registry(self, mechanisms: Registry) -> ConfigBuilder<WantSorter> {
         ConfigBuilder {
             state: WantSorter { mechanisms },
@@ -126,6 +128,7 @@ impl ConfigBuilder {
     ///
     /// This is equivalent to `Self::with_registry(Registry::default())`. The default set of
     /// mechanisms depends on the enabled cargo features.
+    #[must_use]
     pub fn with_default_mechanisms(self) -> ConfigBuilder<WantSorter> {
         self.with_registry(Registry::default())
     }
@@ -144,6 +147,7 @@ impl ConfigBuilder<WantSorter> {
     /// Use the default mechanisms prioritizations
     ///
     /// This method is required to allow backwards-compatible expansion of the configuration builder
+    #[must_use]
     pub fn with_defaults(self) -> ConfigBuilder<WantCallback> {
         ConfigBuilder {
             state: WantCallback {
@@ -162,6 +166,10 @@ pub struct WantCallback {
 }
 impl ConfigBuilder<WantCallback> {
     /// Install a callback for querying properties
+    ///
+    /// # Errors
+    ///
+    /// see [`SASLConfig::new()`]
     pub fn with_callback<CB: SessionCallback + 'static>(
         self,
         callback: CB,

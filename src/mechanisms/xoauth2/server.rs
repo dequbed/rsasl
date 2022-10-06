@@ -44,6 +44,21 @@ impl MechanismError for Error {
 const USER: &str = "username";
 const TOKN: &str = "bearer token";
 
+// parts are delimited by `^A` which is ASCII SOH with byte value 1
+const ASCII_SOH: u8 = 1u8;
+
+struct Prov<'a> {
+    authid: &'a str,
+    token: &'a str,
+}
+impl<'a> Provider<'a> for Prov<'a> {
+    fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
+        req.provide_ref::<AuthId>(self.authid)?
+            .provide_ref::<OAuthBearerToken>(self.token)?
+            .done()
+    }
+}
+
 impl Authentication for XOAuth2 {
     fn step(
         &mut self,
@@ -55,8 +70,6 @@ impl Authentication for XOAuth2 {
             XOAuth2State::Initial => {
                 let input = input.ok_or(SessionError::InputDataRequired)?;
 
-                // parts are delimited by `^A` which is ASCII SOH with byte value 1
-                const ASCII_SOH: u8 = 1u8;
                 let mid = input
                     .iter()
                     .position(|b| *b == ASCII_SOH)
@@ -78,18 +91,6 @@ impl Authentication for XOAuth2 {
 
                 let token = core::str::from_utf8(raw_token)
                     .map_err(|e| SessionError::MechanismError(Box::new(Error::NotUtf8(TOKN, e))))?;
-
-                struct Prov<'a> {
-                    authid: &'a str,
-                    token: &'a str,
-                }
-                impl<'a> Provider<'a> for Prov<'a> {
-                    fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
-                        req.provide_ref::<AuthId>(self.authid)?
-                            .provide_ref::<OAuthBearerToken>(self.token)?
-                            .done()
-                    }
-                }
 
                 let prov = Prov { authid, token };
 
@@ -162,8 +163,8 @@ mod tests {
     }
 
     fn prepare_session(callback: C<'static>) -> Session {
-        let _authid = "username@host.tld";
-        let _token = "ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg";
+        // let _authid = "username@host.tld";
+        // let _token = "ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg";
         let config = test::server_config(callback);
         test::server_session(config, &super::super::mechinfo::XOAUTH2)
     }

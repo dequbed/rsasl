@@ -46,6 +46,7 @@ impl SaslEscapeState {
     }
 }
 
+#[allow(clippy::copy_iterator)]
 impl Iterator for SaslEscapeState {
     type Item = char;
 
@@ -87,10 +88,8 @@ impl ExactSizeIterator for SaslEscapeState {
         match self {
             SaslEscapeState::Done => 0,
             SaslEscapeState::Char(_) => 1,
-            SaslEscapeState::Comma => 3,
-            SaslEscapeState::Comma1 => 2,
-            SaslEscapeState::Equals => 3,
-            SaslEscapeState::Equals1 => 2,
+            SaslEscapeState::Comma | SaslEscapeState::Equals => 3,
+            SaslEscapeState::Comma1 | SaslEscapeState::Equals1 => 2,
         }
     }
 }
@@ -254,10 +253,10 @@ impl<'scram> ClientFirstMessage<'scram> {
         let cbflag = GS2CBindFlag::parse(first)?;
 
         let authzid = partiter.next().ok_or(ParseError::BadGS2Header)?;
-        let authzid = if !authzid.is_empty() {
-            Some(core::str::from_utf8(&authzid[2..]).map_err(ParseError::BadUtf8)?)
-        } else {
+        let authzid = if authzid.is_empty() {
             None
+        } else {
+            Some(core::str::from_utf8(&authzid[2..]).map_err(ParseError::BadUtf8)?)
         };
 
         let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
@@ -289,6 +288,7 @@ impl<'scram> ClientFirstMessage<'scram> {
         })
     }
 
+    #[allow(clippy::similar_names)]
     fn gs2_header_parts(&self) -> [&'scram [u8]; 4] {
         let [cba, cbb] = self.cbflag.as_ioslices();
 
@@ -301,6 +301,7 @@ impl<'scram> ClientFirstMessage<'scram> {
         [cba, cbb, prefix, authzid]
     }
 
+    #[allow(clippy::similar_names)]
     #[allow(unused)]
     pub fn as_ioslices(&self) -> [&'scram [u8]; 8] {
         let [cba, cbb, prefix, authzid] = self.gs2_header_parts();
@@ -317,6 +318,7 @@ impl<'scram> ClientFirstMessage<'scram> {
         ]
     }
 
+    #[allow(clippy::similar_names)]
     pub(super) fn build_gs2_header_vec(&self) -> Vec<u8> {
         let [cba, cbb, prefix, authzid] = self.gs2_header_parts();
 
@@ -502,7 +504,7 @@ pub enum ServerErrorValue {
     OtherError,
 }
 impl ServerErrorValue {
-    pub fn as_bytes(&self) -> &'static [u8] {
+    pub fn as_bytes(self) -> &'static [u8] {
         match self {
             Self::InvalidEncoding => b"invalid-encoding",
             Self::ExtensionsNotSupported => b"extensions-not-supported",
@@ -518,7 +520,7 @@ impl ServerErrorValue {
         }
     }
 
-    pub fn as_str(&self) -> &'static str {
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::InvalidEncoding => "invalid encoding",
             Self::ExtensionsNotSupported => "extensions not supported",
@@ -550,7 +552,11 @@ impl<'scram> ServerFinal<'scram> {
         if &input[0..2] == b"v=" {
             Ok(Self::Verifier(&input[2..]))
         } else if &input[0..2] == b"e=" {
-            use ServerErrorValue::*;
+            use ServerErrorValue::{
+                ChannelBindingNotSupported, ChannelBindingsDontMatch, ExtensionsNotSupported,
+                InvalidEncoding, InvalidProof, InvalidUsernameEncoding, NoResources, OtherError,
+                ServerDoesSupportChannelBinding, UnknownUser, UnsupportedChannelBindingType,
+            };
             let e = match &input[2..] {
                 b"invalid-encoding" => InvalidEncoding,
                 b"extensions-not-supported" => ExtensionsNotSupported,
@@ -597,8 +603,8 @@ mod tests {
             ),
         ];
 
-        for (input, output) in valid.iter() {
-            assert_eq!(GS2CBindFlag::parse(input), Ok(*output))
+        for (input, output) in &valid {
+            assert_eq!(GS2CBindFlag::parse(input), Ok(*output));
         }
     }
 }

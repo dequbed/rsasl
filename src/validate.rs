@@ -115,6 +115,7 @@ impl<'a, V: Validation> tags::Type<'a> for V {
 /// A default "Validation" that expects no data to be set.
 ///
 /// You will rarely use this type explicitly as it's rather useless.
+#[non_exhaustive]
 pub struct NoValidation;
 impl Validation for NoValidation {
     type Value = ();
@@ -130,7 +131,7 @@ pub struct Validate<'a>(dyn Erased<'a> + 'a);
 #[cfg(any(test, feature = "provider", feature = "testutils"))]
 impl Validate<'_> {
     pub(crate) fn new<'opt, V: Validation>(opt: &'opt mut Tagged<'_, V>) -> &'opt mut Self {
-        unsafe { core::mem::transmute(opt as &mut dyn Erased) }
+        unsafe { &mut *(opt as &mut dyn Erased as *mut dyn Erased as *mut Self) }
     }
 }
 impl<'a> Validate<'a> {
@@ -163,6 +164,7 @@ impl<'a> Validate<'a> {
 }
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ValidationError {
     #[error("A required property was not provided")]
     MissingRequiredProperty,

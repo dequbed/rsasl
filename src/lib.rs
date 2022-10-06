@@ -1,4 +1,3 @@
-#![allow(non_upper_case_globals, non_camel_case_types)]
 //! `rsasl` is the Rust SASL framework designed to make supporting SASL in protocols and doing SASL
 //! authentication in application code simple and safe.
 //!
@@ -252,13 +251,29 @@
 //! define a [`Mechanism`](registry::Mechanism) struct describing the implemented mechanism.
 //! Documentation about how to add a custom mechanism is found in the [`registry module documentation`](registry).
 
+#![warn(
+    clippy::all,
+    clippy::pedantic,
+    clippy::exhaustive_enums,
+    clippy::exhaustive_structs
+)]
+#![allow(
+    non_upper_case_globals,
+    non_camel_case_types,
+    clippy::doc_markdown,
+    clippy::module_name_repetitions,
+    clippy::inline_always,
+    clippy::missing_errors_doc
+)]
+// FIXME: problems with `registry_static::MECHANISMS` and `linkme::distributed_slice`
+#![allow(clippy::exhaustive_enums)]
 // Mark rsasl `no_std` if the `std` feature flag is not enabled.
 #![cfg_attr(not(any(feature = "std", test)), no_std)]
 #[cfg(not(any(feature = "std", test)))]
 compile_error!("rsasl can't be compiled without the std feature at the moment, sorry");
+extern crate core;
 #[cfg(any(feature = "std", test))]
 extern crate std as alloc;
-extern crate core;
 
 // none of these should be necessary for a provider to compile
 #[cfg(feature = "config_builder")]

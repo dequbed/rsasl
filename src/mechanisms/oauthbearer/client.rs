@@ -1,4 +1,3 @@
-use alloc::io::Write;
 use crate::context::EmptyProvider;
 use crate::error::SessionError;
 use crate::mechanism::{Authentication, MechanismData, State};
@@ -6,10 +5,11 @@ use crate::mechanisms::oauthbearer::properties::{Error, OAuthBearerErrored};
 use crate::property::{AuthzId, OAuthBearerKV, OAuthBearerToken};
 use crate::session::MessageSent;
 use crate::vectored_io::VectoredWriter;
+use alloc::io::Write;
 
 #[derive(Debug, Default, Clone)]
 pub struct OAuthBearer {
-    state: OAuthBearerState
+    state: OAuthBearerState,
 }
 
 #[derive(Debug, Clone)]
@@ -26,7 +26,12 @@ impl Default for OAuthBearerState {
 }
 
 impl Authentication for OAuthBearer {
-    fn step(&mut self, session: &mut MechanismData, input: Option<&[u8]>, writer: &mut dyn Write) -> Result<State, SessionError> {
+    fn step(
+        &mut self,
+        session: &mut MechanismData,
+        input: Option<&[u8]>,
+        writer: &mut dyn Write,
+    ) -> Result<State, SessionError> {
         match self.state {
             OAuthBearerState::Initial => {
                 writer.write_all(b"n,")?;

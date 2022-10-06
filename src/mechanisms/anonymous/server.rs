@@ -68,7 +68,7 @@ mod tests {
         let state = session.step(Some(input), &mut out).unwrap();
 
         assert!(state.is_finished());
-        assert!(!state.has_sent_message())
+        assert!(!state.has_sent_message());
     }
 
     #[test]

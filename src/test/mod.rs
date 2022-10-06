@@ -15,6 +15,9 @@ use crate::typed::Tagged;
 pub use config::{client_config, server_config, EmptyCallback};
 use std::sync::Arc;
 
+// TODO:
+/// # Panics
+#[must_use]
 pub fn client_session(config: Arc<SASLConfig>, mechanism: &Mechanism) -> Session {
     let mech = mechanism
         .client(&config, &[mechanism.mechanism])
@@ -28,6 +31,9 @@ pub fn client_session(config: Arc<SASLConfig>, mechanism: &Mechanism) -> Session
     Session::new(sasl, Side::Client, mech, *mechanism)
 }
 
+// TODO:
+/// # Panics
+#[must_use]
 pub fn server_session(config: Arc<SASLConfig>, mechanism: &Mechanism) -> Session {
     let mech = mechanism.server(&config).unwrap().unwrap();
     let sasl = Sasl {
