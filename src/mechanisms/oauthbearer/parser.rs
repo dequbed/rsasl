@@ -16,7 +16,11 @@ pub enum ParseError {
     #[error("K/V pair is invalid")]
     InvalidKVPair,
     #[error("Invalid UTF-8")]
-    InvalidUtf8(#[from] #[source] Utf8Error),
+    InvalidUtf8(
+        #[from]
+        #[source]
+        Utf8Error,
+    ),
 }
 
 pub struct OAuthBearerMsg<'a> {
@@ -38,14 +42,12 @@ impl<'a> OAuthBearerMsg<'a> {
             }
             let gs2_authzid = gs2iter.next().ok_or(ParseError::InvalidGs2)?;
 
-            let authzid = if !gs2_authzid.is_empty() {
-                if let Some(rem) = gs2_authzid.strip_prefix(b"a=") {
-                    Some(core::str::from_utf8(rem)?)
-                } else {
-                    return Err(ParseError::InvalidGs2);
-                }
-            } else {
+            let authzid = if gs2_authzid.is_empty() {
                 None
+            } else if let Some(rem) = gs2_authzid.strip_prefix(b"a=") {
+                Some(core::str::from_utf8(rem)?)
+            } else {
+                return Err(ParseError::InvalidGs2);
             };
 
             let mut token = None;

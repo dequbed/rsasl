@@ -74,6 +74,7 @@ pub struct RSaslTest {
     state: RsaslState,
 }
 impl RSaslTest {
+    #[allow(clippy::unnecessary_wraps)]
     pub fn client(
         _config: &SASLConfig,
         _offered: &[&Mechname],
@@ -82,6 +83,7 @@ impl RSaslTest {
             state: RsaslState::New,
         }))
     }
+    #[allow(clippy::unnecessary_wraps)]
     pub fn server(_config: &SASLConfig) -> Result<Box<dyn Authentication>, SASLError> {
         Ok(Box::new(Self {
             state: RsaslState::New,

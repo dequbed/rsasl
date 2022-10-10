@@ -127,7 +127,7 @@ mod tests {
             // returned.
             if let Some(expected) = self.expected_error {
                 if let Some(error) = request.get_action::<XOAuth2Error>() {
-                    assert_eq!(error.as_bytes(), expected)
+                    assert_eq!(error.as_bytes(), expected);
                 }
             }
 
@@ -146,8 +146,8 @@ mod tests {
     }
 
     fn prepare_session(callback: C<'static>) -> Session {
-        let _authid = "username@host.tld";
-        let _token = "ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg";
+        // let _authid = "username@host.tld";
+        // let _token = "ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg";
         let config = test::client_config(callback);
         test::client_session(config, &super::super::mechinfo::XOAUTH2)
     }

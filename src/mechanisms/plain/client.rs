@@ -99,6 +99,7 @@ mod tests {
         }
     }
 
+    #[allow(clippy::similar_names)]
     fn test(
         authzid: Option<&'static str>,
         authid: &'static str,
@@ -110,6 +111,7 @@ mod tests {
         assert!(state.is_finished());
     }
 
+    #[allow(clippy::similar_names)]
     fn test_error(
         authzid: Option<&'static str>,
         authid: &'static str,
@@ -117,9 +119,10 @@ mod tests {
         matches: impl FnOnce(SessionError) -> bool,
     ) {
         let error = test_result(authzid, authid, password).unwrap_err();
-        assert!(matches(error))
+        assert!(matches(error));
     }
 
+    #[allow(clippy::similar_names)]
     fn test_result(
         authzid: Option<&'static str>,
         authid: &'static str,
@@ -153,7 +156,7 @@ mod tests {
             (None, "«küßî»", "“ЌύБЇ”", "\0«küßî»\0“ЌύБЇ”"),
         ];
         for (authzid, authid, password, output) in parts {
-            test(authzid, authid, password.as_bytes(), output.as_bytes())
+            test(authzid, authid, password.as_bytes(), output.as_bytes());
         }
     }
 

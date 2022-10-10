@@ -34,21 +34,21 @@ impl SessionCallback for EnvCallback {
             request.satisfy::<ChannelBindings>(cbdata.as_bytes())?;
         } else if request.is::<ScramStoredPassword>() {
             if let Some("username") = context.get_ref::<AuthId>() {
-                request.satisfy::<ScramStoredPassword>(&ScramStoredPassword {
-                    iterations: 4096,
-                    salt: &[
+                request.satisfy::<ScramStoredPassword>(&ScramStoredPassword::new(
+                    4096,
+                    &[
                         0xc0, 0x3d, 0x33, 0xfd, 0xce, 0x5d, 0xed, 0x2e, 0x2a, 0xeb, 0x8e, 0xbc,
                         0x3b, 0x3d, 0x62, 0xb2,
                     ],
-                    stored_key: &[
+                    &[
                         87, 125, 145, 236, 250, 131, 103, 74, 247, 123, 68, 218, 121, 173, 12, 23,
                         43, 85, 15, 252, 200, 80, 44, 176, 45, 246, 33, 245, 143, 247, 0, 109,
                     ],
-                    server_key: &[
+                    &[
                         196, 31, 224, 204, 165, 244, 68, 118, 6, 197, 163, 187, 35, 70, 137, 4,
                         185, 243, 25, 19, 31, 49, 253, 198, 239, 25, 226, 58, 253, 195, 184, 185,
                     ],
-                })?;
+                ))?;
             }
         }
         Ok(())
@@ -154,14 +154,14 @@ fn handle_client(config: Arc<SASLConfig>, stream: TcpStream) -> miette::Result<(
 
     let selected = lines
         .next()
-        .ok_or(miette!("Client disconnected!"))?
+        .ok_or_else(|| miette!("Client disconnected!"))?
         .into_diagnostic()
         .wrap_err("failed to decode selected mechanism line")?;
 
     let mut parts = selected.split_whitespace();
-    let mechname_part = parts.next().ok_or(miette!(
-        "protocol error: Client must send selected mechanism"
-    ))?;
+    let mechname_part = parts
+        .next()
+        .ok_or_else(|| miette!("protocol error: Client must send selected mechanism"))?;
 
     let mechanism = Mechname::parse(mechname_part.as_bytes())
         .into_diagnostic()
@@ -192,7 +192,7 @@ fn handle_client(config: Arc<SASLConfig>, stream: TcpStream) -> miette::Result<(
 
             let input = lines
                 .next()
-                .ok_or(miette!("Client disconnected!"))?
+                .ok_or_else(|| miette!("Client disconnected!"))?
                 .into_diagnostic()
                 .wrap_err("Protocol error: Client must send valid UTF-8 lines")?;
 
@@ -259,11 +259,11 @@ impl<'a, H: ReportHandler> Debug for PrintError<'a, H> {
 pub fn main() -> miette::Result<()> {
     let report_handler = MietteHandler::new();
     let addr = std::env::var("RSASL_TEST_REMOTE")
-        .map(|string| Cow::Owned(string))
+        .map(Cow::Owned)
         .unwrap_or(Cow::Borrowed("localhost:62185"));
 
     let listener = TcpListener::bind(addr.as_ref())
-        .expect(&format!("[addr={}] failed to bind tcp stream", addr));
+        .unwrap_or_else(|_| panic!("[addr={}] failed to bind tcp stream", addr));
 
     let config = SASLConfig::builder()
         .with_default_mechanisms()
@@ -290,6 +290,7 @@ pub fn main() -> miette::Result<()> {
 }
 
 #[cfg(test)]
+#[allow(non_snake_case)]
 mod tests {
     #[test]
     // Ensure that the stdlib .split_whitespace() method handles tailing whitespace as we expect

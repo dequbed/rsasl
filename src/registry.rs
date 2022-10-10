@@ -65,6 +65,7 @@ impl Mechanism {
     ///
     /// **NOTE:** The API of custom mechanisms is *not stable*. You MUST NOT rely on API
     /// stability over minor version releases of rsasl.
+    #[must_use]
     pub const fn build(
         mechanism: &'static Mechname,
         priority: usize,
@@ -129,6 +130,7 @@ mod config {
     #[cfg(feature = "config_builder")]
     impl Registry {
         #[inline(always)]
+        #[must_use]
         /// Construct a registry with the given set of mechanisms, overwriting the default set.
         pub fn with_mechanisms(mechanisms: &'static [Mechanism]) -> Self {
             Self {

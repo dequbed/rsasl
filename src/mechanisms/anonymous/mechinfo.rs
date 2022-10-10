@@ -18,6 +18,7 @@ use crate::session::Side;
 /// The form and length of the token provided is not validated by rsasl. By the RFC a string over
 /// 255 UTF-8 characters or 1020 bytes in length is invalid, and may not be supported by other
 /// SASL implementations.
+#[non_exhaustive]
 pub struct AnonymousToken;
 impl Property<'_> for AnonymousToken {
     type Value = str;

@@ -2,6 +2,7 @@ use crate::prelude::Property;
 use crate::property::SizedProperty;
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub struct XOAuth2Error;
 impl Property<'_> for XOAuth2Error {
     type Value = str;
@@ -16,6 +17,7 @@ impl Property<'_> for XOAuth2Error {
 /// [protocol description](https://developers.google.com/gmail/imap/xoauth2-protocol#error_response).
 ///
 /// **The `base64` encoding will be handled by rsasl, the error str thus MUST NOT be encoded**
+#[non_exhaustive]
 pub struct XOAuth2Validate;
 impl<'a> SizedProperty<'a> for XOAuth2Validate {
     type Value = Result<(), &'a str>;

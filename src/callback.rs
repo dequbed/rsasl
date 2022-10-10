@@ -178,6 +178,7 @@ impl CallbackError {
     const fn early_return() -> Self {
         Self::EarlyReturn(TOKEN(PhantomData))
     }
+    #[must_use]
     pub fn is_no_callback(&self) -> bool {
         matches!(self, Self::NoCallback(_))
     }
@@ -259,13 +260,13 @@ impl<'a> Request<'a> {
     pub(crate) fn new_satisfy<P: for<'p> Property<'p>>(
         opt: &'a mut Tagged<'a, tags::RefMut<Satisfy<P>>>,
     ) -> &'a mut Self {
-        unsafe { core::mem::transmute(opt as &mut dyn Erased) }
+        unsafe { &mut *(opt as &mut dyn Erased as *mut dyn Erased as *mut Self) }
     }
 
     pub(crate) fn new_action<'t, 'p, P: Property<'p>>(
         val: &'t mut Tagged<'p, Action<P>>,
     ) -> &'t mut Self {
-        unsafe { core::mem::transmute(val as &mut dyn Erased) }
+        unsafe { &mut *(val as &mut dyn Erased as *mut dyn Erased as *mut Self) }
     }
 }
 impl<'a> Request<'a> {

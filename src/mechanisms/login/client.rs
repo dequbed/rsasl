@@ -69,7 +69,7 @@ mod tests {
         assert!(login.step(None, &mut out).is_ok());
         assert_eq!(&out.get_ref()[..], b"testuser");
 
-        let pos = out.position() as usize;
+        let pos = usize::try_from(out.position()).unwrap();
 
         assert!(login.step(None, &mut out).is_ok());
         assert_eq!(&(out.get_ref())[pos..], b"password");

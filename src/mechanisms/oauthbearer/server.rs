@@ -1,11 +1,11 @@
-use alloc::io::Write;
 use crate::context::{Demand, DemandReply, Provider};
 use crate::error::SessionError;
 use crate::mechanism::{Authentication, MechanismData, State};
-use crate::mechanisms::oauthbearer::properties::{Error, OAuthBearerValidate};
 use crate::mechanisms::oauthbearer::parser::OAuthBearerMsg;
-use crate::property::{AuthzId, OAuthBearerToken, OAuthBearerKV};
+use crate::mechanisms::oauthbearer::properties::{Error, OAuthBearerValidate};
+use crate::property::{AuthzId, OAuthBearerKV, OAuthBearerToken};
 use crate::session::MessageSent;
+use alloc::io::Write;
 
 #[derive(Debug, Clone, Default)]
 pub struct OAuthBearer {
@@ -23,33 +23,44 @@ impl Default for OAuthBearerState {
     }
 }
 
+struct Prov<'a> {
+    pub authzid: Option<&'a str>,
+    pub token: &'a str,
+    pub kvpairs: &'a [(&'a str, &'a str)],
+}
+impl<'a> Provider<'a> for Prov<'a> {
+    fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
+        if let Some(authzid) = self.authzid {
+            req.provide_ref::<AuthzId>(authzid)?;
+        }
+        req.provide_ref::<OAuthBearerToken>(self.token)?
+            .provide_ref::<OAuthBearerKV>(self.kvpairs)?
+            .done()
+    }
+}
+
 impl Authentication for OAuthBearer {
-    fn step(&mut self, session: &mut MechanismData, input: Option<&[u8]>, writer: &mut dyn Write) -> Result<State, SessionError> {
+    fn step(
+        &mut self,
+        session: &mut MechanismData,
+        input: Option<&[u8]>,
+        writer: &mut dyn Write,
+    ) -> Result<State, SessionError> {
         match self.state {
             OAuthBearerState::Initial => {
                 let input = input.ok_or(SessionError::InputDataRequired)?;
 
                 let OAuthBearerMsg {
-                    authzid, token, fields
+                    authzid,
+                    token,
+                    fields,
                 } = OAuthBearerMsg::parse(input).map_err(Error::Parse)?;
 
-                struct Prov<'a> {
-                    pub authzid: Option<&'a str>,
-                    pub token: &'a str,
-                    pub kvpairs: &'a [(&'a str, &'a str)],
-                }
-                impl<'a> Provider<'a> for Prov<'a> {
-                    fn provide(&self, req: &mut Demand<'a>) -> DemandReply<()> {
-                        if let Some(authzid) = self.authzid {
-                            req.provide_ref::<AuthzId>(authzid)?;
-                        }
-                        req.provide_ref::<OAuthBearerToken>(self.token)?
-                            .provide_ref::<OAuthBearerKV>(self.kvpairs)?
-                            .done()
-                    }
-                }
-
-                let prov = Prov { authzid, token, kvpairs: fields.as_slice() };
+                let prov = Prov {
+                    authzid,
+                    token,
+                    kvpairs: fields.as_slice(),
+                };
 
                 let state = session.need_with::<OAuthBearerValidate, _, _>(&prov, |result| {
                     if let Err(error) = result {
@@ -67,9 +78,8 @@ impl Authentication for OAuthBearer {
             }
             // This will ignore any input data. input *should* be nothing or an empty slice, so a
             // misbehaving client implementation can still be accepted.
-            OAuthBearerState::Errored => Ok(State::Finished(MessageSent::No))
+            OAuthBearerState::Errored => Ok(State::Finished(MessageSent::No)),
         }
-
     }
 }
 
@@ -78,10 +88,10 @@ mod tests {
     use super::*;
     use crate::callback::{Request, SessionCallback};
     use crate::context::Context;
+    use crate::mechanisms::oauthbearer::properties::OAuthBearerError;
     use crate::session::{Session, SessionData};
     use crate::test;
     use std::io::Cursor;
-    use crate::mechanisms::oauthbearer::properties::OAuthBearerError;
 
     struct C<'a> {
         authzid: &'a str,
@@ -118,8 +128,8 @@ mod tests {
     }
 
     fn prepare_session(callback: C<'static>) -> Session {
-        let _authid = "username@host.tld";
-        let _token = "ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg";
+        // let _authid = "username@host.tld";
+        // let _token = "ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg";
         let config = test::server_config(callback);
         test::server_session(config, &super::super::mechinfo::OAUTHBEARER)
     }
@@ -129,7 +139,8 @@ mod tests {
         let mut session = prepare_session(C::default());
         let mut out = Cursor::new(Vec::new());
 
-        let data = b"n,a=username@host.tld,\x01auth=ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg\x01\x01";
+        let data =
+            b"n,a=username@host.tld,\x01auth=ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg\x01\x01";
         let state = session.step(Some(data), &mut out).unwrap();
 
         assert!(state.is_finished());
@@ -141,7 +152,7 @@ mod tests {
         let err = OAuthBearerError {
             status: "invalid_token",
             scope: None,
-            openid_config: None
+            openid_config: None,
         };
         let result = Err(err.clone());
         let mut session = prepare_session(C {
@@ -150,7 +161,8 @@ mod tests {
         });
         let mut out = Cursor::new(Vec::<u8>::new());
 
-        let data = b"n,a=username@host.tld,\x01auth=ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg\x01\x01";
+        let data =
+            b"n,a=username@host.tld,\x01auth=ya29.vF9dft4qmTc2Nvb3RlckBhdHRhdmlzdGEuY29tCg\x01\x01";
         let state = session.step(Some(data), &mut out).unwrap();
 
         let data = out.into_inner();

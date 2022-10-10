@@ -176,8 +176,8 @@ pub mod oauthbearer {
 
     mod client;
     mod mechinfo;
-    pub mod properties;
     mod parser;
+    pub mod properties;
     mod server;
     pub use mechinfo::*;
 }
