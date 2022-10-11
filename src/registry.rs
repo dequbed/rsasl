@@ -151,7 +151,7 @@ mod config {
         #[inline(always)]
         #[must_use]
         /// Construct a registry with the given set of mechanisms, overwriting the default set.
-        pub fn with_mechanisms(mechanisms: &'static [Mechanism]) -> Self {
+        pub const fn with_mechanisms(mechanisms: &'static [Mechanism]) -> Self {
             Self {
                 static_mechanisms: mechanisms,
             }
@@ -171,19 +171,19 @@ mod config {
     #[cfg(feature = "registry_static")]
     impl Default for Registry {
         fn default() -> Self {
-            Registry::with_mechanisms(&super::registry_static::MECHANISMS)
+            Self::with_mechanisms(&super::registry_static::MECHANISMS)
         }
     }
 
     #[cfg(not(feature = "registry_static"))]
     impl Default for Registry {
         fn default() -> Self {
-            Registry::with_mechanisms(BUILTIN)
+            Self::with_mechanisms(BUILTIN)
         }
     }
 }
 
-pub(crate) type MechanismIter<'a> = core::slice::Iter<'a, Mechanism>;
+pub type MechanismIter<'a> = core::slice::Iter<'a, Mechanism>;
 impl Registry {
     #[inline(always)]
     pub(crate) fn get_mechanisms<'a>(&self) -> MechanismIter<'a> {

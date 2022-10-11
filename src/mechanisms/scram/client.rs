@@ -1,21 +1,8 @@
 use crate::alloc::{string::String, vec::Vec};
-use acid_io::Write;
-use core::fmt::{Display, Formatter};
-use core::marker::PhantomData;
-
-use thiserror::Error;
-
-use digest::crypto_common::BlockSizeUser;
-
-use digest::{Digest, FixedOutputReset};
-
 use crate::callback::CallbackError;
-use rand::Rng;
-
 use crate::context::{Demand, DemandReply, EmptyProvider, Provider};
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
-
 use crate::mechanisms::scram::parser::{
     ClientFinal, SaslName, ServerErrorValue, ServerFinal, ServerFirst,
 };
@@ -26,6 +13,12 @@ use crate::mechanisms::scram::tools::{
 use crate::property::{AuthId, AuthzId, OverrideCBType, Password};
 use crate::session::{MechanismData, MessageSent, State};
 use crate::vectored_io::VectoredWriter;
+use acid_io::Write;
+use core::marker::PhantomData;
+use digest::crypto_common::BlockSizeUser;
+use digest::{Digest, FixedOutputReset};
+use rand::Rng;
+use thiserror::Error;
 
 #[cfg(feature = "scram-sha-2")]
 pub type ScramSha256Client<const N: usize> = ScramClient<sha2::Sha256, N>;
@@ -45,7 +38,7 @@ pub struct ScramClient<D: Digest + BlockSizeUser + FixedOutputReset, const N: us
 }
 
 impl<D: Digest + BlockSizeUser + FixedOutputReset, const N: usize> ScramClient<D, N> {
-    pub fn new(set_cb_client_no_support: bool) -> Self {
+    pub const fn new(set_cb_client_no_support: bool) -> Self {
         let plus = if set_cb_client_no_support {
             CbSupport::ClientNoSupport
         } else {
@@ -56,7 +49,7 @@ impl<D: Digest + BlockSizeUser + FixedOutputReset, const N: usize> ScramClient<D
         }
     }
 
-    pub fn new_plus() -> Self {
+    pub const fn new_plus() -> Self {
         Self {
             state: Some(ScramClientState::Initial(ScramState::new(
                 CbSupport::Supported,
@@ -76,7 +69,7 @@ struct ScramState<S> {
 }
 
 impl<const N: usize> ScramState<StateClientFirst<N>> {
-    pub fn new(plus: CbSupport) -> Self {
+    pub const fn new(plus: CbSupport) -> Self {
         Self {
             state: StateClientFirst::new(plus),
         }
@@ -150,7 +143,7 @@ struct StateClientFirst<const N: usize> {
 }
 
 impl<const N: usize> StateClientFirst<N> {
-    pub fn new(plus: CbSupport) -> Self {
+    pub const fn new(plus: CbSupport) -> Self {
         Self {
             plus,
             nonce: PhantomData,
@@ -250,7 +243,7 @@ impl<D, const N: usize> WaitingServerFirst<D, N>
 where
     D: Digest + BlockSizeUser + FixedOutputReset + Clone + Sync,
 {
-    pub fn new(channel_bindings: String, client_nonce: [u8; N], username: String) -> Self {
+    pub const fn new(channel_bindings: String, client_nonce: [u8; N], username: String) -> Self {
         Self {
             channel_bindings,
             client_nonce,
@@ -485,23 +478,16 @@ where
     }
 }
 
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone, thiserror::Error)]
 pub enum ProtocolError {
+    #[error("returned server nonce is invalid")]
     InvalidNonce,
+    #[error("iteration count must be decimal")]
     IterationCountFormat,
+    #[error("iteration count can't be zero")]
     IterationCountZero,
+    #[error("base64 decoding of data failed")]
     Base64Decode,
-}
-
-impl Display for ProtocolError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            ProtocolError::InvalidNonce => f.write_str("returned server nonce is invalid"),
-            ProtocolError::IterationCountFormat => f.write_str("iteration count must be decimal"),
-            ProtocolError::IterationCountZero => f.write_str("iteration count can't be zero"),
-            ProtocolError::Base64Decode => f.write_str("base64 decoding of data failed"),
-        }
-    }
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]
@@ -521,9 +507,9 @@ pub enum SCRAMError {
 impl MechanismError for SCRAMError {
     fn kind(&self) -> MechanismErrorKind {
         match self {
-            SCRAMError::Protocol(_) => MechanismErrorKind::Protocol,
-            SCRAMError::ParseError(_) => MechanismErrorKind::Parse,
-            SCRAMError::ServerError(_) => MechanismErrorKind::Outcome,
+            Self::Protocol(_) => MechanismErrorKind::Protocol,
+            Self::ParseError(_) => MechanismErrorKind::Parse,
+            Self::ServerError(_) => MechanismErrorKind::Outcome,
         }
     }
 }

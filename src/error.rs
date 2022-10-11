@@ -103,17 +103,17 @@ pub enum SessionError {
 
 impl SessionError {
     #[must_use]
-    pub fn input_required() -> Self {
+    pub const fn input_required() -> Self {
         Self::InputDataRequired
     }
 
     #[must_use]
-    pub fn is_mechanism_error(&self) -> bool {
+    pub const fn is_mechanism_error(&self) -> bool {
         matches!(self, Self::MechanismError(_))
     }
 
     #[must_use]
-    pub fn is_missing_prop(&self) -> bool {
+    pub const fn is_missing_prop(&self) -> bool {
         matches!(self, Self::CallbackError(CallbackError::NoCallback(_)))
     }
 }
@@ -147,8 +147,5 @@ pub enum SASLError {
 mod tests {
     use super::*;
 
-    #[test]
-    fn check_auto_traits() {
-        static_assertions::assert_impl_all!(SessionError: Send, Sync);
-    }
+    static_assertions::assert_impl_all!(SessionError: Send, Sync);
 }

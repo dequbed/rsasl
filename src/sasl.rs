@@ -27,7 +27,7 @@ pub struct SASLServer<V: Validation, CB = NoChannelBindings> {
 
 /// SASL Provider context
 ///
-pub(crate) struct Sasl<V: Validation = NoValidation, CB = NoChannelBindings> {
+pub struct Sasl<V: Validation = NoValidation, CB = NoChannelBindings> {
     pub(crate) config: Arc<SASLConfig>,
     pub(crate) cb: CB,
     pub(crate) validation: Tagged<'static, V>,
@@ -188,8 +188,5 @@ mod provider {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_sasl_autoimpls() {
-        static_assertions::assert_impl_all!(Sasl: Send, Sync);
-    }
+    static_assertions::assert_impl_all!(Sasl: Send, Sync);
 }

@@ -34,7 +34,7 @@ pub struct ScramStoredPassword<'a> {
 }
 impl<'a> ScramStoredPassword<'a> {
     #[must_use]
-    pub fn new(
+    pub const fn new(
         iterations: u32,
         salt: &'a [u8],
         stored_key: &'a [u8],

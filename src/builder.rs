@@ -88,7 +88,7 @@ impl<State: Debug> Debug for ConfigBuilder<State> {
     }
 }
 
-pub(crate) fn default_sorter(a: &Mechanism, b: &Mechanism) -> Ordering {
+pub fn default_sorter(a: &Mechanism, b: &Mechanism) -> Ordering {
     a.priority.cmp(&b.priority)
 }
 
@@ -99,8 +99,8 @@ pub struct WantMechanisms(());
 ///
 ///
 impl ConfigBuilder {
-    pub(crate) fn new() -> Self {
-        ConfigBuilder {
+    pub(crate) const fn new() -> Self {
+        Self {
             state: WantMechanisms(()),
         }
     }
@@ -118,7 +118,7 @@ impl ConfigBuilder {
 
     /// Use a pre-initialized mechanism registry, giving the most control over available mechanisms
     #[must_use]
-    pub fn with_registry(self, mechanisms: Registry) -> ConfigBuilder<WantSorter> {
+    pub const fn with_registry(self, mechanisms: Registry) -> ConfigBuilder<WantSorter> {
         ConfigBuilder {
             state: WantSorter { mechanisms },
         }

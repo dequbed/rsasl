@@ -80,7 +80,7 @@ mod provider {
         }
 
         /// Return the name of the mechanism in use
-        pub fn get_mechname(&self) -> &Mechname {
+        pub const fn get_mechname(&self) -> &Mechname {
             self.mechanism_desc.mechanism
         }
 
@@ -205,7 +205,7 @@ mod provider {
     }
 
     impl SessionData {
-        pub(crate) fn new(mechanism_desc: Mechanism, side: Side) -> Self {
+        pub(crate) const fn new(mechanism_desc: Mechanism, side: Side) -> Self {
             Self {
                 mechanism_desc,
                 side,
@@ -214,7 +214,7 @@ mod provider {
     }
 
     #[cfg(test)]
-    pub(crate) mod tests {
+    pub mod tests {
         use super::*;
         use crate::context::EmptyProvider;
         use crate::validate::Validation;
@@ -346,11 +346,12 @@ pub struct SessionData {
 }
 impl SessionData {
     #[must_use]
-    pub fn mechanism(&self) -> &Mechanism {
+    pub const fn mechanism(&self) -> &Mechanism {
         &self.mechanism_desc
     }
+
     #[must_use]
-    pub fn side(&self) -> Side {
+    pub const fn side(&self) -> Side {
         self.side
     }
 }
@@ -389,17 +390,19 @@ pub enum State {
 impl State {
     #[inline(always)]
     #[must_use]
-    pub fn is_running(&self) -> bool {
+    pub const fn is_running(&self) -> bool {
         matches!(self, Self::Running)
     }
+
     #[inline(always)]
     #[must_use]
-    pub fn is_finished(&self) -> bool {
+    pub const fn is_finished(&self) -> bool {
         !self.is_running()
     }
+
     #[inline(always)]
     #[must_use]
-    pub fn has_sent_message(&self) -> bool {
+    pub const fn has_sent_message(&self) -> bool {
         matches!(self, Self::Running | Self::Finished(MessageSent::Yes))
     }
 }
@@ -427,8 +430,5 @@ pub enum MessageSent {
 mod tests {
     use super::*;
 
-    #[test]
-    fn session_autoimpl() {
-        static_assertions::assert_impl_all!(Session: Send, Sync);
-    }
+    static_assertions::assert_impl_all!(Session: Send, Sync);
 }

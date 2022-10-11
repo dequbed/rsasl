@@ -16,7 +16,7 @@ pub(super) struct Login {
     state: LoginState,
 }
 impl Login {
-    pub(crate) fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             state: LoginState::Authid,
         }

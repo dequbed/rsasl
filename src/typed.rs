@@ -9,7 +9,7 @@ use core::any::TypeId;
 use core::ops::Deref;
 use core::ops::DerefMut;
 
-pub(crate) mod tags {
+pub mod tags {
     use core::marker::PhantomData;
 
     pub trait Type<'a>: 'static + Sized {
@@ -37,7 +37,7 @@ pub(crate) mod tags {
 }
 
 #[repr(transparent)]
-pub(crate) struct Tagged<'a, T: tags::Type<'a>>(pub(crate) T::Reified);
+pub struct Tagged<'a, T: tags::Type<'a>>(pub(crate) T::Reified);
 impl<'a, T: tags::Type<'a>> Deref for Tagged<'a, T> {
     type Target = T::Reified;
     fn deref(&self) -> &Self::Target {
@@ -56,7 +56,7 @@ impl<'a, T: tags::Type<'a>> DerefMut for Tagged<'a, T> {
 /// associated like references (e.g. `&str`). This trait encodes the lifetimes of the objects as
 /// well, allowing to safely type-erase e.g. a `&'a str`. This trait is the fundamental mechanic
 /// behind [`Context`](crate::context::Context) and [`Request`](crate::callback::Request).
-pub(crate) trait Erased<'a>: 'a {
+pub trait Erased<'a>: 'a {
     fn tag_id(&self) -> TypeId;
 }
 impl<'a, T: tags::Type<'a>> Erased<'a> for Tagged<'a, T> {
