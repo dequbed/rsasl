@@ -127,25 +127,6 @@ mod config {
     use super::Registry;
     use crate::registry::Mechanism;
 
-    static BUILTIN: &[Mechanism] = &[
-        #[cfg(feature = "scram-sha-2")]
-        crate::mechanisms::scram::SCRAM_SHA256,
-        #[cfg(feature = "scram-sha-1")]
-        crate::mechanisms::scram::SCRAM_SHA1,
-        #[cfg(feature = "plain")]
-        crate::mechanisms::plain::PLAIN,
-        #[cfg(feature = "login")]
-        crate::mechanisms::login::LOGIN,
-        #[cfg(feature = "anonymous")]
-        crate::mechanisms::anonymous::ANONYMOUS,
-        #[cfg(feature = "external")]
-        crate::mechanisms::external::EXTERNAL,
-        #[cfg(feature = "xoauth2")]
-        crate::mechanisms::xoauth2::XOAUTH2,
-        #[cfg(feature = "oauthbearer")]
-        crate::mechanisms::oauthbearer::OAUTHBEARER,
-    ];
-
     #[cfg(feature = "config_builder")]
     impl Registry {
         #[inline(always)]
@@ -158,13 +139,33 @@ mod config {
         }
 
         pub(crate) fn credentials(authzid: bool) -> Self {
+            static CRED_AUTHZID: &[Mechanism] = &[
+                #[cfg(feature = "scram-sha-2")]
+                    crate::mechanisms::scram::SCRAM_SHA256,
+                #[cfg(feature = "scram-sha-1")]
+                    crate::mechanisms::scram::SCRAM_SHA1,
+                #[cfg(feature = "plain")]
+                    crate::mechanisms::plain::PLAIN,
+            ];
+
+            static CRED: &[Mechanism] = &[
+                #[cfg(feature = "scram-sha-2")]
+                    crate::mechanisms::scram::SCRAM_SHA256,
+                #[cfg(feature = "scram-sha-1")]
+                    crate::mechanisms::scram::SCRAM_SHA1,
+                #[cfg(feature = "plain")]
+                    crate::mechanisms::plain::PLAIN,
+                #[cfg(feature = "login")]
+                    crate::mechanisms::login::LOGIN,
+            ];
+
             // Only ever enable LOGIN if no authzid is provided
             let mechanisms = if authzid {
-                &BUILTIN[0..3]
+                CRED_AUTHZID
             } else {
-                &BUILTIN[0..4]
+                CRED
             };
-            Self::with_mechanisms(mechanisms)
+            Self::with_mechanisms(&mechanisms)
         }
     }
 
@@ -178,6 +179,25 @@ mod config {
     #[cfg(not(feature = "registry_static"))]
     impl Default for Registry {
         fn default() -> Self {
+            static BUILTIN: &[Mechanism] = &[
+                #[cfg(feature = "scram-sha-2")]
+                    crate::mechanisms::scram::SCRAM_SHA256,
+                #[cfg(feature = "scram-sha-1")]
+                    crate::mechanisms::scram::SCRAM_SHA1,
+                #[cfg(feature = "plain")]
+                    crate::mechanisms::plain::PLAIN,
+                #[cfg(feature = "login")]
+                    crate::mechanisms::login::LOGIN,
+                #[cfg(feature = "anonymous")]
+                    crate::mechanisms::anonymous::ANONYMOUS,
+                #[cfg(feature = "external")]
+                    crate::mechanisms::external::EXTERNAL,
+                #[cfg(feature = "xoauth2")]
+                    crate::mechanisms::xoauth2::XOAUTH2,
+                #[cfg(feature = "oauthbearer")]
+                    crate::mechanisms::oauthbearer::OAUTHBEARER,
+            ];
+
             Self::with_mechanisms(BUILTIN)
         }
     }
