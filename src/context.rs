@@ -84,10 +84,11 @@ impl<'a, T: SizedProperty<'a>> Type<'a> for DemandTag<T> {
 pub struct Demand<'a>(dyn Erased<'a> + 'a);
 impl<'a> Demand<'a> {
     pub(crate) fn new<T: tags::Type<'a>>(opt: &mut Tagged<'a, tags::Optional<T>>) -> &'a mut Self {
-        unsafe { core::mem::transmute(opt as &mut dyn Erased) }
+        unsafe { &mut *(opt as &mut dyn Erased as *mut dyn Erased as *mut Self) }
     }
 }
 impl<'a> Demand<'a> {
+    #[allow(clippy::unused_self)]
     pub fn done(&self) -> DemandReply<()> {
         DemandReply::Continue(())
     }
@@ -116,7 +117,7 @@ impl<'a> Demand<'a> {
 }
 
 pub(crate) fn build_context<'a>(provider: &'a dyn Provider) -> &'a Context<'a> {
-    unsafe { core::mem::transmute(provider) }
+    unsafe { &*(provider as *const dyn Provider as *const Context) }
 }
 
 #[repr(transparent)]

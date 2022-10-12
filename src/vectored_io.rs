@@ -3,7 +3,7 @@ use acid_io::{IoSlice, Write};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 /// An adapter that allows to more comfortable write using scatter-gather IO by handing the
-/// IoSlice lifecycle
+/// `IoSlice` lifecycle
 pub struct VectoredWriter<'io, const N: usize> {
     /// The number of bufs to skip when resuming an interrupted write.
     skip: usize,
@@ -32,10 +32,9 @@ impl<'io, const N: usize> VectoredWriter<'io, N> {
         for buf in self.data[self.skip..].iter() {
             if accumulated_len + buf.len() > len {
                 break;
-            } else {
-                accumulated_len += buf.len();
-                remove += 1;
             }
+            accumulated_len += buf.len();
+            remove += 1;
         }
         self.skip += remove;
         if self.skip < N {

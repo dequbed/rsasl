@@ -29,6 +29,7 @@ where
     }
 }
 
+#[non_exhaustive]
 pub struct EmptyCallback;
 impl SessionCallback for EmptyCallback {}
 

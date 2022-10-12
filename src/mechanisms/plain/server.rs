@@ -26,6 +26,7 @@ impl<'a> Provider<'a> for PlainProvider<'a> {
 
 pub struct Plain;
 impl Authentication for Plain {
+    #[allow(clippy::similar_names)]
     fn step(
         &mut self,
         session: &mut MechanismData,

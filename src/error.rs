@@ -8,6 +8,7 @@ use crate::validate::ValidationError;
 use core::fmt;
 
 /// Different high-level kinds of errors that can happen in mechanisms
+#[non_exhaustive]
 pub enum MechanismErrorKind {
     /// Parsing failed for the given reason (syntactical error)
     Parse,
@@ -35,6 +36,7 @@ pub trait MechanismError: fmt::Debug + fmt::Display + Send + Sync {
 /// Error type returned when stepping an established `Session`
 ///
 ///
+#[non_exhaustive]
 pub enum SessionError {
     #[error("IO error occurred")]
     Io {
@@ -100,14 +102,17 @@ pub enum SessionError {
 }
 
 impl SessionError {
+    #[must_use]
     pub fn input_required() -> Self {
         Self::InputDataRequired
     }
 
+    #[must_use]
     pub fn is_mechanism_error(&self) -> bool {
         matches!(self, Self::MechanismError(_))
     }
 
+    #[must_use]
     pub fn is_missing_prop(&self) -> bool {
         matches!(self, Self::CallbackError(CallbackError::NoCallback(_)))
     }
@@ -128,6 +133,7 @@ impl<T: MechanismError + 'static> From<T> for SessionError {
 ///
 /// `SASLError` is returned when trying to establish a new `Session` from e.g. a list of offered
 /// mechanisms.
+#[non_exhaustive]
 pub enum SASLError {
     #[error("no shared mechanism found")]
     /// No mechanism from the offered list is available.

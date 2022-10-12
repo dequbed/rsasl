@@ -72,12 +72,12 @@ impl SessionCallback for OurCallback {
         request: &mut Request,
     ) -> Result<(), SessionError> {
         if let Some("username") = context.get_ref::<AuthId>() {
-            request.satisfy::<ScramStoredPassword>(&ScramStoredPassword {
-                iterations: 4096,
-                salt: self.salt,
-                stored_key: self.stored_key.as_slice(),
-                server_key: self.server_key.as_slice(),
-            })?;
+            request.satisfy::<ScramStoredPassword>(&ScramStoredPassword::new(
+                4096,
+                self.salt,
+                self.stored_key.as_slice(),
+                self.server_key.as_slice(),
+            ))?;
         }
         Ok(())
     }
@@ -111,7 +111,7 @@ pub fn main() {
     // Derive the PBKDF2 key from the password and salt. This is the expensive part
     scram::tools::hash_password::<Sha256>(plain_password, 4096, &salt[..], &mut salted_password);
     let (client_key, server_key) = scram::tools::derive_keys::<Sha256>(salted_password.as_slice());
-    let stored_key = Sha256::digest(&client_key);
+    let stored_key = Sha256::digest(client_key);
 
     let config = SASLConfig::builder()
         .with_defaults()

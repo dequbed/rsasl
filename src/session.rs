@@ -10,6 +10,7 @@ use crate::registry::Mechanism;
 use crate::typed::{tags, Tagged};
 use crate::validate::{Validate, ValidationError};
 
+#[allow(clippy::exhaustive_enums)]
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Side {
     Client,
@@ -18,7 +19,10 @@ pub enum Side {
 
 #[cfg(any(feature = "provider", feature = "testutils", test))]
 mod provider {
-    use super::*;
+    use super::{
+        ChannelBindingCallback, Mechanism, MechanismData, SessionCallback, SessionData,
+        SessionError, Side, State, Validate,
+    };
     use crate::alloc::boxed::Box;
     use crate::channel_bindings::NoChannelBindings;
     use crate::mechanism::Authentication;
@@ -261,8 +265,7 @@ impl MechanismData<'_> {
     ) -> Result<(), SessionError> {
         let context = build_context(provider);
         match self.callback.callback(&self.session_data, context, request) {
-            Ok(()) => Ok(()),
-            Err(SessionError::CallbackError(CallbackError::EarlyReturn(_))) => Ok(()),
+            Ok(()) | Err(SessionError::CallbackError(CallbackError::EarlyReturn(_))) => Ok(()),
             Err(e) => Err(e),
         }
     }
@@ -307,9 +310,8 @@ impl MechanismData<'_> {
         let mut closurecr = ClosureCR::<P, _, _>::wrap(closure);
         let mut tagged = Tagged::<'_, tags::RefMut<Satisfy<P>>>(&mut closurecr);
         match self.callback(provider, Request::new_satisfy::<P>(&mut tagged)) {
-            Ok(()) => Ok(()),
             // explicitly ignore a `NoValue` error since that one *is actually okay*
-            Err(SessionError::CallbackError(CallbackError::NoValue)) => Ok(()),
+            Ok(()) | Err(SessionError::CallbackError(CallbackError::NoValue)) => Ok(()),
             Err(error) => Err(error),
         }?;
         Ok(closurecr.try_unwrap())
@@ -343,10 +345,11 @@ pub struct SessionData {
     side: Side,
 }
 impl SessionData {
+    #[must_use]
     pub fn mechanism(&self) -> &Mechanism {
         &self.mechanism_desc
     }
-
+    #[must_use]
     pub fn side(&self) -> Side {
         self.side
     }
@@ -359,6 +362,7 @@ impl fmt::Debug for MechanismData<'_> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[allow(clippy::exhaustive_enums)]
 /// State result of the underlying Mechanism implementation
 pub enum State {
     /// The Mechanism has not yet completed the authentication exchange
@@ -384,20 +388,24 @@ pub enum State {
 }
 impl State {
     #[inline(always)]
+    #[must_use]
     pub fn is_running(&self) -> bool {
         matches!(self, Self::Running)
     }
     #[inline(always)]
+    #[must_use]
     pub fn is_finished(&self) -> bool {
         !self.is_running()
     }
     #[inline(always)]
+    #[must_use]
     pub fn has_sent_message(&self) -> bool {
         matches!(self, Self::Running | Self::Finished(MessageSent::Yes))
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[allow(clippy::exhaustive_enums)]
 /// Indication if a message was written into the provided writer.
 ///
 /// This enum is returned by a call to `step` or `step64` and indicates if a message was written

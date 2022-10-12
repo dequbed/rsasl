@@ -43,13 +43,18 @@ impl<V: Validation + Debug, CB: Debug> Debug for Sasl<V, CB> {
 
 #[cfg(any(feature = "provider", test))]
 mod provider {
-    use super::*;
+    use super::{
+        Arc, ChannelBindingCallback, Mechanism, Mechname, NoChannelBindings, NoValidation,
+        SASLClient, SASLConfig, SASLError, SASLServer, Sasl, Session, Side, Tagged, Validation,
+        Vec,
+    };
 
     /************************************************************
      * CLIENT impls
      ************************************************************/
 
     impl SASLClient {
+        #[must_use]
         pub fn new(config: Arc<SASLConfig>) -> Self {
             Self {
                 inner: Sasl::client(config),
@@ -89,6 +94,7 @@ mod provider {
      ************************************************************/
 
     impl<V: Validation> SASLServer<V> {
+        #[must_use]
         pub fn new(config: Arc<SASLConfig>) -> Self {
             Self {
                 inner: Sasl::server(config),

@@ -77,6 +77,7 @@ pub fn compute_signatures<D: Digest + BlockSizeUser + FixedOutput>(
         .finalize_into(server_signature);
 }
 
+#[must_use]
 pub fn derive_keys<D>(password: &[u8]) -> (DOutput<D>, DOutput<D>)
 where
     D: Digest + BlockSizeUser + FixedOutputReset,
