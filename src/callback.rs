@@ -15,6 +15,7 @@ use crate::validate::{Validate, ValidationError};
 
 // Re-Exports
 pub use crate::context::Context;
+use crate::registry::Mechanism;
 pub use crate::session::SessionData;
 
 pub trait SessionCallback: Send + Sync {
@@ -81,6 +82,25 @@ pub trait SessionCallback: Send + Sync {
         // silence the 'arg X not used' errors without having to prefix the parameter names with _
         let _ = (session_data, context, request);
         Ok(())
+    }
+
+    /// Indicate Mechanism Preference
+    ///
+    /// This method allows implementors to select the preferred mechanism for a **client side**
+    /// authentication. In that situation this function is used as a fold, and called repeatedly
+    /// for all offered and available mechanisms.
+    ///
+    /// An implementation should return the mechanism it prefers of the two. If `b` is not
+    /// acceptable and should not be used, an implementation MUST return `a`.
+    ///
+    /// `a` may be `None`, for example if only one of the offered mechanism(s) is available to
+    /// the client, or the previous call to `prefer` return `None`.
+    fn prefer<'a>(&self, a: Option<&'a Mechanism>, b: &'a Mechanism) -> Option<&'a Mechanism> {
+        Some(a.map_or(b, |old| std::cmp::max_by_key(old, b, |m| m.priority)))
+    }
+
+    fn select<'a>(&self, offer: &'a Mechanism) -> bool {
+        true
     }
 
     /// Validate an authentication exchange

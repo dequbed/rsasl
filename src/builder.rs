@@ -1,6 +1,6 @@
 use crate::alloc::sync::Arc;
 use crate::callback::SessionCallback;
-use crate::config::{SASLConfig, SorterFn};
+use crate::config::SASLConfig;
 use crate::error::SASLError;
 use crate::registry::{Mechanism, Registry};
 use core::cmp::Ordering;
@@ -111,16 +111,15 @@ impl ConfigBuilder {
         ConfigBuilder {
             state: WantCallback {
                 mechanisms: Registry::default(),
-                sorter: default_sorter,
             },
         }
     }
 
     /// Use a pre-initialized mechanism registry, giving the most control over available mechanisms
     #[must_use]
-    pub const fn with_registry(self, mechanisms: Registry) -> ConfigBuilder<WantSorter> {
+    pub const fn with_registry(self, mechanisms: Registry) -> ConfigBuilder<WantCallback> {
         ConfigBuilder {
-            state: WantSorter { mechanisms },
+            state: WantCallback { mechanisms },
         }
     }
 
@@ -129,32 +128,12 @@ impl ConfigBuilder {
     /// This is equivalent to `Self::with_registry(Registry::default())`. The default set of
     /// mechanisms depends on the enabled cargo features.
     #[must_use]
-    pub fn with_default_mechanisms(self) -> ConfigBuilder<WantSorter> {
+    pub fn with_default_mechanisms(self) -> ConfigBuilder<WantCallback> {
         self.with_registry(Registry::default())
     }
 
-    pub(crate) fn with_credentials_mechanisms(self, authzid: bool) -> ConfigBuilder<WantSorter> {
+    pub(crate) fn with_credentials_mechanisms(self, authzid: bool) -> ConfigBuilder<WantCallback> {
         self.with_registry(Registry::credentials(authzid))
-    }
-}
-
-#[derive(Clone)]
-#[doc(hidden)]
-pub struct WantSorter {
-    mechanisms: Registry,
-}
-impl ConfigBuilder<WantSorter> {
-    /// Use the default mechanisms prioritizations
-    ///
-    /// This method is required to allow backwards-compatible expansion of the configuration builder
-    #[must_use]
-    pub fn with_defaults(self) -> ConfigBuilder<WantCallback> {
-        ConfigBuilder {
-            state: WantCallback {
-                mechanisms: self.state.mechanisms,
-                sorter: default_sorter,
-            },
-        }
     }
 }
 
@@ -162,7 +141,6 @@ impl ConfigBuilder<WantSorter> {
 #[doc(hidden)]
 pub struct WantCallback {
     mechanisms: Registry,
-    sorter: SorterFn,
 }
 impl ConfigBuilder<WantCallback> {
     /// Install a callback for querying properties
@@ -174,6 +152,6 @@ impl ConfigBuilder<WantCallback> {
         self,
         callback: CB,
     ) -> Result<Arc<SASLConfig>, SASLError> {
-        SASLConfig::new(callback, self.state.sorter, self.state.mechanisms)
+        SASLConfig::new(callback, self.state.mechanisms)
     }
 }

@@ -109,10 +109,7 @@ mod provider {
         }
 
         pub fn get_available(&self) -> impl IntoIterator<Item = &Mechanism> {
-            let mut vec: Vec<&Mechanism> = self.inner.get_available().collect();
-            vec.as_mut_slice()
-                .sort_unstable_by(|a, b| self.inner.config.sort(a, b));
-            vec
+            self.inner.get_available()
         }
 
         /// Starts a authentication exchange as the server role
@@ -161,7 +158,8 @@ mod provider {
             self,
             offered: &[&Mechname],
         ) -> Result<Session<V, CB>, SASLError> {
-            let (mechanism, mechanism_desc) = self.config.select_mechanism(offered)?;
+            let it = offered.iter().map(|x| *x);
+            let (mechanism, mechanism_desc) = self.config.select_mechanism(it)?;
             let mechanism_desc = *mechanism_desc;
             Ok(Session::new(self, Side::Client, mechanism, mechanism_desc))
         }
