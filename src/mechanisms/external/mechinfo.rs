@@ -1,7 +1,7 @@
 use crate::alloc::boxed::Box;
 use crate::mechanisms::external::{client, server};
 use crate::mechname::Mechname;
-use crate::registry::Mechanism;
+use crate::registry::{Matches, Mechanism, Name};
 use crate::session::Side;
 
 #[cfg(feature = "registry_static")]
@@ -13,4 +13,14 @@ pub static EXTERNAL: Mechanism = Mechanism {
     client: Some(|_sasl| Ok(Box::new(client::External))),
     server: Some(|_sasl| Ok(Box::new(server::External))),
     first: Side::Client,
+
+    select: |_| Some(Matches::<Select>::name()),
+    offer: |_| true,
 };
+
+struct Select;
+impl Name for Select {
+    fn mech() -> &'static Mechanism {
+        &EXTERNAL
+    }
+}

@@ -1,6 +1,6 @@
 use crate::alloc::boxed::Box;
 use crate::mechname::Mechname;
-use crate::registry::Mechanism;
+use crate::registry::{Matches, Mechanism, Name};
 use crate::session::Side;
 
 use super::{client, server};
@@ -14,4 +14,14 @@ pub static LOGIN: Mechanism = Mechanism {
     client: Some(|_sasl| Ok(Box::new(client::Login::new()))),
     server: Some(|_sasl| Ok(Box::new(server::Login::new()))),
     first: Side::Server,
+
+    select: |_| Some(Matches::<Select>::name()),
+    offer: |_| true,
 };
+
+struct Select;
+impl Name for Select {
+    fn mech() -> &'static Mechanism {
+        &LOGIN
+    }
+}

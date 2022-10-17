@@ -1,6 +1,6 @@
 use crate::alloc::boxed::Box;
 use crate::mechname::Mechname;
-use crate::registry::{Mechanism, Side};
+use crate::registry::{Matches, Mechanism, Name, Side};
 
 #[cfg(feature = "registry_static")]
 use crate::registry::{distributed_slice, MECHANISMS};
@@ -14,7 +14,17 @@ use super::{client, server};
 pub static XOAUTH2: Mechanism = Mechanism {
     mechanism: Mechname::const_new(b"XOAUTH2"),
     priority: 300,
-    client: Some(|_sasl, _offered| Ok(Box::new(client::XOAuth2::default()))),
+    client: Some(|_sasl| Ok(Box::new(client::XOAuth2::default()))),
     server: Some(|_sasl| Ok(Box::new(server::XOAuth2::default()))),
     first: Side::Client,
+
+    select: |_| Some(Matches::<Select>::name()),
+    offer: |_| true,
 };
+
+struct Select;
+impl Name for Select {
+    fn mech() -> &'static Mechanism {
+        &XOAUTH2
+    }
+}

@@ -2,7 +2,7 @@ use crate::alloc::boxed::Box;
 use crate::error::{MechanismError, MechanismErrorKind};
 use crate::mechanisms::plain::{client, server};
 use crate::mechname::Mechname;
-use crate::registry::Mechanism;
+use crate::registry::{Matches, Mechanism, Name};
 use crate::session::Side;
 use core::str::Utf8Error;
 
@@ -21,7 +21,16 @@ pub static PLAIN: Mechanism = Mechanism {
     client: Some(|_sasl| Ok(Box::new(client::Plain))),
     server: Some(|_sasl| Ok(Box::new(server::Plain))),
     first: Side::Client,
+    select: |_| Some(Matches::<Select>::name()),
+    offer: |_| true,
 };
+
+struct Select;
+impl Name for Select {
+    fn mech() -> &'static Mechanism {
+        &PLAIN
+    }
+}
 
 #[derive(Debug, Error)]
 pub(super) enum PlainError {
