@@ -1,6 +1,6 @@
 use crate::alloc::boxed::Box;
 use crate::mechname::Mechname;
-use crate::registry::{Matches, Mechanism, Name, Side};
+use crate::registry::{Matches, Mechanism, Named, Side};
 
 #[cfg(feature = "registry_static")]
 use crate::registry::{distributed_slice, MECHANISMS};
@@ -14,7 +14,7 @@ use super::{client, server};
 pub static OAUTHBEARER: Mechanism = Mechanism {
     mechanism: Mechname::const_new(b"OAUTHBEARER"),
     priority: 300,
-    client: Some(|_sasl| Ok(Box::new(client::OAuthBearer::default()))),
+    client: Some(|| Ok(Box::new(client::OAuthBearer::default()))),
     server: Some(|_sasl| Ok(Box::new(server::OAuthBearer::default()))),
     first: Side::Client,
 
@@ -23,7 +23,7 @@ pub static OAUTHBEARER: Mechanism = Mechanism {
 };
 
 struct Select;
-impl Name for Select {
+impl Named for Select {
     fn mech() -> &'static Mechanism {
         &OAUTHBEARER
     }

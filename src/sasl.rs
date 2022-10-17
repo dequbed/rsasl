@@ -81,9 +81,9 @@ mod provider {
         /// an authcid, optional authzid and password for PLAIN. To provide that data an application
         /// has to either call `set_property` before running the step that requires the data, or
         /// install a callback.
-        pub fn start_suggested(
+        pub fn start_suggested<'a>(
             self,
-            offered: &[&Mechname],
+            offered: impl IntoIterator<Item=&'a &'a Mechname>,
         ) -> Result<Session<NoValidation, CB>, SASLError> {
             self.inner.client_start_suggested(offered)
         }
@@ -154,14 +154,12 @@ mod provider {
             }
         }
 
-        fn client_start_suggested(
+        fn client_start_suggested<'a>(
             self,
-            offered: &[&Mechname],
+            offered: impl IntoIterator<Item=&'a &'a Mechname>
         ) -> Result<Session<V, CB>, SASLError> {
-            let it = offered.iter().map(|x| *x);
-            let (mechanism, mechanism_desc) = self.config.select_mechanism(it)?;
-            let mechanism_desc = *mechanism_desc;
-            Ok(Session::new(self, Side::Client, mechanism, mechanism_desc))
+            let (mechanism, mechanism_desc) = self.config.select_mechanism(offered)?;
+            Ok(Session::new(self, Side::Client, mechanism, *mechanism_desc))
         }
 
         fn server_start_suggested(self, selected: &Mechname) -> Result<Session<V, CB>, SASLError> {

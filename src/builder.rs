@@ -28,7 +28,6 @@ use core::fmt::{Debug, Formatter};
 /// use rsasl::config::SASLConfig;
 /// let config: Arc<SASLConfig> = SASLConfig::builder()
 ///     .with_default_mechanisms()
-///     .with_defaults()
 ///     .with_callback(Callback::new())
 ///     .unwrap();
 /// # }
@@ -72,7 +71,6 @@ use core::fmt::{Debug, Formatter};
 /// static MECHANISMS: &[Mechanism] = &[PLAIN, EXTERNAL];
 /// let config: Arc<SASLConfig> = SASLConfig::builder()
 ///     .with_registry(Registry::with_mechanisms(MECHANISMS))
-///     .with_defaults()
 ///     .with_callback(Callback::new())
 ///     .unwrap();
 /// ```

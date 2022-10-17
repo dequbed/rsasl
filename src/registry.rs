@@ -24,6 +24,7 @@
 //! for your Mechanism MUST be marked `pub` and be reachable by dependent crates, otherwise they
 //! may be silently dropped by the compiler.
 
+use core::cmp::Ordering;
 use crate::alloc::boxed::Box;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
@@ -35,7 +36,8 @@ pub use crate::session::Side;
 #[cfg(feature = "registry_static")]
 pub use registry_static::*;
 
-pub type StartFn = fn(sasl: &SASLConfig) -> Result<Box<dyn Authentication>, SASLError>;
+pub type StartFn = fn() -> Result<Box<dyn Authentication>, SASLError>;
+pub type ServerStartFn = fn(sasl: &SASLConfig) -> Result<Box<dyn Authentication>, SASLError>;
 
 #[non_exhaustive]
 #[derive(Copy, Clone)]
@@ -53,7 +55,7 @@ pub struct Mechanism {
     pub(crate) priority: usize,
 
     pub(crate) client: Option<StartFn>,
-    pub(crate) server: Option<StartFn>,
+    pub(crate) server: Option<ServerStartFn>,
 
     #[cfg_attr(not(feature = "provider"), allow(unused))]
     pub(crate) first: Side,
@@ -73,7 +75,7 @@ impl Mechanism {
         mechanism: &'static Mechname,
         priority: usize,
         client: Option<StartFn>,
-        server: Option<StartFn>,
+        server: Option<ServerStartFn>,
         first: Side,
         select: fn(bool) -> Option<Selection>,
         offer: fn(bool) -> bool,
@@ -91,11 +93,8 @@ impl Mechanism {
 }
 
 impl Mechanism {
-    pub fn client(
-        &self,
-        sasl: &SASLConfig,
-    ) -> Option<Result<Box<dyn Authentication>, SASLError>> {
-        self.client.map(|f| f(sasl))
+    pub fn client(&self) -> Option<Result<Box<dyn Authentication>, SASLError>> {
+        self.client.map(|f| f())
     }
 
     pub fn server(&self, sasl: &SASLConfig) -> Option<Result<Box<dyn Authentication>, SASLError>> {
@@ -220,8 +219,16 @@ impl Registry {
         &self,
         cb: bool,
         offered: impl Iterator<Item = &'a Mechname>,
-        fold: impl FnMut(Option<&'static Mechanism>, &'static Mechanism) -> Option<&'static Mechanism>
-    ) -> Option<&'static Mechanism> {
+        mut fold: impl FnMut(
+            Option<&'static Mechanism>,
+            &'static Mechanism,
+        ) -> Ordering,
+    ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError> {
+        // This looks like a terrible double-allocation as Selection contains a `Box<dyn Selector>`,
+        // but for most of the mechanisms the Selector is a ZST meaning the Box doesn't allocate.
+        // Only if the selector has to keep state (e.g. the non-PLUS SCRAM ones have to change
+        // their behaviour depending on what mechanisms the server offered for their GS2 header)
+        // the Box has to make an allocation.
         let mut selectors: Vec<Selection> =
             self.get_mechanisms().filter_map(|m| m.select(cb)).collect();
 
@@ -231,10 +238,23 @@ impl Registry {
             }
         }
 
-        selectors
+        let (mut s, m) = selectors
             .into_iter()
-            .filter_map(|mut s| s.finalize())
-            .fold(None, fold)
+            .filter_map(|mut s| s.done().map(|m| (s, m)))
+            .fold(None, |acc, (s, m)| {
+                let accmech = acc.as_ref().map(|(_, m)| *m);
+                match fold(accmech, m) {
+                    // `Greater` means the first parameter (accmech) was preferable — even if None.
+                    Ordering::Greater => acc,
+                    // `Equal` is undefined behaviour, but we're just going for `Less` because
+                    // we don't have to check for `accmech` being `None` then.
+                    Ordering::Equal |
+                    // `Less` means the second parameter (m) was preferable
+                    Ordering::Less => Some((s,m))
+                }
+            })
+            .ok_or(SASLError::NoSharedMechanism)?;
+        s.finalize().map(|a| (a, m))
     }
 }
 
@@ -254,11 +274,12 @@ mod registry_static {
 }
 
 mod selector {
-    use alloc::marker::PhantomData;
     use super::*;
+    use alloc::marker::PhantomData;
     pub trait Selector {
         fn select(&mut self, mechname: &Mechname) -> Option<&'static Mechanism>;
-        fn finalize(&mut self) -> Option<&'static Mechanism>;
+        fn done(&mut self) -> Option<&'static Mechanism>;
+        fn finalize(&mut self) -> Result<Box<dyn Authentication>, SASLError>;
     }
 
     pub enum Selection {
@@ -274,25 +295,32 @@ mod selector {
             }
         }
 
-        pub(super) fn finalize(&mut self) -> Option<&'static Mechanism> {
+        pub(super) fn done(&mut self) -> Option<&'static Mechanism> {
+            match self {
+                Self::Nothing(selector) => selector.done(),
+                Self::Done(m) => Some(m),
+            }
+        }
+
+        pub(super) fn finalize(&mut self) -> Result<Box<dyn Authentication>, SASLError> {
             match self {
                 Self::Nothing(selector) => selector.finalize(),
-                Self::Done(m) => Some(m),
+                Self::Done(m) => m.client().unwrap(),
             }
         }
     }
 
-    pub trait Name {
+    pub trait Named {
         fn mech() -> &'static Mechanism;
     }
     #[repr(transparent)]
     pub struct Matches<T>(PhantomData<T>);
-    impl<T: Name + 'static> Matches<T> {
+    impl<T: Named + 'static> Matches<T> {
         pub fn name() -> Selection {
             Selection::Nothing(Box::new(Self(PhantomData)))
         }
     }
-    impl<T: Name> Selector for Matches<T> {
+    impl<T: Named> Selector for Matches<T> {
         fn select(&mut self, mechname: &Mechname) -> Option<&'static Mechanism> {
             let m = T::mech();
             if *mechname == *m.mechanism {
@@ -301,8 +329,12 @@ mod selector {
                 None
             }
         }
-        fn finalize(&mut self) -> Option<&'static Mechanism> {
+        fn done(&mut self) -> Option<&'static Mechanism> {
             None
+        }
+        fn finalize(&mut self) -> Result<Box<dyn Authentication>, SASLError> {
+            let m = T::mech();
+            (m.client.unwrap())()
         }
     }
 }

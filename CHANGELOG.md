@@ -18,6 +18,9 @@ release. They will however *never* happen in a patch release.
 
 [Changes rendered on GitHub][Upcoming/diff]
 
+## Added
+- `SASLClient::start_suggested` can now be called with any `impl IntoIterator<Item=&&Mechname>`. As `&[&Mechname]` does 
+  implement this trait no changes are required for users.
 
 # [v2.0.0-rc.3] — 2022-10-12
 

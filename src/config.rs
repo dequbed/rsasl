@@ -12,6 +12,7 @@ use core::fmt;
 #[doc(inline)]
 #[cfg(feature = "config_builder")]
 pub use crate::builder::ConfigBuilder;
+use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
 
 trait ConfigInstance: fmt::Debug + Send + Sync {
@@ -21,7 +22,7 @@ trait ConfigInstance: fmt::Debug + Send + Sync {
         &self,
         cb: bool,
         offered: &mut dyn Iterator<Item = &'a Mechname>,
-    ) -> Option<&'static Mechanism>;
+    ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError>;
 }
 
 #[repr(transparent)]
@@ -57,15 +58,11 @@ mod provider {
         /// Select the best mechanism of the offered ones.
         pub(crate) fn select_mechanism<'a>(
             &self,
-            offered: impl IntoIterator<Item=&'a Mechname>,
-        ) -> Result<(Box<dyn Authentication>, &Mechanism), SASLError> {
-            let mut it = offered.into_iter();
-            let selected = self.inner.select(false, &mut it)
-                .ok_or(SASLError::NoSharedMechanism)?;
-            let auth = selected
-                .client(self)
-                .ok_or(SASLError::NoSharedMechanism)??;
-            Ok((auth, selected))
+            offered: impl IntoIterator<Item=&'a &'a Mechname>,
+        ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError> {
+            let mut it = offered.into_iter().map(|x| *x);
+            let cb = self.get_callback().enable_channel_binding();
+            self.inner.select(cb, &mut it)
         }
 
         #[inline(always)]
@@ -92,6 +89,7 @@ mod instance {
     use crate::callback::Request;
     use crate::context::Context;
     use crate::error::SessionError;
+    use crate::mechanism::Authentication;
     use crate::mechname::Mechname;
     use crate::property::{AuthId, AuthzId, Password};
     use crate::registry::Registry;
@@ -212,7 +210,7 @@ mod instance {
             &self,
             cb: bool,
             offered: &mut dyn Iterator<Item = &'a Mechname>,
-        ) -> Option<&'static Mechanism> {
+        ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError> {
             let callback = self.get_callback();
             self.mechanisms.select(cb | self.cb, offered, |acc, mech| callback.prefer(acc, mech))
         }

@@ -4,6 +4,7 @@
 //! that should not need to care about the shape of this data.
 //! Yeah, *all* the runtime reflection.
 
+use core::cmp::Ordering;
 use core::marker::PhantomData;
 use thiserror::Error;
 
@@ -84,23 +85,30 @@ pub trait SessionCallback: Send + Sync {
         Ok(())
     }
 
+    fn enable_channel_binding(&self) -> bool {
+        false
+    }
+
     /// Indicate Mechanism Preference
     ///
     /// This method allows implementors to select the preferred mechanism for a **client side**
     /// authentication. In that situation this function is used as a fold, and called repeatedly
     /// for all offered and available mechanisms.
     ///
-    /// An implementation should return the mechanism it prefers of the two. If `b` is not
-    /// acceptable and should not be used, an implementation MUST return `a`.
+    /// An implementation should return the mechanism it prefers of the two. The comparison
+    /// should behave as if `a.cmp(b)` was called, i.e. returning `Ordering::Less` prefers `b`,
+    /// while returning `Ordering::Greater` prefers `a`. If `Ordering::Equal` is returned the
+    /// result is undefined and MUST NOT be relied upon.
     ///
-    /// `a` may be `None`, for example if only one of the offered mechanism(s) is available to
-    /// the client, or the previous call to `prefer` return `None`.
-    fn prefer<'a>(&self, a: Option<&'a Mechanism>, b: &'a Mechanism) -> Option<&'a Mechanism> {
-        Some(a.map_or(b, |old| std::cmp::max_by_key(old, b, |m| m.priority)))
-    }
-
-    fn select<'a>(&self, offer: &'a Mechanism) -> bool {
-        true
+    /// If `b` is not acceptable and should not be used, an implementation MUST return
+    /// `Ordering::Greater` to indicate preference for `a`.  This requirement is true even if `a`
+    /// is `None`. `a` is `None` if only one of the offered mechanism(s) is also available to the
+    /// client, this is the first call to `prefer`, or if the previous call to `prefer` indicated
+    /// preference for a `None` `a`.
+    /// This requirement is specified so that a client can reject *all* compatible mechanisms by
+    /// returning `Ordering::Greater`.
+    fn prefer<'a>(&self, a: Option<&'a Mechanism>, b: &'a Mechanism) -> Ordering {
+        a.map_or(Ordering::Less, |old| old.priority.cmp(&b.priority))
     }
 
     /// Validate an authentication exchange

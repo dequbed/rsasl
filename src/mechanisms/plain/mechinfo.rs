@@ -2,7 +2,7 @@ use crate::alloc::boxed::Box;
 use crate::error::{MechanismError, MechanismErrorKind};
 use crate::mechanisms::plain::{client, server};
 use crate::mechname::Mechname;
-use crate::registry::{Matches, Mechanism, Name};
+use crate::registry::{Matches, Mechanism, Named};
 use crate::session::Side;
 use core::str::Utf8Error;
 
@@ -18,7 +18,7 @@ use crate::registry::{distributed_slice, MECHANISMS};
 pub static PLAIN: Mechanism = Mechanism {
     mechanism: Mechname::const_new(b"PLAIN"),
     priority: 300,
-    client: Some(|_sasl| Ok(Box::new(client::Plain))),
+    client: Some(|| Ok(Box::new(client::Plain))),
     server: Some(|_sasl| Ok(Box::new(server::Plain))),
     first: Side::Client,
     select: |_| Some(Matches::<Select>::name()),
@@ -26,7 +26,7 @@ pub static PLAIN: Mechanism = Mechanism {
 };
 
 struct Select;
-impl Name for Select {
+impl Named for Select {
     fn mech() -> &'static Mechanism {
         &PLAIN
     }
