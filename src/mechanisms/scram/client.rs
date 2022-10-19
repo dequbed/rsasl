@@ -478,7 +478,7 @@ where
     }
 }
 
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone, thiserror::Error)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Error)]
 pub enum ProtocolError {
     #[error("returned server nonce is invalid")]
     InvalidNonce,
