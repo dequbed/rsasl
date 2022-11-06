@@ -61,6 +61,7 @@ pub struct Mechanism {
     pub(crate) first: Side,
 
     pub(crate) select: fn(bool) -> Option<Selection>,
+    #[allow(dead_code)]
     pub(crate) offer: fn(bool) -> bool,
 }
 
@@ -93,14 +94,17 @@ impl Mechanism {
 }
 
 impl Mechanism {
+    #[must_use]
     pub fn client(&self) -> Option<Result<Box<dyn Authentication>, SASLError>> {
         self.client.map(|f| f())
     }
 
+    #[must_use]
     pub fn server(&self, sasl: &SASLConfig) -> Option<Result<Box<dyn Authentication>, SASLError>> {
         self.server.map(|f| f(sasl))
     }
 
+    #[must_use]
     fn select(&self, cb: bool) -> Option<Selection> {
         (self.select)(cb)
     }
@@ -170,7 +174,7 @@ mod config {
 
             // Only ever enable LOGIN if no authzid is provided
             let mechanisms = if authzid { CRED_AUTHZID } else { CRED };
-            Self::with_mechanisms(&mechanisms)
+            Self::with_mechanisms(mechanisms)
         }
     }
 
@@ -233,7 +237,7 @@ impl Registry {
             self.get_mechanisms().filter_map(|m| m.select(cb)).collect();
 
         for o in offered {
-            for s in selectors.iter_mut() {
+            for s in &mut selectors {
                 s.select(o);
             }
         }
@@ -263,6 +267,7 @@ mod registry_static {
     use super::Mechanism;
     pub use linkme::distributed_slice;
 
+    //noinspection RsTypeCheck
     #[distributed_slice]
     pub static MECHANISMS: [Mechanism] = [..];
 }
@@ -274,7 +279,7 @@ mod registry_static {
 }
 
 mod selector {
-    use super::*;
+    use super::{Authentication, Box, Mechanism, Mechname, SASLError};
     use alloc::marker::PhantomData;
     pub trait Selector {
         fn select(&mut self, mechname: &Mechname) -> Option<&'static Mechanism>;
@@ -316,6 +321,7 @@ mod selector {
     #[repr(transparent)]
     pub struct Matches<T>(PhantomData<T>);
     impl<T: Named + 'static> Matches<T> {
+        #[must_use]
         pub fn name() -> Selection {
             Selection::Nothing(Box::new(Self(PhantomData)))
         }

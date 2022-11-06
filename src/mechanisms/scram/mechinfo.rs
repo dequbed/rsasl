@@ -75,7 +75,7 @@ mod scram_sha1 {
             Ok(Box::new(match self {
                 Self::Bare => client::ScramSha1Client::<NONCE_LEN>::new(false),
                 Self::Plus => client::ScramSha1Client::<NONCE_LEN>::new(true),
-                _ => unreachable!(),
+                Self::No => unreachable!(),
             }))
         }
     }
@@ -169,7 +169,7 @@ mod scram_sha256 {
             Ok(Box::new(match self {
                 Self::Bare => client::ScramSha256Client::<NONCE_LEN>::new(false),
                 Self::Plus => client::ScramSha256Client::<NONCE_LEN>::new(true),
-                _ => unreachable!(),
+                Self::No => unreachable!(),
             }))
         }
     }
