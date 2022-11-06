@@ -10,7 +10,7 @@ use crate::registry::Mechanism;
 use crate::session::{Session, Side};
 use crate::validate::{NoValidation, Validation};
 
-use crate::alloc::{sync::Arc, vec::Vec};
+use crate::alloc::sync::Arc;
 use crate::typed::Tagged;
 
 #[derive(Debug)]
@@ -46,7 +46,6 @@ mod provider {
     use super::{
         Arc, ChannelBindingCallback, Mechanism, Mechname, NoChannelBindings, NoValidation,
         SASLClient, SASLConfig, SASLError, SASLServer, Sasl, Session, Side, Tagged, Validation,
-        Vec,
     };
 
     /************************************************************
@@ -78,9 +77,8 @@ mod provider {
         /// Starts a authentication exchange as a client
         ///
         /// Depending on the mechanism chosen this may need additional data from the application, e.g.
-        /// an authcid, optional authzid and password for PLAIN. To provide that data an application
-        /// has to either call `set_property` before running the step that requires the data, or
-        /// install a callback.
+        /// an authcid, optional authzid and password for PLAIN. This data is provided by the
+        /// application via callbacks.
         pub fn start_suggested<'a>(
             self,
             offered: impl IntoIterator<Item=&'a &'a Mechname>,

@@ -2,8 +2,7 @@ use crate::alloc::sync::Arc;
 use crate::callback::SessionCallback;
 use crate::config::SASLConfig;
 use crate::error::SASLError;
-use crate::registry::{Mechanism, Registry};
-use core::cmp::Ordering;
+use crate::registry::Registry;
 use core::fmt::{Debug, Formatter};
 
 #[derive(Clone)]
@@ -84,10 +83,6 @@ impl<State: Debug> Debug for ConfigBuilder<State> {
             .field("state", &self.state)
             .finish()
     }
-}
-
-pub fn default_sorter(a: &Mechanism, b: &Mechanism) -> Ordering {
-    a.priority.cmp(&b.priority)
 }
 
 #[derive(Clone, Debug)]

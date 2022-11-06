@@ -2,7 +2,6 @@
 //!
 
 use super::mechanism::{RSASLTEST_CF, RSASLTEST_SF};
-use crate::builder::default_sorter;
 use crate::callback::SessionCallback;
 pub use crate::callback::{Context, SessionData};
 use crate::config::SASLConfig;

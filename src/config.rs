@@ -6,7 +6,6 @@ use crate::error::SASLError;
 use crate::registry::{Mechanism, MechanismIter};
 use crate::session::SessionData;
 use alloc::sync::Arc;
-use core::cmp::Ordering;
 use core::fmt;
 
 #[doc(inline)]
@@ -49,7 +48,7 @@ impl fmt::Debug for SASLConfig {
 
 #[cfg(any(test, feature = "provider", feature = "testutils"))]
 mod provider {
-    use super::{Box, Mechanism, Ordering, SASLConfig, SASLError, SessionCallback};
+    use super::{Box, Mechanism, SASLConfig, SASLError, SessionCallback};
     use crate::mechanism::Authentication;
     use crate::mechname::Mechname;
 
@@ -60,7 +59,7 @@ mod provider {
             &self,
             offered: impl IntoIterator<Item=&'a &'a Mechname>,
         ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError> {
-            let mut it = offered.into_iter().map(|x| *x);
+            let mut it = offered.into_iter().copied();
             let cb = self.get_callback().enable_channel_binding();
             self.inner.select(cb, &mut it)
         }
@@ -82,7 +81,7 @@ impl SASLConfig {
 #[cfg(feature = "config_builder")]
 mod instance {
     use super::{
-        fmt, Arc, Box, ConfigInstance, Mechanism, MechanismIter, Ordering, SASLConfig, SASLError,
+        fmt, Arc, Box, ConfigInstance, Mechanism, MechanismIter, SASLConfig, SASLError,
         SessionCallback, SessionData, String,
     };
     pub use crate::builder::ConfigBuilder;

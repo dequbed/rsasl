@@ -2,7 +2,7 @@ use crate::alloc::boxed::Box;
 use crate::mechanisms::anonymous::{client, server};
 use crate::mechname::Mechname;
 use crate::property::Property;
-use crate::registry::{Matches, Mechanism, Named, Selection, Selector};
+use crate::registry::{Matches, Mechanism, Named};
 use crate::session::Side;
 
 /// Anonymous 'trace' token
