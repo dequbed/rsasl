@@ -26,7 +26,7 @@ impl MechanismError for SaslNameError {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 enum SaslEscapeState {
     Done,
     Char(char),
@@ -37,7 +37,7 @@ enum SaslEscapeState {
 }
 
 impl SaslEscapeState {
-    pub fn escape(c: char) -> Self {
+    pub const fn escape(c: char) -> Self {
         match c {
             ',' => Self::Comma,
             '=' => Self::Equals,
@@ -46,7 +46,6 @@ impl SaslEscapeState {
     }
 }
 
-#[allow(clippy::copy_iterator)]
 impl Iterator for SaslEscapeState {
     type Item = char;
 
@@ -86,10 +85,10 @@ impl Iterator for SaslEscapeState {
 impl ExactSizeIterator for SaslEscapeState {
     fn len(&self) -> usize {
         match self {
-            SaslEscapeState::Done => 0,
-            SaslEscapeState::Char(_) => 1,
-            SaslEscapeState::Comma | SaslEscapeState::Equals => 3,
-            SaslEscapeState::Comma1 | SaslEscapeState::Equals1 => 2,
+            Self::Done => 0,
+            Self::Char(_) => 1,
+            Self::Comma | Self::Equals => 3,
+            Self::Comma1 | Self::Equals1 => 2,
         }
     }
 }
@@ -198,23 +197,25 @@ impl<'scram> GS2CBindFlag<'scram> {
             b"y" => Ok(Self::SupportedNotUsed),
             _x if input.len() > 2 && input[0] == b'p' && input[1] == b'=' => {
                 let cbname = &input[2..];
-                if let Some(bad) = cbname.iter().find(|b|
-                          // According to [RFC5056 Section 7](https://www.rfc-editor.org/rfc/rfc5056#section-7)
-                          // valid cb names are only composed of ASCII alphanumeric, '.' and '-'
-                          !(matches!(b, b'.' | b'-' | b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z')))
-                {
-                    Err(ParseError::BadCBName(*bad))
-                } else {
-                    // SAFE because we just checked for a subset of ASCII which is always UTF-8
-                    let name = unsafe { core::str::from_utf8_unchecked(cbname) };
-                    Ok(Self::Used(name))
-                }
+                cbname
+                    .iter()
+                    // According to [RFC5056 Section 7](https://www.rfc-editor.org/rfc/rfc5056#section-7)
+                    // valid cb names are only composed of ASCII alphanumeric, '.' and '-'
+                    .find(|b| !(matches!(b, b'.' | b'-' | b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z')))
+                    .map_or_else(
+                        || {
+                            // SAFE because we just checked for a subset of ASCII which is always UTF-8
+                            let name = unsafe { core::str::from_utf8_unchecked(cbname) };
+                            Ok(Self::Used(name))
+                        },
+                        |bad| Err(ParseError::BadCBName(*bad)),
+                    )
             }
             _ => Err(ParseError::BadCBFlag),
         }
     }
 
-    pub fn as_ioslices(&self) -> [&'scram [u8]; 2] {
+    pub const fn as_ioslices(&self) -> [&'scram [u8]; 2] {
         match self {
             Self::NotSupported => [b"n", &[]],
             Self::SupportedNotUsed => [b"y", &[]],
@@ -232,7 +233,7 @@ pub struct ClientFirstMessage<'scram> {
 }
 impl<'scram> ClientFirstMessage<'scram> {
     #[allow(unused)]
-    pub fn new(
+    pub const fn new(
         cbflag: GS2CBindFlag<'scram>,
         authzid: Option<&'scram str>,
         username: &'scram str,
@@ -292,11 +293,9 @@ impl<'scram> ClientFirstMessage<'scram> {
     fn gs2_header_parts(&self) -> [&'scram [u8]; 4] {
         let [cba, cbb] = self.cbflag.as_ioslices();
 
-        let (prefix, authzid): (&[u8], &[u8]) = if let Some(authzid) = self.authzid {
-            (b",a=", authzid.as_bytes())
-        } else {
-            (b",", &[])
-        };
+        let (prefix, authzid): (&[u8], &[u8]) = self
+            .authzid
+            .map_or((b",", &[]), |authzid| (b",a=", authzid.as_bytes()));
 
         [cba, cbb, prefix, authzid]
     }
@@ -353,7 +352,7 @@ pub struct ServerFirst<'scram> {
 }
 
 impl<'scram> ServerFirst<'scram> {
-    pub fn new(
+    pub const fn new(
         client_nonce: &'scram [u8],
         server_nonce: &'scram [u8],
         salt: &'scram [u8],
@@ -430,7 +429,11 @@ pub struct ClientFinal<'scram> {
 }
 
 impl<'scram> ClientFinal<'scram> {
-    pub fn new(channel_binding: &'scram [u8], nonce: &'scram [u8], proof: &'scram [u8]) -> Self {
+    pub const fn new(
+        channel_binding: &'scram [u8],
+        nonce: &'scram [u8],
+        proof: &'scram [u8],
+    ) -> Self {
         Self {
             channel_binding,
             nonce,
@@ -477,7 +480,7 @@ impl<'scram> ClientFinal<'scram> {
         })
     }
 
-    pub fn to_ioslices(&self) -> [&'scram [u8]; 6] {
+    pub const fn to_ioslices(&self) -> [&'scram [u8]; 6] {
         [
             b"c=",
             self.channel_binding,
@@ -504,7 +507,7 @@ pub enum ServerErrorValue {
     OtherError,
 }
 impl ServerErrorValue {
-    pub fn as_bytes(self) -> &'static [u8] {
+    pub const fn as_bytes(self) -> &'static [u8] {
         match self {
             Self::InvalidEncoding => b"invalid-encoding",
             Self::ExtensionsNotSupported => b"extensions-not-supported",
@@ -520,7 +523,7 @@ impl ServerErrorValue {
         }
     }
 
-    pub fn as_str(self) -> &'static str {
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::InvalidEncoding => "invalid encoding",
             Self::ExtensionsNotSupported => "extensions not supported",
@@ -576,7 +579,7 @@ impl<'scram> ServerFinal<'scram> {
         }
     }
 
-    pub fn to_ioslices(&self) -> [&'scram [u8]; 2] {
+    pub const fn to_ioslices(&self) -> [&'scram [u8]; 2] {
         match self {
             Self::Verifier(v) => [b"v=", v],
             Self::Error(e) => [b"e=", e.as_bytes()],

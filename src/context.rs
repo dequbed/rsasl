@@ -89,7 +89,7 @@ impl<'a> Demand<'a> {
 }
 impl<'a> Demand<'a> {
     #[allow(clippy::unused_self)]
-    pub fn done(&self) -> DemandReply<()> {
+    pub const fn done(&self) -> DemandReply<()> {
         DemandReply::Continue(())
     }
 
@@ -116,7 +116,7 @@ impl<'a> Demand<'a> {
     }
 }
 
-pub(crate) fn build_context<'a>(provider: &'a dyn Provider) -> &'a Context<'a> {
+pub fn build_context<'a>(provider: &'a dyn Provider) -> &'a Context<'a> {
     unsafe { &*(provider as *const dyn Provider as *const Context) }
 }
 
@@ -140,13 +140,15 @@ impl<'a> Context<'a> {
 #[repr(transparent)]
 pub struct ThisProvider<'a, P: Property<'a>>(&'a P::Value);
 impl<'a, P: Property<'a>> ThisProvider<'a, P> {
-    pub fn with(value: &'a P::Value) -> ThisProvider<'a, P> {
+    pub const fn with(value: &'a P::Value) -> ThisProvider<'a, P> {
         ThisProvider(value)
     }
-    fn back(&self) -> &'a P::Value {
+
+    const fn back(&self) -> &'a P::Value {
         self.0
     }
 }
+
 impl<'a, P> Provider<'a> for ThisProvider<'a, P>
 where
     P: Property<'a>,

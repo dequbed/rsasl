@@ -33,7 +33,7 @@ impl Mechname {
     /// Convert a byte slice into a `&Mechname` after checking it for validity.
     ///
     ///
-    pub fn parse(input: &[u8]) -> Result<&Mechname, MechanismNameError> {
+    pub fn parse(input: &[u8]) -> Result<&Self, MechanismNameError> {
         if input.is_empty() {
             Err(MechanismNameError::TooShort)
         } else {
@@ -53,17 +53,17 @@ impl Mechname {
 
     #[must_use]
     #[inline(always)]
-    pub fn as_str(&self) -> &str {
+    pub const fn as_str(&self) -> &str {
         &self.inner
     }
 
     #[must_use]
     #[inline(always)]
-    pub fn as_bytes(&self) -> &[u8] {
+    pub const fn as_bytes(&self) -> &[u8] {
         self.inner.as_bytes()
     }
 
-    pub(crate) const fn const_new(s: &[u8]) -> &Mechname {
+    pub(crate) const fn const_new(s: &[u8]) -> &Self {
         unsafe { core::mem::transmute(s) }
     }
 }
@@ -81,7 +81,7 @@ impl Mechname {
     ///
     /// Uses transmute due to [rustc issue #51911](https://github.com/rust-lang/rust/issues/51911)
     #[must_use]
-    pub const fn const_new_unchecked(s: &[u8]) -> &Mechname {
+    pub const fn const_new_unchecked(s: &[u8]) -> &Self {
         Self::const_new(s)
     }
 }

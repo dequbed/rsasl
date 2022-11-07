@@ -178,8 +178,9 @@ impl CallbackError {
     const fn early_return() -> Self {
         Self::EarlyReturn(TOKEN(PhantomData))
     }
+
     #[must_use]
-    pub fn is_no_callback(&self) -> bool {
+    pub const fn is_no_callback(&self) -> bool {
         matches!(self, Self::NoCallback(_))
     }
 }
@@ -203,12 +204,15 @@ where
     P: for<'p> Property<'p>,
     F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
 {
-    pub fn wrap(closure: F) -> ClosureCR<P, F, G> {
-        ClosureCR {
+    pub const fn wrap(closure: F) -> Self {
+        Self {
             closure: Some(ClosureCRState::Open(closure)),
             _marker: PhantomData,
         }
     }
+
+    // false positive
+    #[allow(clippy::missing_const_for_fn)]
     pub fn try_unwrap(self) -> Option<G> {
         if let Some(ClosureCRState::Satisfied(val)) = self.closure {
             Some(val)

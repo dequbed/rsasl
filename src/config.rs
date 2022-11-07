@@ -119,7 +119,7 @@ mod instance {
 
         /// Construct a config from a linker-friendly builder
         #[must_use]
-        pub fn builder() -> ConfigBuilder {
+        pub const fn builder() -> ConfigBuilder {
             ConfigBuilder::new()
         }
 
@@ -139,7 +139,7 @@ mod instance {
             authzid: Option<String>,
             authid: String,
             password: String,
-        ) -> Result<Arc<SASLConfig>, SASLError> {
+        ) -> Result<Arc<Self>, SASLError> {
             struct CredentialsProvider {
                 authid: String,
                 password: String,
@@ -226,8 +226,5 @@ mod instance {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_impl_bounds() {
-        static_assertions::assert_impl_all!(SASLConfig: Send, Sync);
-    }
+    static_assertions::assert_impl_all!(SASLConfig: Send, Sync);
 }

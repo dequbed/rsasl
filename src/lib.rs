@@ -254,6 +254,7 @@
 #![warn(
     clippy::all,
     clippy::pedantic,
+    clippy::nursery,
     clippy::exhaustive_enums,
     clippy::exhaustive_structs
 )]
