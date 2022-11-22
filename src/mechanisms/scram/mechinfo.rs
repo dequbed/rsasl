@@ -55,11 +55,11 @@ mod scram_sha1 {
         fn select(&mut self, mechname: &Mechname) -> Option<&'static Mechanism> {
             if *mechname == *SCRAM_SHA1.mechanism {
                 *self = match *self {
-                    ScramSelector1::No => ScramSelector1::Bare,
+                    Self::No => Self::Bare,
                     x => x,
                 }
             } else if *mechname == *SCRAM_SHA1_PLUS.mechanism {
-                *self = ScramSelector1::Plus;
+                *self = Self::Plus;
             }
             None
         }
@@ -149,11 +149,11 @@ mod scram_sha256 {
         fn select(&mut self, mechname: &Mechname) -> Option<&'static Mechanism> {
             if *mechname == *SCRAM_SHA256.mechanism {
                 *self = match *self {
-                    ScramSelector256::No => ScramSelector256::Bare,
+                    Self::No => Self::Bare,
                     x => x,
                 }
             } else if *mechname == *SCRAM_SHA256_PLUS.mechanism {
-                *self = ScramSelector256::Plus;
+                *self = Self::Plus;
             }
             None
         }

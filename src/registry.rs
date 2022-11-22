@@ -344,7 +344,5 @@ mod selector {
         }
     }
 }
-#[cfg(not(feature = "unstable_custom_mechanism"))]
-pub(crate) use selector::*;
-#[cfg(feature = "unstable_custom_mechanism")]
+
 pub use selector::*;
