@@ -26,6 +26,9 @@ release. They will however *never* happen in a patch release.
   more efficient if direct references to `&Mechname` can be constructed. It also may be easier to
   use with a zero-copy parsing approach than the non-`_iter` variant.
 
+## Changed
+- MSRV was raised to rustc 1.61.0 due to that release stabilizing generic parameters in `const fn`.
+
 # [v2.0.0-rc.3] — 2022-10-12
 
 [Changes rendered on GitHub][v2.0.0-rc.3/diff]
