@@ -128,7 +128,11 @@ impl Validation for InteropValidation {
     type Value = Self;
 }
 
-fn handle_client(config: Arc<SASLConfig>, read_end: impl io::Read, mut write_end: impl io::Write) -> miette::Result<()> {
+fn handle_client(
+    config: Arc<SASLConfig>,
+    read_end: impl io::Read,
+    mut write_end: impl io::Write,
+) -> miette::Result<()> {
     let mut lines = BufReader::new(read_end).lines();
 
     let server = SASLServer::<InteropValidation>::new(config);

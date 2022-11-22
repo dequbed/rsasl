@@ -24,10 +24,10 @@
 //! for your Mechanism MUST be marked `pub` and be reachable by dependent crates, otherwise they
 //! may be silently dropped by the compiler.
 
-use core::cmp::Ordering;
 use crate::alloc::boxed::Box;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
+use core::cmp::Ordering;
 use core::fmt;
 
 use crate::config::SASLConfig;
@@ -223,10 +223,7 @@ impl Registry {
         &self,
         cb: bool,
         offered: impl Iterator<Item = &'a Mechname>,
-        mut fold: impl FnMut(
-            Option<&'static Mechanism>,
-            &'static Mechanism,
-        ) -> Ordering,
+        mut fold: impl FnMut(Option<&'static Mechanism>, &'static Mechanism) -> Ordering,
     ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError> {
         // This looks like a terrible double-allocation as Selection contains a `Box<dyn Selector>`,
         // but for most of the mechanisms the Selector is a ZST meaning the Box doesn't allocate.

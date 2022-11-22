@@ -87,7 +87,7 @@ mod provider {
         /// generate direct references to `Mechname`.
         pub fn start_suggested<'a>(
             self,
-            offered: impl IntoIterator<Item=&'a &'a Mechname>,
+            offered: impl IntoIterator<Item = &'a &'a Mechname>,
         ) -> Result<Session<NoValidation, CB>, SASLError> {
             self.start_suggested_iter(offered.into_iter().copied())
         }
@@ -99,7 +99,7 @@ mod provider {
         /// application via callbacks.
         pub fn start_suggested_iter<'a>(
             self,
-            offered: impl IntoIterator<Item=&'a Mechname>,
+            offered: impl IntoIterator<Item = &'a Mechname>,
         ) -> Result<Session<NoValidation, CB>, SASLError> {
             self.inner.client_start_suggested(offered)
         }
@@ -172,7 +172,7 @@ mod provider {
 
         fn client_start_suggested<'a>(
             self,
-            offered: impl IntoIterator<Item=&'a Mechname>
+            offered: impl IntoIterator<Item = &'a Mechname>,
         ) -> Result<Session<V, CB>, SASLError> {
             let (mechanism, mechanism_desc) = self.config.select_mechanism(offered)?;
             Ok(Session::new(self, Side::Client, mechanism, *mechanism_desc))

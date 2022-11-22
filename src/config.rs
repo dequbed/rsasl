@@ -57,7 +57,7 @@ mod provider {
         /// Select the best mechanism of the offered ones.
         pub(crate) fn select_mechanism<'a>(
             &self,
-            offered: impl IntoIterator<Item=&'a Mechname>,
+            offered: impl IntoIterator<Item = &'a Mechname>,
         ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError> {
             let cb = self.get_callback().enable_channel_binding();
             self.inner.select(cb, &mut offered.into_iter())
@@ -210,7 +210,9 @@ mod instance {
             offered: &mut dyn Iterator<Item = &'a Mechname>,
         ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError> {
             let callback = self.get_callback();
-            self.mechanisms.select(cb | self.cb, offered, |acc, mech| callback.prefer(acc, mech))
+            self.mechanisms.select(cb | self.cb, offered, |acc, mech| {
+                callback.prefer(acc, mech)
+            })
         }
     }
 }

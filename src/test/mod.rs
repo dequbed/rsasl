@@ -19,10 +19,7 @@ use std::sync::Arc;
 /// # Panics
 #[must_use]
 pub fn client_session(config: Arc<SASLConfig>, mechanism: &Mechanism) -> Session {
-    let mech = mechanism
-        .client()
-        .unwrap()
-        .unwrap();
+    let mech = mechanism.client().unwrap().unwrap();
     let sasl = Sasl {
         config,
         cb: NoChannelBindings,

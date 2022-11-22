@@ -10,7 +10,10 @@ const NONCE_LEN: usize = 24;
 
 #[cfg(feature = "scram-sha-1")]
 mod scram_sha1 {
-    use super::{Authentication, Box, Matches, Mechanism, Mechname, NONCE_LEN, Named, SASLError, Selection, Selector, Side, client, server};
+    use super::{
+        client, server, Authentication, Box, Matches, Mechanism, Mechname, Named, SASLError,
+        Selection, Selector, Side, NONCE_LEN,
+    };
 
     #[cfg(feature = "registry_static")]
     use crate::registry::{distributed_slice, MECHANISMS};
@@ -27,16 +30,18 @@ mod scram_sha1 {
             Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new(can_cb)))
         }),
         first: Side::Client,
-        select: |cb| Some(if cb {
-            Selection::Nothing(Box::new(ScramSelector1::No))
-        } else {
-            Matches::<Select1>::name()
-        }),
+        select: |cb| {
+            Some(if cb {
+                Selection::Nothing(Box::new(ScramSelector1::No))
+            } else {
+                Matches::<Select1>::name()
+            })
+        },
         offer: |_| true,
     };
 
     struct Select1;
-    impl Named for Select1{
+    impl Named for Select1 {
         fn mech() -> &'static Mechanism {
             &SCRAM_SHA1
         }
@@ -86,7 +91,13 @@ mod scram_sha1 {
         client: Some(|| Ok(Box::new(client::ScramSha1Client::<NONCE_LEN>::new_plus()))),
         server: Some(|_sasl| Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new_plus()))),
         first: Side::Client,
-        select: |cb| if cb { Some(Matches::<Select1Plus>::name()) } else { None },
+        select: |cb| {
+            if cb {
+                Some(Matches::<Select1Plus>::name())
+            } else {
+                None
+            }
+        },
         offer: |_| true,
     };
 
@@ -96,14 +107,16 @@ mod scram_sha1 {
             &SCRAM_SHA1_PLUS
         }
     }
-
 }
 #[cfg(feature = "scram-sha-1")]
 pub use scram_sha1::*;
 
 #[cfg(feature = "scram-sha-2")]
 mod scram_sha256 {
-    use super::{Authentication, Box, Matches, Mechanism, Mechname, NONCE_LEN, Named, SASLError, Selection, Selector, Side, client, server};
+    use super::{
+        client, server, Authentication, Box, Matches, Mechanism, Mechname, Named, SASLError,
+        Selection, Selector, Side, NONCE_LEN,
+    };
 
     #[cfg(feature = "registry_static")]
     use crate::registry::{distributed_slice, MECHANISMS};
@@ -121,16 +134,18 @@ mod scram_sha256 {
             )))
         }),
         first: Side::Client,
-        select: |cb| Some(if cb {
-            Selection::Nothing(Box::new(ScramSelector256::No))
-        } else {
-            Matches::<Select256>::name()
-        }),
+        select: |cb| {
+            Some(if cb {
+                Selection::Nothing(Box::new(ScramSelector256::No))
+            } else {
+                Matches::<Select256>::name()
+            })
+        },
         offer: |_| true,
     };
 
     struct Select256;
-    impl Named for Select256{
+    impl Named for Select256 {
         fn mech() -> &'static Mechanism {
             &SCRAM_SHA256
         }
@@ -177,12 +192,16 @@ mod scram_sha256 {
     pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
         mechanism: Mechname::const_new(b"SCRAM-SHA-256-PLUS"),
         priority: 700,
-        client: Some(|| {
-            Ok(Box::new(client::ScramSha256Client::<NONCE_LEN>::new_plus()))
-        }),
+        client: Some(|| Ok(Box::new(client::ScramSha256Client::<NONCE_LEN>::new_plus()))),
         server: Some(|_sasl| Ok(Box::new(server::ScramSha256Server::<NONCE_LEN>::new_plus()))),
         first: Side::Client,
-        select: |cb| if cb { Some(Matches::<Select256Plus>::name()) } else { None },
+        select: |cb| {
+            if cb {
+                Some(Matches::<Select256Plus>::name())
+            } else {
+                None
+            }
+        },
         offer: |_| true,
     };
 
