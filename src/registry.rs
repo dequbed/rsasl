@@ -27,6 +27,7 @@
 use crate::alloc::boxed::Box;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
+use core::cmp::Ordering;
 use core::fmt;
 
 use crate::config::SASLConfig;
@@ -35,10 +36,10 @@ pub use crate::session::Side;
 #[cfg(feature = "registry_static")]
 pub use registry_static::*;
 
-pub type StartFn =
-    fn(sasl: &SASLConfig, offered: &[&Mechname]) -> Result<Box<dyn Authentication>, SASLError>;
+pub type StartFn = fn() -> Result<Box<dyn Authentication>, SASLError>;
 pub type ServerStartFn = fn(sasl: &SASLConfig) -> Result<Box<dyn Authentication>, SASLError>;
 
+#[non_exhaustive]
 #[derive(Copy, Clone)]
 /// Mechanism Implementation
 ///
@@ -58,7 +59,12 @@ pub struct Mechanism {
 
     #[cfg_attr(not(feature = "provider"), allow(unused))]
     pub(crate) first: Side,
+
+    pub(crate) select: fn(bool) -> Option<Selection>,
+    #[allow(dead_code)]
+    pub(crate) offer: fn(bool) -> bool,
 }
+
 #[cfg(feature = "unstable_custom_mechanism")]
 impl Mechanism {
     /// Construct a Mechanism constant for custom mechanisms
@@ -72,6 +78,8 @@ impl Mechanism {
         client: Option<StartFn>,
         server: Option<ServerStartFn>,
         first: Side,
+        select: fn(bool) -> Option<Selection>,
+        offer: fn(bool) -> bool,
     ) -> Self {
         Self {
             mechanism,
@@ -79,21 +87,26 @@ impl Mechanism {
             client,
             server,
             first,
+            select,
+            offer,
         }
     }
 }
 
 impl Mechanism {
-    pub fn client(
-        &self,
-        sasl: &SASLConfig,
-        offered: &[&Mechname],
-    ) -> Option<Result<Box<dyn Authentication>, SASLError>> {
-        self.client.map(|f| f(sasl, offered))
+    #[must_use]
+    pub fn client(&self) -> Option<Result<Box<dyn Authentication>, SASLError>> {
+        self.client.map(|f| f())
     }
 
+    #[must_use]
     pub fn server(&self, sasl: &SASLConfig) -> Option<Result<Box<dyn Authentication>, SASLError>> {
         self.server.map(|f| f(sasl))
+    }
+
+    #[must_use]
+    fn select(&self, cb: bool) -> Option<Selection> {
+        (self.select)(cb)
     }
 }
 
@@ -141,31 +154,27 @@ mod config {
         pub(crate) fn credentials(authzid: bool) -> Self {
             static CRED_AUTHZID: &[Mechanism] = &[
                 #[cfg(feature = "scram-sha-2")]
-                    crate::mechanisms::scram::SCRAM_SHA256,
+                crate::mechanisms::scram::SCRAM_SHA256,
                 #[cfg(feature = "scram-sha-1")]
-                    crate::mechanisms::scram::SCRAM_SHA1,
+                crate::mechanisms::scram::SCRAM_SHA1,
                 #[cfg(feature = "plain")]
-                    crate::mechanisms::plain::PLAIN,
+                crate::mechanisms::plain::PLAIN,
             ];
 
             static CRED: &[Mechanism] = &[
                 #[cfg(feature = "scram-sha-2")]
-                    crate::mechanisms::scram::SCRAM_SHA256,
+                crate::mechanisms::scram::SCRAM_SHA256,
                 #[cfg(feature = "scram-sha-1")]
-                    crate::mechanisms::scram::SCRAM_SHA1,
+                crate::mechanisms::scram::SCRAM_SHA1,
                 #[cfg(feature = "plain")]
-                    crate::mechanisms::plain::PLAIN,
+                crate::mechanisms::plain::PLAIN,
                 #[cfg(feature = "login")]
-                    crate::mechanisms::login::LOGIN,
+                crate::mechanisms::login::LOGIN,
             ];
 
             // Only ever enable LOGIN if no authzid is provided
-            let mechanisms = if authzid {
-                CRED_AUTHZID
-            } else {
-                CRED
-            };
-            Self::with_mechanisms(&mechanisms)
+            let mechanisms = if authzid { CRED_AUTHZID } else { CRED };
+            Self::with_mechanisms(mechanisms)
         }
     }
 
@@ -181,21 +190,21 @@ mod config {
         fn default() -> Self {
             static BUILTIN: &[Mechanism] = &[
                 #[cfg(feature = "scram-sha-2")]
-                    crate::mechanisms::scram::SCRAM_SHA256,
+                crate::mechanisms::scram::SCRAM_SHA256,
                 #[cfg(feature = "scram-sha-1")]
-                    crate::mechanisms::scram::SCRAM_SHA1,
+                crate::mechanisms::scram::SCRAM_SHA1,
                 #[cfg(feature = "plain")]
-                    crate::mechanisms::plain::PLAIN,
+                crate::mechanisms::plain::PLAIN,
                 #[cfg(feature = "login")]
-                    crate::mechanisms::login::LOGIN,
+                crate::mechanisms::login::LOGIN,
                 #[cfg(feature = "anonymous")]
-                    crate::mechanisms::anonymous::ANONYMOUS,
+                crate::mechanisms::anonymous::ANONYMOUS,
                 #[cfg(feature = "external")]
-                    crate::mechanisms::external::EXTERNAL,
+                crate::mechanisms::external::EXTERNAL,
                 #[cfg(feature = "xoauth2")]
-                    crate::mechanisms::xoauth2::XOAUTH2,
+                crate::mechanisms::xoauth2::XOAUTH2,
                 #[cfg(feature = "oauthbearer")]
-                    crate::mechanisms::oauthbearer::OAUTHBEARER,
+                crate::mechanisms::oauthbearer::OAUTHBEARER,
             ];
 
             Self::with_mechanisms(BUILTIN)
@@ -209,6 +218,45 @@ impl Registry {
     pub(crate) fn get_mechanisms<'a>(&self) -> MechanismIter<'a> {
         self.static_mechanisms.iter()
     }
+
+    pub(crate) fn select<'a>(
+        &self,
+        cb: bool,
+        offered: impl Iterator<Item = &'a Mechname>,
+        mut fold: impl FnMut(Option<&'static Mechanism>, &'static Mechanism) -> Ordering,
+    ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError> {
+        // This looks like a terrible double-allocation as Selection contains a `Box<dyn Selector>`,
+        // but for most of the mechanisms the Selector is a ZST meaning the Box doesn't allocate.
+        // Only if the selector has to keep state (e.g. the non-PLUS SCRAM ones have to change
+        // their behaviour depending on what mechanisms the server offered for their GS2 header)
+        // the Box has to make an allocation.
+        let mut selectors: Vec<Selection> =
+            self.get_mechanisms().filter_map(|m| m.select(cb)).collect();
+
+        for o in offered {
+            for s in &mut selectors {
+                s.select(o);
+            }
+        }
+
+        let (mut s, m) = selectors
+            .into_iter()
+            .filter_map(|mut s| s.done().map(|m| (s, m)))
+            .fold(None, |acc, (s, m)| {
+                let accmech = acc.as_ref().map(|(_, m)| *m);
+                match fold(accmech, m) {
+                    // `Greater` means the first parameter (accmech) was preferable — even if None.
+                    Ordering::Greater => acc,
+                    // `Equal` is undefined behaviour, but we're just going for `Less` because
+                    // we don't have to check for `accmech` being `None` then.
+                    Ordering::Equal |
+                    // `Less` means the second parameter (m) was preferable
+                    Ordering::Less => Some((s,m))
+                }
+            })
+            .ok_or(SASLError::NoSharedMechanism)?;
+        s.finalize().map(|a| (a, m))
+    }
 }
 
 #[cfg(feature = "registry_static")]
@@ -216,6 +264,7 @@ mod registry_static {
     use super::Mechanism;
     pub use linkme::distributed_slice;
 
+    //noinspection RsTypeCheck
     #[distributed_slice]
     pub static MECHANISMS: [Mechanism] = [..];
 }
@@ -225,3 +274,72 @@ mod registry_static {
 
     pub static MECHANISMS: [Mechanism; 0] = [];
 }
+
+mod selector {
+    use super::{Authentication, Box, Mechanism, Mechname, SASLError};
+    use alloc::marker::PhantomData;
+    pub trait Selector {
+        fn select(&mut self, mechname: &Mechname) -> Option<&'static Mechanism>;
+        fn done(&mut self) -> Option<&'static Mechanism>;
+        fn finalize(&mut self) -> Result<Box<dyn Authentication>, SASLError>;
+    }
+
+    pub enum Selection {
+        Nothing(Box<dyn Selector>),
+        Done(&'static Mechanism),
+    }
+    impl Selection {
+        pub(super) fn select(&mut self, mechname: &Mechname) {
+            if let Self::Nothing(ref mut selector) = self {
+                if let Some(m) = selector.select(mechname) {
+                    *self = Self::Done(m);
+                }
+            }
+        }
+
+        pub(super) fn done(&mut self) -> Option<&'static Mechanism> {
+            match self {
+                Self::Nothing(selector) => selector.done(),
+                Self::Done(m) => Some(m),
+            }
+        }
+
+        pub(super) fn finalize(&mut self) -> Result<Box<dyn Authentication>, SASLError> {
+            match self {
+                Self::Nothing(selector) => selector.finalize(),
+                Self::Done(m) => m.client().unwrap(),
+            }
+        }
+    }
+
+    pub trait Named {
+        fn mech() -> &'static Mechanism;
+    }
+    #[repr(transparent)]
+    pub struct Matches<T>(PhantomData<T>);
+    impl<T: Named + 'static> Matches<T> {
+        #[must_use]
+        pub fn name() -> Selection {
+            Selection::Nothing(Box::new(Self(PhantomData)))
+        }
+    }
+    impl<T: Named> Selector for Matches<T> {
+        fn select(&mut self, mechname: &Mechname) -> Option<&'static Mechanism> {
+            let m = T::mech();
+            if *mechname == *m.mechanism {
+                Some(m)
+            } else {
+                None
+            }
+        }
+        fn done(&mut self) -> Option<&'static Mechanism> {
+            None
+        }
+        fn finalize(&mut self) -> Result<Box<dyn Authentication>, SASLError> {
+            let m = T::mech();
+            (m.client.unwrap())()
+        }
+    }
+}
+
+pub use selector::*;

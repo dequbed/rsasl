@@ -52,11 +52,12 @@ pub enum SessionError {
     },
 
     #[error("no security layer is installed")]
+    /// No security layer is currently installed.
     NoSecurityLayer,
 
     #[error("input data was required but not provided")]
     // Common Mechanism Errors:
-    /// Mechanism was called without input data when requiring some
+    /// Mechanism was called without input data when requiring some, or with too little input data.
     InputDataRequired,
 
     #[error("step was called after mechanism finished")]

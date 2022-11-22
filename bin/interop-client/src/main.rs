@@ -4,14 +4,16 @@
 
 use clap::builder::TypedValueParser;
 use clap::{Arg, Command, Error, ErrorKind};
-use miette::{IntoDiagnostic, WrapErr};
+use miette::{miette, IntoDiagnostic, WrapErr};
 use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
 use rsasl::mechanisms::scram::properties::{Iterations, Salt, ScramCachedPassword};
 use rsasl::prelude::*;
 use rsasl::property::*;
 use std::ffi::OsStr;
 use std::io;
-use std::io::Cursor;
+use std::io::{BufRead, BufReader, Cursor, Write};
+use std::net::{Ipv4Addr, TcpStream};
+use url::Host;
 
 struct EnvCallback;
 impl SessionCallback for EnvCallback {
@@ -110,8 +112,6 @@ pub fn main() -> miette::Result<()> {
         )
         .get_matches();
 
-    if let Some(_listen) = matches.get_one::<url::Url>("listen") {}
-
     let mech = std::env::var("RSASL_MECH")
         .into_diagnostic()
         .wrap_err("The env variable 'RSASL_MECH' must be set to the mechanism to use")?;
@@ -125,7 +125,6 @@ pub fn main() -> miette::Result<()> {
 
     let config = SASLConfig::builder()
         .with_default_mechanisms()
-        .with_defaults()
         .with_callback(EnvCallback)
         .into_diagnostic()
         .wrap_err("Failed to generate SASL config")?;
@@ -135,9 +134,40 @@ pub fn main() -> miette::Result<()> {
         .into_diagnostic()
         .wrap_err("Failed to start client session")?;
 
+    let (host, port) = if let Some(listen_url) = matches.get_one::<url::Url>("listen") {
+        let host = listen_url
+            .host()
+            .ok_or_else(|| miette!("URL must have a host part"))?;
+        let port = listen_url.port().unwrap_or(62185);
+        (host, port)
+    } else {
+        (Host::Domain("127.0.0.1"), 62185)
+    };
+    let stream = match host {
+        Host::Ipv4(ip) => TcpStream::connect((ip, port)),
+        Host::Ipv6(ip) => TcpStream::connect((ip, port)),
+        Host::Domain(domain) => TcpStream::connect((domain, port)),
+    }
+    .into_diagnostic()
+    .wrap_err(format!("failed to connect to {}:{}", host, port))?;
+
+    let mut write_end = stream
+        .try_clone()
+        .into_diagnostic()
+        .wrap_err("Failed to clone stream")?;
+    let mut lines = BufReader::new(stream).lines();
+
     let chosen = session.get_mechname();
     // Print the selected mechanism as the first output
     println!("{}", chosen.as_str());
+    write_end
+        .write_all(chosen.as_bytes())
+        .into_diagnostic()
+        .wrap_err("failed to write to stream")?;
+    write_end
+        .write_all(b"\n")
+        .into_diagnostic()
+        .wrap_err("failed to write to stream")?;
 
     let mut input = if session.are_we_first() {
         None

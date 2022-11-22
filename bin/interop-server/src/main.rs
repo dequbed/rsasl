@@ -10,6 +10,7 @@ use rsasl::property::*;
 use rsasl::validate::{Validate, ValidationError};
 use std::borrow::Cow;
 use std::fmt::{Debug, Display, Formatter};
+use std::io;
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
@@ -127,12 +128,12 @@ impl Validation for InteropValidation {
     type Value = Self;
 }
 
-fn handle_client(config: Arc<SASLConfig>, stream: TcpStream) -> miette::Result<()> {
-    println!("new connection: {:?}", &stream);
-
-    let mut write_end = stream.try_clone().expect("failed to clone TcpStream");
-
-    let mut lines = BufReader::new(stream).lines();
+fn handle_client(
+    config: Arc<SASLConfig>,
+    read_end: impl io::Read,
+    mut write_end: impl io::Write,
+) -> miette::Result<()> {
+    let mut lines = BufReader::new(read_end).lines();
 
     let server = SASLServer::<InteropValidation>::new(config);
 
@@ -267,7 +268,6 @@ pub fn main() -> miette::Result<()> {
 
     let config = SASLConfig::builder()
         .with_default_mechanisms()
-        .with_defaults()
         .with_callback(EnvCallback)
         .into_diagnostic()
         .wrap_err("Failed to generate SASL config")?;
@@ -276,7 +276,10 @@ pub fn main() -> miette::Result<()> {
         let stream = stream
             .into_diagnostic()
             .wrap_err("failed to open stream")
-            .and_then(|stream| handle_client(config.clone(), stream));
+            .and_then(|stream| {
+                let mut write_end = stream.try_clone().expect("failed to clone TcpStream");
+                handle_client(config.clone(), stream, write_end)
+            });
         if let Err(report) = stream {
             let p = PrintError {
                 handler: &report_handler,

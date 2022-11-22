@@ -10,7 +10,7 @@ use crate::registry::Mechanism;
 use crate::session::{Session, Side};
 use crate::validate::{NoValidation, Validation};
 
-use crate::alloc::{sync::Arc, vec::Vec};
+use crate::alloc::sync::Arc;
 use crate::typed::Tagged;
 
 #[derive(Debug)]
@@ -46,7 +46,6 @@ mod provider {
     use super::{
         Arc, ChannelBindingCallback, Mechanism, Mechname, NoChannelBindings, NoValidation,
         SASLClient, SASLConfig, SASLError, SASLServer, Sasl, Session, Side, Tagged, Validation,
-        Vec,
     };
 
     /************************************************************
@@ -75,15 +74,32 @@ mod provider {
             }
         }
 
+        #[inline(always)]
         /// Starts a authentication exchange as a client
         ///
         /// Depending on the mechanism chosen this may need additional data from the application, e.g.
-        /// an authcid, optional authzid and password for PLAIN. To provide that data an application
-        /// has to either call `set_property` before running the step that requires the data, or
-        /// install a callback.
-        pub fn start_suggested(
+        /// an authcid, optional authzid and password for PLAIN. This data is provided by the
+        /// application via callbacks.
+        ///
+        /// This is a small wrapper for [`Self::start_suggested_iter`] to keep
+        /// backwards-compatability by allowing to pass `&[&Mechname]`, which only implemens
+        /// `IntoIterator<Item=&&Mechname>`. Using the `_iter` variant is more efficient if you can
+        /// generate direct references to `Mechname`.
+        pub fn start_suggested<'a>(
             self,
-            offered: &[&Mechname],
+            offered: impl IntoIterator<Item = &'a &'a Mechname>,
+        ) -> Result<Session<NoValidation, CB>, SASLError> {
+            self.start_suggested_iter(offered.into_iter().copied())
+        }
+
+        /// Starts a authentication exchange as a client
+        ///
+        /// Depending on the mechanism chosen this may need additional data from the application, e.g.
+        /// an authcid, optional authzid and password for PLAIN. This data is provided by the
+        /// application via callbacks.
+        pub fn start_suggested_iter<'a>(
+            self,
+            offered: impl IntoIterator<Item = &'a Mechname>,
         ) -> Result<Session<NoValidation, CB>, SASLError> {
             self.inner.client_start_suggested(offered)
         }
@@ -109,10 +125,7 @@ mod provider {
         }
 
         pub fn get_available(&self) -> impl IntoIterator<Item = &Mechanism> {
-            let mut vec: Vec<&Mechanism> = self.inner.get_available().collect();
-            vec.as_mut_slice()
-                .sort_unstable_by(|a, b| self.inner.config.sort(a, b));
-            vec
+            self.inner.get_available()
         }
 
         /// Starts a authentication exchange as the server role
@@ -157,13 +170,12 @@ mod provider {
             }
         }
 
-        fn client_start_suggested(
+        fn client_start_suggested<'a>(
             self,
-            offered: &[&Mechname],
+            offered: impl IntoIterator<Item = &'a Mechname>,
         ) -> Result<Session<V, CB>, SASLError> {
             let (mechanism, mechanism_desc) = self.config.select_mechanism(offered)?;
-            let mechanism_desc = *mechanism_desc;
-            Ok(Session::new(self, Side::Client, mechanism, mechanism_desc))
+            Ok(Session::new(self, Side::Client, mechanism, *mechanism_desc))
         }
 
         fn server_start_suggested(self, selected: &Mechname) -> Result<Session<V, CB>, SASLError> {

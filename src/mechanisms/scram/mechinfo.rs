@@ -1,119 +1,227 @@
 use crate::alloc::boxed::Box;
+use crate::error::SASLError;
+use crate::mechanism::Authentication;
 use crate::mechanisms::scram::{client, server};
 use crate::mechname::Mechname;
-use crate::registry::Mechanism;
+use crate::registry::{Matches, Mechanism, Named, Selection, Selector};
 use crate::session::Side;
 
 const NONCE_LEN: usize = 24;
 
-#[cfg(feature = "registry_static")]
-use crate::registry::{distributed_slice, MECHANISMS};
-#[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 #[cfg(feature = "scram-sha-1")]
-pub static SCRAM_SHA1: Mechanism = Mechanism {
-    mechanism: Mechname::const_new(b"SCRAM-SHA-1"),
-    priority: 400,
-    client: Some(|sasl, offered| {
-        let mut set_cb_client_no_support = true;
-        // If this fails, we def don't support cb so always set 'n' (client no support)
-        if sasl
-            .mech_list()
-            .any(|m| m.mechanism.as_str() == "SCRAM-SHA-1-PLUS")
-        {
-            // If we *do* support, either the server doesn't, or we just didn't want to use it.
-            set_cb_client_no_support = false;
+mod scram_sha1 {
+    use super::{
+        client, server, Authentication, Box, Matches, Mechanism, Mechname, Named, SASLError,
+        Selection, Selector, Side, NONCE_LEN,
+    };
 
-            // if we support *and* server supports *but* it wasn't chosen, it was deliberately so
-            // thus, also set 'n' (client no support) as we didn't *want* to use it.
-            for name in offered {
-                if name.as_str() == "SCRAM-SHA-1-PLUS" {
-                    set_cb_client_no_support = true;
-                }
-            }
-            // otherwise, none of the offered were the CB version so the server didn't support it.
-            // Assumption is of course that the client *would have*. FIXME?
+    #[cfg(feature = "registry_static")]
+    use crate::registry::{distributed_slice, MECHANISMS};
+    #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+    #[cfg(feature = "scram-sha-1")]
+    pub static SCRAM_SHA1: Mechanism = Mechanism {
+        mechanism: Mechname::const_new(b"SCRAM-SHA-1"),
+        priority: 400,
+        client: Some(|| Ok(Box::new(client::ScramSha1Client::<NONCE_LEN>::new(true)))),
+        server: Some(|sasl| {
+            let can_cb = sasl
+                .mech_list()
+                .any(|m| m.mechanism.as_str() == "SCRAM-SHA-1-PLUS");
+            Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new(can_cb)))
+        }),
+        first: Side::Client,
+        select: |cb| {
+            Some(if cb {
+                Selection::Nothing(Box::new(ScramSelector1::No))
+            } else {
+                Matches::<Select1>::name()
+            })
+        },
+        offer: |_| true,
+    };
+
+    struct Select1;
+    impl Named for Select1 {
+        fn mech() -> &'static Mechanism {
+            &SCRAM_SHA1
         }
-        Ok(Box::new(client::ScramSha1Client::<NONCE_LEN>::new(
-            set_cb_client_no_support,
-        )))
-    }),
-    server: Some(|sasl| {
-        let can_cb = sasl
-            .mech_list()
-            .any(|m| m.mechanism.as_str() == "SCRAM-SHA-1-PLUS");
-        Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new(can_cb)))
-    }),
-    first: Side::Client,
-};
+    }
 
+    #[derive(Copy, Clone, Debug)]
+    enum ScramSelector1 {
+        /// No SCRAM-SHA1 found yet
+        No,
+        /// Only SCRAM-SHA1 but not -PLUS found
+        Bare,
+        /// SCRAM-SHA1-PLUS found.
+        Plus,
+    }
+    impl Selector for ScramSelector1 {
+        fn select(&mut self, mechname: &Mechname) -> Option<&'static Mechanism> {
+            if *mechname == *SCRAM_SHA1.mechanism {
+                *self = match *self {
+                    Self::No => Self::Bare,
+                    x => x,
+                }
+            } else if *mechname == *SCRAM_SHA1_PLUS.mechanism {
+                *self = Self::Plus;
+            }
+            None
+        }
+
+        fn done(&mut self) -> Option<&'static Mechanism> {
+            match self {
+                Self::No => None,
+                _ => Some(&SCRAM_SHA1),
+            }
+        }
+
+        fn finalize(&mut self) -> Result<Box<dyn Authentication>, SASLError> {
+            Ok(Box::new(match self {
+                Self::Bare => client::ScramSha1Client::<NONCE_LEN>::new(false),
+                Self::Plus => client::ScramSha1Client::<NONCE_LEN>::new(true),
+                Self::No => unreachable!(),
+            }))
+        }
+    }
+
+    pub static SCRAM_SHA1_PLUS: Mechanism = Mechanism {
+        mechanism: Mechname::const_new(b"SCRAM-SHA-1-PLUS"),
+        priority: 500,
+        client: Some(|| Ok(Box::new(client::ScramSha1Client::<NONCE_LEN>::new_plus()))),
+        server: Some(|_sasl| Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new_plus()))),
+        first: Side::Client,
+        select: |cb| {
+            if cb {
+                Some(Matches::<Select1Plus>::name())
+            } else {
+                None
+            }
+        },
+        offer: |_| true,
+    };
+
+    struct Select1Plus;
+    impl Named for Select1Plus {
+        fn mech() -> &'static Mechanism {
+            &SCRAM_SHA1_PLUS
+        }
+    }
+}
 #[cfg(feature = "scram-sha-1")]
-pub static SCRAM_SHA1_PLUS: Mechanism = Mechanism {
-    mechanism: Mechname::const_new(b"SCRAM-SHA-1-PLUS"),
-    priority: 500,
-    client: Some(|_sasl, _offered| Ok(Box::new(client::ScramSha1Client::<NONCE_LEN>::new_plus()))),
-    server: Some(|_sasl| Ok(Box::new(server::ScramSha1Server::<NONCE_LEN>::new_plus()))),
-    first: Side::Client,
-};
+pub use scram_sha1::*;
 
-#[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
 #[cfg(feature = "scram-sha-2")]
-pub static SCRAM_SHA256: Mechanism = Mechanism {
-    mechanism: Mechname::const_new(b"SCRAM-SHA-256"),
-    priority: 600,
-    client: Some(|sasl, offered| {
-        let mut set_cb_client_no_support = true;
-        // If this fails, we def don't support cb so always set 'n' (client no support)
-        if sasl
-            .mech_list()
-            .any(|m| m.mechanism.as_str() == "SCRAM-SHA-256-PLUS")
-        {
-            // If we *do* support, either the server doesn't, or we just didn't want to use it.
-            set_cb_client_no_support = false;
+mod scram_sha256 {
+    use super::{
+        client, server, Authentication, Box, Matches, Mechanism, Mechname, Named, SASLError,
+        Selection, Selector, Side, NONCE_LEN,
+    };
 
-            // if we support *and* server supports *but* it wasn't chosen, it was deliberately so
-            // thus, also set 'n' (client no support) as we didn't *want* to use it.
-            for name in offered {
-                if name.as_str() == "SCRAM-SHA-256-PLUS" {
-                    set_cb_client_no_support = true;
-                }
-            }
-            // otherwise, none of the offered were the CB version so the server didn't support it.
-            // Assumption is of course that the client *would have*. FIXME?
+    #[cfg(feature = "registry_static")]
+    use crate::registry::{distributed_slice, MECHANISMS};
+    #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+    pub static SCRAM_SHA256: Mechanism = Mechanism {
+        mechanism: Mechname::const_new(b"SCRAM-SHA-256"),
+        priority: 600,
+        client: Some(|| Ok(Box::new(client::ScramSha256Client::<NONCE_LEN>::new(true)))),
+        server: Some(|sasl| {
+            let can_cb = sasl
+                .mech_list()
+                .any(|m| m.mechanism.as_str() == "SCRAM-SHA-256-PLUS");
+            Ok(Box::new(server::ScramSha256Server::<NONCE_LEN>::new(
+                can_cb,
+            )))
+        }),
+        first: Side::Client,
+        select: |cb| {
+            Some(if cb {
+                Selection::Nothing(Box::new(ScramSelector256::No))
+            } else {
+                Matches::<Select256>::name()
+            })
+        },
+        offer: |_| true,
+    };
+
+    struct Select256;
+    impl Named for Select256 {
+        fn mech() -> &'static Mechanism {
+            &SCRAM_SHA256
         }
-        Ok(Box::new(client::ScramSha256Client::<NONCE_LEN>::new(
-            set_cb_client_no_support,
-        )))
-    }),
-    server: Some(|sasl| {
-        let can_cb = sasl
-            .mech_list()
-            .any(|m| m.mechanism.as_str() == "SCRAM-SHA-256-PLUS");
-        Ok(Box::new(server::ScramSha256Server::<NONCE_LEN>::new(
-            can_cb,
-        )))
-    }),
-    first: Side::Client,
-};
+    }
 
+    #[derive(Copy, Clone, Debug)]
+    enum ScramSelector256 {
+        /// No SCRAM-SHA256 found yet
+        No,
+        /// Only SCRAM-SHA256 but not -PLUS found
+        Bare,
+        /// SCRAM-SHA256-PLUS found.
+        Plus,
+    }
+    impl Selector for ScramSelector256 {
+        fn select(&mut self, mechname: &Mechname) -> Option<&'static Mechanism> {
+            if *mechname == *SCRAM_SHA256.mechanism {
+                *self = match *self {
+                    Self::No => Self::Bare,
+                    x => x,
+                }
+            } else if *mechname == *SCRAM_SHA256_PLUS.mechanism {
+                *self = Self::Plus;
+            }
+            None
+        }
+
+        fn done(&mut self) -> Option<&'static Mechanism> {
+            match self {
+                Self::No => None,
+                _ => Some(&SCRAM_SHA256),
+            }
+        }
+
+        fn finalize(&mut self) -> Result<Box<dyn Authentication>, SASLError> {
+            Ok(Box::new(match self {
+                Self::Bare => client::ScramSha256Client::<NONCE_LEN>::new(false),
+                Self::Plus => client::ScramSha256Client::<NONCE_LEN>::new(true),
+                Self::No => unreachable!(),
+            }))
+        }
+    }
+
+    pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
+        mechanism: Mechname::const_new(b"SCRAM-SHA-256-PLUS"),
+        priority: 700,
+        client: Some(|| Ok(Box::new(client::ScramSha256Client::<NONCE_LEN>::new_plus()))),
+        server: Some(|_sasl| Ok(Box::new(server::ScramSha256Server::<NONCE_LEN>::new_plus()))),
+        first: Side::Client,
+        select: |cb| {
+            if cb {
+                Some(Matches::<Select256Plus>::name())
+            } else {
+                None
+            }
+        },
+        offer: |_| true,
+    };
+
+    struct Select256Plus;
+    impl Named for Select256Plus {
+        fn mech() -> &'static Mechanism {
+            &SCRAM_SHA256_PLUS
+        }
+    }
+}
 #[cfg(feature = "scram-sha-2")]
-pub static SCRAM_SHA256_PLUS: Mechanism = Mechanism {
-    mechanism: Mechname::const_new(b"SCRAM-SHA-256-PLUS"),
-    priority: 700,
-    client: Some(|_sasl, _offered| {
-        Ok(Box::new(client::ScramSha256Client::<NONCE_LEN>::new_plus()))
-    }),
-    server: Some(|_sasl| Ok(Box::new(server::ScramSha256Server::<NONCE_LEN>::new_plus()))),
-    first: Side::Client,
-};
+pub use scram_sha256::*;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::builder::default_sorter;
+    use crate::callback::SessionCallback;
     use crate::config::SASLConfig;
     use crate::registry::Registry;
     use crate::sasl::SASLClient;
-    use crate::test::EmptyCallback;
 
     #[cfg(feature = "scram-sha-1")]
     #[test]
@@ -168,13 +276,19 @@ mod tests {
     }
 
     fn client_start(supported: &'static [Mechanism], offered: &[&Mechname], expected: &str) {
-        let cb = EmptyCallback;
-        let config = SASLConfig::new(cb, default_sorter, Registry::with_mechanisms(supported))
+        struct ThisCB;
+        impl SessionCallback for ThisCB {
+            fn enable_channel_binding(&self) -> bool {
+                true
+            }
+        }
+        let cb = ThisCB;
+        let config = SASLConfig::new(cb, Registry::with_mechanisms(supported))
             .expect("failed to construct sasl config");
 
         let client = SASLClient::new(config);
         let session = client
-            .start_suggested(offered)
+            .start_suggested(offered.iter())
             .expect("failed to start session");
         assert_eq!(
             session.get_mechname().as_str(),

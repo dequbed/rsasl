@@ -2,7 +2,7 @@ use crate::alloc::boxed::Box;
 use crate::mechanisms::anonymous::{client, server};
 use crate::mechname::Mechname;
 use crate::property::Property;
-use crate::registry::Mechanism;
+use crate::registry::{Matches, Mechanism, Named};
 use crate::session::Side;
 
 /// Anonymous 'trace' token
@@ -31,7 +31,16 @@ use crate::registry::{distributed_slice, MECHANISMS};
 pub static ANONYMOUS: Mechanism = Mechanism {
     mechanism: Mechname::const_new(b"ANONYMOUS"),
     priority: 100,
-    client: Some(|_sasl, _offered| Ok(Box::new(client::Anonymous))),
+    client: Some(|| Ok(Box::new(client::Anonymous))),
     server: Some(|_sasl| Ok(Box::new(server::Anonymous))),
     first: Side::Client,
+    select: |_| Some(Matches::<Select>::name()),
+    offer: |_| true,
 };
+
+struct Select;
+impl Named for Select {
+    fn mech() -> &'static Mechanism {
+        &ANONYMOUS
+    }
+}

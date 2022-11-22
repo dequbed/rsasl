@@ -18,6 +18,16 @@ release. They will however *never* happen in a patch release.
 
 [Changes rendered on GitHub][Upcoming/diff]
 
+## Added
+- `SASLClient::start_suggested` can now be called with any `impl IntoIterator<Item=&&Mechname>`.  As 
+  `&[&Mechname]` does implement this trait no changes are required for users of this method.
+- A new method `SASLClient::start_suggested_iter` is added that takes `impl IntoIterator<Item=&Mechname>`, i.e. an
+  iterator with a layer of indirection removed compared to the non-`_iter` variant. This variant is
+  more efficient if direct references to `&Mechname` can be constructed. It also may be easier to
+  use with a zero-copy parsing approach than the non-`_iter` variant.
+
+## Changed
+- MSRV was raised to rustc 1.61.0 due to that release stabilizing generic parameters in `const fn`.
 
 # [v2.0.0-rc.3] — 2022-10-12
 
