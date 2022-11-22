@@ -4,6 +4,7 @@
 //! that should not need to care about the shape of this data.
 //! Yeah, *all* the runtime reflection.
 
+use core::cmp::Ordering;
 use core::marker::PhantomData;
 use thiserror::Error;
 
@@ -15,6 +16,7 @@ use crate::validate::{Validate, ValidationError};
 
 // Re-Exports
 pub use crate::context::Context;
+use crate::registry::Mechanism;
 pub use crate::session::SessionData;
 
 pub trait SessionCallback: Send + Sync {
@@ -81,6 +83,32 @@ pub trait SessionCallback: Send + Sync {
         // silence the 'arg X not used' errors without having to prefix the parameter names with _
         let _ = (session_data, context, request);
         Ok(())
+    }
+
+    fn enable_channel_binding(&self) -> bool {
+        false
+    }
+
+    /// Indicate Mechanism Preference
+    ///
+    /// This method allows implementors to select the preferred mechanism for a **client side**
+    /// authentication. In that situation this function is used as a fold, and called repeatedly
+    /// for all offered and available mechanisms.
+    ///
+    /// An implementation should return the mechanism it prefers of the two. The comparison
+    /// should behave as if `a.cmp(b)` was called, i.e. returning `Ordering::Less` prefers `b`,
+    /// while returning `Ordering::Greater` prefers `a`. If `Ordering::Equal` is returned the
+    /// result is undefined and MUST NOT be relied upon.
+    ///
+    /// If `b` is not acceptable and should not be used, an implementation MUST return
+    /// `Ordering::Greater` to indicate preference for `a`.  This requirement is true even if `a`
+    /// is `None`. `a` is `None` if only one of the offered mechanism(s) is also available to the
+    /// client, this is the first call to `prefer`, or if the previous call to `prefer` indicated
+    /// preference for a `None` `a`.
+    /// This requirement is specified so that a client can reject *all* compatible mechanisms by
+    /// returning `Ordering::Greater`.
+    fn prefer<'a>(&self, a: Option<&'a Mechanism>, b: &'a Mechanism) -> Ordering {
+        a.map_or(Ordering::Less, |old| old.priority.cmp(&b.priority))
     }
 
     /// Validate an authentication exchange
@@ -178,8 +206,9 @@ impl CallbackError {
     const fn early_return() -> Self {
         Self::EarlyReturn(TOKEN(PhantomData))
     }
+
     #[must_use]
-    pub fn is_no_callback(&self) -> bool {
+    pub const fn is_no_callback(&self) -> bool {
         matches!(self, Self::NoCallback(_))
     }
 }
@@ -203,12 +232,15 @@ where
     P: for<'p> Property<'p>,
     F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
 {
-    pub fn wrap(closure: F) -> ClosureCR<P, F, G> {
-        ClosureCR {
+    pub const fn wrap(closure: F) -> Self {
+        Self {
             closure: Some(ClosureCRState::Open(closure)),
             _marker: PhantomData,
         }
     }
+
+    // false positive
+    #[allow(clippy::missing_const_for_fn)]
     pub fn try_unwrap(self) -> Option<G> {
         if let Some(ClosureCRState::Satisfied(val)) = self.closure {
             Some(val)

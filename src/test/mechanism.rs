@@ -5,7 +5,7 @@
 
 use crate::mechanism::{Authentication, MechanismData};
 use crate::prelude::*;
-use crate::registry::{Mechanism, Side};
+use crate::registry::{Matches, Mechanism, Named, Side};
 use acid_io::Write;
 
 /// X-RSASLTEST implementation
@@ -75,10 +75,7 @@ pub struct RSaslTest {
 }
 impl RSaslTest {
     #[allow(clippy::unnecessary_wraps)]
-    pub fn client(
-        _config: &SASLConfig,
-        _offered: &[&Mechname],
-    ) -> Result<Box<dyn Authentication>, SASLError> {
+    pub fn client() -> Result<Box<dyn Authentication>, SASLError> {
         Ok(Box::new(Self {
             state: RsaslState::New,
         }))
@@ -118,11 +115,30 @@ pub static RSASLTEST_CF: Mechanism = Mechanism {
     client: Some(RSaslTest::client),
     server: Some(RSaslTest::server),
     first: Side::Client,
+    select: |_| Some(Matches::<SelectCF>::name()),
+    offer: |_| true,
 };
+
+struct SelectCF;
+impl Named for SelectCF {
+    fn mech() -> &'static Mechanism {
+        &RSASLTEST_CF
+    }
+}
 pub static RSASLTEST_SF: Mechanism = Mechanism {
     mechanism: Mechname::const_new(b"X-RSASLTEST-SF"),
     priority: 0,
     client: Some(RSaslTest::client),
     server: Some(RSaslTest::server),
     first: Side::Client,
+
+    select: |_| Some(Matches::<Select>::name()),
+    offer: |_| true,
 };
+
+struct Select;
+impl Named for Select {
+    fn mech() -> &'static Mechanism {
+        &RSASLTEST_SF
+    }
+}

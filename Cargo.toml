@@ -1,9 +1,9 @@
 [package]
 name = "rsasl"
-version = "2.0.0-rc.3"
+version = "2.0.0-rc.4"
 authors = ["Nadja Reitzenstein <me@dequbed.space>"]
 edition = "2021"
-rust-version = "1.56.0"
+rust-version = "1.61.0"
 
 description = """The Rust SASL framework, aimed at both middleware-style protocol implementation and application code.
 Designed to make SASL authentication simple and safe while handing as much control to the user as possible.

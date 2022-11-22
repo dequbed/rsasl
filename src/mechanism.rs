@@ -54,14 +54,45 @@ pub trait Authentication: Send + Sync {
     ) -> Result<State, SessionError>;
 
     // TODO: Document the problems with SASL security layers before release
-    // TODO: Split Authentication & Security Layer stuff?
-    // TODO: `fn is_security_layer_installed(&self) -> bool`?
+    /// Encode given data for an established SASL security layer
+    ///
+    /// This operation is also often called `wrap`. If a security layer has been established this
+    /// method protects input data using said security layer and writes it into the provided writer.
+    ///
+    /// If no security layer has been installed this method MUST return
+    /// `Err(`[`SessionError::NoSecurityLayer`]`).
+    ///
+    /// A call to this function returns the number of input bytes that were successfully
+    /// protected and written into the given writer.
+    ///
+    /// A single call to encode SHOULD only protect one security layer 'frame' of data, e.g. with
+    /// GSS-API call `wrap` only once.  However it MAY call `Write::write` multiple times, and
+    /// SHOULD return `Ok(0)` if any of those calls return `Ok(0)`.
     fn encode(&mut self, _input: &[u8], _writer: &mut dyn Write) -> Result<usize, SessionError> {
         Err(NoSecurityLayer)
     }
+
+    /// Decode data from an established SASL security layer
+    ///
+    /// This operation is also often called `unwrap`. If a security layer has been established this
+    /// method unprotects input data from said security layer and writes it into the provided
+    /// writer.
+    ///
+    /// If no security layer has been installed this method MUST return
+    /// `Err(`[`SessionError::NoSecurityLayer`]`)`.  If there is not enough input data to
+    /// successfully unprotect this method MUST return `Err(`[`SessionError::InputDataRequired`]`)`
+    ///
+    /// A call to this function returns the number of protected input bytes that were successfully
+    /// unprotected and written into the given writer.
+    ///
+    /// Similarly to `encode` a single call to decode SHOULD only unprotect a single `frame` of
+    /// data, e.g. with GSS-API call `unwrap` only once.  However it MAY call `Write::write`
+    /// multiple times, and SHOULD return `OK(0)` if any of those calls return `Ok(0)`.
     fn decode(&mut self, _input: &[u8], _writer: &mut dyn Write) -> Result<usize, SessionError> {
         Err(NoSecurityLayer)
     }
+
+    /// Returns `true` if a security layer is installed at the moment, otherwise returns `false`.
     fn has_security_layer(&self) -> bool {
         false
     }

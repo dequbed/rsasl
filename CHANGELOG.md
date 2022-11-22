@@ -19,6 +19,21 @@ release. They will however *never* happen in a patch release.
 [Changes rendered on GitHub][Upcoming/diff]
 
 
+# [v2.0.0-rc.4] — 2022-11-22
+
+[Changes rendered on GitHub][v2.0.0-rc.4/diff]
+
+## Added
+- `SASLClient::start_suggested` can now be called with any `impl IntoIterator<Item=&&Mechname>`.  As 
+  `&[&Mechname]` does implement this trait no changes are required for users of this method.
+- A new method `SASLClient::start_suggested_iter` is added that takes `impl IntoIterator<Item=&Mechname>`, i.e. an
+  iterator with a layer of indirection removed compared to the non-`_iter` variant. This variant is
+  more efficient if direct references to `&Mechname` can be constructed. It also may be easier to
+  use with a zero-copy parsing approach than the non-`_iter` variant.
+
+## Changed
+- MSRV was raised to rustc 1.61.0 due to that release stabilizing generic parameters in `const fn`.
+
 # [v2.0.0-rc.3] — 2022-10-12
 
 [Changes rendered on GitHub][v2.0.0-rc.3/diff]
@@ -192,7 +207,9 @@ making this release possible.**
 
 [Upcoming Changes]: https://github.com/dequbed/rsasl/tree/development
 <!-- next-url -->
-[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-rc.3...development
+[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-rc.4...development
+[v2.0.0-rc.4]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.4
+[v2.0.0-rc.4/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-rc.3...v2.0.0-rc.4
 [v2.0.0-rc.3]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.3
 [v2.0.0-rc.3/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-rc.2...v2.0.0-rc.3
 [v2.0.0-rc.2]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.2

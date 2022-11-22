@@ -70,7 +70,7 @@ pub struct ScramServer<D: Digest + BlockSizeUser + FixedOutput, const N: usize> 
     state: Option<ScramServerState<D, N>>,
 }
 impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> ScramServer<D, N> {
-    pub fn new(can_cb: bool) -> Self {
+    pub const fn new(can_cb: bool) -> Self {
         let plus = if can_cb {
             CBSupport::Yes
         } else {
@@ -81,7 +81,7 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> ScramServer<D, N> 
         }
     }
 
-    pub fn new_plus() -> Self {
+    pub const fn new_plus() -> Self {
         let plus = CBSupport::Yes;
         Self {
             state: Some(ScramServerState::WaitingClientFirst(ScramState::new(plus))),
@@ -104,13 +104,13 @@ impl<'a> Provider<'a> for Prov<'a> {
     }
 }
 
-pub(crate) struct WaitingClientFirst<const N: usize> {
+pub struct WaitingClientFirst<const N: usize> {
     plus: CBSupport,
     nonce: PhantomData<&'static [u8; N]>,
 }
 
 impl<const N: usize> WaitingClientFirst<N> {
-    fn new(plus: CBSupport) -> Self {
+    const fn new(plus: CBSupport) -> Self {
         Self {
             plus,
             nonce: PhantomData,
@@ -228,7 +228,7 @@ impl<const N: usize> WaitingClientFirst<N> {
     }
 }
 
-pub(crate) struct WaitingClientFinal<D: Digest + BlockSizeUser + FixedOutput, const N: usize> {
+pub struct WaitingClientFinal<D: Digest + BlockSizeUser + FixedOutput, const N: usize> {
     data: Option<FinalInner<D, N>>,
 }
 struct FinalInner<D: Digest + BlockSizeUser + FixedOutput, const N: usize> {
@@ -272,7 +272,7 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
         }
     }
 
-    fn bad_user() -> Self {
+    const fn bad_user() -> Self {
         Self { data: None }
     }
 
@@ -307,60 +307,56 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
             if gs2_header[..] != cb[..] {
                 ServerFinal::Error(ServerErrorValue::ChannelBindingsDontMatch)
             } else if let Some(remainder) = nonce.strip_prefix(&client_nonce[..]) {
-                if remainder == server_nonce {
-                    if proof.len() > (<SimpleHmac<D> as OutputSizeUser>::output_size() * 4 / 3) + 3
-                    {
-                        ServerFinal::Error(ServerErrorValue::InvalidProof)
-                    } else {
-                        let mut proof_decoded = DOutput::<D>::default();
-                        base64::decode_config_slice(proof, base64::STANDARD, &mut proof_decoded)
-                            .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
+                if remainder == server_nonce
+                    && proof.len() <= (<SimpleHmac<D> as OutputSizeUser>::output_size() * 4 / 3) + 3
+                {
+                    let mut proof_decoded = DOutput::<D>::default();
+                    base64::decode_config_slice(proof, base64::STANDARD, &mut proof_decoded)
+                        .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
 
-                        let mut client_signature = DOutput::<D>::default();
-                        let mut server_signature = DOutput::<D>::default();
+                    let mut client_signature = DOutput::<D>::default();
+                    let mut server_signature = DOutput::<D>::default();
 
-                        compute_signatures::<D>(
-                            &stored_key,
-                            &server_key,
-                            &username,
-                            &client_nonce,
-                            &server_nonce,
-                            salt.as_bytes(),
-                            iterations.as_bytes(),
-                            channel_binding,
-                            &mut client_signature,
-                            &mut server_signature,
-                        );
+                    compute_signatures::<D>(
+                        &stored_key,
+                        &server_key,
+                        &username,
+                        &client_nonce,
+                        &server_nonce,
+                        salt.as_bytes(),
+                        iterations.as_bytes(),
+                        channel_binding,
+                        &mut client_signature,
+                        &mut server_signature,
+                    );
 
-                        // Calculate the client_key by XORing the provided proof with the
-                        // calculated client signature
-                        let client_key = DOutput::<D>::from_exact_iter(
-                            proof_decoded
-                                .into_iter()
-                                .zip(client_signature)
-                                .map(|(x, y)| x ^ y),
-                        )
-                        .expect("XOR of two same-sized arrays was not of that size?");
+                    // Calculate the client_key by XORing the provided proof with the
+                    // calculated client signature
+                    let client_key = DOutput::<D>::from_exact_iter(
+                        proof_decoded
+                            .into_iter()
+                            .zip(client_signature)
+                            .map(|(x, y)| x ^ y),
+                    )
+                    .expect("XOR of two same-sized arrays was not of that size?");
 
-                        let calculated_stored_key = D::digest(client_key);
+                    let calculated_stored_key = D::digest(client_key);
 
-                        if stored_key == calculated_stored_key {
-                            let encoded = base64::encode(server_signature);
-                            let msg = ServerFinal::Verifier(encoded.as_bytes());
-                            let mut vecw = VectoredWriter::new(msg.to_ioslices());
-                            *written = vecw.write_all_vectored(writer)?;
+                    if stored_key == calculated_stored_key {
+                        let encoded = base64::encode(server_signature);
+                        let msg = ServerFinal::Verifier(encoded.as_bytes());
+                        let mut vecw = VectoredWriter::new(msg.to_ioslices());
+                        *written = vecw.write_all_vectored(writer)?;
 
-                            let prov = Prov {
-                                authid: username.as_str(),
-                                authzid: authzid.as_deref(),
-                            };
-                            session_data.validate(&prov)?;
+                        let prov = Prov {
+                            authid: username.as_str(),
+                            authzid: authzid.as_deref(),
+                        };
+                        session_data.validate(&prov)?;
 
-                            return Ok(());
-                        }
-
-                        ServerFinal::Error(ServerErrorValue::InvalidProof)
+                        return Ok(());
                     }
+                    ServerFinal::Error(ServerErrorValue::InvalidProof)
                 } else {
                     ServerFinal::Error(ServerErrorValue::InvalidProof)
                 }
@@ -382,7 +378,7 @@ struct ScramState<S> {
     state: S,
 }
 impl<const N: usize> ScramState<WaitingClientFirst<N>> {
-    fn new(plus: CBSupport) -> Self {
+    const fn new(plus: CBSupport) -> Self {
         Self {
             state: WaitingClientFirst::new(plus),
         }

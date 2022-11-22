@@ -11,7 +11,7 @@ pub struct VectoredWriter<'io, const N: usize> {
 }
 
 impl<'io, const N: usize> VectoredWriter<'io, N> {
-    pub fn new(data: [&'io [u8]; N]) -> Self {
+    pub const fn new(data: [&'io [u8]; N]) -> Self {
         Self { skip: 0, data }
     }
 

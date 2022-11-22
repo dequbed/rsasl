@@ -71,11 +71,11 @@ jobs:
           MIRIFLAGS: -Zmiri-strict-provenance
 
   msrv:
-    name: Rust 1.56.0
+    name: Rust 1.61.0
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@1.56.0
+      - uses: dtolnay/rust-toolchain@1.61.0
         with:
           components: rust-src
       - run: cargo check

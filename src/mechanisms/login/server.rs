@@ -33,7 +33,7 @@ enum LoginState {
     Done,
 }
 impl Login {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             state: LoginState::New,
         }

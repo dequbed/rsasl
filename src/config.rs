@@ -6,19 +6,22 @@ use crate::error::SASLError;
 use crate::registry::{Mechanism, MechanismIter};
 use crate::session::SessionData;
 use alloc::sync::Arc;
-use core::cmp::Ordering;
 use core::fmt;
 
 #[doc(inline)]
 #[cfg(feature = "config_builder")]
 pub use crate::builder::ConfigBuilder;
-
-pub(crate) type SorterFn = fn(a: &Mechanism, b: &Mechanism) -> Ordering;
+use crate::mechanism::Authentication;
+use crate::mechname::Mechname;
 
 trait ConfigInstance: fmt::Debug + Send + Sync {
     fn get_mech_iter<'a>(&self) -> MechanismIter<'a>;
     fn get_callback(&self) -> &dyn SessionCallback;
-    fn sort(&self, left: &Mechanism, right: &Mechanism) -> Ordering;
+    fn select<'a>(
+        &self,
+        cb: bool,
+        offered: &mut dyn Iterator<Item = &'a Mechname>,
+    ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError>;
 }
 
 #[repr(transparent)]
@@ -45,39 +48,24 @@ impl fmt::Debug for SASLConfig {
 
 #[cfg(any(test, feature = "provider", feature = "testutils"))]
 mod provider {
-    use super::{Box, Mechanism, Ordering, SASLConfig, SASLError, SessionCallback};
+    use super::{Box, Mechanism, SASLConfig, SASLError, SessionCallback};
     use crate::mechanism::Authentication;
     use crate::mechname::Mechname;
 
     impl SASLConfig {
         #[inline(always)]
         /// Select the best mechanism of the offered ones.
-        pub(crate) fn select_mechanism(
+        pub(crate) fn select_mechanism<'a>(
             &self,
-            offered: &[&Mechname],
-        ) -> Result<(Box<dyn Authentication>, &Mechanism), SASLError> {
-            offered
-                .iter()
-                .filter_map(|offered_mechname| {
-                    self.mech_list()
-                        .find(|avail_mech| avail_mech.mechanism == *offered_mechname)
-                        .and_then(|mech| {
-                            let auth = mech.client(self, offered)?.ok()?;
-                            Some((auth, mech))
-                        })
-                })
-                .max_by(|(_, m), (_, n)| self.inner.sort(m, n))
-                .ok_or(SASLError::NoSharedMechanism)
+            offered: impl IntoIterator<Item = &'a Mechname>,
+        ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError> {
+            let cb = self.get_callback().enable_channel_binding();
+            self.inner.select(cb, &mut offered.into_iter())
         }
 
         #[inline(always)]
         pub(crate) fn get_callback(&self) -> &dyn SessionCallback {
             self.inner.get_callback()
-        }
-
-        #[inline(always)]
-        pub(crate) fn sort(&self, left: &Mechanism, right: &Mechanism) -> Ordering {
-            self.inner.sort(left, right)
         }
     }
 }
@@ -92,13 +80,15 @@ impl SASLConfig {
 #[cfg(feature = "config_builder")]
 mod instance {
     use super::{
-        fmt, Arc, Box, ConfigInstance, Mechanism, MechanismIter, Ordering, SASLConfig, SASLError,
-        SessionCallback, SessionData, SorterFn, String,
+        fmt, Arc, Box, ConfigInstance, Mechanism, MechanismIter, SASLConfig, SASLError,
+        SessionCallback, SessionData, String,
     };
     pub use crate::builder::ConfigBuilder;
     use crate::callback::Request;
     use crate::context::Context;
     use crate::error::SessionError;
+    use crate::mechanism::Authentication;
+    use crate::mechname::Mechname;
     use crate::property::{AuthId, AuthzId, Password};
     use crate::registry::Registry;
 
@@ -109,17 +99,16 @@ mod instance {
 
         pub(crate) fn new<CB: SessionCallback + 'static>(
             callback: CB,
-            sorter: SorterFn,
             mechanisms: Registry,
         ) -> Result<Arc<Self>, SASLError> {
-            let inner = Inner::new(callback, sorter, mechanisms)?;
+            let inner = Inner::new(callback, mechanisms)?;
             let outer = Arc::new(inner) as Arc<dyn ConfigInstance>;
             Ok(Self::cast(outer))
         }
 
         /// Construct a config from a linker-friendly builder
         #[must_use]
-        pub fn builder() -> ConfigBuilder {
+        pub const fn builder() -> ConfigBuilder {
             ConfigBuilder::new()
         }
 
@@ -139,7 +128,7 @@ mod instance {
             authzid: Option<String>,
             authid: String,
             password: String,
-        ) -> Result<Arc<SASLConfig>, SASLError> {
+        ) -> Result<Arc<Self>, SASLError> {
             struct CredentialsProvider {
                 authid: String,
                 password: String,
@@ -172,20 +161,20 @@ mod instance {
 
             Self::builder()
                 .with_credentials_mechanisms(has_authzid)
-                .with_defaults()
                 .with_callback(callback)
         }
     }
 
     struct Inner {
+        cb: bool,
         callback: Box<dyn SessionCallback>,
-        sorter: SorterFn,
         mechanisms: Registry,
     }
 
     impl fmt::Debug for Inner {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             f.debug_struct("SASLConfig")
+                .field("channel_binding", &self.cb)
                 .field("mechanisms", &self.mechanisms)
                 .finish()
         }
@@ -196,12 +185,11 @@ mod instance {
     impl Inner {
         pub(crate) fn new<CB: SessionCallback + 'static>(
             callback: CB,
-            sorter: SorterFn,
             mechanisms: Registry,
         ) -> Result<Self, SASLError> {
             Ok(Self {
+                cb: false, // FIXME!
                 callback: Box::new(callback),
-                sorter,
                 mechanisms,
             })
         }
@@ -216,8 +204,15 @@ mod instance {
             self.callback.as_ref()
         }
 
-        fn sort(&self, left: &Mechanism, right: &Mechanism) -> Ordering {
-            (self.sorter)(left, right)
+        fn select<'a>(
+            &self,
+            cb: bool,
+            offered: &mut dyn Iterator<Item = &'a Mechname>,
+        ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError> {
+            let callback = self.get_callback();
+            self.mechanisms.select(cb | self.cb, offered, |acc, mech| {
+                callback.prefer(acc, mech)
+            })
         }
     }
 }
@@ -226,8 +221,5 @@ mod instance {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_impl_bounds() {
-        static_assertions::assert_impl_all!(SASLConfig: Send, Sync);
-    }
+    static_assertions::assert_impl_all!(SASLConfig: Send, Sync);
 }
