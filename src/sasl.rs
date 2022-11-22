@@ -74,14 +74,32 @@ mod provider {
             }
         }
 
+        #[inline(always)]
         /// Starts a authentication exchange as a client
         ///
         /// Depending on the mechanism chosen this may need additional data from the application, e.g.
         /// an authcid, optional authzid and password for PLAIN. This data is provided by the
         /// application via callbacks.
+        ///
+        /// This is a small wrapper for [`Self::start_suggested_iter`] to keep
+        /// backwards-compatability by allowing to pass `&[&Mechname]`, which only implemens
+        /// `IntoIterator<Item=&&Mechname>`. Using the `_iter` variant is more efficient if you can
+        /// generate direct references to `Mechname`.
         pub fn start_suggested<'a>(
             self,
             offered: impl IntoIterator<Item=&'a &'a Mechname>,
+        ) -> Result<Session<NoValidation, CB>, SASLError> {
+            self.start_suggested_iter(offered.into_iter().copied())
+        }
+
+        /// Starts a authentication exchange as a client
+        ///
+        /// Depending on the mechanism chosen this may need additional data from the application, e.g.
+        /// an authcid, optional authzid and password for PLAIN. This data is provided by the
+        /// application via callbacks.
+        pub fn start_suggested_iter<'a>(
+            self,
+            offered: impl IntoIterator<Item=&'a Mechname>,
         ) -> Result<Session<NoValidation, CB>, SASLError> {
             self.inner.client_start_suggested(offered)
         }
@@ -154,7 +172,7 @@ mod provider {
 
         fn client_start_suggested<'a>(
             self,
-            offered: impl IntoIterator<Item=&'a &'a Mechname>
+            offered: impl IntoIterator<Item=&'a Mechname>
         ) -> Result<Session<V, CB>, SASLError> {
             let (mechanism, mechanism_desc) = self.config.select_mechanism(offered)?;
             Ok(Session::new(self, Side::Client, mechanism, *mechanism_desc))
