@@ -337,6 +337,12 @@ impl MechanismData<'_> {
     }
 }
 
+impl fmt::Debug for MechanismData<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MechanismData").finish()
+    }
+}
+
 #[derive(Debug)]
 // TODO: Since the Session object is only known to the protocol implementation and user they can
 //       share a statically known Context.
@@ -353,12 +359,6 @@ impl SessionData {
     #[must_use]
     pub const fn side(&self) -> Side {
         self.side
-    }
-}
-
-impl fmt::Debug for MechanismData<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SessionData").finish()
     }
 }
 
