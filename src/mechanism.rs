@@ -72,7 +72,12 @@ pub trait Authentication: Send + Sync {
     /// `Err(`[`SessionError::NoSecurityLayer`]`).
     ///
     /// A call to this function returns the number of input bytes that were successfully
-    /// protected and written into the given writer.
+    /// protected and written into the given writer. As this protection may add overhead,
+    /// compression, … the number of bytes *written** will differ from the returned **read** amount
+    /// of bytes. If a caller requires the number of bytes written it is their obligation to use
+    /// a tracking writer.
+    ///
+    /// This method will not flush the provided writer.
     ///
     /// A single call to encode SHOULD only protect one security layer 'frame' of data, e.g. with
     /// GSS-API call `wrap` only once.  However it MAY call `Write::write` multiple times, and
@@ -93,6 +98,8 @@ pub trait Authentication: Send + Sync {
     ///
     /// A call to this function returns the number of protected input bytes that were successfully
     /// unprotected and written into the given writer.
+    ///
+    /// This method will not flush the provided writer.
     ///
     /// Similarly to `encode` a single call to decode SHOULD only unprotect a single `frame` of
     /// data, e.g. with GSS-API call `unwrap` only once.  However it MAY call `Write::write`
