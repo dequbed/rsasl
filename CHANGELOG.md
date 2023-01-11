@@ -18,6 +18,10 @@ release. They will however *never* happen in a patch release.
 
 [Changes rendered on GitHub][Upcoming/diff]
 
+## Added
+- `GSSAPI` mechanism implementation
+- Security layer functionality in `Session`
+
 ## Changed
 - Recursive callbacks calls are now prevented by making property methods on `MechanismData` take `&mut self`. 
   See ADR-0003 for further details about why this change was done.
