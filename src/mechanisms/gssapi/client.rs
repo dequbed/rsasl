@@ -169,7 +169,7 @@ impl Authentication for Gssapi {
             GssapiState::Completed(Some((ref mut ctx, encrypt))) => {
                 let wrapped = ctx.wrap(encrypt, input).map_err(Error::Gss)?;
                 writer.write_all(&wrapped)?;
-                Ok(wrapped.len())
+                Ok(input.len())
             }
             _ => Err(SessionError::NoSecurityLayer),
         }
@@ -180,7 +180,7 @@ impl Authentication for Gssapi {
             GssapiState::Completed(Some((ref mut ctx, _))) => {
                 let unwrapped = ctx.unwrap(input).map_err(Error::Gss)?;
                 writer.write_all(&unwrapped)?;
-                Ok(unwrapped.len())
+                Ok(input.len())
             }
             _ => Err(SessionError::NoSecurityLayer),
         }
