@@ -140,7 +140,7 @@ pub(crate) fn build_context<'a>(provider: &'a dyn Provider) -> &'a Context<'a> {
 /// The main difference between `Provider` and `Context` is that the latter uses the above
 /// mentioned layer of indirection: The generic parameter implementing
 /// [Property<'a>](trait::Property) specifies the type being returned (i.e. [Property::Value]) <br/>
-/// [(read more..)](docs::adr::adr0002_context_vs_provide_any)
+/// [(read more..)](crate::docs::adr::adr0002_context_vs_provide_any)
 ///
 /// [`Authid`]: crate::property::Authid
 /// [`Realm`]: crate::property::Realm
