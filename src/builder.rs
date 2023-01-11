@@ -137,10 +137,6 @@ pub struct WantCallback {
 }
 impl ConfigBuilder<WantCallback> {
     /// Install a callback for querying properties
-    ///
-    /// # Errors
-    ///
-    /// see [`SASLConfig::new()`]
     pub fn with_callback<CB: SessionCallback + 'static>(
         self,
         callback: CB,

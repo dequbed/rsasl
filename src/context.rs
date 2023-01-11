@@ -125,7 +125,7 @@ pub(crate) fn build_context<'a>(provider: &'a dyn Provider) -> &'a Context<'a> {
 ///
 /// Values a mechanism makes available can be queried using [`get_ref`](Context::get_ref) and
 /// [`get_mut`](Context::get_mut). These methods are generic over the [`Property`] and return
-/// its associated type [`Property::Value`]. This allows e.g. both [`Authid`] and [`Realm`] to
+/// its associated type [`Property::Value`]. This allows e.g. both [`AuthId`] and [`Realm`] to
 /// return values of type `&str`.
 ///
 /// Which values are available depends on the mechanism instance, refer to its documentation for
@@ -139,10 +139,10 @@ pub(crate) fn build_context<'a>(provider: &'a dyn Provider) -> &'a Context<'a> {
 /// [provide_any/Provider system](https://doc.rust-lang.org/std/any/trait.Provider.html).
 /// The main difference between `Provider` and `Context` is that the latter uses the above
 /// mentioned layer of indirection: The generic parameter implementing
-/// [Property<'a>](trait::Property) specifies the type being returned (i.e. [Property::Value]) <br/>
+/// [`Property<'a>`] specifies the type being returned (i.e. [`Property::Value`]) <br/>
 /// [(read more..)](crate::docs::adr::adr0002_context_vs_provide_any)
 ///
-/// [`Authid`]: crate::property::Authid
+/// [`AuthId`]: crate::property::AuthId
 /// [`Realm`]: crate::property::Realm
 pub struct Context<'a>(dyn Provider<'a>);
 impl<'a> Context<'a> {
