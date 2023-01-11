@@ -46,6 +46,15 @@ pub trait Authentication: Send + Sync {
     ///   **SHOULD** continue the authentication exchange as if the invalid call never happened.
     ///   This means if input data is required but was not provided the internal state **SHOULD**
     ///   remain the same and not become invalid.
+    ///
+    /// - The server side implemented of a mechanism **MUST** call [`MechanismData::validate`]
+    ///   *exactly once* in an authentication exchange, unless a protocol error is encountered.
+    ///   (i.e. the call has to have happened before `Ok(State::Finished(_))` is returned)
+    ///
+    ///   `validate` is passed a `Provider` giving user callbacks access to property values from
+    ///   this exchange to base authentication decisions on. This Provider **MUST** always
+    ///   provide the same set of properties; if a property may be absent in some circumstances it
+    ///   **MUST** specify and return a special 'absent' value in those cases.
     fn step(
         &mut self,
         session: &mut MechanismData,

@@ -346,6 +346,9 @@ pub mod docs {
         pub mod adr0001_property_and_validation_newtype {
             #![doc = include_str!("../docs/decisions/0001-property-and-validation-newtype.md")]
         }
+        pub mod adr0002_context_vs_provide_any {
+            #![doc = include_str!("../docs/decisions/0002-context-vs-provide_any.md")]
+        }
     }
 
     pub mod changelog {

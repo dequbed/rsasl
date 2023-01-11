@@ -116,20 +116,66 @@ impl<'a> Demand<'a> {
     }
 }
 
-pub fn build_context<'a>(provider: &'a dyn Provider) -> &'a Context<'a> {
+pub(crate) fn build_context<'a>(provider: &'a dyn Provider) -> &'a Context<'a> {
     unsafe { &*(provider as *const dyn Provider as *const Context) }
 }
 
 #[repr(transparent)]
+/// Strongly typed dynamic value access
+///
+/// Values a mechanism makes available can be queried using [`get_ref`](Context::get_ref) and
+/// [`get_mut`](Context::get_mut). These methods are generic over the [`Property`] and return
+/// its associated type [`Property::Value`]. This allows e.g. both [`Authid`] and [`Realm`] to
+/// return values of type `&str`.
+///
+/// Which values are available depends on the mechanism instance, refer to its documentation for
+/// details.
+///
+/// **Note**: Querying a property that is available for the mechanism but is not set will still
+/// return `Some`. So e.g. in a PLAIN exchange `get_ref<Authzid>` will return `Some("")` if no
+/// authzid was transmitted.
+///
+/// This struct thus implements a similar functionality to the (at the time of writing unstable)
+/// [provide_any/Provider system](https://doc.rust-lang.org/std/any/trait.Provider.html).
+/// The main difference between `Provider` and `Context` is that the latter uses the above
+/// mentioned layer of indirection: The generic parameter implementing
+/// [Property<'a>](trait::Property) specifies the type being returned (i.e. [Property::Value]) <br/>
+/// [(read more..)](docs::adr::adr0002_context_vs_provide_any)
+///
+/// [`Authid`]: crate::property::Authid
+/// [`Realm`]: crate::property::Realm
 pub struct Context<'a>(dyn Provider<'a>);
 impl<'a> Context<'a> {
     #[inline]
+    /// Query the value of a given Property
+    ///
+    /// This will return `Some(&P::Value)` if the given property is available for the running
+    /// mechanism.
+    ///
+    /// **Note**: this method will also return `Some` if the property is available with the given
+    /// mechanism but does not have a value, for example because it is optional. In those cases the
+    /// value will be a specific sentinel indicating that fact.
+    /// (e.g. `get_ref<Authzid>` returns `Some("")` in `PLAIN` exchanges if no authzid was send by
+    /// the client)
+    ///
+    /// ```rust
+    /// # let p = rsasl::mechanism::ThisProvider::<rsasl::property::Realm>::with("EXAMPLE.COM");
+    /// # let context = build_context(&p);
+    /// if let Some("EXAMPLE.COM") = context.get_ref::<rsasl::property::Realm>() {
+    ///     // Special handling
+    /// }
+    /// ```
     pub fn get_ref<P: Property<'a>>(&self) -> Option<&'a P::Value> {
         let mut tagged = Tagged::<'_, tags::Optional<tags::Ref<DemandTag<P>>>>(None);
         self.0.provide(Demand::new(&mut tagged));
         tagged.0
     }
+
     #[inline]
+    /// Request mutable access to the value of a given Property
+    ///
+    /// This will return `None` if the given property is not available for the running mechanism,
+    /// **or** if the mechanism does not allow mutable access to its value.
     pub fn get_mut<P: Property<'a>>(&mut self) -> Option<&'a mut P::Value> {
         let mut tagged = Tagged::<'_, tags::Optional<tags::RefMut<DemandTag<P>>>>(None);
         self.0.provide_mut(Demand::new(&mut tagged));
