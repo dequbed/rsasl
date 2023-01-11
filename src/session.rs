@@ -154,6 +154,49 @@ mod provider {
         pub fn validation(&mut self) -> Option<V::Value> {
             self.sasl.validation.take()
         }
+
+        /// Returns `true` if a security layer is installed at the moment, otherwise returns `false`.
+        pub fn has_security_layer(&self) -> bool {
+            self.mechanism.has_security_layer()
+        }
+
+        /// Encode given data for an established SASL security layer
+        ///
+        /// This operation is also often called `wrap`. If a security layer has been established this
+        /// method protects input data using said security layer and writes it into the provided writer.
+        ///
+        /// If no security layer has been installed this method returns
+        /// `Err(`[`SessionError::NoSecurityLayer`]`).
+        ///
+        /// A call to this function returns the number of input bytes that were successfully
+        /// protected and written into the given writer. As this protection may add overhead, use
+        /// compression, etc. the number of bytes *written** will differ from the returned **read**
+        /// amount of bytes. If a caller requires the number of bytes written it is their obligation to use
+        /// a tracking writer.
+        ///
+        /// This method will not flush the provided writer.
+        pub fn encode(&mut self, input: &[u8], writer: &mut impl Write) -> Result<usize, SessionError> {
+            self.mechanism.encode(input, writer)
+        }
+
+        /// Decode data from an established SASL security layer
+        ///
+        /// This operation is also often called `unwrap`. If a security layer has been established this
+        /// method unprotects input data from said security layer and writes it into the provided
+        /// writer.
+        ///
+        /// If no security layer has been installed this method returns
+        /// `Err(`[`SessionError::NoSecurityLayer`]`)`.
+        ///
+        /// A call to this function returns the number of protected input bytes that were successfully
+        /// unprotected and written into the given writer. Similar to [`encode`] the number of
+        /// bytes read from input may differ from the amount of output bytes written into the
+        /// writer.
+        ///
+        /// This method will not flush the provided writer.
+        pub fn decode(&mut self, input: &[u8], writer: &mut impl Write) -> Result<usize, SessionError> {
+            self.mechanism.decode(input, writer)
+        }
     }
 
     #[cfg(feature = "provider_base64")]
