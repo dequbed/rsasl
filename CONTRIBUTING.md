@@ -39,7 +39,7 @@ together with you too!
 
 `rsasl` has a release workflow based on [`gitflow-avh`](https://github.com/petervanderdoes/gitflow-avh) and [crateci's `cargo-release`](https://github.com/crate-ci/cargo-release).
 
-1. Make sure you have the required git-hook installed and marked executable. The release process specifically requires the file [tools/pre-release.sh]() to be installed as `.git/hooks/pre-release.sh`.
+1. Make sure you have the required git-hook installed and marked executable. The release process specifically requires the file [tools/pre-release.sh](tools/pre-release.sh) to be installed as `.git/hooks/pre-release.sh`.
 2. `cargo release [level]` where `level` defines what version number to bump to and is [further described in the cargo-release reference](https://github.com/crate-ci/cargo-release/blob/master/docs/reference.md#bump-level).
    - This will perform a *dry-run* and not make or commit any changes. Use it to verify that everything will happen as intended.
 3. `cargo release -x [level]` to perform the release. This will drop you on a new `release/[new version]` branch with changes to the Cargo.toml and CHANGELOG.md already added to be committed.
