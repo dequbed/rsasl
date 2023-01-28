@@ -207,9 +207,9 @@ making this release possible.**
 
 [Upcoming Changes]: https://github.com/dequbed/rsasl/tree/development
 <!-- next-url -->
-[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-rc.4...development
+[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-rc.4...development
 [v2.0.0-rc.4]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.4
-[v2.0.0-rc.4/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-rc.3...v2.0.0-rc.4
+[v2.0.0-rc.4/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-rc.3...v2.0.0-rc.4
 [v2.0.0-rc.3]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.3
 [v2.0.0-rc.3/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-rc.2...v2.0.0-rc.3
 [v2.0.0-rc.2]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.2
