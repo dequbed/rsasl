@@ -34,3 +34,20 @@ together with you too!
 
 - rsasl uses a merge-focused workflow. Rebases should only happen to update a feature branch to the latest upstream 
   development or similar. Additionally, please do not squash a PR into a single commit unless it is a very small change.
+
+## Release workflow
+
+`rsasl` has a release workflow based on [`gitflow-avh`](https://github.com/petervanderdoes/gitflow-avh) and [crateci's `cargo-release`](https://github.com/crate-ci/cargo-release).
+
+1. Make sure you have the required git-hook installed and marked executable. The release process specifically requires the file [tools/pre-release.sh]() to be installed as `.git/hooks/pre-release.sh`.
+2. `cargo release [level]` where `level` defines what version number to bump to and is [further described in the cargo-release reference](https://github.com/crate-ci/cargo-release/blob/master/docs/reference.md#bump-level).
+   - This will perform a *dry-run* and not make or commit any changes. Use it to verify that everything will happen as intended.
+3. `cargo release -x [level]` to perform the release. This will drop you on a new `release/[new version]` branch with changes to the Cargo.toml and CHANGELOG.md already added to be committed.
+   1. Verify everything that needs to be included for the release is included.
+   2. Run any pre-release tests and checks
+   3. Finalize the release with `git flow release finish`. This will merge all branches as required and drop you into an editor to finalize the tag name and description.
+4. Push the `development` and `main` branch, and the newly created tag upstream: 
+   - `git switch main && git push`
+   - `git switch development && git push`
+   - `git push --tags`
+
