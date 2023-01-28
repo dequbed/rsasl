@@ -2,9 +2,9 @@
 
 if [[ ${DRY_RUN} == "true" ]];
 then
-    echo "=====================================--------==="
+    echo "================================================"
     echo "DRY_RUN SET, ONLY PRINTING THE PLANNED ACTIONS!!"
-    echo "=====================================--------==="
+    echo "================================================"
     echo "-- COMMAND LIST START --"
     echo git stash
     echo git flow release start $@
