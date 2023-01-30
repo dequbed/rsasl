@@ -264,7 +264,8 @@
     clippy::doc_markdown,
     clippy::module_name_repetitions,
     clippy::inline_always,
-    clippy::missing_errors_doc
+    clippy::missing_errors_doc,
+    clippy::box_default
 )]
 // FIXME: problems with `registry_static::MECHANISMS` and `linkme::distributed_slice`
 #![allow(clippy::exhaustive_enums)]

@@ -60,7 +60,7 @@ mod tests {
         let validate = Validate::new::<NoValidation>(&mut tagged_option);
         session
             .get_cb_data("this-cb", validate, &mut |cb| {
-                println!("got {:?}", cb);
+                println!("got {cb:?}");
                 assert_eq!(cb, cbdata);
                 Ok(())
             })
@@ -75,7 +75,7 @@ mod tests {
             .unwrap_err();
         match e {
             SessionError::MissingChannelBindingData(name) if name.as_str() == "blahblubb" => {}
-            e => panic!("Expected MissingChannelBindingData error, received {:?}", e),
+            e => panic!("Expected MissingChannelBindingData error, received {e:?}"),
         }
     }
 }

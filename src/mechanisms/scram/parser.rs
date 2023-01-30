@@ -268,14 +268,14 @@ impl<'scram> ClientFirstMessage<'scram> {
         let username = if &next[0..2] == b"n=" {
             core::str::from_utf8(&next[2..]).map_err(ParseError::BadUtf8)?
         } else {
-            return Err(ParseError::InvalidAttribute(next[0] as u8));
+            return Err(ParseError::InvalidAttribute(next[0]));
         };
 
         let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
         let nonce = if &next[0..2] == b"r=" {
             &next[2..]
         } else {
-            return Err(ParseError::InvalidAttribute(next[0] as u8));
+            return Err(ParseError::InvalidAttribute(next[0]));
         };
         if !nonce.iter().all(|b| matches!(b, 0x21..=0x2B | 0x2D..=0x7E)) {
             return Err(ParseError::BadNonce);
@@ -380,21 +380,21 @@ impl<'scram> ServerFirst<'scram> {
         let nonce = if &next[0..2] == b"r=" {
             &next[2..]
         } else {
-            return Err(ParseError::InvalidAttribute(next[0] as u8));
+            return Err(ParseError::InvalidAttribute(next[0]));
         };
 
         let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
         let salt = if &next[0..2] == b"s=" {
             &next[2..]
         } else {
-            return Err(ParseError::InvalidAttribute(next[0] as u8));
+            return Err(ParseError::InvalidAttribute(next[0]));
         };
 
         let next = partiter.next().ok_or(ParseError::MissingAttributes)?;
         let iteration_count = if &next[0..2] == b"i=" {
             &next[2..]
         } else {
-            return Err(ParseError::InvalidAttribute(next[0] as u8));
+            return Err(ParseError::InvalidAttribute(next[0]));
         };
 
         if let Some(next) = partiter.next() {

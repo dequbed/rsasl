@@ -178,7 +178,7 @@ impl<const N: usize> WaitingClientFirst<N> {
                 }
 
                 Ok((
-                    format!("{}", iterations),
+                    format!("{iterations}"),
                     base64::encode(salt),
                     GenericArray::clone_from_slice(stored_key),
                     GenericArray::clone_from_slice(server_key),
