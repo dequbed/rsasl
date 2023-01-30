@@ -289,7 +289,11 @@ impl MechanismData<'_> {
         }
     }
 
-    pub fn need_with<P, F, G>(&mut self, provider: &dyn Provider, closure: F) -> Result<G, SessionError>
+    pub fn need_with<P, F, G>(
+        &mut self,
+        provider: &dyn Provider,
+        closure: F,
+    ) -> Result<G, SessionError>
     where
         P: for<'p> Property<'p>,
         F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
@@ -323,9 +327,9 @@ impl MechanismData<'_> {
         provider: P,
         f: F,
     ) -> Result<Option<G>, SessionError>
-        where
-            P: Provider<'a>,
-            F: FnOnce(&[u8]) -> Result<G, SessionError>,
+    where
+        P: Provider<'a>,
+        F: FnOnce(&[u8]) -> Result<G, SessionError>,
     {
         let prov = ThisProvider::<ChannelBindingName>::with(cbname).and(provider);
         if let Some(cbdata) = self.chanbind_cb.get_cb_data(cbname) {

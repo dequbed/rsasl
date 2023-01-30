@@ -178,7 +178,8 @@ impl<const N: usize> StateClientFirst<N> {
                         Ok(())
                     })?;
                 } else {
-                    let exporter = session.maybe_need_cb_data("tls-exporter", EmptyProvider, |i_cbdata| {
+                    let exporter =
+                        session.maybe_need_cb_data("tls-exporter", EmptyProvider, |i_cbdata| {
                             gs2_header.extend_from_slice(b"tls-exporter");
                             cbdata = Some(i_cbdata.into());
                             Ok(())
