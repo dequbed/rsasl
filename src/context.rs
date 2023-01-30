@@ -116,7 +116,7 @@ impl<'a> Demand<'a> {
     }
 }
 
-pub(crate) fn build_context<'a>(provider: &'a dyn Provider) -> &'a Context<'a> {
+pub fn build_context<'a>(provider: &'a dyn Provider) -> &'a Context<'a> {
     unsafe { &*(provider as *const dyn Provider as *const Context) }
 }
 
@@ -158,9 +158,8 @@ impl<'a> Context<'a> {
     /// (e.g. `get_ref<Authzid>` returns `Some("")` in `PLAIN` exchanges if no authzid was send by
     /// the client)
     ///
-    /// ```rust
-    /// # let p = rsasl::mechanism::ThisProvider::<rsasl::property::Realm>::with("EXAMPLE.COM");
-    /// # let context = build_context(&p);
+    /// ```no_run
+    /// # let context: &rsasl::callback::Context<'_> = unimplemented!();
     /// if let Some("EXAMPLE.COM") = context.get_ref::<rsasl::property::Realm>() {
     ///     // Special handling
     /// }

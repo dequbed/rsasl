@@ -229,7 +229,7 @@ mod provider {
             where
                 F: FnMut(&[u8]) -> Result<G, SessionError>,
             {
-                let mechanism_data = MechanismData::new(
+                let mut mechanism_data = MechanismData::new(
                     self.sasl.config.get_callback(),
                     &self.sasl.cb,
                     validate,
