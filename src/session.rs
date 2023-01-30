@@ -193,7 +193,7 @@ mod provider {
         /// `Err(`[`SessionError::NoSecurityLayer`]`)`.
         ///
         /// A call to this function returns the number of protected input bytes that were successfully
-        /// unprotected and written into the given writer. Similar to [`encode`] the number of
+        /// unprotected and written into the given writer. Similar to [`Self::encode`] the number of
         /// bytes read from input may differ from the amount of output bytes written into the
         /// writer.
         ///
