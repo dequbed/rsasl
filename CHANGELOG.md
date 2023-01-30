@@ -18,6 +18,9 @@ release. They will however *never* happen in a patch release.
 
 [Changes rendered on GitHub][Upcoming/diff]
 
+## Changed
+- Recursive callbacks calls are now prevented by making property methods on `MechanismData` take `&mut self`. 
+  See ADR-0003 for further details about why this change was done.
 
 # [v2.0.0-rc.4] — 2022-11-22
 
