@@ -118,7 +118,7 @@ mod instance {
         /// enabled that can work with just an authorization id, authentication id, and password.
         ///
         /// Depending on the enabled cargo features the available mechanisms are:
-        /// - SCRAM-SHA-512
+        /// - SCRAM-SHA-256
         /// - SCRAM-SHA-1
         /// - PLAIN
         /// - LOGIN (**only enabled if `authzid` is set to `None`!**)

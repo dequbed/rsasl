@@ -148,7 +148,7 @@ pub mod scram {
 
 #[cfg(feature = "xoauth2")]
 pub mod xoauth2 {
-    //!
+    //! `XOAUTH2` *mechanism. Requires feature `xoauth2`*
     //!
     //! # Server
     //!
@@ -171,6 +171,21 @@ pub mod xoauth2 {
 
 #[cfg(feature = "oauthbearer")]
 pub mod oauthbearer {
+    //! `OAUTHBEARER` *mechanism. Requires feature `oauthbearer`*
+    //!
+    //! # Client
+    //!
+    //! Requests the properties [`AuthzId`], [`OAuthBearerKV`] and [`OAuthBearerToken`] using 'satisfiable' callbacks.
+    //! If a server returns an error message the mechanism issues an 'actionable' callback for the [`OAuthBearerErrored`](properties::OAuthBearerErrored) property.
+    //! Neither callback will allow querying properties from the mechanism.
+    //!
+    //! # Server
+    //!
+    //! Requests an error message using a 'satisfiable' callback for the [`OAuthBearerValidate`](properties::OAuthBearerValidate) property.
+    //! The provider passed along will allow access to the client-provided [`AuthzId`], [`OAuthBearerKV`] and [`OAuthBearerToken`].
+    //! If `Err` is returned the contained message is sent to the other end. If `Ok(())` is returned the exchange is completed successfully.
+    //!
+    //! The validation callback gives access to the same properties as the above callback.
     #[cfg(doc)]
     use crate::property::*;
 
@@ -184,6 +199,15 @@ pub mod oauthbearer {
 
 #[cfg(feature = "gssapi")]
 pub mod gssapi {
+    //! `GSSAPI` *mechanism. Requires feature `gssapi`*
+    //!
+    //! # Client
+    //!
+    //! Requests the properties [`GssService`](properties::GssService), [`Hostname`] and [`GssSecurityLayer`](properties::GssSecurityLayer) using 'satisfiable' callbacks.
+    //!
+    //! # Server
+    //!
+    //! Requests the property [`GssSecurityLayer`](properties::GssSecurityLayer) using a 'satisfiable' callback.
     #[cfg(doc)]
     use crate::property::*;
 
