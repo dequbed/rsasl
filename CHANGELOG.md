@@ -21,10 +21,17 @@ release. They will however *never* happen in a patch release.
 ## Added
 - `GSSAPI` mechanism implementation
 - Security layer functionality in `Session`
+- Mechanisms preference can be selected by implementations of `Callback` using `Callback::prefer`.
 
 ## Changed
 - Recursive callbacks calls are now prevented by making property methods on `MechanismData` take `&mut self`. 
   See ADR-0003 for further details about why this change was done.
+
+## Fixed
+- #9 — `GSSAPI` Mechanism support
+- #18 — Decide if recursive callback calls are acceptable
+  
+  Closed by the above change explicitly making them impossible
 
 # [v2.0.0-rc.4] — 2022-11-22
 
@@ -87,6 +94,7 @@ release. They will however *never* happen in a patch release.
 ## Fixed
 - The client-side XOAUTH2 implementation now correctly indicates a final (empty) message to be sent when an error 
   was returned by the server.
+- #10 — OAUTHBEARER Mechanism support
 
 # [v2.0.0-rc.1] — 2022-08-30
 
