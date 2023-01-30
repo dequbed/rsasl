@@ -181,3 +181,15 @@ pub mod oauthbearer {
     mod server;
     pub use mechinfo::*;
 }
+
+#[cfg(feature = "gssapi")]
+pub mod gssapi {
+    #[cfg(doc)]
+    use crate::property::*;
+
+    mod client;
+    mod mechinfo;
+    pub mod properties;
+    mod server;
+    pub use mechinfo::*;
+}

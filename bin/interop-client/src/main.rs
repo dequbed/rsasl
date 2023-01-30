@@ -6,6 +6,7 @@ use clap::builder::TypedValueParser;
 use clap::{Arg, Command, Error, ErrorKind};
 use miette::{miette, IntoDiagnostic, WrapErr};
 use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
+use rsasl::mechanisms::gssapi::properties::GssService;
 use rsasl::mechanisms::scram::properties::{Iterations, Salt, ScramCachedPassword};
 use rsasl::prelude::*;
 use rsasl::property::*;
@@ -60,6 +61,12 @@ impl SessionCallback for EnvCallback {
                     hex::encode(server_key)
                 );
             }
+        } else if request.is::<GssService>() {
+            let service = var("RSASL_SERVICE")?;
+            request.satisfy::<GssService>(&service)?;
+        } else if request.is::<Hostname>() {
+            let hostname = var("RSASL_HOST")?;
+            request.satisfy::<Hostname>(&hostname)?;
         }
 
         Ok(())
