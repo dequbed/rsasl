@@ -17,7 +17,7 @@ pub struct SASLClient<CB = NoChannelBindings> {
     inner: Sasl<NoValidation, CB>,
 }
 
-//#[allow(dead_code)]
+#[allow(dead_code)]
 pub struct SASLServer<V: Validation, CB = NoChannelBindings> {
     inner: Sasl<V, CB>,
 }
@@ -39,13 +39,14 @@ impl<V: Validation + Debug, CB: Debug> Debug for Sasl<V, CB> {
 }
 
 #[cfg(any(feature = "provider", test))]
+#[allow(dead_code)]
 mod provider {
     use super::{
-        Arc, Mechname, NoChannelBindings, NoValidation,
-        SASLClient, SASLConfig, SASLServer, Sasl, Tagged, Validation,
+        Arc, Mechname, NoChannelBindings, NoValidation, SASLClient, SASLConfig, SASLServer, Sasl,
+        Tagged, Validation,
     };
-    use crate::error::SASLError;
     use crate::channel_bindings::ChannelBindingCallback;
+    use crate::error::SASLError;
     use crate::registry::Mechanism;
     use crate::session::{Session, Side};
 

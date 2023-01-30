@@ -1,10 +1,10 @@
 //! Configuration supplied by the downstream user
 
-use core::fmt;
 use crate::alloc::boxed::Box;
 use crate::callback::SessionCallback;
 use crate::error::SASLError;
 use crate::registry::{Mechanism, MechanismIter};
+use core::fmt;
 
 #[doc(inline)]
 #[cfg(feature = "config_builder")]
@@ -79,21 +79,18 @@ impl SASLConfig {
 
 #[cfg(feature = "config_builder")]
 mod instance {
-    use super::{
-        ConfigInstance, Mechanism, MechanismIter, SASLConfig, SASLError,
-        SessionCallback
-    };
-    use crate::session::SessionData;
-    use crate::core::fmt;
+    use super::{ConfigInstance, Mechanism, MechanismIter, SASLConfig, SASLError, SessionCallback};
     use crate::alloc::{boxed::Box, string::String, sync::Arc};
     pub use crate::builder::ConfigBuilder;
     use crate::callback::Request;
     use crate::context::Context;
+    use crate::core::fmt;
     use crate::error::SessionError;
     use crate::mechanism::Authentication;
     use crate::mechname::Mechname;
     use crate::property::{AuthId, AuthzId, Password};
     use crate::registry::Registry;
+    use crate::session::SessionData;
 
     impl SASLConfig {
         fn cast(arc: Arc<dyn ConfigInstance>) -> Arc<Self> {

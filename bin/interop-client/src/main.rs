@@ -12,7 +12,7 @@ use rsasl::property::*;
 use std::ffi::OsStr;
 use std::io;
 use std::io::{Cursor, Write};
-use std::net::{TcpStream};
+use std::net::TcpStream;
 use url::Host;
 
 struct EnvCallback;
