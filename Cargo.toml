@@ -29,7 +29,8 @@ default = [
     "registry_static",
     "scram-sha-1", "scram-sha-2",
     "anonymous", "external",
-    "xoauth2", "plain", "login",
+    "oauthbearer", "xoauth2", "plain", "login",
+    "gssapi"
 ]
 
 #! # Compile-time mechanism selection
