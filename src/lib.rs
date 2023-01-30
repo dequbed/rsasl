@@ -350,6 +350,9 @@ pub mod docs {
         pub mod adr0002_context_vs_provide_any {
             #![doc = include_str!("../docs/decisions/0002-context-vs-provide_any.md")]
         }
+        pub mod adr0003_prevent_recursive_callbacks {
+            #![doc = include_str!("../docs/decisions/0003-prevent-recursive-callbacks.md")]
+        }
     }
 
     pub mod changelog {
