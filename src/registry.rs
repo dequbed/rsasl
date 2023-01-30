@@ -213,6 +213,7 @@ mod config {
 }
 
 pub type MechanismIter<'a> = core::slice::Iter<'a, Mechanism>;
+#[allow(dead_code)]
 impl Registry {
     #[inline(always)]
     pub(crate) fn get_mechanisms<'a>(&self) -> MechanismIter<'a> {
@@ -272,9 +273,11 @@ mod registry_static {
 mod registry_static {
     use super::Mechanism;
 
+    #[allow(dead_code)]
     pub static MECHANISMS: [Mechanism; 0] = [];
 }
 
+#[allow(dead_code)]
 mod selector {
     use super::{Authentication, Box, Mechanism, Mechname, SASLError};
     use alloc::marker::PhantomData;

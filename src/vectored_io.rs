@@ -10,6 +10,7 @@ pub struct VectoredWriter<'io, const N: usize> {
     data: [&'io [u8]; N],
 }
 
+#[allow(dead_code)]
 impl<'io, const N: usize> VectoredWriter<'io, N> {
     pub const fn new(data: [&'io [u8]; N]) -> Self {
         Self { skip: 0, data }

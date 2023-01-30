@@ -12,7 +12,7 @@ use rsasl::property::*;
 use std::ffi::OsStr;
 use std::io;
 use std::io::{BufRead, BufReader, Cursor, Write};
-use std::net::{Ipv4Addr, TcpStream};
+use std::net::{TcpStream};
 use url::Host;
 
 struct EnvCallback;
@@ -155,7 +155,6 @@ pub fn main() -> miette::Result<()> {
         .try_clone()
         .into_diagnostic()
         .wrap_err("Failed to clone stream")?;
-    let mut lines = BufReader::new(stream).lines();
 
     let chosen = session.get_mechname();
     // Print the selected mechanism as the first output

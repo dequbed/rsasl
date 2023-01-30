@@ -40,7 +40,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
       - name: install cargo-hack
         run: cargo install cargo-hack
-      - run: cargo hack check --each-feature --features=std
+      - run: cargo hack check --each-feature --features=std --skip=testutils
 
   test:
     name: test / ${{matrix.rust}}

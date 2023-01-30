@@ -1,12 +1,10 @@
 //! Configuration supplied by the downstream user
 
-use crate::alloc::{boxed::Box, string::String};
+use core::fmt;
+use crate::alloc::boxed::Box;
 use crate::callback::SessionCallback;
 use crate::error::SASLError;
 use crate::registry::{Mechanism, MechanismIter};
-use crate::session::SessionData;
-use alloc::sync::Arc;
-use core::fmt;
 
 #[doc(inline)]
 #[cfg(feature = "config_builder")]
@@ -48,7 +46,8 @@ impl fmt::Debug for SASLConfig {
 
 #[cfg(any(test, feature = "provider", feature = "testutils"))]
 mod provider {
-    use super::{Box, Mechanism, SASLConfig, SASLError, SessionCallback};
+    use super::{Mechanism, SASLConfig, SASLError, SessionCallback};
+    use crate::alloc::boxed::Box;
     use crate::mechanism::Authentication;
     use crate::mechname::Mechname;
 
@@ -72,6 +71,7 @@ mod provider {
 
 impl SASLConfig {
     #[inline(always)]
+    #[allow(dead_code)]
     pub(crate) fn mech_list<'a>(&self) -> impl Iterator<Item = &'a Mechanism> {
         self.inner.get_mech_iter()
     }
@@ -80,9 +80,12 @@ impl SASLConfig {
 #[cfg(feature = "config_builder")]
 mod instance {
     use super::{
-        fmt, Arc, Box, ConfigInstance, Mechanism, MechanismIter, SASLConfig, SASLError,
-        SessionCallback, SessionData, String,
+        ConfigInstance, Mechanism, MechanismIter, SASLConfig, SASLError,
+        SessionCallback
     };
+    use crate::session::SessionData;
+    use crate::core::fmt;
+    use crate::alloc::{boxed::Box, string::String, sync::Arc};
     pub use crate::builder::ConfigBuilder;
     use crate::callback::Request;
     use crate::context::Context;
