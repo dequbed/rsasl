@@ -17,10 +17,10 @@ use crate::mechname::Mechname;
 trait ConfigInstance: fmt::Debug + Send + Sync {
     fn get_mech_iter<'a>(&self) -> MechanismIter<'a>;
     fn get_callback(&self) -> &dyn SessionCallback;
-    fn select<'a>(
+    fn select(
         &self,
         cb: bool,
-        offered: &mut dyn Iterator<Item = &'a Mechname>,
+        offered: &mut dyn Iterator<Item = &Mechname>,
     ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError>;
 }
 
@@ -204,10 +204,10 @@ mod instance {
             self.callback.as_ref()
         }
 
-        fn select<'a>(
+        fn select(
             &self,
             cb: bool,
-            offered: &mut dyn Iterator<Item = &'a Mechname>,
+            offered: &mut dyn Iterator<Item = &Mechname>,
         ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError> {
             let callback = self.get_callback();
             self.mechanisms.select(cb | self.cb, offered, |acc, mech| {

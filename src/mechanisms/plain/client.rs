@@ -166,7 +166,7 @@ mod tests {
             match error {
                 SessionError::MechanismError(mecherror) => {
                     let expected = format!("{}", PlainError::ContainsNull);
-                    let rendered = format!("{}", mecherror);
+                    let rendered = format!("{mecherror}");
                     expected.as_str() == rendered.as_str()
                 }
                 _ => false,
@@ -195,7 +195,7 @@ mod tests {
             match error {
                 SessionError::MechanismError(mecherror) => {
                     let expected = format!("{}", PlainError::Empty);
-                    let rendered = format!("{}", mecherror);
+                    let rendered = format!("{mecherror}");
                     expected.as_str() == rendered.as_str()
                 }
                 _ => false,
