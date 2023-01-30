@@ -259,7 +259,7 @@ impl MechanismData<'_> {
     }
 
     fn callback(
-        &self,
+        &mut self,
         provider: &dyn Provider,
         request: &mut Request<'_>,
     ) -> Result<(), SessionError> {
@@ -271,7 +271,7 @@ impl MechanismData<'_> {
     }
 
     pub fn action<'a, T>(
-        &self,
+        &mut self,
         provider: &dyn Provider,
         value: &'a T::Value,
     ) -> Result<(), SessionError>
@@ -289,7 +289,7 @@ impl MechanismData<'_> {
         }
     }
 
-    pub fn need_with<P, F, G>(&self, provider: &dyn Provider, closure: F) -> Result<G, SessionError>
+    pub fn need_with<P, F, G>(&mut self, provider: &dyn Provider, closure: F) -> Result<G, SessionError>
     where
         P: for<'p> Property<'p>,
         F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
@@ -299,7 +299,7 @@ impl MechanismData<'_> {
     }
 
     pub fn maybe_need_with<P, F, G>(
-        &self,
+        &mut self,
         provider: &dyn Provider,
         closure: F,
     ) -> Result<Option<G>, SessionError>
@@ -317,8 +317,26 @@ impl MechanismData<'_> {
         Ok(closurecr.try_unwrap())
     }
 
+    pub fn maybe_need_cb_data<'a, P, F, G>(
+        &mut self,
+        cbname: &'a str,
+        provider: P,
+        f: F,
+    ) -> Result<Option<G>, SessionError>
+        where
+            P: Provider<'a>,
+            F: FnOnce(&[u8]) -> Result<G, SessionError>,
+    {
+        let prov = ThisProvider::<ChannelBindingName>::with(cbname).and(provider);
+        if let Some(cbdata) = self.chanbind_cb.get_cb_data(cbname) {
+            f(cbdata).map(Some)
+        } else {
+            self.maybe_need_with::<ChannelBindings, F, G>(&prov, f)
+        }
+    }
+
     pub fn need_cb_data<'a, P, F, G>(
-        &self,
+        &mut self,
         cbname: &'a str,
         provider: P,
         f: F,
@@ -327,13 +345,8 @@ impl MechanismData<'_> {
         P: Provider<'a>,
         F: FnOnce(&[u8]) -> Result<G, SessionError>,
     {
-        let prov = ThisProvider::<ChannelBindingName>::with(cbname).and(provider);
-        if let Some(cbdata) = self.chanbind_cb.get_cb_data(cbname) {
-            f(cbdata)
-        } else {
-            self.maybe_need_with::<ChannelBindings, F, G>(&prov, f)?
-                .ok_or_else(|| SessionError::MissingChannelBindingData(cbname.to_string()))
-        }
+        self.maybe_need_cb_data(cbname, provider, f)?
+            .ok_or_else(|| SessionError::MissingChannelBindingData(cbname.to_string()))
     }
 }
 
