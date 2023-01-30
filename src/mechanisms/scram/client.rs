@@ -166,22 +166,31 @@ impl<const N: usize> StateClientFirst<N> {
         match self.plus {
             CbSupport::Supported => {
                 gs2_header.extend_from_slice(b"p=");
-                let o =
+                let cbtype =
                     session.maybe_need_with::<OverrideCBType, _, _>(&EmptyProvider, |cbname| {
                         gs2_header.extend_from_slice(cbname.as_bytes());
-                        session.need_cb_data(cbname, EmptyProvider, |i_cbdata| {
-                            cbdata = Some(i_cbdata.into());
-                            Ok(())
-                        })?;
-                        Ok(())
+                        Ok(cbname.to_string())
                     })?;
 
-                if o.is_none() {
-                    session.need_cb_data("tls-unique", EmptyProvider, |i_cbdata| {
-                        gs2_header.extend_from_slice(b"tls-unique");
+                if let Some(cbname) = cbtype.as_deref() {
+                    session.need_cb_data(cbname, EmptyProvider, |i_cbdata| {
                         cbdata = Some(i_cbdata.into());
                         Ok(())
                     })?;
+                } else {
+                    let exporter =
+                        session.maybe_need_cb_data("tls-exporter", EmptyProvider, |i_cbdata| {
+                            gs2_header.extend_from_slice(b"tls-exporter");
+                            cbdata = Some(i_cbdata.into());
+                            Ok(())
+                        })?;
+                    if exporter.is_none() {
+                        session.need_cb_data("tls-unique", EmptyProvider, |i_cbdata| {
+                            gs2_header.extend_from_slice(b"tls-unique");
+                            cbdata = Some(i_cbdata.into());
+                            Ok(())
+                        })?;
+                    }
                 }
             }
             CbSupport::ServerNoSupport => gs2_header.push(b'y'),
