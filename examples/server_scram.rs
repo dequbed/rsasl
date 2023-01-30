@@ -35,10 +35,7 @@ impl OurCallback {
             .get_ref::<AuthId>()
             .expect("SCRAM should always set AuthId");
 
-        println!(
-            "Validation for (authzid: {:?}, authid: {})",
-            authzid, authid,
-        );
+        println!("Validation for (authzid: {authzid:?}, authid: {authid})");
 
         use AuthError::*;
         if !(authzid.is_none() || authzid == Some(authid)) {
@@ -159,5 +156,5 @@ pub fn main() {
         state.is_running()
     } {}
     let v = server_session.validation();
-    println!("Validation: {:?}", v);
+    println!("Validation: {v:?}");
 }
