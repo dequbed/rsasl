@@ -149,4 +149,5 @@ mod tests {
     use super::*;
 
     static_assertions::assert_impl_all!(SessionError: Send, Sync);
+    static_assertions::assert_obj_safe!(MechanismError);
 }

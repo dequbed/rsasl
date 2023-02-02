@@ -78,4 +78,6 @@ mod tests {
             e => panic!("Expected MissingChannelBindingData error, received {e:?}"),
         }
     }
+
+    static_assertions::assert_obj_safe!(ChannelBindingCallback);
 }

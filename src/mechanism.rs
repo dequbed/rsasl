@@ -112,3 +112,8 @@ pub trait Authentication: Send + Sync {
 // TODO(?): Proper generic version of the Authentication trait with defined Error types?
 //          Would make rsasl more useful in the no-framework/statically defined use-case.
 //          Probably a thing to be explored later.
+
+#[cfg(test)]
+mod test {
+    static_assertions::assert_obj_safe!(super::Authentication);
+}
