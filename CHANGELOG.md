@@ -25,7 +25,7 @@ release. They will however *never* happen in a patch release.
 
 ## Changed
 - Recursive callbacks calls are now prevented by making property methods on `MechanismData` take `&mut self`. 
-  See ADR-0003 for further details about why this change was done.
+  See ADR-0003 ([crate::docs::adr] on docs.rs, [GitHub link](https://github.com/dequbed/rsasl/tree/development/docs/decisions) otherwise) for further details about why this change was done.
 
 ## Fixed
 - #9 — `GSSAPI` Mechanism support
