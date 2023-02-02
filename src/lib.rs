@@ -327,6 +327,8 @@ pub mod prelude {
     pub use crate::sasl::{SASLClient, SASLServer};
     #[cfg(feature = "provider")]
     pub use crate::session::Session;
+    #[cfg(feature = "provider")]
+    pub use crate::channel_bindings::ChannelBindingCallback;
 }
 
 #[cfg(any(test, feature = "testutils"))]

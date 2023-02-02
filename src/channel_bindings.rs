@@ -1,6 +1,14 @@
 use crate::alloc::boxed::Box;
 
+/// Provider side channel binding callback
+///
+/// This trait is designed to be implemented by a protocol implementation so it can more easily
+/// abstract away over the specific TLS implementation in use while still providing channel binding
+/// data during the exchange.
 pub trait ChannelBindingCallback {
+    /// Return channel binding data for the channel binding type `cbname`
+    ///
+    ///
     fn get_cb_data(&self, cbname: &str) -> Option<&[u8]>;
 }
 
