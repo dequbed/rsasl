@@ -503,3 +503,9 @@ impl<'a> Request<'a> {
         }
     }
 }
+
+
+#[cfg(test)]
+mod test {
+    static_assertions::assert_obj_safe!(super::Erased, super::SessionCallback);
+}

@@ -222,4 +222,5 @@ mod tests {
     use super::*;
 
     static_assertions::assert_impl_all!(SASLConfig: Send, Sync);
+    static_assertions::assert_obj_safe!(ConfigInstance);
 }

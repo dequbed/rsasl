@@ -222,4 +222,6 @@ mod tests {
         let ctx2 = build_context(&p2);
         assert_eq!(ctx2.get_ref::<TestTag>().unwrap(), value2);
     }
+
+    static_assertions::assert_obj_safe!(Provider);
 }
