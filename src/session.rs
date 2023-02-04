@@ -154,6 +154,57 @@ mod provider {
         pub fn validation(&mut self) -> Option<V::Value> {
             self.sasl.validation.take()
         }
+
+        /// Returns `true` if a security layer is installed at the moment, otherwise returns `false`.
+        pub fn has_security_layer(&self) -> bool {
+            self.mechanism.has_security_layer()
+        }
+
+        /// Encode given data for an established SASL security layer
+        ///
+        /// This operation is also often called `wrap`. If a security layer has been established this
+        /// method protects input data using said security layer and writes it into the provided writer.
+        ///
+        /// If no security layer has been installed this method returns
+        /// `Err(`[`SessionError::NoSecurityLayer`]`).
+        ///
+        /// A call to this function returns the number of input bytes that were successfully
+        /// protected and written into the given writer. As this protection may add overhead, use
+        /// compression, etc. the number of bytes *written** will differ from the returned **read**
+        /// amount of bytes. If a caller requires the number of bytes written it is their obligation to use
+        /// a tracking writer.
+        ///
+        /// This method will not flush the provided writer.
+        pub fn encode(
+            &mut self,
+            input: &[u8],
+            writer: &mut impl Write,
+        ) -> Result<usize, SessionError> {
+            self.mechanism.encode(input, writer)
+        }
+
+        /// Decode data from an established SASL security layer
+        ///
+        /// This operation is also often called `unwrap`. If a security layer has been established this
+        /// method unprotects input data from said security layer and writes it into the provided
+        /// writer.
+        ///
+        /// If no security layer has been installed this method returns
+        /// `Err(`[`SessionError::NoSecurityLayer`]`)`.
+        ///
+        /// A call to this function returns the number of protected input bytes that were successfully
+        /// unprotected and written into the given writer. Similar to [`Self::encode`] the number of
+        /// bytes read from input may differ from the amount of output bytes written into the
+        /// writer.
+        ///
+        /// This method will not flush the provided writer.
+        pub fn decode(
+            &mut self,
+            input: &[u8],
+            writer: &mut impl Write,
+        ) -> Result<usize, SessionError> {
+            self.mechanism.decode(input, writer)
+        }
     }
 
     #[cfg(feature = "provider_base64")]
@@ -229,7 +280,7 @@ mod provider {
             where
                 F: FnMut(&[u8]) -> Result<G, SessionError>,
             {
-                let mechanism_data = MechanismData::new(
+                let mut mechanism_data = MechanismData::new(
                     self.sasl.config.get_callback(),
                     &self.sasl.cb,
                     validate,
@@ -259,7 +310,7 @@ impl MechanismData<'_> {
     }
 
     fn callback(
-        &self,
+        &mut self,
         provider: &dyn Provider,
         request: &mut Request<'_>,
     ) -> Result<(), SessionError> {
@@ -271,7 +322,7 @@ impl MechanismData<'_> {
     }
 
     pub fn action<'a, T>(
-        &self,
+        &mut self,
         provider: &dyn Provider,
         value: &'a T::Value,
     ) -> Result<(), SessionError>
@@ -289,7 +340,11 @@ impl MechanismData<'_> {
         }
     }
 
-    pub fn need_with<P, F, G>(&self, provider: &dyn Provider, closure: F) -> Result<G, SessionError>
+    pub fn need_with<P, F, G>(
+        &mut self,
+        provider: &dyn Provider,
+        closure: F,
+    ) -> Result<G, SessionError>
     where
         P: for<'p> Property<'p>,
         F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
@@ -299,7 +354,7 @@ impl MechanismData<'_> {
     }
 
     pub fn maybe_need_with<P, F, G>(
-        &self,
+        &mut self,
         provider: &dyn Provider,
         closure: F,
     ) -> Result<Option<G>, SessionError>
@@ -317,8 +372,26 @@ impl MechanismData<'_> {
         Ok(closurecr.try_unwrap())
     }
 
+    pub fn maybe_need_cb_data<'a, P, F, G>(
+        &mut self,
+        cbname: &'a str,
+        provider: P,
+        f: F,
+    ) -> Result<Option<G>, SessionError>
+    where
+        P: Provider<'a>,
+        F: FnOnce(&[u8]) -> Result<G, SessionError>,
+    {
+        let prov = ThisProvider::<ChannelBindingName>::with(cbname).and(provider);
+        if let Some(cbdata) = self.chanbind_cb.get_cb_data(cbname) {
+            f(cbdata).map(Some)
+        } else {
+            self.maybe_need_with::<ChannelBindings, F, G>(&prov, f)
+        }
+    }
+
     pub fn need_cb_data<'a, P, F, G>(
-        &self,
+        &mut self,
         cbname: &'a str,
         provider: P,
         f: F,
@@ -327,13 +400,14 @@ impl MechanismData<'_> {
         P: Provider<'a>,
         F: FnOnce(&[u8]) -> Result<G, SessionError>,
     {
-        let prov = ThisProvider::<ChannelBindingName>::with(cbname).and(provider);
-        if let Some(cbdata) = self.chanbind_cb.get_cb_data(cbname) {
-            f(cbdata)
-        } else {
-            self.maybe_need_with::<ChannelBindings, F, G>(&prov, f)?
-                .ok_or_else(|| SessionError::MissingChannelBindingData(cbname.to_string()))
-        }
+        self.maybe_need_cb_data(cbname, provider, f)?
+            .ok_or_else(|| SessionError::MissingChannelBindingData(cbname.to_string()))
+    }
+}
+
+impl fmt::Debug for MechanismData<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MechanismData").finish()
     }
 }
 
@@ -353,12 +427,6 @@ impl SessionData {
     #[must_use]
     pub const fn side(&self) -> Side {
         self.side
-    }
-}
-
-impl fmt::Debug for MechanismData<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SessionData").finish()
     }
 }
 

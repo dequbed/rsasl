@@ -12,14 +12,14 @@ pub fn main() {
     let mut username = String::new();
     println!("Enter username:");
     if let Err(error) = io::stdin().read_line(&mut username) {
-        println!("error: {}", error);
+        println!("error: {error}");
         return;
     }
 
     println!("\nEnter password:");
     let mut password = String::new();
     if let Err(error) = io::stdin().read_line(&mut password) {
-        println!("error: {}", error);
+        println!("error: {error}");
         return;
     }
     println!();
@@ -49,7 +49,7 @@ pub fn main() {
         State::Running => panic!("PLAIN exchange took more than one step"),
         State::Finished(MessageSent::Yes) => {
             let buffer = out.into_inner();
-            println!("Encoded bytes: {:?}", buffer);
+            println!("Encoded bytes: {buffer:?}");
             println!("As string: {:?}", std::str::from_utf8(buffer.as_ref()));
         }
         State::Finished(MessageSent::No) => {

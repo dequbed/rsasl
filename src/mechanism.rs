@@ -21,14 +21,9 @@ pub trait Authentication: Send + Sync {
     ///
     /// rsasl has a few assumptions about the behaviour of any implementor of this trait:
     ///
-    /// - The two fields of the returned tuple return the **new state** of the mechanism and the
-    ///   **amount of data written** into the writer.
     /// - [`State::Finished`] must only be returned if no further calls to `step` are expected in
     ///   **any case**. If another `step` may occur on e.g. an error [`State::Running`] **MUST**
     ///   be returned.
-    /// - The written amount **MUST** be returned as `Some(0)` if an empty response needs to be
-    ///   sent to the other side. `None` can only be returned if *no* response shall be sent to
-    ///   the other party.
     /// - Calling `step` after the last call returned `State::Finished` is undefined behaviour.
     ///   An implementation is free to write garbage data into the writer, return an error or panic.
     ///
@@ -39,13 +34,22 @@ pub trait Authentication: Send + Sync {
     ///   default here, but if this behaviour results in e.g. the server not being
     ///   mutually authenticated other [`SessionError`]s or [`MechanismError`]s can be appropriate.
     ///
-    ///   Most importantly, a mechanisms **MUST NOT** return `Ok((State::Running, None))` as this
+    ///   Most importantly, a mechanisms **MUST NOT** return `Ok(State::Running)` as this
     ///   can result in an infinite loop if both sides of the authentication think the other
     ///   should go first.
     /// - Incase an `Err(InputDataRequired)` is returned a second call to step *with* data
     ///   **SHOULD** continue the authentication exchange as if the invalid call never happened.
     ///   This means if input data is required but was not provided the internal state **SHOULD**
     ///   remain the same and not become invalid.
+    ///
+    /// - The server side implemented of a mechanism **MUST** call [`MechanismData::validate`]
+    ///   *exactly once* in an authentication exchange, unless a protocol error is encountered.
+    ///   (i.e. the call has to have happened before `Ok(State::Finished(_))` is returned)
+    ///
+    ///   `validate` is passed a `Provider` giving user callbacks access to property values from
+    ///   this exchange to base authentication decisions on. This Provider **MUST** always
+    ///   provide the same set of properties; if a property may be absent in some circumstances it
+    ///   **MUST** specify and return a special 'absent' value in those cases.
     fn step(
         &mut self,
         session: &mut MechanismData,
@@ -63,7 +67,12 @@ pub trait Authentication: Send + Sync {
     /// `Err(`[`SessionError::NoSecurityLayer`]`).
     ///
     /// A call to this function returns the number of input bytes that were successfully
-    /// protected and written into the given writer.
+    /// protected and written into the given writer. As this protection may add overhead,
+    /// compression, … the number of bytes **written** will differ from the returned **read** amount
+    /// of bytes. If a caller requires the number of bytes written it is their obligation to use
+    /// a tracking writer.
+    ///
+    /// This method will not flush the provided writer.
     ///
     /// A single call to encode SHOULD only protect one security layer 'frame' of data, e.g. with
     /// GSS-API call `wrap` only once.  However it MAY call `Write::write` multiple times, and
@@ -85,6 +94,8 @@ pub trait Authentication: Send + Sync {
     /// A call to this function returns the number of protected input bytes that were successfully
     /// unprotected and written into the given writer.
     ///
+    /// This method will not flush the provided writer.
+    ///
     /// Similarly to `encode` a single call to decode SHOULD only unprotect a single `frame` of
     /// data, e.g. with GSS-API call `unwrap` only once.  However it MAY call `Write::write`
     /// multiple times, and SHOULD return `OK(0)` if any of those calls return `Ok(0)`.
@@ -101,3 +112,8 @@ pub trait Authentication: Send + Sync {
 // TODO(?): Proper generic version of the Authentication trait with defined Error types?
 //          Would make rsasl more useful in the no-framework/statically defined use-case.
 //          Probably a thing to be explored later.
+
+#[cfg(test)]
+mod test {
+    static_assertions::assert_obj_safe!(super::Authentication);
+}

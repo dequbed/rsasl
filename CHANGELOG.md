@@ -19,6 +19,25 @@ release. They will however *never* happen in a patch release.
 [Changes rendered on GitHub][Upcoming/diff]
 
 
+# [v2.0.0] — 2023-02-04
+
+[Changes rendered on GitHub][v2.0.0/diff]
+
+## Added
+- `GSSAPI` mechanism implementation
+- Security layer functionality in `Session`
+- Mechanisms preference can be selected by implementations of `Callback` using `Callback::prefer`.
+
+## Changed
+- Recursive callbacks calls are now prevented by making property methods on `MechanismData` take `&mut self`. 
+  See ADR-0003 ([crate::docs::adr] on docs.rs, [GitHub link](https://github.com/dequbed/rsasl/tree/development/docs/decisions) otherwise) for further details about why this change was done.
+
+## Fixed
+- #9 — `GSSAPI` Mechanism support
+- #18 — Decide if recursive callback calls are acceptable
+  
+  Closed by the above change explicitly making them impossible
+
 # [v2.0.0-rc.4] — 2022-11-22
 
 [Changes rendered on GitHub][v2.0.0-rc.4/diff]
@@ -80,6 +99,7 @@ release. They will however *never* happen in a patch release.
 ## Fixed
 - The client-side XOAUTH2 implementation now correctly indicates a final (empty) message to be sent when an error 
   was returned by the server.
+- #10 — OAUTHBEARER Mechanism support
 
 # [v2.0.0-rc.1] — 2022-08-30
 
@@ -207,9 +227,11 @@ making this release possible.**
 
 [Upcoming Changes]: https://github.com/dequbed/rsasl/tree/development
 <!-- next-url -->
-[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-rc.4...development
+[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0...development
+[v2.0.0]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0
+[v2.0.0/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-rc.4...v2.0.0
 [v2.0.0-rc.4]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.4
-[v2.0.0-rc.4/diff]: https://github.com/dequbed/rsasl/compare/2.0.0-rc.3...v2.0.0-rc.4
+[v2.0.0-rc.4/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-rc.3...v2.0.0-rc.4
 [v2.0.0-rc.3]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.3
 [v2.0.0-rc.3/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-rc.2...v2.0.0-rc.3
 [v2.0.0-rc.2]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.2

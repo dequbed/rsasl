@@ -264,7 +264,8 @@
     clippy::doc_markdown,
     clippy::module_name_repetitions,
     clippy::inline_always,
-    clippy::missing_errors_doc
+    clippy::missing_errors_doc,
+    clippy::box_default
 )]
 // FIXME: problems with `registry_static::MECHANISMS` and `linkme::distributed_slice`
 #![allow(clippy::exhaustive_enums)]
@@ -323,6 +324,8 @@ pub mod prelude {
     pub use crate::validate::Validation;
 
     #[cfg(feature = "provider")]
+    pub use crate::channel_bindings::ChannelBindingCallback;
+    #[cfg(feature = "provider")]
     pub use crate::sasl::{SASLClient, SASLServer};
     #[cfg(feature = "provider")]
     pub use crate::session::Session;
@@ -345,6 +348,12 @@ pub mod docs {
 
         pub mod adr0001_property_and_validation_newtype {
             #![doc = include_str!("../docs/decisions/0001-property-and-validation-newtype.md")]
+        }
+        pub mod adr0002_context_vs_provide_any {
+            #![doc = include_str!("../docs/decisions/0002-context-vs-provide_any.md")]
+        }
+        pub mod adr0003_prevent_recursive_callbacks {
+            #![doc = include_str!("../docs/decisions/0003-prevent-recursive-callbacks.md")]
         }
     }
 

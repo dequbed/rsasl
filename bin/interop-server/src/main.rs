@@ -11,8 +11,8 @@ use rsasl::validate::{Validate, ValidationError};
 use std::borrow::Cow;
 use std::fmt::{Debug, Display, Formatter};
 use std::io;
-use std::io::{BufRead, BufReader, Write};
-use std::net::{TcpListener, TcpStream};
+use std::io::{BufRead, BufReader};
+use std::net::TcpListener;
 use std::sync::Arc;
 
 struct EnvCallback;
@@ -277,7 +277,7 @@ pub fn main() -> miette::Result<()> {
             .into_diagnostic()
             .wrap_err("failed to open stream")
             .and_then(|stream| {
-                let mut write_end = stream.try_clone().expect("failed to clone TcpStream");
+                let write_end = stream.try_clone().expect("failed to clone TcpStream");
                 handle_client(config.clone(), stream, write_end)
             });
         if let Err(report) = stream {
@@ -285,7 +285,7 @@ pub fn main() -> miette::Result<()> {
                 handler: &report_handler,
                 error: report.as_ref(),
             };
-            println!("{:?}", p);
+            println!("{p:?}");
         }
     }
 

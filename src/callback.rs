@@ -31,10 +31,11 @@ pub trait SessionCallback: Send + Sync {
     /// the [`Request`] type.
     ///
     /// Callbacks are also passed a [`SessionData`] and a [`Context`], providing access to data from
-    /// the current [`Session`](crate::session::Session) and from the mechanism implementation. The
-    /// data that can be provided via the `Context` is different for each mechanism and side, and
-    /// may also change depending on the step the authentication is in, refer to the documentation
-    /// of each mechanism that is planned to be supported for details.
+    /// the current [`Session`](crate::session::Session) and values from the mechanism
+    /// implementation. The data that can be provided via the `Context` is different for each
+    /// mechanism and side, and may also change depending on the step the authentication is in,
+    /// refer to the documentation of [`Context`] and each mechanism that is planned to be
+    /// supported for further details.
     ///
     /// The callback is used when doing either a server-side or a client-side authentication. An
     /// example for an implementation on the client-side could look like so:
@@ -501,4 +502,9 @@ impl<'a> Request<'a> {
             Ok(self)
         }
     }
+}
+
+#[cfg(test)]
+mod test {
+    static_assertions::assert_obj_safe!(super::Erased, super::SessionCallback);
 }

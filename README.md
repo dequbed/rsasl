@@ -15,20 +15,20 @@ changes required in the protocol handling crate.
 
 rsasl provide a number of mechanisms by itself: 
 
-- EXTERNAL
 - ANONYMOUS
-- PLAIN
+- EXTERNAL
+- GSSAPI
 - LOGIN
+- OAUTHBEARER
+- PLAIN
 - SCRAM-SHA-1 and SCRAM-SHA-1-PLUS
 - SCRAM-SHA-256 and SCRAM-SHA-256-PLUS
 - XOAUTH2
-- OAUTHBEARER
 
 Support for the following mechanisms was available in rsasl 1 but is not implemented in rsasl 2:
 
 - OPENID20
 - SAML20
-- GSSAPI
 - GS2-KRB5
 - KERBEROS_V5
 - NTLM

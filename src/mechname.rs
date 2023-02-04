@@ -203,7 +203,7 @@ mod tests {
         ];
 
         for m in valids {
-            println!("Checking {}", m);
+            println!("Checking {m}");
             let res = Mechname::parse(m.as_bytes()).map(Mechname::as_bytes);
             assert_eq!(res, Ok(m.as_bytes()));
         }
@@ -211,7 +211,7 @@ mod tests {
             let e = Mechname::parse(m.as_bytes())
                 .map(Mechname::as_bytes)
                 .unwrap_err();
-            println!("Checking {}: {}", m, e);
+            println!("Checking {m}: {e}");
             assert_eq!(e, MechanismNameError::InvalidChar { index, value });
         }
     }

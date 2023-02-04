@@ -159,15 +159,12 @@ pub fn main() {
 fn print_outcome(step_result: &Result<State, SessionError>, buffer: Vec<u8>) {
     match step_result {
         Ok(State::Finished(MessageSent::Yes)) => {
-            println!(
-                "Authentication finished, bytes to return to client: {:?}",
-                buffer
-            );
+            println!("Authentication finished, bytes to return to client: {buffer:?}");
         }
         Ok(State::Finished(MessageSent::No)) => {
             println!("Authentication finished, no data to return");
         }
         Ok(State::Running) => panic!("PLAIN exchange took more than one step"),
-        Err(e) => println!("Authentication errored: {}", e),
+        Err(e) => println!("Authentication errored: {e}"),
     }
 }

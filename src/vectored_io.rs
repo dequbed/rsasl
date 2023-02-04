@@ -10,6 +10,7 @@ pub struct VectoredWriter<'io, const N: usize> {
     data: [&'io [u8]; N],
 }
 
+#[allow(dead_code)]
 impl<'io, const N: usize> VectoredWriter<'io, N> {
     pub const fn new(data: [&'io [u8]; N]) -> Self {
         Self { skip: 0, data }
@@ -89,7 +90,7 @@ mod tests {
                     println!("Partial write: {:?}", &buf[0..self.cnt]);
                     self.data.write(&buf[0..self.cnt])?
                 } else {
-                    println!("Complete write: {:?}", buf);
+                    println!("Complete write: {buf:?}");
                     self.data.write(buf)?
                 };
                 self.cnt = self.cnt.saturating_sub(wrt);
@@ -112,10 +113,10 @@ mod tests {
             reset: 5,
         };
 
-        println!("Preparing to write {:?}", data);
+        println!("Preparing to write {data:?}");
 
         let mut vecw = VectoredWriter::new(data);
-        println!("{:?}", vecw);
+        println!("{vecw:?}");
         let n = vecw.write_all_vectored(&mut out).unwrap();
 
         assert_eq!(n, 16);

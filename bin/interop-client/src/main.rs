@@ -6,13 +6,14 @@ use clap::builder::TypedValueParser;
 use clap::{Arg, Command, Error, ErrorKind};
 use miette::{miette, IntoDiagnostic, WrapErr};
 use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
+use rsasl::mechanisms::gssapi::properties::GssService;
 use rsasl::mechanisms::scram::properties::{Iterations, Salt, ScramCachedPassword};
 use rsasl::prelude::*;
 use rsasl::property::*;
 use std::ffi::OsStr;
 use std::io;
-use std::io::{BufRead, BufReader, Cursor, Write};
-use std::net::{Ipv4Addr, TcpStream};
+use std::io::{Cursor, Write};
+use std::net::TcpStream;
 use url::Host;
 
 struct EnvCallback;
@@ -60,6 +61,12 @@ impl SessionCallback for EnvCallback {
                     hex::encode(server_key)
                 );
             }
+        } else if request.is::<GssService>() {
+            let service = var("RSASL_SERVICE")?;
+            request.satisfy::<GssService>(&service)?;
+        } else if request.is::<Hostname>() {
+            let hostname = var("RSASL_HOST")?;
+            request.satisfy::<Hostname>(&hostname)?;
         }
 
         Ok(())
@@ -155,7 +162,6 @@ pub fn main() -> miette::Result<()> {
         .try_clone()
         .into_diagnostic()
         .wrap_err("Failed to clone stream")?;
-    let mut lines = BufReader::new(stream).lines();
 
     let chosen = session.get_mechname();
     // Print the selected mechanism as the first output
