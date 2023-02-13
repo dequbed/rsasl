@@ -143,5 +143,9 @@ required-features = ["provider", "plain", "scram-sha-2"]
 name = "mechanism_selection"
 required-features = ["provider", "login", "plain", "scram-sha-1", "scram-sha-2"]
 
+[[test]]
+name = "mechanism_ordering"
+required-features = ["provider"]
+
 [workspace]
 members = ["bin/interop-client", "bin/interop-server"]
