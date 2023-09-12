@@ -120,7 +120,7 @@ document-features = { version = "0.2.5", optional = true }
 serde = { version = "1", optional = true, default_features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1", optional = true, default_features = false, features = ["alloc"] }
 
-libgssapi = { version = "0.6", optional = true }
+libgssapi = { version = "0.6", optional = true, default_features = false }
 bitflags = { version = "1", optional = true }
 
 [dev-dependencies]
