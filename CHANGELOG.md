@@ -19,6 +19,16 @@ release. They will however *never* happen in a patch release.
 [Changes rendered on GitHub][Upcoming/diff]
 
 
+# [v2.0.1] — 2023-09-12
+
+[Changes rendered on GitHub][v2.0.1/diff]
+
+## Fixed
+- #29 — `GSSAPI` fails to build on macOS
+  
+  This issue seems to be caused by the same problem as [estokes/libgssapi#2](https://github.com/estokes/libgssapi/issues/2).
+  Building libgssapi without default features solves this build issue.
+
 # [v2.0.0] — 2023-02-04
 
 [Changes rendered on GitHub][v2.0.0/diff]
@@ -227,7 +237,9 @@ making this release possible.**
 
 [Upcoming Changes]: https://github.com/dequbed/rsasl/tree/development
 <!-- next-url -->
-[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0...development
+[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/v2.0.1...development
+[v2.0.1]: https://github.com/dequbed/rsasl/releases/tag/v2.0.1
+[v2.0.1/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0...v2.0.1
 [v2.0.0]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0
 [v2.0.0/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-rc.4...v2.0.0
 [v2.0.0-rc.4]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.4

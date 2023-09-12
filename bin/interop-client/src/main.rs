@@ -73,10 +73,19 @@ impl SessionCallback for EnvCallback {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum Either<A, B> {
+    Left(A),
+    Right(B),
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct UrlStdin;
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct UrlParser;
 impl TypedValueParser for UrlParser {
-    type Value = url::Url;
+    type Value = Either<url::Url, UrlStdin>;
     fn parse_ref(
         &self,
         _cmd: &Command,
@@ -84,10 +93,13 @@ impl TypedValueParser for UrlParser {
         value: &OsStr,
     ) -> Result<Self::Value, Error> {
         if let Some(value) = value.to_str() {
+            if value == "-" {
+                return Ok(Either::Right(UrlStdin));
+            }
             let url = url::Url::parse(value)
                 .map_err(|error| Error::raw(ErrorKind::InvalidValue, error))?;
             match url.scheme() {
-                "tls" | "tcp" => Ok(url),
+                "tls" | "tcp" => Ok(Either::Left(url)),
                 x => Err(Error::raw(
                     ErrorKind::InvalidValue,
                     format!(
@@ -103,6 +115,22 @@ impl TypedValueParser for UrlParser {
             ))
         }
     }
+}
+
+fn connect<S: AsRef<str>>(host: url::Host<S>, port: u16) -> miette::Result<(Box<dyn io::BufRead>, Box<dyn io::Write>)> {
+    let stream = match host {
+        Host::Ipv4(ip) => TcpStream::connect((ip, port)),
+        Host::Ipv6(ip) => TcpStream::connect((ip, port)),
+        Host::Domain(ref domain) => TcpStream::connect((domain.as_ref(), port)),
+    }
+        .into_diagnostic()
+        .wrap_err(format!("failed to connect to {}:{}", host, port))?;
+
+    let write_end = stream
+        .try_clone()
+        .into_diagnostic()
+        .wrap_err("Failed to clone stream")?;
+    Ok((Box::new(io::BufReader::new(stream)), Box::new(write_end)))
 }
 
 pub fn main() -> miette::Result<()> {
@@ -141,36 +169,31 @@ pub fn main() -> miette::Result<()> {
         .into_diagnostic()
         .wrap_err("Failed to start client session")?;
 
-    let (host, port) = if let Some(listen_url) = matches.get_one::<url::Url>("listen") {
-        let host = listen_url
-            .host()
-            .ok_or_else(|| miette!("URL must have a host part"))?;
-        let port = listen_url.port().unwrap_or(62185);
-        (host, port)
-    } else {
-        (Host::Domain("127.0.0.1"), 62185)
-    };
-    let stream = match host {
-        Host::Ipv4(ip) => TcpStream::connect((ip, port)),
-        Host::Ipv6(ip) => TcpStream::connect((ip, port)),
-        Host::Domain(domain) => TcpStream::connect((domain, port)),
-    }
-    .into_diagnostic()
-    .wrap_err(format!("failed to connect to {}:{}", host, port))?;
+    let (mut rx, mut tx): (Box<dyn io::BufRead>, Box<dyn io::Write>) = match matches.get_one::<Either<url::Url, UrlStdin>>("listen") {
+        Some(Either::Left(url)) => { 
+            let host = url.host().ok_or_else(|| miette!("URL must have a host part"))?;
+            let port = url.port().unwrap_or(62185);
 
-    let mut write_end = stream
-        .try_clone()
-        .into_diagnostic()
-        .wrap_err("Failed to clone stream")?;
+            connect(host, port)? 
+        }
+        Some(Either::Right(UrlStdin)) => {
+            let stdin = io::stdin().lock();
+            let stdout = io::stdout().lock();
+            (Box::new(stdin), Box::new(stdout))
+        }
+        None => {
+            connect(Host::Domain("127.0.0.1"), 62185)?
+        }
+    };
 
     let chosen = session.get_mechname();
     // Print the selected mechanism as the first output
     println!("{}", chosen.as_str());
-    write_end
+    tx
         .write_all(chosen.as_bytes())
         .into_diagnostic()
         .wrap_err("failed to write to stream")?;
-    write_end
+    tx
         .write_all(b"\n")
         .into_diagnostic()
         .wrap_err("failed to write to stream")?;
@@ -182,7 +205,7 @@ pub fn main() -> miette::Result<()> {
         println!();
         // Then we wait on the first line sent by the server.
         let mut line = String::new();
-        io::stdin()
+        rx
             .read_line(&mut line)
             .into_diagnostic()
             .wrap_err("failed to read line from stdin")?;
@@ -204,7 +227,7 @@ pub fn main() -> miette::Result<()> {
         state.is_running()
     } {
         let mut line = String::new();
-        io::stdin()
+        rx
             .read_line(&mut line)
             .into_diagnostic()
             .wrap_err("failed to read line from stdin")?;
