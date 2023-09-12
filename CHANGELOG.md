@@ -18,6 +18,11 @@ release. They will however *never* happen in a patch release.
 
 [Changes rendered on GitHub][Upcoming/diff]
 
+## Fixed
+- #29 — `GSSAPI` fails to build on macOS
+  
+  This issue seems to be caused by the same problem as [estokes/libgssapi#2](https://github.com/estokes/libgssapi/issues/2).
+  Building libgssapi without default features solves this build issue.
 
 # [v2.0.0] — 2023-02-04
 
