@@ -1,6 +1,7 @@
 publish = false
 push = false
 tag = false
+consolidate-commits = false
 pre-release-hook = ["./.git/hooks/pre-release.sh", "{{version}}"]
 pre-release-commit-message = "Bump version numbers to {{version}}"
 
