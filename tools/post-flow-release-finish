@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+# Runs at the end of git flow release start
+#
+# Positional arguments:
+# $1 The version (including the version prefix)
+# $2 The origin remote
+# $3 The full branch name (including the release prefix)
+# $4 The base from which this release is started
+#
+# The following variables are available as they are exported by git-flow:
+#
+# MASTER_BRANCH - The branch defined as Master
+# DEVELOP_BRANCH - The branch defined as Develop
+
+echo "# Pushing branches…"
+echo "$ git switch ${DEVELOP_BRANCH}"
+git switch ${DEVELOP_BRANCH}
+echo "$ git push"
+git push
+echo -e "\n"
+
+echo "$ git switch ${MASTER_BRANCH}"
+git switch ${MASTER_BRANCH}
+echo "$ git push"
+git push
+echo -e "\n"
+
+echo "# Pushing tags…"
+echo "$ git push --tags"
+git push --tags
+echo -e "\n"
+
+echo "# Testing 'cargo publish'"
+echo "$ cargo publish --dry-run"
+cargo publish --dry-run
+echo -e "\n"
+
+echo -e "\n"
+echo "#"
+echo "# !- You are on the '${MASTER_BRANCH}' branch. -!"
+echo "#"
+echo "# You probably want to run 'cargo publish' now."
