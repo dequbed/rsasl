@@ -8,6 +8,7 @@ use crate::registry::{distributed_slice, MECHANISMS};
 use super::{client, server};
 
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+#[cfg_attr(docsrs, doc(cfg(feature = "registry_static")))]
 /// Mechanism description for PLAIN
 ///
 /// See the [`plain`](super) module documentation for details and usage.

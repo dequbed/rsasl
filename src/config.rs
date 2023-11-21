@@ -8,6 +8,7 @@ use core::fmt;
 
 #[doc(inline)]
 #[cfg(feature = "config_builder")]
+#[cfg_attr(docsrs, doc(cfg(feature = "config_builder")))]
 pub use crate::builder::ConfigBuilder;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
@@ -18,7 +19,7 @@ trait ConfigInstance: fmt::Debug + Send + Sync {
     fn select(
         &self,
         cb: bool,
-        offered: &mut dyn Iterator<Item = &Mechname>,
+        offered: &mut dyn Iterator<Item=&Mechname>,
     ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError>;
 }
 
@@ -45,6 +46,7 @@ impl fmt::Debug for SASLConfig {
 }
 
 #[cfg(any(test, feature = "provider", feature = "testutils"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "provider", feature = "testutils"))))]
 mod provider {
     use super::{Mechanism, SASLConfig, SASLError, SessionCallback};
     use crate::alloc::boxed::Box;
@@ -56,7 +58,7 @@ mod provider {
         /// Select the best mechanism of the offered ones.
         pub(crate) fn select_mechanism<'a>(
             &self,
-            offered: impl IntoIterator<Item = &'a Mechname>,
+            offered: impl IntoIterator<Item=&'a Mechname>,
         ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError> {
             let cb = self.get_callback().enable_channel_binding();
             self.inner.select(cb, &mut offered.into_iter())
@@ -72,12 +74,13 @@ mod provider {
 impl SASLConfig {
     #[inline(always)]
     #[allow(dead_code)]
-    pub(crate) fn mech_list<'a>(&self) -> impl Iterator<Item = &'a Mechanism> {
+    pub(crate) fn mech_list<'a>(&self) -> impl Iterator<Item=&'a Mechanism> {
         self.inner.get_mech_iter()
     }
 }
 
 #[cfg(feature = "config_builder")]
+#[cfg_attr(docsrs, doc(cfg(feature = "config_builder")))]
 mod instance {
     use super::{ConfigInstance, Mechanism, MechanismIter, SASLConfig, SASLError, SessionCallback};
     use crate::alloc::{boxed::Box, string::String, sync::Arc};
@@ -182,6 +185,7 @@ mod instance {
 
     #[allow(clippy::unnecessary_wraps)]
     #[cfg(any(feature = "config_builder", feature = "testutils"))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "config_builder", feature = "testutils"))))]
     impl Inner {
         pub(crate) fn new<CB: SessionCallback + 'static>(
             callback: CB,
@@ -207,7 +211,7 @@ mod instance {
         fn select(
             &self,
             cb: bool,
-            offered: &mut dyn Iterator<Item = &Mechname>,
+            offered: &mut dyn Iterator<Item=&Mechname>,
         ) -> Result<(Box<dyn Authentication>, &'static Mechanism), SASLError> {
             let callback = self.get_callback();
             self.mechanisms.select(cb | self.cb, offered, |acc, mech| {

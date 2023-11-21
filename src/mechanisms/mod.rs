@@ -25,6 +25,7 @@
 //! to not compile in mechanisms that aren't needed.
 
 #[cfg(feature = "anonymous")]
+#[cfg_attr(docsrs, doc(cfg(feature = "anonymous")))]
 pub mod anonymous {
     //! `ANONYMOUS` *mechanism. Requires feature `anonymous`*
     //!
@@ -42,6 +43,7 @@ pub mod anonymous {
 }
 
 #[cfg(feature = "external")]
+#[cfg_attr(docsrs, doc(cfg(feature = "external")))]
 pub mod external {
     //! `EXTERNAL` *mechanism. Requires feature `external`*
     //!
@@ -58,6 +60,7 @@ pub mod external {
 }
 
 #[cfg(feature = "login")]
+#[cfg_attr(docsrs, doc(cfg(feature = "login")))]
 pub mod login {
     //! `LOGIN` *mechanism. Requires feature `login`*
     //!
@@ -72,6 +75,7 @@ pub mod login {
 }
 
 #[cfg(feature = "plain")]
+#[cfg_attr(docsrs, doc(cfg(feature = "plain")))]
 pub mod plain {
     //! `PLAIN` *mechanism. Requires feature `plain`*
     //!
@@ -112,6 +116,10 @@ pub mod plain {
 }
 
 #[cfg(any(feature = "scram-sha-1", feature = "scram-sha-2"))]
+#[cfg_attr(
+    docsrs,
+    doc(cfg(any(feature = "scram-sha-1", feature = "scram-sha-2")))
+)]
 pub mod scram {
     //! `SCRAM-*` *mechanisms. Requires feature `scram-sha-1` (for* `-SHA1` *) and/or
     //! `scram-sha-2` (for* `-SHA256` *)*
@@ -147,6 +155,7 @@ pub mod scram {
 }
 
 #[cfg(feature = "xoauth2")]
+#[cfg_attr(docsrs, doc(cfg(feature = "xoauth2")))]
 pub mod xoauth2 {
     //! `XOAUTH2` *mechanism. Requires feature `xoauth2`*
     //!
@@ -170,6 +179,7 @@ pub mod xoauth2 {
 }
 
 #[cfg(feature = "oauthbearer")]
+#[cfg_attr(docsrs, doc(cfg(feature = "oauthbearer")))]
 pub mod oauthbearer {
     //! `OAUTHBEARER` *mechanism. Requires feature `oauthbearer`*
     //!
@@ -198,6 +208,7 @@ pub mod oauthbearer {
 }
 
 #[cfg(feature = "gssapi")]
+#[cfg_attr(docsrs, doc(cfg(feature = "gssapi")))]
 pub mod gssapi {
     //! `GSSAPI` *mechanism. Requires feature `gssapi`*
     //!

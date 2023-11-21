@@ -39,6 +39,7 @@ impl<V: Validation + Debug, CB: Debug> Debug for Sasl<V, CB> {
 }
 
 #[cfg(any(feature = "provider", test))]
+#[cfg_attr(docsrs, doc(cfg(feature = "provider")))]
 #[allow(dead_code)]
 mod provider {
     use super::{

@@ -28,6 +28,7 @@ impl Property<'_> for AnonymousToken {
 use crate::registry::{distributed_slice, MECHANISMS};
 
 #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+#[cfg_attr(docsrs, doc(cfg(feature = "registry_static")))]
 pub static ANONYMOUS: Mechanism = Mechanism {
     mechanism: Mechname::const_new(b"ANONYMOUS"),
     priority: 100,

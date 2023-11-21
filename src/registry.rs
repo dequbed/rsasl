@@ -34,6 +34,7 @@ use crate::config::SASLConfig;
 use crate::error::SASLError;
 pub use crate::session::Side;
 #[cfg(feature = "registry_static")]
+#[cfg_attr(docsrs, doc(cfg(feature = "registry_static")))]
 pub use registry_static::*;
 
 pub type StartFn = fn() -> Result<Box<dyn Authentication>, SASLError>;
@@ -66,6 +67,7 @@ pub struct Mechanism {
 }
 
 #[cfg(feature = "unstable_custom_mechanism")]
+#[cfg_attr(docsrs, doc(cfg(feature = "unstable_custom_mechanism")))]
 impl Mechanism {
     /// Construct a Mechanism constant for custom mechanisms
     ///
@@ -136,11 +138,16 @@ pub struct Registry {
 }
 
 #[cfg(any(test, feature = "config_builder", feature = "testutils"))]
+#[cfg_attr(
+    docsrs,
+    doc(cfg(any(feature = "config_builder", feature = "testutils")))
+)]
 mod config {
     use super::Registry;
     use crate::registry::Mechanism;
 
     #[cfg(feature = "config_builder")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "config_builder")))]
     impl Registry {
         #[inline(always)]
         #[must_use]
@@ -179,6 +186,7 @@ mod config {
     }
 
     #[cfg(feature = "registry_static")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "registry_static")))]
     impl Default for Registry {
         fn default() -> Self {
             Self::with_mechanisms(&super::registry_static::MECHANISMS)
@@ -261,6 +269,7 @@ impl Registry {
 }
 
 #[cfg(feature = "registry_static")]
+#[cfg_attr(docsrs, doc(cfg(feature = "registry_static")))]
 mod registry_static {
     use super::Mechanism;
     pub use linkme::distributed_slice;

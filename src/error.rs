@@ -22,11 +22,13 @@ pub enum MechanismErrorKind {
 }
 
 #[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 /// Errors specific to a certain mechanism
 pub trait MechanismError: fmt::Debug + fmt::Display + Send + Sync + std::error::Error {
     fn kind(&self) -> MechanismErrorKind;
 }
 #[cfg(not(feature = "std"))]
+#[cfg_attr(docsrs, doc(cfg(not(feature = "std"))))]
 /// Errors specific to a certain mechanism
 pub trait MechanismError: fmt::Debug + fmt::Display + Send + Sync {
     fn kind(&self) -> MechanismErrorKind;
@@ -45,6 +47,7 @@ pub enum SessionError {
     },
 
     #[cfg(feature = "provider_base64")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "provider_base64")))]
     #[error("base64 wrapping failed")]
     Base64 {
         #[from]
@@ -82,6 +85,7 @@ pub enum SessionError {
 
     #[error(transparent)]
     #[cfg(feature = "std")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     Boxed(#[from] Box<dyn std::error::Error + Send + Sync>),
 
     #[error("callback did not validate the authentication exchange")]

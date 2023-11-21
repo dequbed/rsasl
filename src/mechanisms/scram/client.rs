@@ -21,11 +21,14 @@ use rand::Rng;
 use thiserror::Error;
 
 #[cfg(feature = "scram-sha-2")]
+#[cfg_attr(docsrs, doc(cfg(feature = "scram-sha-2")))]
 pub type ScramSha256Client<const N: usize> = ScramClient<sha2::Sha256, N>;
 // #[cfg(feature = "scram-sha-2")]
+// #[cfg_attr(docsrs, doc(cfg(feature = "scram-sha-2")))]
 // pub type ScramSha512Client<const N: usize> = ScramClient<sha2::Sha512, N>;
 
 #[cfg(feature = "scram-sha-1")]
+#[cfg_attr(docsrs, doc(cfg(feature = "scram-sha-1")))]
 pub type ScramSha1Client<const N: usize> = ScramClient<sha1::Sha1, N>;
 
 enum CbSupport {
