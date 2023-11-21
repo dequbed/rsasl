@@ -18,6 +18,7 @@ pub enum Side {
 }
 
 #[cfg(any(feature = "provider", feature = "testutils", test))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "provider", feature = "testutils"))))]
 mod provider {
     use super::{
         ChannelBindingCallback, Mechanism, MechanismData, SessionCallback, SessionData,
@@ -208,6 +209,7 @@ mod provider {
     }
 
     #[cfg(feature = "provider_base64")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "provider_base64")))]
     impl<V: Validation, C: ChannelBindingCallback> Session<V, C> {
         /// Perform one step of SASL authentication, base64 encoded.
         ///
@@ -293,6 +295,7 @@ mod provider {
     }
 }
 #[cfg(any(feature = "provider", feature = "testutils", test))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "provider", feature = "testutils"))))]
 pub use provider::Session;
 
 pub struct MechanismData<'a> {
