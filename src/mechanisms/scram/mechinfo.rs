@@ -18,7 +18,6 @@ mod scram_sha1 {
     #[cfg(feature = "registry_static")]
     use crate::registry::{distributed_slice, MECHANISMS};
     #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
-    #[cfg(feature = "scram-sha-1")]
     pub static SCRAM_SHA1: Mechanism = Mechanism {
         mechanism: Mechname::const_new(b"SCRAM-SHA-1"),
         priority: 400,
