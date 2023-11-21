@@ -267,6 +267,7 @@
     clippy::missing_errors_doc,
     clippy::box_default
 )]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 // FIXME: problems with `registry_static::MECHANISMS` and `linkme::distributed_slice`
 #![allow(clippy::exhaustive_enums)]
 // Mark rsasl `no_std` if the `std` feature flag is not enabled.
