@@ -49,11 +49,11 @@ mod scram_sha1 {
 
     #[derive(Copy, Clone, Debug)]
     enum ScramSelector1 {
-        /// No SCRAM-SHA1 found yet
+        /// No SCRAM-SHA-1 found yet
         No,
-        /// Only SCRAM-SHA1 but not -PLUS found
+        /// Only SCRAM-SHA-1 but not -PLUS found
         Bare,
-        /// SCRAM-SHA1-PLUS found.
+        /// SCRAM-SHA-1-PLUS found.
         Plus,
     }
     impl Selector for ScramSelector1 {
