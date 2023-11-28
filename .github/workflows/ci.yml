@@ -65,7 +65,7 @@ jobs:
       - name: Install required packages (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
-      - run: cargo test --all
+      - run: cargo test --workspace
         env:
           RUSTFLAGS: ${{matrix.rustflags}} ${{env.RUSTFLAGS}}
 
@@ -78,7 +78,7 @@ jobs:
       - name: Install required packages (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
-      - run: cargo miri test --all --all-features
+      - run: cargo miri test --workspace --all-features
         env:
           MIRIFLAGS: -Zmiri-strict-provenance
 
