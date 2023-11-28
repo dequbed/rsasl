@@ -34,11 +34,13 @@ impl SessionCallback for EmptyCallback {}
 
 static MECHANISMS: [Mechanism; 2] = [RSASLTEST_CF, RSASLTEST_SF];
 
+#[allow(clippy::missing_panics_doc)]
 pub fn client_config<CB: SessionCallback + 'static>(cb: CB) -> Arc<SASLConfig> {
     SASLConfig::new(cb, Registry::with_mechanisms(&MECHANISMS))
         .expect("Failed to generate known-good sasl config")
 }
 
+#[allow(clippy::missing_panics_doc)]
 pub fn server_config<CB: SessionCallback + 'static>(cb: CB) -> Arc<SASLConfig> {
     SASLConfig::new(cb, Registry::with_mechanisms(&MECHANISMS))
         .expect("Failed to generate known-good sasl config")
