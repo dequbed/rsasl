@@ -81,12 +81,14 @@ mod tests {
 
     #[test]
     #[should_panic]
+    #[allow(clippy::should_panic_without_expect)]
     fn test_reject_invalid_1() {
         test_token("token", b"");
     }
 
     #[test]
     #[should_panic]
+    #[allow(clippy::should_panic_without_expect)]
     fn test_reject_invalid_2() {
         test_token("", b"someunexpectedtoken");
     }

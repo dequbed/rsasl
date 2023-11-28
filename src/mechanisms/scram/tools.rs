@@ -23,6 +23,7 @@ where
     pbkdf2::pbkdf2::<SimpleHmac<D>>(password, salt, iterations, out.as_mut_slice());
 }
 
+#[allow(clippy::missing_panics_doc)]
 #[allow(clippy::too_many_arguments)]
 pub fn compute_signatures<D: Digest + BlockSizeUser + FixedOutput>(
     stored_key: &GenericArray<u8, D::OutputSize>,
@@ -77,6 +78,7 @@ pub fn compute_signatures<D: Digest + BlockSizeUser + FixedOutput>(
         .finalize_into(server_signature);
 }
 
+#[allow(clippy::missing_panics_doc)]
 #[must_use]
 pub fn derive_keys<D>(password: &[u8]) -> (DOutput<D>, DOutput<D>)
 where
