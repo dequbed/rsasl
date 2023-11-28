@@ -65,7 +65,11 @@ jobs:
       - name: Install required packages (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
-      - run: cargo test --workspace
+      - run: |
+          # Note: `--workspace` may pull in features.
+          # However, we also want `cargo test` (w/o features) to work.
+          cargo test
+          cargo test --workspace
         env:
           RUSTFLAGS: ${{matrix.rustflags}} ${{env.RUSTFLAGS}}
 
