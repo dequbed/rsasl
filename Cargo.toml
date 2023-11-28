@@ -102,7 +102,7 @@ acid_io = "0.1.0"
 
 base64 = { version = "0.13", optional = true }
 
-rand = { version = "0.8", optional = true }
+rand = { version = "0.8.5", optional = true }
 
 hmac = { version = "0.12", optional = true, features = ["reset"] }
 digest = { version = "0.10", optional = true }
@@ -117,10 +117,10 @@ linkme = { version = "0.2", optional = true }
 
 document-features = { version = "0.2.5", optional = true }
 
-serde = { version = "1", optional = true, default_features = false, features = ["alloc", "derive"] }
+serde = { version = "1.0.193", optional = true, default_features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1", optional = true, default_features = false, features = ["alloc"] }
 
-libgssapi = { version = "0.6", optional = true, default_features = false }
+libgssapi = { version = "0.6.4", optional = true, default_features = false }
 bitflags = { version = "1", optional = true }
 
 [dev-dependencies]
