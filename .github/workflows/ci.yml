@@ -100,15 +100,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@1.61.0
-        with:
-          toolchain: nightly
+      - uses: dtolnay/rust-toolchain@nightly
       - name: Install required packages (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
       - name: Check
         run: |
           cargo +nightly update -Z minimal-versions
-          cargo +1.61 check --workspace --all-targets --all-features
-          cargo +1.61 test --workspace --all-targets --all-features
+          cargo +1.61.0 check --workspace --all-targets --all-features
+          cargo +1.61.0 test --workspace --all-targets --all-features
         env:
           RUSTFLAGS: -Dwarnings
