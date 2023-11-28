@@ -131,6 +131,8 @@
 //! # fn get_more_auth_data() -> Option<Vec<u8>> { unimplemented!() }
 //! // the `config` is provided by the user of this crate. The `writer` is a stand-in for sending
 //! // data to other side of the authentication exchange.
+//! // Note: The "provider" feature is required.
+//! #[cfg(feature = "provider")]
 //! fn sasl_authenticate(config: Arc<SASLConfig>, writer: &mut impl io::Write) {
 //!     let sasl = SASLClient::new(config);
 //!     // These would normally be provided via the protocol in question

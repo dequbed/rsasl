@@ -32,6 +32,8 @@
 //!     type Value = MyDataType;
 //! }
 //!
+//! // Note: The "provider" feature is required.
+//! #[cfg(feature = "provider")]
 //! fn do_auth(config: Arc<SASLConfig>, selected: &Mechname) {
 //!     let sasl = SASLServer::<MyValidation>::new(config);
 //!
