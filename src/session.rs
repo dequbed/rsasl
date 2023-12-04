@@ -96,6 +96,12 @@ mod provider {
         /// call `step` a final time with a `None` input!
         /// This is critical to upholding all security guarantees that different mechanisms offer.
         ///
+        /// A mechanism may exhibit undefined behaviour if `step` is called after either an Error
+        /// or `State::Finished` has been returned by a previous call.  This includes behaviours
+        /// such as writing garbage data to the provided writer, panicking, or blocking
+        /// indefinitely.  It is thus paramount to construct a fresh `Session` if authentication is
+        /// re-attempted after either `State::Finished` or an Error is returned.
+        ///
         /// SASL itself can usually not tell you if an authentication was successful or not,
         /// instead this is done by the protocol itself.
         ///
