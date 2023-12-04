@@ -30,7 +30,7 @@ impl<'io, const N: usize> VectoredWriter<'io, N> {
         let mut remove = 0;
         // Total length of all the to be removed buffers.
         let mut accumulated_len = 0;
-        for buf in self.data[self.skip..].iter() {
+        for buf in &self.data[self.skip..] {
             if accumulated_len + buf.len() > len {
                 break;
             }
