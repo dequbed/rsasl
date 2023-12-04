@@ -267,6 +267,7 @@
     clippy::missing_errors_doc,
     clippy::box_default
 )]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 // FIXME: problems with `registry_static::MECHANISMS` and `linkme::distributed_slice`
 #![allow(clippy::exhaustive_enums)]
 // Mark rsasl `no_std` if the `std` feature flag is not enabled.
@@ -279,12 +280,14 @@ extern crate std as alloc;
 
 // none of these should be necessary for a provider to compile
 #[cfg(feature = "config_builder")]
+#[cfg_attr(docsrs, doc(cfg(feature = "config_builder")))]
 mod builder;
 pub mod callback;
 pub mod mechanisms;
 
 // Only relevant to a provider
 #[cfg(any(feature = "provider", feature = "testutils", test))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "provider", feature = "testutils"))))]
 mod sasl;
 
 pub mod config;
@@ -303,8 +306,10 @@ mod mechanism;
 mod registry;
 
 #[cfg(any(doc, feature = "unstable_custom_mechanism"))]
+#[cfg_attr(docsrs, doc(cfg(feature = "unstable_custom_mechanism")))]
 pub mod mechanism;
 #[cfg(any(doc, feature = "unstable_custom_mechanism"))]
+#[cfg_attr(docsrs, doc(cfg(feature = "unstable_custom_mechanism")))]
 pub mod registry;
 
 mod channel_bindings;
@@ -324,10 +329,13 @@ pub mod prelude {
     pub use crate::validate::Validation;
 
     #[cfg(feature = "provider")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "provider")))]
     pub use crate::channel_bindings::ChannelBindingCallback;
     #[cfg(feature = "provider")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "provider")))]
     pub use crate::sasl::{SASLClient, SASLServer};
     #[cfg(feature = "provider")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "provider")))]
     pub use crate::session::Session;
 }
 
@@ -363,6 +371,7 @@ pub mod docs {
     }
 
     #[cfg(feature = "document-features")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "document-features")))]
     pub mod features {
         //! primer on the use of cargo features in rsasl
         //!

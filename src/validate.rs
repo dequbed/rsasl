@@ -129,6 +129,7 @@ impl Validation for NoValidation {
 /// mechanism.
 pub struct Validate<'a>(dyn Erased<'a> + 'a);
 #[cfg(any(test, feature = "provider", feature = "testutils"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "provider", feature = "testutils"))))]
 impl Validate<'_> {
     pub(crate) fn new<'opt, V: Validation>(opt: &'opt mut Tagged<'_, V>) -> &'opt mut Self {
         unsafe { &mut *(opt as &mut dyn Erased as *mut dyn Erased as *mut Self) }

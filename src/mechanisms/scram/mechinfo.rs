@@ -18,7 +18,7 @@ mod scram_sha1 {
     #[cfg(feature = "registry_static")]
     use crate::registry::{distributed_slice, MECHANISMS};
     #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
-    #[cfg(feature = "scram-sha-1")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "registry_static")))]
     pub static SCRAM_SHA1: Mechanism = Mechanism {
         mechanism: Mechname::const_new(b"SCRAM-SHA-1"),
         priority: 400,
@@ -49,11 +49,11 @@ mod scram_sha1 {
 
     #[derive(Copy, Clone, Debug)]
     enum ScramSelector1 {
-        /// No SCRAM-SHA1 found yet
+        /// No SCRAM-SHA-1 found yet
         No,
-        /// Only SCRAM-SHA1 but not -PLUS found
+        /// Only SCRAM-SHA-1 but not -PLUS found
         Bare,
-        /// SCRAM-SHA1-PLUS found.
+        /// SCRAM-SHA-1-PLUS found.
         Plus,
     }
     impl Selector for ScramSelector1 {
@@ -109,6 +109,7 @@ mod scram_sha1 {
     }
 }
 #[cfg(feature = "scram-sha-1")]
+#[cfg_attr(docsrs, doc(cfg(feature = "scram-sha-1")))]
 pub use scram_sha1::*;
 
 #[cfg(feature = "scram-sha-2")]
@@ -121,6 +122,7 @@ mod scram_sha256 {
     #[cfg(feature = "registry_static")]
     use crate::registry::{distributed_slice, MECHANISMS};
     #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "registry_static")))]
     pub static SCRAM_SHA256: Mechanism = Mechanism {
         mechanism: Mechname::const_new(b"SCRAM-SHA-256"),
         priority: 600,
@@ -213,6 +215,7 @@ mod scram_sha256 {
     }
 }
 #[cfg(feature = "scram-sha-2")]
+#[cfg_attr(docsrs, doc(cfg(feature = "scram-sha-2")))]
 pub use scram_sha256::*;
 
 #[cfg(test)]

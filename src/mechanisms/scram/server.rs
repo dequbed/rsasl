@@ -38,10 +38,13 @@ const DEFAULT_ITERATIONS: &[u8] = b"16384"; // 2u32.pow(14) TODO check if still 
 const DEFAULT_SALT_LEN: usize = 32;
 
 #[cfg(feature = "scram-sha-1")]
+#[cfg_attr(docsrs, doc(cfg(feature = "scram-sha-1")))]
 pub type ScramSha1Server<const N: usize> = ScramServer<sha1::Sha1, N>;
 #[cfg(feature = "scram-sha-2")]
+#[cfg_attr(docsrs, doc(cfg(feature = "scram-sha-2")))]
 pub type ScramSha256Server<const N: usize> = ScramServer<sha2::Sha256, N>;
 // #[cfg(feature = "scram-sha-2")]
+// #[cfg_attr(docsrs, doc(cfg(feature = "scram-sha-2")))]
 // pub type ScramSha512Server<const N: usize> = ScramServer<sha2::Sha512, N>;
 
 #[derive(Debug, Error)]

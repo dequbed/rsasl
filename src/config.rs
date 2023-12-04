@@ -8,6 +8,7 @@ use core::fmt;
 
 #[doc(inline)]
 #[cfg(feature = "config_builder")]
+#[cfg_attr(docsrs, doc(cfg(feature = "config_builder")))]
 pub use crate::builder::ConfigBuilder;
 use crate::mechanism::Authentication;
 use crate::mechname::Mechname;
@@ -45,6 +46,7 @@ impl fmt::Debug for SASLConfig {
 }
 
 #[cfg(any(test, feature = "provider", feature = "testutils"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "provider", feature = "testutils"))))]
 mod provider {
     use super::{Mechanism, SASLConfig, SASLError, SessionCallback};
     use crate::alloc::boxed::Box;
@@ -78,6 +80,7 @@ impl SASLConfig {
 }
 
 #[cfg(feature = "config_builder")]
+#[cfg_attr(docsrs, doc(cfg(feature = "config_builder")))]
 mod instance {
     use super::{ConfigInstance, Mechanism, MechanismIter, SASLConfig, SASLError, SessionCallback};
     use crate::alloc::{boxed::Box, string::String, sync::Arc};
@@ -182,6 +185,10 @@ mod instance {
 
     #[allow(clippy::unnecessary_wraps)]
     #[cfg(any(feature = "config_builder", feature = "testutils"))]
+    #[cfg_attr(
+        docsrs,
+        doc(cfg(any(feature = "config_builder", feature = "testutils")))
+    )]
     impl Inner {
         pub(crate) fn new<CB: SessionCallback + 'static>(
             callback: CB,

@@ -69,6 +69,7 @@ impl Mechname {
 }
 
 #[cfg(feature = "unstable_custom_mechanism")]
+#[cfg_attr(docsrs, doc(cfg(feature = "unstable_custom_mechanism")))]
 /// These associated functions are only available with feature `unstable_custom_mechanism`. They
 /// are *not guaranteed to be stable under semver*
 impl Mechname {
