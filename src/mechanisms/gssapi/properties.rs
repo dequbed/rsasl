@@ -5,7 +5,7 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("GSS-API error")]
+    #[error("GSS-API error: {0}")]
     Gss(
         #[source]
         #[from]
