@@ -21,6 +21,8 @@ impl OurCallback {
         _session_data: &SessionData,
         context: &Context,
     ) -> Result<Result<String, AuthError>, OurCallbackError> {
+        use AuthError::*;
+
         let authzid = context.get_ref::<AuthzId>();
         let authid = context
             .get_ref::<AuthId>()
@@ -36,7 +38,6 @@ impl OurCallback {
             std::str::from_utf8(password)
         );
 
-        use AuthError::*;
         if !(authzid.is_none() || authzid == Some(authid)) {
             Ok(Err(AuthzBad))
         } else if authid == "username" && password == b"secret" {
@@ -101,7 +102,7 @@ pub fn main() {
         let step_result = session.step(Some(b"\0username\0secret"), &mut out);
         print_outcome(&step_result, out.into_inner());
         assert_eq!(step_result.unwrap(), State::Finished(MessageSent::No));
-        assert_eq!(session.validation(), Some(Ok(String::from("username"))))
+        assert_eq!(session.validation(), Some(Ok(String::from("username"))));
     }
     // Authentication exchange 2
     {

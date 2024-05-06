@@ -30,6 +30,8 @@ impl OurCallback {
         _session_data: &SessionData,
         context: &Context,
     ) -> Result<Result<String, AuthError>, OurCallbackError> {
+        use AuthError::*;
+
         let authzid = context.get_ref::<AuthzId>();
         let authid = context
             .get_ref::<AuthId>()
@@ -37,7 +39,6 @@ impl OurCallback {
 
         println!("Validation for (authzid: {authzid:?}, authid: {authid})");
 
-        use AuthError::*;
         if !(authzid.is_none() || authzid == Some(authid)) {
             Ok(Err(AuthzBad))
         } else if authid == "username" {
@@ -68,7 +69,7 @@ impl SessionCallback for OurCallback {
         context: &Context,
         request: &mut Request,
     ) -> Result<(), SessionError> {
-        if let Some("username") = context.get_ref::<AuthId>() {
+        if context.get_ref::<AuthId>() == Some("username") {
             request.satisfy::<ScramStoredPassword>(&ScramStoredPassword::new(
                 4096,
                 self.salt,
@@ -113,9 +114,9 @@ pub fn main() {
     let config = SASLConfig::builder()
         .with_defaults()
         .with_callback(OurCallback {
-            salt,
-            server_key,
             stored_key,
+            server_key,
+            salt,
         })
         .unwrap();
     let server = SASLServer::<TestValidation>::new(config);
