@@ -3,7 +3,8 @@
 //! This client allows testing interoperability between different SASL implementations.
 
 use clap::builder::TypedValueParser;
-use clap::{Arg, Command, Error, ErrorKind};
+use clap::error::ErrorKind;
+use clap::{Arg, Command, Error};
 use miette::{miette, IntoDiagnostic, WrapErr};
 use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
 use rsasl::mechanisms::gssapi::properties::GssService;
@@ -142,7 +143,6 @@ pub fn main() -> miette::Result<()> {
             Arg::new("listen")
                 .long("listen")
                 .short('l')
-                .takes_value(true)
                 .value_parser(UrlParser)
                 .help(
                     "address to listen to. Either '-' for STDIN or an url with scheme tcp or tls",

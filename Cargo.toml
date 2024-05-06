@@ -2,22 +2,10 @@
 name = "rsasl"
 version = "2.0.1"
 authors = ["Nadja Reitzenstein <me@dequbed.space>"]
-edition = "2021"
-rust-version = "1.70"
-
-description = """The Rust SASL framework, aimed at both middleware-style protocol implementation and application code.
-Designed to make SASL authentication simple and safe while handing as much control to the user as possible.
-"""
-documentation = "https://docs.rs/rsasl"
-readme = "README.md"
-
-homepage = "https://github.com/dequbed/rsasl"
-repository = "https://github.com/dequbed/rsasl"
-license = "Apache-2.0 OR MIT"
-
-keywords = ["sasl", "authentication", "sso", "framework", "middleware"]
 categories = ["authentication", "api-bindings", "network-programming"]
-
+documentation = "https://docs.rs/rsasl"
+edition = "2021"
+homepage = "https://github.com/dequbed/rsasl"
 # Manually list files to include; excluding out-of-tree integration tests and testing binaries that arent useful when
 # rsasl is only used as a dependency.
 include = [
@@ -31,7 +19,18 @@ include = [
     "/tests/",
     "/examples/"
 ]
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+keywords = ["sasl", "authentication", "sso", "framework", "middleware"]
+license = "Apache-2.0 OR MIT"
+readme = "README.md"
+repository = "https://github.com/dequbed/rsasl"
+rust-version = "1.70"
+description = """
+The Rust SASL framework, aimed at both middleware-style protocol implementation and application code.
+Designed to make SASL authentication simple and safe while handing as much control to the user as possible.
+"""
+
+[package.metadata.docs.rs]
+all-features = true
 
 [features]
 default = [
@@ -111,38 +110,35 @@ unstable_custom_mechanism = ["std"]
 std = ["core2/std", "serde_json/std"]
 
 [dependencies]
-thiserror = "1.0.59"
-# An #[no_std]-enabled version of std::io.
-core2 = { version = "0.4.0", default-features = false }
-
 base64 = { version = "0.22.1", optional = true }
-
-rand = { version = "0.8.5", optional = true }
-
-hmac = { version = "0.12", optional = true, features = ["reset"] }
+bitflags = { version = "2.5.0", optional = true }
+core2 = { version = "0.4.0", default-features = false }
 digest = { version = "0.10", optional = true }
+document-features = { version = "0.2.8", optional = true }
+hmac = { version = "0.12", optional = true, features = ["reset"] }
+libgssapi = { version = "0.7.0", optional = true, default-features = false }
+linkme = { version = "0.3.25", optional = true }
+pbkdf2 = { version = "0.12.2", optional = true, default-features = false }
+rand = { version = "0.8.5", optional = true }
 sha-1 = { version = "0.10.1", optional = true }
 sha2 = { version = "0.10", optional = true }
-
-pbkdf2 = { version = "0.12.2", optional = true, default-features = false }
-
 stringprep = { version = "0.1.4", optional = true }
+thiserror = "1.0.59"
 
-linkme = { version = "0.3.25", optional = true }
+[dependencies.serde]
+version = "1.0.200"
+optional = true
+default-features = false
+features = ["alloc", "derive"]
 
-document-features = { version = "0.2.8", optional = true }
-
-serde = { version = "1.0.200", optional = true, default-features = false, features = ["alloc", "derive"] }
-serde_json = { version = "1.0.116", optional = true, default-features = false, features = ["alloc"] }
-
-libgssapi = { version = "0.7.0", optional = true, default-features = false }
-bitflags = { version = "2.5.0", optional = true }
+[dependencies.serde_json]
+version = "1.0.116"
+optional = true
+default-features = false
+features = ["alloc"]
 
 [dev-dependencies]
 static_assertions = "1.1.0"
-
-[package.metadata.docs.rs]
-all-features = true
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }
@@ -161,9 +157,11 @@ box_default = "allow"
 [[example]]
 name = "client_simple"
 required-features = ["provider", "plain"]
+
 [[example]]
 name = "server_plain"
 required-features = ["provider", "plain"]
+
 [[example]]
 name = "server_scram"
 required-features = ["provider", "plain", "scram-sha-2"]
