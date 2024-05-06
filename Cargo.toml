@@ -23,7 +23,7 @@ keywords = ["sasl", "authentication", "sso", "framework", "middleware"]
 license = "Apache-2.0 OR MIT"
 readme = "README.md"
 repository = "https://github.com/dequbed/rsasl"
-rust-version = "1.70"
+rust-version = "1.74"
 description = """
 The Rust SASL framework, aimed at both middleware-style protocol implementation and application code.
 Designed to make SASL authentication simple and safe while handing as much control to the user as possible.
