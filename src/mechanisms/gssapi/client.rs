@@ -70,7 +70,7 @@ impl Authentication for Gssapi {
                     .map_err(Error::Gss)?;
 
                 self.state = GssapiState::Pending(ClientCtx::new(
-                    cred,
+                    Some(cred),
                     target,
                     // Allow all flags. Setting them does not mean the final context will provide
                     // them, so this should not be an issue.

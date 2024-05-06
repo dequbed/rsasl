@@ -38,6 +38,7 @@ impl SizedProperty<'_> for GssSecurityLayer {
 
 bitflags::bitflags! {
     #[repr(transparent)]
+    #[derive(Copy, Clone)]
     pub struct SecurityLayer: u8 {
         const NO_SECURITY_LAYER = 0b001;
         const INTEGRITY = 0b010;

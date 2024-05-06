@@ -30,6 +30,7 @@ mod provider {
     use crate::sasl::Sasl;
     use crate::validate::{NoValidation, Validation};
     use acid_io::Write;
+    use base64::Engine;
 
     /// This represents a single authentication exchange
     ///
@@ -232,10 +233,11 @@ mod provider {
             writer: &mut impl Write,
         ) -> Result<State, SessionError> {
             use base64::write::EncoderWriter;
-            let mut writer64 = EncoderWriter::new(writer, base64::STANDARD);
+            let mut writer64 =
+                EncoderWriter::new(writer, &base64::engine::general_purpose::STANDARD);
 
             let state = if let Some(input) = input {
-                let input = base64::decode_config(input, base64::STANDARD)?;
+                let input = base64::engine::general_purpose::STANDARD.decode(input)?;
                 self.step(Some(&input[..]), &mut writer64)
             } else {
                 self.step(None, &mut writer64)
