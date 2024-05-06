@@ -185,7 +185,7 @@ impl<'a> Context<'a> {
 #[repr(transparent)]
 pub struct ThisProvider<'a, P: Property<'a>>(&'a P::Value);
 impl<'a, P: Property<'a>> ThisProvider<'a, P> {
-    pub const fn with(value: &'a P::Value) -> ThisProvider<'a, P> {
+    pub const fn with(value: &'a P::Value) -> Self {
         ThisProvider(value)
     }
 

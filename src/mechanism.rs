@@ -4,8 +4,7 @@
 use crate::error::SessionError::NoSecurityLayer;
 use core2::io::Write;
 
-pub use crate::context::{Demand, DemandReply, Provider, ProviderExt, ThisProvider};
-pub use crate::error::{MechanismError, MechanismErrorKind, SessionError};
+pub use crate::error::{MechanismError, SessionError};
 pub use crate::session::{MechanismData, State};
 
 /// Trait implemented to be one party in an authentication exchange

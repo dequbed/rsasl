@@ -116,7 +116,7 @@ impl fmt::Debug for Mechanism {
             .field("name", &self.mechanism)
             .field("has client", &self.client.is_some())
             .field("has server", &self.server.is_some())
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 

@@ -1,6 +1,3 @@
-use core::any::type_name;
-use core::fmt;
-
 use crate::callback::{Action, CallbackError, ClosureCR, Request, Satisfy, SessionCallback};
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::context::{build_context, Provider, ProviderExt, ThisProvider};
@@ -9,6 +6,8 @@ use crate::property::{ChannelBindingName, ChannelBindings, Property};
 use crate::registry::Mechanism;
 use crate::typed::{tags, Tagged};
 use crate::validate::{Validate, ValidationError};
+use core::any::type_name;
+use core::fmt;
 
 #[allow(clippy::exhaustive_enums)]
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
@@ -288,7 +287,7 @@ mod provider {
             where
                 F: FnMut(&[u8]) -> Result<G, SessionError>,
             {
-                let mut mechanism_data = MechanismData::new(
+                let mechanism_data = MechanismData::new(
                     self.sasl.config.get_callback(),
                     &self.sasl.cb,
                     validate,
@@ -318,7 +317,7 @@ impl MechanismData<'_> {
     }
 
     fn callback(
-        &mut self,
+        &self,
         provider: &dyn Provider,
         request: &mut Request<'_>,
     ) -> Result<(), SessionError> {
@@ -330,7 +329,7 @@ impl MechanismData<'_> {
     }
 
     pub fn action<'a, T>(
-        &mut self,
+        &self,
         provider: &dyn Provider,
         value: &'a T::Value,
     ) -> Result<(), SessionError>
@@ -348,11 +347,7 @@ impl MechanismData<'_> {
         }
     }
 
-    pub fn need_with<P, F, G>(
-        &mut self,
-        provider: &dyn Provider,
-        closure: F,
-    ) -> Result<G, SessionError>
+    pub fn need_with<P, F, G>(&self, provider: &dyn Provider, closure: F) -> Result<G, SessionError>
     where
         P: for<'p> Property<'p>,
         F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
@@ -362,7 +357,7 @@ impl MechanismData<'_> {
     }
 
     pub fn maybe_need_with<P, F, G>(
-        &mut self,
+        &self,
         provider: &dyn Provider,
         closure: F,
     ) -> Result<Option<G>, SessionError>
@@ -381,7 +376,7 @@ impl MechanismData<'_> {
     }
 
     pub fn maybe_need_cb_data<'a, P, F, G>(
-        &mut self,
+        &self,
         cbname: &'a str,
         provider: P,
         f: F,
@@ -399,7 +394,7 @@ impl MechanismData<'_> {
     }
 
     pub fn need_cb_data<'a, P, F, G>(
-        &mut self,
+        &self,
         cbname: &'a str,
         provider: P,
         f: F,

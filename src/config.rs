@@ -176,7 +176,7 @@ mod instance {
             f.debug_struct("SASLConfig")
                 .field("channel_binding", &self.cb)
                 .field("mechanisms", &self.mechanisms)
-                .finish()
+                .finish_non_exhaustive()
         }
     }
 
