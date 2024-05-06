@@ -144,6 +144,20 @@ static_assertions = "1.1.0"
 [package.metadata.docs.rs]
 all-features = true
 
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+exhaustive_enums = "warn"
+exhaustive_structs = "warn"
+non_upper_case_globals = "allow"
+non_camel_case_types = "allow"
+doc_markdown = "allow"
+module_name_repetitions = "allow"
+inline_always = "allow"
+missing_errors_doc = "allow"
+box_default = "allow"
+
 [[example]]
 name = "client_simple"
 required-features = ["provider", "plain"]

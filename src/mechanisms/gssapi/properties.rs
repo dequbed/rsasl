@@ -4,6 +4,7 @@ use crate::property::SizedProperty;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum Error {
     #[error("GSS-API error: {0}")]
     Gss(

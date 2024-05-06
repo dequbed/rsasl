@@ -251,24 +251,6 @@
 //! define a [`Mechanism`](registry::Mechanism) struct describing the implemented mechanism.
 //! Documentation about how to add a custom mechanism is found in the [`registry module documentation`](registry).
 
-#![warn(
-    clippy::all,
-    clippy::pedantic,
-    clippy::nursery,
-    clippy::exhaustive_enums,
-    clippy::exhaustive_structs
-)]
-#![allow(
-    non_upper_case_globals,
-    non_camel_case_types,
-    clippy::doc_markdown,
-    clippy::module_name_repetitions,
-    clippy::inline_always,
-    clippy::missing_errors_doc,
-    clippy::box_default
-)]
-// FIXME: problems with `registry_static::MECHANISMS` and `linkme::distributed_slice`
-#![allow(clippy::exhaustive_enums)]
 // Mark rsasl `no_std` if the `std` feature flag is not enabled.
 #![cfg_attr(not(any(feature = "std", test)), no_std)]
 #[cfg(not(any(feature = "std", test)))]

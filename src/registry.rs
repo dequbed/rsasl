@@ -287,6 +287,7 @@ mod selector {
         fn finalize(&mut self) -> Result<Box<dyn Authentication>, SASLError>;
     }
 
+    #[non_exhaustive]
     pub enum Selection {
         Nothing(Box<dyn Selector>),
         Done(&'static Mechanism),
