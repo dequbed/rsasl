@@ -29,7 +29,7 @@ jobs:
         with:
           components: clippy
       - name: Install required packages (Linux)
-        if: runner.os == 'Linux'
+        if: ${{ runner.os == 'Linux' }}
         run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
       - run: cargo clippy --all-features --all-targets --tests -- -Dwarnings
 
@@ -44,7 +44,7 @@ jobs:
       - name: install cargo-hack
         run: cargo install cargo-hack
       - name: Install required packages (Linux)
-        if: runner.os == 'Linux'
+        if: ${{ runner.os == 'Linux' }}
         run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
       - run: cargo hack check --each-feature --features=std --skip=testutils
 
@@ -63,52 +63,54 @@ jobs:
         with:
           toolchain: ${{matrix.rust}}
       - name: Install required packages (Linux)
-        if: runner.os == 'Linux'
+        if: ${{ runner.os == 'Linux' }}
         run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
       - run: cargo test --all
-        env:
-          RUSTFLAGS: ${{matrix.rustflags}} ${{env.RUSTFLAGS}}
 
   miri:
     name: miri / stable
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@miri
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          components: miri
       - name: Install required packages (Linux)
-        if: runner.os == 'Linux'
+        if: ${{ runner.os == 'Linux' }}
         run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
       - run: cargo miri test --all --all-features
         env:
           MIRIFLAGS: -Zmiri-strict-provenance
 
   msrv:
-    name: Rust 1.61.0
+    name: Rust 1.70
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@1.61.0
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: 1.70
           components: rust-src
       - name: Install required packages (Linux)
-        if: runner.os == 'Linux'
+        if: ${{ runner.os == 'Linux' }}
         run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
       - run: cargo check --all-features
-  
+
   minimal-versions:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@1.61.0
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: nightly
       - name: Install required packages (Linux)
-        if: runner.os == 'Linux'
+        if: ${{ runner.os == 'Linux' }}
         run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
       - name: Check
         run: |
           cargo +nightly update -Z minimal-versions
-          cargo +1.61 check --workspace --all-targets --all-features
-          cargo +1.61 test --workspace --all-targets --all-features
+          cargo +1.70 check --workspace --all-targets --all-features
+          cargo +1.70 test --workspace --all-targets --all-features
         env:
           RUSTFLAGS: -Dwarnings

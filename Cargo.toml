@@ -3,7 +3,7 @@ name = "rsasl"
 version = "2.0.1"
 authors = ["Nadja Reitzenstein <me@dequbed.space>"]
 edition = "2021"
-rust-version = "1.61.0"
+rust-version = "1.70"
 
 description = """The Rust SASL framework, aimed at both middleware-style protocol implementation and application code.
 Designed to make SASL authentication simple and safe while handing as much control to the user as possible.
@@ -20,16 +20,31 @@ categories = ["authentication", "api-bindings", "network-programming"]
 
 # Manually list files to include; excluding out-of-tree integration tests and testing binaries that arent useful when
 # rsasl is only used as a dependency.
-include = ["Cargo.toml", "/src/", "README.md", "CHANGELOG.md", "LICENSE.MIT", "LICENSE.APACHE-2.0", "/docs/", "/tests/", "/examples/"]
+include = [
+    "Cargo.toml",
+    "/src/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE.MIT",
+    "LICENSE.APACHE-2.0",
+    "/docs/",
+    "/tests/",
+    "/examples/"
+]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
 default = [
     "config_builder",
     "registry_static",
-    "scram-sha-1", "scram-sha-2",
-    "anonymous", "external",
-    "oauthbearer", "xoauth2", "plain", "login",
+    "scram-sha-1",
+    "scram-sha-2",
+    "anonymous",
+    "external",
+    "oauthbearer",
+    "xoauth2",
+    "plain",
+    "login",
     "gssapi"
 ]
 
