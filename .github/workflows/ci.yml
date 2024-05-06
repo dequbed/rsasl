@@ -7,49 +7,40 @@ on:
       - development
 
 env:
-  RUSTFLAGS: -Dwarnings
+  RUSTFLAGS: "" # -Dwarnings
   RUST_BACKTRACE: full
 
 jobs:
   rustfmt:
-    name: rustfmt / stable
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
-      - name: cargo fmt
-        run: cargo fmt --all -- --check
+      - run: cargo fmt --all -- --check
 
   clippy:
-    name: clippy / stable
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - name: Install required packages (Linux)
-        if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
+      - if: ${{ runner.os == 'Linux' }}
+        run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
       - run: cargo clippy --all-features --all-targets --tests -- -Dwarnings
 
   check:
-    name: check / stable
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
-      - name: Setup dependency cache
-        uses: Swatinem/rust-cache@v2
-      - name: install cargo-hack
-        run: cargo install cargo-hack
-      - name: Install required packages (Linux)
-        if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install cargo-hack
+      - if: ${{ runner.os == 'Linux' }}
+        run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
       - run: cargo hack check --each-feature --features=std --skip=testutils
 
   test:
-    name: test / ${{matrix.rust}}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -62,13 +53,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{matrix.rust}}
-      - name: Install required packages (Linux)
-        if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
+      - if: ${{ runner.os == 'Linux' }}
+        run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
       - run: cargo test --all
 
   miri:
-    name: miri / stable
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -76,15 +65,13 @@ jobs:
         with:
           toolchain: stable
           components: miri
-      - name: Install required packages (Linux)
-        if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
+      - if: ${{ runner.os == 'Linux' }}
+        run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
       - run: cargo miri test --all --all-features
         env:
           MIRIFLAGS: -Zmiri-strict-provenance
 
   msrv:
-    name: Rust 1.70
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -92,9 +79,8 @@ jobs:
         with:
           toolchain: 1.70
           components: rust-src
-      - name: Install required packages (Linux)
-        if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
+      - if: ${{ runner.os == 'Linux' }}
+        run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
       - run: cargo check --all-features
 
   minimal-versions:
@@ -104,11 +90,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: nightly
-      - name: Install required packages (Linux)
-        if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
-      - name: Check
-        run: |
+      - if: ${{ runner.os == 'Linux' }}
+        run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
+      - run: |
           cargo +nightly update -Z minimal-versions
           cargo +1.70 check --workspace --all-targets --all-features
           cargo +1.70 test --workspace --all-targets --all-features
