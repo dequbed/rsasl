@@ -13,9 +13,9 @@ use crate::mechanisms::scram::tools::{
 use crate::property::{AuthId, AuthzId, OverrideCBType, Password};
 use crate::session::{MechanismData, MessageSent, State};
 use crate::vectored_io::VectoredWriter;
-use acid_io::Write;
 use base64::Engine;
 use core::marker::PhantomData;
+use core2::io::Write;
 use digest::crypto_common::BlockSizeUser;
 use digest::{Digest, FixedOutputReset};
 use rand::Rng;

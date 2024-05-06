@@ -12,9 +12,9 @@ use crate::mechanisms::scram::tools::{compute_signatures, generate_nonce, DOutpu
 use crate::property::{AuthId, AuthzId};
 use crate::session::{MechanismData, MessageSent, State};
 use crate::vectored_io::VectoredWriter;
-use acid_io::Write;
 use base64::Engine;
 use core::marker::PhantomData;
+use core2::io::Write;
 use digest::crypto_common::BlockSizeUser;
 use digest::generic_array::GenericArray;
 use digest::{Digest, FixedOutput, OutputSizeUser};

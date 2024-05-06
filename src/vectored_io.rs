@@ -1,5 +1,4 @@
-use acid_io as io;
-use acid_io::{IoSlice, Write};
+use core2::io::{self, IoSlice, Write};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 /// An adapter that allows to more comfortable write using scatter-gather IO by handing the

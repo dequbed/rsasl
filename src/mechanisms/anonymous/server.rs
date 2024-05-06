@@ -3,8 +3,8 @@ use crate::context::ThisProvider;
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
 use crate::mechanism::Authentication;
 use crate::session::{MechanismData, MessageSent, State};
-use acid_io::Write;
 use core::str::Utf8Error;
+use core2::io::Write;
 use thiserror::Error;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Error)]

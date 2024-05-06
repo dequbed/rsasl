@@ -29,8 +29,7 @@ mod provider {
     use crate::mechname::Mechname;
     use crate::sasl::Sasl;
     use crate::validate::{NoValidation, Validation};
-    use acid_io::Write;
-    use base64::Engine;
+    use core2::io::Write;
 
     /// This represents a single authentication exchange
     ///
@@ -237,7 +236,8 @@ mod provider {
                 EncoderWriter::new(writer, &base64::engine::general_purpose::STANDARD);
 
             let state = if let Some(input) = input {
-                let input = base64::engine::general_purpose::STANDARD.decode(input)?;
+                let input =
+                    base64::Engine::decode(&base64::engine::general_purpose::STANDARD, input)?;
                 self.step(Some(&input[..]), &mut writer64)
             } else {
                 self.step(None, &mut writer64)

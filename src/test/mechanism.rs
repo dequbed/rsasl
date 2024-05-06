@@ -6,7 +6,7 @@
 use crate::mechanism::{Authentication, MechanismData};
 use crate::prelude::*;
 use crate::registry::{Matches, Mechanism, Named, Side};
-use acid_io::Write;
+use core2::io::Write;
 
 /// X-RSASLTEST implementation
 ///

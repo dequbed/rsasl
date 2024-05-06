@@ -1,13 +1,11 @@
+use super::mechinfo::PlainError;
 use crate::alloc::boxed::Box;
-use crate::mechanism::Authentication;
-use crate::session::{MechanismData, MessageSent, State};
-
 use crate::context::EmptyProvider;
 use crate::error::SessionError;
-use acid_io::Write;
-
-use super::mechinfo::PlainError;
+use crate::mechanism::Authentication;
 use crate::property::{AuthId, AuthzId, Password};
+use crate::session::{MechanismData, MessageSent, State};
+use core2::io::Write;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Plain;
