@@ -67,7 +67,7 @@ xoauth2 = ["std"]
 oauthbearer = ["std", "dep:serde", "serde_json"]
 
 ## Enable the KerberosV5 mechanism `GSSAPI`
-gssapi = ["std", "dep:libgssapi", "dep:bitflags", "dep:pkg-config", "dep:regex"]
+gssapi = ["std", "dep:libgssapi", "dep:bitflags"]
 
 #! # Provider flags
 #! These flags are relevant for crates that want to use rsasl as authentication provider, i.e. crates implementing
@@ -125,10 +125,6 @@ sha1 = { version = "0.10.6", optional = true }
 sha2 = { version = "0.10.8", optional = true }
 stringprep = { version = "0.1.4", optional = true, default-features = false }
 thiserror = { version = "1.0.61", default-features = false }
-# Required for -Zminimal-versions
-pkg-config = { version = "0.3.30", optional = true, default-features = false }
-# Required for -Zminimal-versions
-regex = { version = "1.10.4", optional = true }
 
 [dependencies.serde]
 version = "1.0.202"
