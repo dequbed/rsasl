@@ -248,7 +248,7 @@ impl Registry {
                 match fold(accmech, m) {
                     // `Greater` means the first parameter (accmech) was preferable — even if None.
                     Ordering::Greater => acc,
-                    // `Equal` is undefined behaviour, but we're just going for `Less` because
+                    // `Equal` is undefined behavior, but we're just going for `Less` because
                     // we don't have to check for `accmech` being `None` then.
                     Ordering::Equal |
                     // `Less` means the second parameter (m) was preferable

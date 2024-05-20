@@ -2,7 +2,7 @@
 
 * Status: accepted <!-- optional -->
 
-Technical Story: rsasl needs an efficient and easy to use way of matching requested properties and validation in 
+Technical Story: rsasl needs an efficient and easy to use way of matching requested properties and validation in
 callbacks <!-- optional -->
 
 ## Context and Problem Statement
@@ -16,7 +16,7 @@ complete list while compiling the final application.
 
 ## Decision Drivers <!-- optional -->
 
-* protocol and mechanism implementations, and the final users of rsasl should be exposed to as little implementation 
+* protocol and mechanism implementations, and the final users of rsasl should be exposed to as little implementation
   detail of each other as possible.
 * Properties must be freely extensible but type-safe to use so that additional mechanisms can be implemented.
 
@@ -29,14 +29,14 @@ complete list while compiling the final application.
 
 ## Decision Outcome
 
-Chosen option: "opaque Newtype using `core::any::TypeId`", because it is open-ended in extensibility yet hides every 
+Chosen option: "opaque Newtype using `core::any::TypeId`", because it is open-ended in extensibility yet hides every
 implementation detail thus also allowing to upgrade to a different scheme if required later.
 
 ### Positive Consequences <!-- optional -->
 
 * Trivial to implement, new Property types need merely to `impl Property`
 * Allows not having to transfer ownership in certain cases, preventing heap allocations
-* Type-safety is easily and to the user transparently enforced, with Properties defining a value type that must be 
+* Type-safety is easily and to the user transparently enforced, with Properties defining a value type that must be
   passed
 * `impl Properties` are very abstract and can be easily reused for mechanism context
 
@@ -44,13 +44,13 @@ implementation detail thus also allowing to upgrade to a different scheme if req
 
 * Use of `match` is not possible
 * Checking if all required properties are handled is less obvious to developers
-* implementing 
+* implementing
 
 ## Pros and Cons of the Options <!-- optional -->
 
 ### Opaque Newtype using `core::any::TypeId`
 
-`TypeId` resp. `Any` is the compiler-supported way to add RTTI, see the 
+`TypeId` resp. `Any` is the compiler-supported way to add RTTI, see the
 [module documentation for `core::any`](https://doc.rust-lang.org/core/any/index.html).
 
 * Good, most flexible option as implementation details and hidden and can be freely modified
@@ -60,7 +60,7 @@ implementation detail thus also allowing to upgrade to a different scheme if req
 ### Opaque Newtype using `*const dyn Validation` resp. `*const dyn Property`
 
 * Good because as above implementation details are hidden and can be modified
-* Bad, implementation of properties is more complicated as the `Validation` and `Property` traits would have to do 
+* Bad, implementation of properties is more complicated as the `Validation` and `Property` traits would have to do
   additional lifting instead of just defining the Value type transported.
 * Bad, properties would have to define `const` values to `match` against
 * Bad, raw pointers will always require `unsafe` code to handle
