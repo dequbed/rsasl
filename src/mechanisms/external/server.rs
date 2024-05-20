@@ -85,13 +85,15 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(
+        expected = "assertion `left == right` failed\n  left: \"\"\n right: \"expectedauthzid\""
+    )]
     fn test_reject_invalid_1() {
         test_token("expectedauthzid", b"");
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "x")]
     fn test_reject_invalid_2() {
         test_token("", b"someunexpectedauthzid");
     }

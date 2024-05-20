@@ -12,6 +12,6 @@ is_ci = "1.2.0"
 miette = { version = "7.2.0", features = ["fancy"] }
 # Required for -Zminimal-versions
 regex = "1.10.4"
-rsasl = { path = "../..", features = ["provider_base64", "gssapi"] }
+rsasl = { path = "../..", default-features = false, features = ["provider_base64", "gssapi"] }
 rustls = { version = "0.23.7", default-features = false, features = ["std", "tls12", "logging", "ring"] }
 url = "2.5.0"

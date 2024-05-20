@@ -22,6 +22,7 @@ use hmac::SimpleHmac;
 use rand::{thread_rng, Rng, RngCore};
 use thiserror::Error;
 
+#[allow(dead_code)]
 trait ScramConfig {
     type DIGEST: Digest + BlockSizeUser;
     const ALGORITHM_NAME: &'static str;

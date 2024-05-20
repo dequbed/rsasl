@@ -15,13 +15,15 @@ struct OurCallback {
 }
 #[derive(Debug, Error)]
 enum OurCallbackError {}
+
 impl OurCallback {
+    #[allow(clippy::unnecessary_wraps, clippy::unused_self, clippy::similar_names)]
     fn test_validate(
         &self,
         _session_data: &SessionData,
         context: &Context,
     ) -> Result<Result<String, AuthError>, OurCallbackError> {
-        use AuthError::*;
+        use AuthError::{AuthzBad, NoSuchUser, PasswdBad};
 
         let authzid = context.get_ref::<AuthzId>();
         let authid = context
@@ -100,7 +102,7 @@ pub fn main() {
             .start_suggested(Mechname::parse(b"PLAIN").unwrap())
             .unwrap();
         let step_result = session.step(Some(b"\0username\0secret"), &mut out);
-        print_outcome(&step_result, out.into_inner());
+        print_outcome(&step_result, &out.into_inner());
         assert_eq!(step_result.unwrap(), State::Finished(MessageSent::No));
         assert_eq!(session.validation(), Some(Ok(String::from("username"))));
     }
@@ -113,7 +115,7 @@ pub fn main() {
             .start_suggested(Mechname::parse(b"PLAIN").unwrap())
             .unwrap();
         let step_result = session.step(Some(b"\0username\0badpass"), &mut out);
-        print_outcome(&step_result, out.into_inner());
+        print_outcome(&step_result, &out.into_inner());
         assert_eq!(step_result.unwrap(), State::Finished(MessageSent::No));
         assert_eq!(session.validation(), Some(Err(AuthError::PasswdBad)));
     }
@@ -126,7 +128,7 @@ pub fn main() {
             .start_suggested(Mechname::parse(b"PLAIN").unwrap())
             .unwrap();
         let step_result = session.step(Some(b"\0somebody\0somepass"), &mut out);
-        print_outcome(&step_result, out.into_inner());
+        print_outcome(&step_result, &out.into_inner());
         assert_eq!(step_result.unwrap(), State::Finished(MessageSent::No));
         assert_eq!(session.validation(), Some(Err(AuthError::NoSuchUser)));
     }
@@ -139,7 +141,7 @@ pub fn main() {
             .start_suggested(Mechname::parse(b"PLAIN").unwrap())
             .unwrap();
         let step_result = session.step(Some(b"username\0somebody\0badpass"), &mut out);
-        print_outcome(&step_result, out.into_inner());
+        print_outcome(&step_result, &out.into_inner());
         assert_eq!(step_result.unwrap(), State::Finished(MessageSent::No));
         assert_eq!(session.validation(), Some(Err(AuthError::AuthzBad)));
     }
@@ -152,12 +154,12 @@ pub fn main() {
             .start_suggested(Mechname::parse(b"PLAIN").unwrap())
             .unwrap();
         let step_result = session.step(Some(b"\0username badpass"), &mut out);
-        print_outcome(&step_result, out.into_inner());
+        print_outcome(&step_result, &out.into_inner());
         assert!(step_result.unwrap_err().is_mechanism_error());
     }
 }
 
-fn print_outcome(step_result: &Result<State, SessionError>, buffer: Vec<u8>) {
+fn print_outcome(step_result: &Result<State, SessionError>, buffer: &[u8]) {
     match step_result {
         Ok(State::Finished(MessageSent::Yes)) => {
             println!("Authentication finished, bytes to return to client: {buffer:?}");

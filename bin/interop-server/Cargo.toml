@@ -8,4 +8,4 @@ edition = "2021"
 base64 = "0.22.1"
 clap = "4.5.4"
 miette = { version = "7.2.0", features = ["fancy"] }
-rsasl = { path = "../..", features = ["provider_base64"] }
+rsasl = { path = "../..", default-features = false, features = ["provider_base64"] }

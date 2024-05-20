@@ -74,4 +74,4 @@ You can find a few examples on [GitHub](https://github.com/dequbed/rsasl/tree/ma
 [docs.rs]: https://docs.rs/rsasl/
 [maintenance]: https://img.shields.io/badge/maintenance-actively%20developed-green.svg
 [license]: https://img.shields.io/crates/l/rsasl
-[msrv]: https://img.shields.io/badge/rust%20msrv-1.74.0-blueviolet
+[msrv]: https://img.shields.io/badge/rust%20msrv-1.65.0-blueviolet

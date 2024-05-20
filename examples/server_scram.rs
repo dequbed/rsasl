@@ -25,12 +25,13 @@ struct OurCallback {
 enum OurCallbackError {}
 
 impl OurCallback {
+    #[allow(clippy::unnecessary_wraps, clippy::unused_self, clippy::similar_names)]
     fn test_validate(
         &self,
         _session_data: &SessionData,
         context: &Context,
     ) -> Result<Result<String, AuthError>, OurCallbackError> {
-        use AuthError::*;
+        use AuthError::{AuthzBad, NoSuchUser};
 
         let authzid = context.get_ref::<AuthzId>();
         let authid = context
