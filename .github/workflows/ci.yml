@@ -111,3 +111,13 @@ jobs:
       - if: ${{ runner.os == 'Linux' }}
         run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
       - run: cargo minimal-versions --direct --ignore-private check
+
+  spellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install cargo-spellcheck
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-spellcheck
+      - run: cargo spellcheck --code 1

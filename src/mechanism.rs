@@ -37,7 +37,7 @@ pub trait Authentication: Send + Sync {
     ///   Most importantly, a mechanisms **MUST NOT** return `Ok(State::Running)` as this
     ///   can result in an infinite loop if both sides of the authentication think the other
     ///   should go first.
-    /// - Incase an `Err(InputDataRequired)` is returned a second call to step *with* data
+    /// - In case an `Err(InputDataRequired)` is returned a second call to step *with* data
     ///   **SHOULD** continue the authentication exchange as if the invalid call never happened.
     ///   This means if input data is required but was not provided the internal state **SHOULD**
     ///   remain the same and not become invalid.

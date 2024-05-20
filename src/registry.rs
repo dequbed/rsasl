@@ -230,7 +230,7 @@ impl Registry {
         // This looks like a terrible double-allocation as Selection contains a `Box<dyn Selector>`,
         // but for most of the mechanisms the Selector is a ZST meaning the Box doesn't allocate.
         // Only if the selector has to keep state (e.g. the non-PLUS SCRAM ones have to change
-        // their behavior depending on what mechanisms the server offered for their GS2 header)
+        // their behaviour depending on what mechanisms the server offered for their GS2 header)
         // the Box has to make an allocation.
         let mut selectors: Vec<Selection> =
             self.get_mechanisms().filter_map(|m| m.select(cb)).collect();
@@ -249,7 +249,7 @@ impl Registry {
                 match fold(accmech, m) {
                     // `Greater` means the first parameter (accmech) was preferable — even if None.
                     Ordering::Greater => acc,
-                    // `Equal` is undefined behavior, but we're just going for `Less` because
+                    // `Equal` is undefined behaviour, but we're just going for `Less` because
                     // we don't have to check for `accmech` being `None` then.
                     Ordering::Equal |
                     // `Less` means the second parameter (m) was preferable

@@ -152,7 +152,7 @@ pub struct TOKEN(PhantomData<()>);
 ///
 /// It does however additionally include hidden internal errors that are required for some
 /// functionality but can not be handled by user code. Due to those this enum is marked
-/// [`#[non_exhaustive]`](https://rust-lang.github.io/rfcs/2008-non-exhaustive.html) — in
+/// [`#[non_exhaustive]`](https://rust-lang.github.io/rfcs/2008-non-exhaustive.html) - in
 /// practice this means that any match on the variant of `CallbackError` must include a catch-all
 /// `_`.
 ///
@@ -308,7 +308,7 @@ impl<'a> Request<'a> {
         self.0.is::<Action<P>>()
     }
 
-    /// Returns true iff this Request is for the Property `P`.
+    /// Returns true if this Request is for the Property `P`.
     ///
     /// Using this method is generally not necessary as [`satisfy`](Request::satisfy),
     /// [`satisfy_with`](Request::satisfy_with) and [`get_action`](Request::get_action) can used

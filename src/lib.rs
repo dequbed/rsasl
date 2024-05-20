@@ -23,7 +23,7 @@
 //! implementations of just the authentication part.
 //!
 //! SASL implements this by abstracting all authentication into so called 'mechanisms' that
-//! authenticate in a number of 'steps', with each step consisting of some amount of data being
+//! authenticate in a number of `steps`, with each step consisting of some amount of data being
 //! sent from the client to the server and from the server to the client.
 //! This data is explicitly opaque to the outer protocol (e.g. SMTP, IMAP, …). The protocol only
 //! needs to define a way to transport this data to the respective other end. The way this is done

@@ -42,7 +42,7 @@ use core2::io::Write;
 ///
 /// An 64-byte "shared nonce" is generated, consisting of the 32 bytes received from Step 1, with
 /// an additional 32 byte **appended** to it.
-/// A reponse token is set to "Server" if the current side is the server (i.e. the client-first
+/// A response token is set to "Server" if the current side is the server (i.e. the client-first
 /// variant was used) or "Client" otherwise.
 ///
 /// Message format, rules from Step 1 are implied

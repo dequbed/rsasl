@@ -7,7 +7,7 @@
 ![msrv]
 
 rsasl is an framework for [RFC 4422](https://tools.ietf.org/html/rfc4422); the Simple Authentication and Security
-Layer — aka SASL.
+Layer - aka SASL.
 
 It is designed to enable implementing SASL support in protocol handling crates while abstracting away the details,
 allowing downstream users to select available mechanisms and add support for additional mechanisms without any
@@ -43,7 +43,7 @@ Additional mechanisms can be implemented by other crates. (**NOTE: In the curren
 rsasl allows users to select the available mechanisms at compile time using cargo features.
 For an overview refer to the module documentation of `rsasl::mechanisms`.
 
-## MSRV — Minimum Supported Rust Version
+## MSRV - Minimum Supported Rust Version
 
 The current msrv rsasl is Rust `0`, however do note that certain features (e.g. `registry_static`) have
 dependencies with much more recent msrv.
