@@ -36,6 +36,20 @@ jobs:
         run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
       - run: cargo clippy --all-features --all-targets --tests
 
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+      - if: ${{ runner.os == 'Linux' }}
+        run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
+      - run: cargo doc --workspace --no-deps --all-features --document-private-items
+        env:
+          RUSTFLAGS: --cfg docsrs -Dwarnings
+          RUSTDOCFLAGS: --cfg docsrs -Dwarnings
+
   check:
     runs-on: ubuntu-latest
     steps:

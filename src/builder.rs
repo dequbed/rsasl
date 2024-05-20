@@ -6,7 +6,7 @@ use crate::registry::Registry;
 use core::fmt::{Debug, Formatter};
 
 #[derive(Clone)]
-/// Type-checking, complete and linker-friendly builder for [`SASLConfig`](crate::config::SASLConfig)
+/// Type-checking, complete and linker-friendly builder for [`SASLConfig`]
 ///
 /// Due to `ConfigBuilder` using the `State` generic the compiler can enforce that all required
 /// information is provided at compile time.

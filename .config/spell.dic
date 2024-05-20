@@ -6,6 +6,7 @@ dtolnay
 GSSAPI
 linkme
 Mechname
+miri
 OAUTHBEARER
 repr
 rsasl

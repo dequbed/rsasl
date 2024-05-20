@@ -32,7 +32,7 @@ pub trait Authentication: Send + Sync {
     /// - When a mechanism is called with no input or an empty input when this was not expected, a
     ///   mechanism **MUST** return an Error. [`SessionError::InputDataRequired`] is a safe
     ///   default here, but if this behaviour results in e.g. the server not being
-    ///   mutually authenticated other [`SessionError`]s or [`MechanismError`](crate::error::MechanismError)s can be appropriate.
+    ///   mutually authenticated other [`SessionError`]s or [`MechanismError`]s can be appropriate.
     ///
     ///   Most importantly, a mechanisms **MUST NOT** return `Ok(State::Running)` as this
     ///   can result in an infinite loop if both sides of the authentication think the other

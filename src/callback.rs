@@ -240,8 +240,6 @@ where
         }
     }
 
-    // false positive
-    #[allow(clippy::missing_const_for_fn)]
     pub fn try_unwrap(self) -> Option<G> {
         if let Some(ClosureCRState::Satisfied(val)) = self.closure {
             Some(val)
