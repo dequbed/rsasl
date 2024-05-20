@@ -50,24 +50,24 @@ default = [
 
 #! # Compile-time mechanism selection
 ## Enable `SCRAM-SHA-1` and `SCRAM-SHA-1-PLUS`
-scram-sha-1 = ["std", "stringprep", "hmac", "digest", "sha-1", "base64", "rand", "pbkdf2"]
+scram-sha-1 = ["std", "dep:stringprep", "dep:hmac", "dep:digest", "dep:sha1", "dep:base64", "dep:rand", "dep:pbkdf2"]
 ## Enable `SCRAM-*` and `SCRAM-*-PLUS` mechanisms using `SHA-2`, i.e. `SHA-256` and `SHA-512`
-scram-sha-2 = ["std", "stringprep", "hmac", "digest", "sha2", "base64", "rand", "pbkdf2"]
+scram-sha-2 = ["std", "dep:stringprep", "dep:hmac", "dep:digest", "dep:sha2", "dep:base64", "dep:rand", "dep:pbkdf2"]
 ## Enable `ANONYMOUS`
 anonymous = ["std"]
 ## Enable `EXTERNAL`
 external = ["std"]
 ## Enable `PLAIN`
-plain = ["std", "stringprep"]
+plain = ["std", "dep:stringprep"]
 ## Enable `LOGIN`
 login = ["std"]
 ## Enable `XOAUTH2`
 xoauth2 = ["std"]
 ## Enable the OAuth2 based `OAUTHBEARER`
-oauthbearer = ["std", "serde", "serde_json"]
+oauthbearer = ["std", "dep:serde", "serde_json"]
 
 ## Enable the KerberosV5 mechanism `GSSAPI`
-gssapi = ["std", "libgssapi", "bitflags"]
+gssapi = ["std", "dep:libgssapi", "dep:bitflags", "dep:pkg-config"]
 
 #! # Provider flags
 #! These flags are relevant for crates that want to use rsasl as authentication provider, i.e. crates implementing
@@ -80,7 +80,7 @@ provider = ["std"]
 ## Enable transparent Base64 wrapping for provider mode
 ##
 ## This enables the `step64` method to wrap a call to `step` in base64-encoding. Adds a dependency on the `base64` crate
-provider_base64 = ["std", "provider", "base64"]
+provider_base64 = ["std", "provider", "dep:base64"]
 
 #! # Supplier flags
 #! These flags are relevant for crates that want to use rsasl as supplier, i.e. applications and libraries making use
@@ -89,7 +89,7 @@ provider_base64 = ["std", "provider", "base64"]
 config_builder = ["std"]
 
 ## Enables the static registry using `linkme`
-registry_static = ["std", "linkme"]
+registry_static = ["std", "dep:linkme"]
 
 #! # Misc flags
 #! Other miscellanious flags
@@ -121,10 +121,12 @@ libgssapi = { version = "0.7.0", optional = true, default-features = false }
 linkme = { version = "0.3.26", optional = true, default-features = false }
 pbkdf2 = { version = "0.12.2", optional = true, default-features = false }
 rand = { version = "0.8.5", optional = true }
-sha-1 = { version = "0.10.1", optional = true }
+sha1 = { version = "0.10.6", optional = true }
 sha2 = { version = "0.10.8", optional = true }
-stringprep = { version = "0.1.4", optional = true }
-thiserror = "1.0.61"
+stringprep = { version = "0.1.4", optional = true, default-features = false }
+thiserror = { version = "1.0.61", default-features = false }
+# Required for -Zminimal-versions
+pkg-config = { version = "0.3.30", optional = true, default-features = false }
 
 [dependencies.serde]
 version = "1.0.202"
