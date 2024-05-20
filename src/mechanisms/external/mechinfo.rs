@@ -4,9 +4,10 @@ use crate::mechname::Mechname;
 use crate::registry::{Matches, Mechanism, Named};
 use crate::session::Side;
 
-#[cfg(feature = "registry_static")]
-use crate::registry::{distributed_slice, MECHANISMS};
-#[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+#[cfg_attr(
+    feature = "registry_static",
+    linkme::distributed_slice(crate::registry::MECHANISMS)
+)]
 pub static EXTERNAL: Mechanism = Mechanism {
     mechanism: Mechname::const_new(b"EXTERNAL"),
     priority: 100,

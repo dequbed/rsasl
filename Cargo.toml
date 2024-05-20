@@ -35,7 +35,8 @@ all-features = true
 [features]
 default = [
     "config_builder",
-    "registry_static",
+    # See https://github.com/dtolnay/linkme/issues/49
+    # "registry_static",
     "scram-sha-1",
     "scram-sha-2",
     "anonymous",
@@ -117,7 +118,7 @@ digest = { version = "0.10", optional = true }
 document-features = { version = "0.2.8", optional = true }
 hmac = { version = "0.12", optional = true, features = ["reset"] }
 libgssapi = { version = "0.7.0", optional = true, default-features = false }
-linkme = { version = "0.3.26", optional = true }
+linkme = { version = "0.3.26", optional = true, default-features = false }
 pbkdf2 = { version = "0.12.2", optional = true, default-features = false }
 rand = { version = "0.8.5", optional = true }
 sha-1 = { version = "0.10.1", optional = true }

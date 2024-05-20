@@ -24,10 +24,10 @@ impl Property<'_> for AnonymousToken {
     type Value = str;
 }
 
-#[cfg(feature = "registry_static")]
-use crate::registry::{distributed_slice, MECHANISMS};
-
-#[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+#[cfg_attr(
+    feature = "registry_static",
+    linkme::distributed_slice(crate::registry::MECHANISMS)
+)]
 pub static ANONYMOUS: Mechanism = Mechanism {
     mechanism: Mechname::const_new(b"ANONYMOUS"),
     priority: 100,

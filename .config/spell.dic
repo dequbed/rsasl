@@ -1,1 +1,13 @@
 1000
+authzid
+dtolnay
+GSSAPI
+linkme
+Mechname
+OAUTHBEARER
+rsasl
+rustc
+sasl
+SECURID
+testutils
+XOAUTH2
