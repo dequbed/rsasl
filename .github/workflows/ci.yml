@@ -6,8 +6,12 @@ on:
     branches:
       - development
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 env:
-  RUSTFLAGS: "" # -Dwarnings
+  RUSTFLAGS: -Dwarnings
   RUST_BACKTRACE: full
   rust_min: 1.65.0
 
@@ -17,6 +21,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
       - run: cargo fmt --all -- --check
 
   clippy:
@@ -28,7 +34,7 @@ jobs:
           components: clippy
       - if: ${{ runner.os == 'Linux' }}
         run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
-      - run: cargo clippy --all-features --all-targets --tests -- -Dwarnings
+      - run: cargo clippy --all-features --all-targets --tests
 
   check:
     runs-on: ubuntu-latest

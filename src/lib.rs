@@ -122,6 +122,8 @@
 //! [`State::Finished`](session::State::Finished) is returned:
 //!
 //! ```rust
+//! # #[cfg(all(not(miri), feature = "provider"))]
+//! # {
 //! # use std::io;
 //! # use std::sync::Arc;
 //! use rsasl::prelude::*;
@@ -170,6 +172,7 @@
 //!     // rsasl can in most cases not tell if the authentication was successful, this would have
 //!     // to be checked in a protocol-specific way.
 //! }
+//! # }
 //! ```
 //!
 //! After an authentication exchange has finished [`Session::validation`](session::Session::validation)

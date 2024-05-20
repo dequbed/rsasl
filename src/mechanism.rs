@@ -4,6 +4,7 @@
 use crate::error::SessionError::NoSecurityLayer;
 use core2::io::Write;
 
+#[allow(unused_imports)]
 pub use crate::error::{MechanismError, SessionError};
 pub use crate::session::{MechanismData, State};
 

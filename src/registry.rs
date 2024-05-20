@@ -33,6 +33,7 @@ use core::fmt;
 use crate::config::SASLConfig;
 use crate::error::SASLError;
 pub use crate::session::Side;
+#[allow(unused_imports)]
 #[cfg(feature = "registry_static")]
 pub use registry_static::*;
 
