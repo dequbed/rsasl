@@ -85,17 +85,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: nightly
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.rust_min }}
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: taiki-e/install-action@cargo-minimal-versions
+      - uses: taiki-e/install-action@cargo-hack
       - if: ${{ runner.os == 'Linux' }}
         run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
-      - run: |
-          cargo +nightly update -Z minimal-versions
-          cargo +${{ env.rust_min }} check --workspace --all-targets --all-features
-          cargo +${{ env.rust_min }} test --workspace --all-targets --all-features
-        env:
-          RUSTFLAGS: -Dwarnings
+      - run: cargo minimal-versions --direct --ignore-private check
