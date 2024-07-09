@@ -245,11 +245,11 @@ mod provider {
         }
     }
 
-    impl<'a> MechanismData<'a> {
+    impl<'a, 'b> MechanismData<'a, 'b> {
         fn new(
             callback: &'a dyn SessionCallback,
             chanbind_cb: &'a dyn ChannelBindingCallback,
-            validator: &'a mut Validate<'a>,
+            validator: &'a mut Validate<'b>,
             mechanism_desc: Mechanism,
             side: Side,
         ) -> Self {
@@ -302,14 +302,14 @@ mod provider {
 #[cfg(any(feature = "provider", feature = "testutils", test))]
 pub use provider::Session;
 
-pub struct MechanismData<'a> {
+pub struct MechanismData<'a, 'b> {
     callback: &'a dyn SessionCallback,
     chanbind_cb: &'a dyn ChannelBindingCallback,
-    validator: &'a mut Validate<'a>,
+    validator: &'a mut Validate<'b>,
     session_data: SessionData,
 }
 
-impl MechanismData<'_> {
+impl MechanismData<'_, '_> {
     pub fn validate(&mut self, provider: &dyn Provider) -> Result<(), ValidationError> {
         let context = build_context(provider);
         self.callback
@@ -336,7 +336,7 @@ impl MechanismData<'_> {
     where
         T: Property<'a>,
     {
-        let mut tagged = Tagged::<'a, Action<T>>(Some(value));
+        let mut tagged = Tagged::<'_, Action<T>>(Some(value));
         self.callback(provider, Request::new_action::<T>(&mut tagged))?;
         if tagged.is_some() {
             Err(SessionError::CallbackError(CallbackError::NoCallback(
@@ -408,7 +408,7 @@ impl MechanismData<'_> {
     }
 }
 
-impl fmt::Debug for MechanismData<'_> {
+impl fmt::Debug for MechanismData<'_, '_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("MechanismData").finish()
     }

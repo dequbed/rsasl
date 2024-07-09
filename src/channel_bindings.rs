@@ -64,7 +64,6 @@ mod tests {
             .unwrap();
 
         let mut tagged_option = Tagged::<'_, NoValidation>(None);
-
         let validate = Validate::new::<NoValidation>(&mut tagged_option);
         session
             .get_cb_data("this-cb", validate, &mut |cb| {
@@ -74,6 +73,7 @@ mod tests {
             })
             .unwrap();
 
+        let mut tagged_option = Tagged::<'_, NoValidation>(None);
         let validate = Validate::new::<NoValidation>(&mut tagged_option);
         let e = session
             .get_cb_data("blahblubb", validate, &mut |_cb| {

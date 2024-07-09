@@ -116,7 +116,7 @@ impl<'a> Demand<'a> {
     }
 }
 
-pub fn build_context<'a>(provider: &'a dyn Provider) -> &'a Context<'a> {
+pub fn build_context<'a, 'b>(provider: &'a (dyn Provider<'b> + 'a)) -> &'a Context<'b> {
     unsafe { &*(provider as *const dyn Provider as *const Context) }
 }
 

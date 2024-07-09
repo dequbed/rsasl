@@ -294,12 +294,13 @@ impl<'a> Request<'a> {
         unsafe { &mut *(opt as &mut dyn Erased as *mut dyn Erased as *mut Self) }
     }
 
-    pub(crate) fn new_action<'t, 'p, P: Property<'p>>(
-        val: &'t mut Tagged<'p, Action<P>>,
-    ) -> &'t mut Self {
-        unsafe { &mut *(val as &mut dyn Erased as *mut dyn Erased as *mut Self) }
+    pub(crate) fn new_action<'p, P: Property<'p>>(
+        val: &'a mut Tagged<'p, Action<P>>,
+    ) -> &'a mut Request<'p> {
+        unsafe { &mut *(val as &mut dyn Erased as *mut dyn Erased as *mut Request) }
     }
 }
+
 impl<'a> Request<'a> {
     fn is_satisfy<P: Property<'a>>(&self) -> bool {
         self.0.is::<tags::RefMut<Satisfy<P>>>()
