@@ -47,14 +47,14 @@ impl Authentication for XOAuth2 {
         &mut self,
         session: &mut MechanismData,
         input: Option<&[u8]>,
-        mut writer: &mut dyn Write,
+        writer: &mut dyn Write,
     ) -> Result<State, SessionError> {
         match self.state {
             XOAuth2State::Initial => {
                 session.need_with::<AuthId, _, _>(&EmptyProvider, |authid| {
                     let data = [b"user=", authid.as_bytes(), b"\x01auth=Bearer "];
                     let mut vecw = VectoredWriter::new(data);
-                    vecw.write_all_vectored(&mut writer)?;
+                    vecw.write_all_vectored(&mut *writer)?;
                     Ok(())
                 })?;
 

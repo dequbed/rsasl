@@ -124,6 +124,7 @@ mod instance {
         /// - SCRAM-SHA-1
         /// - PLAIN
         /// - LOGIN (**only enabled if `authzid` is set to `None`!**)
+        ///
         /// And will be preferred in this order.
         #[allow(clippy::similar_names)]
         pub fn with_credentials(
