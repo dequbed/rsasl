@@ -18,6 +18,11 @@ release. They will however *never* happen in a patch release.
 
 [Changes rendered on GitHub][Upcoming/diff]
 
+
+# [v2.0.2] — 2024-08-10
+
+[Changes rendered on GitHub][v2.0.2/diff]
+
 ## Added
 - Mathieu-Lala added a lot of build engineering, improving the CI and adding dependabot alerts. 
 
@@ -249,7 +254,9 @@ making this release possible.**
 
 [Upcoming Changes]: https://github.com/dequbed/rsasl/tree/development
 <!-- next-url -->
-[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/v2.0.1...development
+[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/v2.0.2...development
+[v2.0.2]: https://github.com/dequbed/rsasl/releases/tag/v2.0.2
+[v2.0.2/diff]: https://github.com/dequbed/rsasl/compare/v2.0.1...v2.0.2
 [v2.0.1]: https://github.com/dequbed/rsasl/releases/tag/v2.0.1
 [v2.0.1/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0...v2.0.1
 [v2.0.0]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0
