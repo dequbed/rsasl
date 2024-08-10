@@ -84,7 +84,7 @@ mod provider {
         /// application via callbacks.
         ///
         /// This is a small wrapper for [`Self::start_suggested_iter`] to keep
-        /// backwards-compatability by allowing to pass `&[&Mechname]`, which only implemens
+        /// backwards-compatibility by allowing to pass `&[&Mechname]`, which only implements
         /// `IntoIterator<Item=&&Mechname>`. Using the `_iter` variant is more efficient if you can
         /// generate direct references to `Mechname`.
         pub fn start_suggested<'a>(

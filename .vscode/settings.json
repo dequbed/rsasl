@@ -1,0 +1,12 @@
+{
+  "cSpell.customDictionaries": {
+    "project-words": {
+      "name": "words",
+      "path": "${workspaceRoot}/.config/spell.dic",
+      "description": "Words used",
+      "addWords": true
+    },
+    "custom": true,
+    "internal-terms": false
+  }
+}

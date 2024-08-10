@@ -14,7 +14,9 @@ use crate::mechname::Mechname;
 
 trait ConfigInstance: fmt::Debug + Send + Sync {
     fn get_mech_iter<'a>(&self) -> MechanismIter<'a>;
+    #[allow(dead_code)]
     fn get_callback(&self) -> &dyn SessionCallback;
+    #[allow(dead_code)]
     fn select(
         &self,
         cb: bool,
@@ -167,6 +169,7 @@ mod instance {
 
     struct Inner {
         cb: bool,
+        #[allow(dead_code)]
         callback: Box<dyn SessionCallback>,
         mechanisms: Registry,
     }
@@ -176,7 +179,7 @@ mod instance {
             f.debug_struct("SASLConfig")
                 .field("channel_binding", &self.cb)
                 .field("mechanisms", &self.mechanisms)
-                .finish()
+                .finish_non_exhaustive()
         }
     }
 

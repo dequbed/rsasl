@@ -1,0 +1,26 @@
+[package]
+name = "rsasl-interop"
+publish = false
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = "4.5.4"
+hex = "0.4.3"
+miette = { version = "7.2.0", features = ["fancy"] }
+rsasl = { path = "..", default-features = false, features = [
+    "provider_base64",
+    "config_builder",
+    "scram-sha-1",
+    "scram-sha-2",
+    "anonymous",
+    "external",
+    "oauthbearer",
+    "xoauth2",
+    "plain",
+    "login",
+    "gssapi"
+] }
+rustls = { version = "0.23.7", default-features = false, features = ["std", "tls12", "logging", "ring"] }
+url = "2.5.0"
+base64 = "0.22.1"

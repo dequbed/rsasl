@@ -5,8 +5,8 @@ use crate::mechanism::{Authentication, MechanismData, State};
 use crate::mechanisms::xoauth2::properties::XOAuth2Validate;
 use crate::property::{AuthId, OAuthBearerToken};
 use crate::session::MessageSent;
-use acid_io::Write;
 use core::str::Utf8Error;
+use core2::io::Write;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Default)]

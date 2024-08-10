@@ -116,7 +116,7 @@ impl<'a> Demand<'a> {
     }
 }
 
-pub fn build_context<'a>(provider: &'a dyn Provider) -> &'a Context<'a> {
+pub fn build_context<'a, 'b>(provider: &'a (dyn Provider<'b> + 'a)) -> &'a Context<'b> {
     unsafe { &*(provider as *const dyn Provider as *const Context) }
 }
 
@@ -185,7 +185,7 @@ impl<'a> Context<'a> {
 #[repr(transparent)]
 pub struct ThisProvider<'a, P: Property<'a>>(&'a P::Value);
 impl<'a, P: Property<'a>> ThisProvider<'a, P> {
-    pub const fn with(value: &'a P::Value) -> ThisProvider<'a, P> {
+    pub const fn with(value: &'a P::Value) -> Self {
         ThisProvider(value)
     }
 

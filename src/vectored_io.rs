@@ -1,5 +1,4 @@
-use acid_io as io;
-use acid_io::{IoSlice, Write};
+use core2::io::{self, IoSlice, Write};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 /// An adapter that allows to more comfortable write using scatter-gather IO by handing the
@@ -30,7 +29,7 @@ impl<'io, const N: usize> VectoredWriter<'io, N> {
         let mut remove = 0;
         // Total length of all the to be removed buffers.
         let mut accumulated_len = 0;
-        for buf in self.data[self.skip..].iter() {
+        for buf in &self.data[self.skip..] {
             if accumulated_len + buf.len() > len {
                 break;
             }

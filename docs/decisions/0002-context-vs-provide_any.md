@@ -1,4 +1,4 @@
-# Using `Property::Value` indirection over direct value access 
+# Using `Property::Value` indirection over direct value access
 
 * Status: accepted
 * Deciders: dequbed
@@ -6,10 +6,10 @@
 
 ## Context and Problem Statement
 
-rsasl requires open polymorphic generic access to values for properties set by mechanisms as they need to be 
-accessed by downstream code in their `Callback`. A similar system is at the time developed in the rust std as 
+rsasl requires open polymorphic generic access to values for properties set by mechanisms as they need to be
+accessed by downstream code in their `Callback`. A similar system is at the time developed in the rust std as
 [std::any::Provider].
-The decision to be made was wether to use direct value access similar to `Provider` i.e. `get<T>` returning a `&T`, 
+The decision to be made was wether to use direct value access similar to `Provider` i.e. `get<T>` returning a `&T`,
 or have an indirection, so `get<T: Property>` returning a `&T::Value`.
 
 ## Considered Options
@@ -19,7 +19,7 @@ or have an indirection, so `get<T: Property>` returning a `&T::Value`.
 
 ## Decision Outcome
 
-Chosen option: "`trait Property` based value indirection", because many properties make sense to have return the same 
+Chosen option: "`trait Property` based value indirection", because many properties make sense to have return the same
 type and this minimized the amount of newtype wrappers.
 
 ### Positive Consequences
@@ -27,11 +27,11 @@ type and this minimized the amount of newtype wrappers.
 * Properties are unit structs
 * Property values do not need to be newtype-wrapped
 
-### Negative Consequences 
+### Negative Consequences
 
 * The system can not be later adapted to `provide_any`
 
-## Pros and Cons of the Options 
+## Pros and Cons of the Options
 
 ### `provide_any` style direct value access
 

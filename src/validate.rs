@@ -14,7 +14,7 @@
 //! visible to the user providing the callback.
 //!
 //! ```
-//! # #[cfg(not(miri))]
+//! # #[cfg(all(not(miri), feature = "provider"))]
 //! # {
 //! # use std::convert::Infallible;
 //! use std::sync::Arc;
@@ -36,7 +36,7 @@
 //!     let sasl = SASLServer::<MyValidation>::new(config);
 //!
 //!     let mut session = sasl.start_suggested(selected).unwrap();
-//!     // do authenthentication stepping and so on
+//!     // do authentication stepping and so on
 //!
 //!     // Since `SASLServer` was constructed with `MyValidation`, calling `validation()` returns
 //!     // `Option<MyDataType>`
@@ -129,8 +129,8 @@ impl Validation for NoValidation {
 /// mechanism.
 pub struct Validate<'a>(dyn Erased<'a> + 'a);
 #[cfg(any(test, feature = "provider", feature = "testutils"))]
-impl Validate<'_> {
-    pub(crate) fn new<'opt, V: Validation>(opt: &'opt mut Tagged<'_, V>) -> &'opt mut Self {
+impl<'a> Validate<'a> {
+    pub(crate) fn new<'opt, V: Validation>(opt: &'opt mut Tagged<'a, V>) -> &'opt mut Self {
         unsafe { &mut *(opt as &mut dyn Erased as *mut dyn Erased as *mut Self) }
     }
 }

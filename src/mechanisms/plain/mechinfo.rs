@@ -9,9 +9,10 @@ use core::str::Utf8Error;
 #[cfg(feature = "std")]
 use thiserror::Error;
 
-#[cfg(feature = "registry_static")]
-use crate::registry::{distributed_slice, MECHANISMS};
-#[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+#[cfg_attr(
+    feature = "registry_static",
+    linkme::distributed_slice(crate::registry::MECHANISMS)
+)]
 /// Mechanism description for PLAIN
 ///
 /// See the [`plain`](super) module documentation for details and usage.

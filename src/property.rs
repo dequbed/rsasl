@@ -43,7 +43,7 @@ mod properties {
     /// the name of the user to whom the password or other authentication data belongs to, while the
     /// [`AuthzId`] is the user to authentication *as*.
     ///
-    /// E.g. in an authentication with `AuthId`="Bob", `AuthzId`="Alice", and `Password`="secret" a
+    /// E.g. in an authentication with `AuthId == "Bob" && AuthzId == "Alice" && Password == "secret"` a
     /// server would first verify if "secret" is Bobs password. If so, it would then create a session
     /// as if *Alice* has logged in with her password, letting Bob act on her behalf. (Given of
     /// course that Bob has the required permission to do so)
@@ -59,7 +59,7 @@ mod properties {
     /// SASL makes a distinction between [`AuthId`] and this type. The `AuthzId` generally represents
     /// the name of the user that is used for auth**orization**. In other words, the user to act as.
     ///
-    /// E.g. in an authentication with `AuthId`="Bob", `AuthzId`="Alice", and `Password`="secret" a
+    /// E.g. in an authentication with `AuthId == "Bob" && AuthzId == "Alice" && Password == "secret"` a
     /// server would first verify if "secret" is Bobs password. If so, it would then create a session
     /// as if *Alice* has logged in with her password, letting Bob act on her behalf. (Given of
     /// course that Bob has the required permission to do so)
