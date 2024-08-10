@@ -127,7 +127,7 @@ stringprep = { version = "0.1.4", optional = true, default-features = false }
 thiserror = { version = "1.0.61", default-features = false }
 
 [dependencies.serde]
-version = "1.0.202"
+version = "1.0.205"
 optional = true
 default-features = false
 features = ["alloc", "derive"]
