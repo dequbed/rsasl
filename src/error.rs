@@ -41,7 +41,7 @@ pub enum SessionError {
     #[error("IO error occurred")]
     Io {
         #[from]
-        source: acid_io::Error,
+        source: core2::io::Error,
     },
 
     #[cfg(feature = "provider_base64")]

@@ -1,58 +1,73 @@
 [package]
 name = "rsasl"
-version = "2.0.1"
+version = "2.0.2"
 authors = ["Nadja Reitzenstein <me@dequbed.space>"]
-edition = "2021"
-rust-version = "1.61.0"
-
-description = """The Rust SASL framework, aimed at both middleware-style protocol implementation and application code.
-Designed to make SASL authentication simple and safe while handing as much control to the user as possible.
-"""
-documentation = "https://docs.rs/rsasl"
-readme = "README.md"
-
-homepage = "https://github.com/dequbed/rsasl"
-repository = "https://github.com/dequbed/rsasl"
-license = "Apache-2.0 OR MIT"
-
-keywords = ["sasl", "authentication", "sso", "framework", "middleware"]
 categories = ["authentication", "api-bindings", "network-programming"]
-
+documentation = "https://docs.rs/rsasl"
+edition = "2021"
+homepage = "https://github.com/dequbed/rsasl"
 # Manually list files to include; excluding out-of-tree integration tests and testing binaries that arent useful when
 # rsasl is only used as a dependency.
-include = ["Cargo.toml", "/src/", "README.md", "CHANGELOG.md", "LICENSE.MIT", "LICENSE.APACHE-2.0", "/docs/", "/tests/", "/examples/"]
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+include = [
+    "Cargo.toml",
+    "/src/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE.MIT",
+    "LICENSE.APACHE-2.0",
+    "/docs/",
+    "/tests/",
+    "/examples/"
+]
+keywords = ["sasl", "authentication", "sso", "framework", "middleware"]
+license = "Apache-2.0 OR MIT"
+readme = "README.md"
+repository = "https://github.com/dequbed/rsasl"
+rust-version = "1.65.0"
+description = """
+The Rust SASL framework, aimed at both middleware-style protocol implementation and application code.
+Designed to make SASL authentication simple and safe while handing as much control to the user as possible.
+"""
+
+[package.metadata.docs.rs]
+all-features = true
 
 [features]
 default = [
     "config_builder",
-    "registry_static",
-    "scram-sha-1", "scram-sha-2",
-    "anonymous", "external",
-    "oauthbearer", "xoauth2", "plain", "login",
+    # See https://github.com/dtolnay/linkme/issues/49
+    # "registry_static",
+    "scram-sha-1",
+    "scram-sha-2",
+    "anonymous",
+    "external",
+    "oauthbearer",
+    "xoauth2",
+    "plain",
+    "login",
     "gssapi"
 ]
 
 #! # Compile-time mechanism selection
 ## Enable `SCRAM-SHA-1` and `SCRAM-SHA-1-PLUS`
-scram-sha-1 = ["std", "stringprep", "hmac", "digest", "sha-1", "base64", "rand", "pbkdf2"]
+scram-sha-1 = ["std", "dep:stringprep", "dep:hmac", "dep:digest", "dep:sha1", "dep:base64", "dep:rand", "dep:pbkdf2"]
 ## Enable `SCRAM-*` and `SCRAM-*-PLUS` mechanisms using `SHA-2`, i.e. `SHA-256` and `SHA-512`
-scram-sha-2 = ["std", "stringprep", "hmac", "digest", "sha2", "base64", "rand", "pbkdf2"]
+scram-sha-2 = ["std", "dep:stringprep", "dep:hmac", "dep:digest", "dep:sha2", "dep:base64", "dep:rand", "dep:pbkdf2"]
 ## Enable `ANONYMOUS`
 anonymous = ["std"]
 ## Enable `EXTERNAL`
 external = ["std"]
 ## Enable `PLAIN`
-plain = ["std", "stringprep"]
+plain = ["std", "dep:stringprep"]
 ## Enable `LOGIN`
 login = ["std"]
 ## Enable `XOAUTH2`
 xoauth2 = ["std"]
 ## Enable the OAuth2 based `OAUTHBEARER`
-oauthbearer = ["std", "serde", "serde_json"]
+oauthbearer = ["std", "dep:serde", "serde_json"]
 
 ## Enable the KerberosV5 mechanism `GSSAPI`
-gssapi = ["std", "libgssapi", "bitflags"]
+gssapi = ["std", "dep:libgssapi", "dep:bitflags"]
 
 #! # Provider flags
 #! These flags are relevant for crates that want to use rsasl as authentication provider, i.e. crates implementing
@@ -65,7 +80,7 @@ provider = ["std"]
 ## Enable transparent Base64 wrapping for provider mode
 ##
 ## This enables the `step64` method to wrap a call to `step` in base64-encoding. Adds a dependency on the `base64` crate
-provider_base64 = ["std", "provider", "base64"]
+provider_base64 = ["std", "provider", "dep:base64"]
 
 #! # Supplier flags
 #! These flags are relevant for crates that want to use rsasl as supplier, i.e. applications and libraries making use
@@ -74,7 +89,7 @@ provider_base64 = ["std", "provider", "base64"]
 config_builder = ["std"]
 
 ## Enables the static registry using `linkme`
-registry_static = ["std", "linkme"]
+registry_static = ["std", "dep:linkme"]
 
 #! # Misc flags
 #! Other miscellanious flags
@@ -93,48 +108,63 @@ unstable_custom_mechanism = ["std"]
 ## Enable use of libstd
 ## If this flag is not set, rsasl is marked !\[no_std\]. However, currently this flag will *always* be enabled as core
 ## parts of rsasl depend on the stdlib.
-std = ["acid_io/std", "serde_json/std"]
+std = ["core2/std", "serde_json/std"]
 
 [dependencies]
-thiserror = "1.0"
-# An #[no_std]-enabled version of std::io.
-acid_io = "0.1.0"
+base64 = { version = "0.22.1", optional = true }
+bitflags = { version = "2.6.0", optional = true }
+core2 = { version = "0.4.0", default-features = false }
+digest = { version = "0.10.7", optional = true }
+document-features = { version = "0.2.8", optional = true }
+hmac = { version = "0.12.1", optional = true, features = ["reset"] }
+libgssapi = { version = "0.7.2", optional = true, default-features = false }
+linkme = { version = "0.3.26", optional = true, default-features = false }
+pbkdf2 = { version = "0.12.2", optional = true, default-features = false }
+rand = { version = "0.8.5", optional = true }
+sha1 = { version = "0.10.6", optional = true }
+sha2 = { version = "0.10.8", optional = true }
+stringprep = { version = "0.1.4", optional = true, default-features = false }
+thiserror = { version = "1.0.63", default-features = false }
 
-base64 = { version = "0.13", optional = true }
+[dependencies.serde]
+version = "1.0.205"
+optional = true
+default-features = false
+features = ["alloc", "derive"]
 
-rand = { version = "0.8", optional = true }
-
-hmac = { version = "0.12", optional = true, features = ["reset"] }
-digest = { version = "0.10", optional = true }
-sha-1 = { version = "0.10", optional = true }
-sha2 = { version = "0.10", optional = true }
-
-pbkdf2 = { version = "0.10", optional = true, default_features = false }
-
-stringprep = { version = "0.1", optional = true }
-
-linkme = { version = "0.2", optional = true }
-
-document-features = { version = "0.2.5", optional = true }
-
-serde = { version = "1", optional = true, default_features = false, features = ["alloc", "derive"] }
-serde_json = { version = "1", optional = true, default_features = false, features = ["alloc"] }
-
-libgssapi = { version = "0.6", optional = true, default_features = false }
-bitflags = { version = "1", optional = true }
+[dependencies.serde_json]
+version = "1.0.122"
+optional = true
+default-features = false
+features = ["alloc"]
 
 [dev-dependencies]
 static_assertions = "1.1.0"
 
-[package.metadata.docs.rs]
-all-features = true
+[lints.rust]
+non_upper_case_globals = "allow"
+non_camel_case_types = "allow"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+exhaustive_enums = "warn"
+exhaustive_structs = "warn"
+doc_markdown = "allow"
+module_name_repetitions = "allow"
+inline_always = "allow"
+missing_errors_doc = "allow"
+box_default = "allow"
 
 [[example]]
 name = "client_simple"
 required-features = ["provider", "plain"]
+
 [[example]]
 name = "server_plain"
 required-features = ["provider", "plain"]
+
 [[example]]
 name = "server_scram"
 required-features = ["provider", "plain", "scram-sha-2"]
@@ -142,6 +172,3 @@ required-features = ["provider", "plain", "scram-sha-2"]
 [[example]]
 name = "mechanism_selection"
 required-features = ["provider", "login", "plain", "scram-sha-1", "scram-sha-2"]
-
-[workspace]
-members = ["bin/interop-client", "bin/interop-server"]

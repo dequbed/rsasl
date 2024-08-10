@@ -13,8 +13,9 @@ use crate::mechanisms::scram::tools::{
 use crate::property::{AuthId, AuthzId, OverrideCBType, Password};
 use crate::session::{MechanismData, MessageSent, State};
 use crate::vectored_io::VectoredWriter;
-use acid_io::Write;
+use base64::Engine;
 use core::marker::PhantomData;
+use core2::io::Write;
 use digest::crypto_common::BlockSizeUser;
 use digest::{Digest, FixedOutputReset};
 use rand::Rng;
@@ -225,7 +226,7 @@ impl<const N: usize> StateClientFirst<N> {
         if let Some(cbdata) = cbdata {
             gs2_header.extend_from_slice(&cbdata[..]);
         }
-        let channel_bindings = base64::encode(&gs2_header[..]);
+        let channel_bindings = base64::engine::general_purpose::STANDARD.encode(&gs2_header[..]);
 
         Ok(WaitingServerFirst::new(
             channel_bindings,
@@ -291,7 +292,8 @@ where
             return Err(SCRAMError::Protocol(ProtocolError::IterationCountZero).into());
         }
 
-        let salt = base64::decode(salt64)
+        let salt = base64::engine::general_purpose::STANDARD
+            .decode(salt64)
             .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
 
         let prov = ScramClientProvider {
@@ -367,7 +369,7 @@ where
             client_key.iter().zip(client_signature).map(|(x, y)| x ^ y),
         )
         .expect("XOR of two same-sized arrays was not of that size?");
-        let proof64 = base64::encode(&proof);
+        let proof64 = base64::engine::general_purpose::STANDARD.encode(&proof);
 
         let client_final =
             ClientFinal::new(self.channel_bindings.as_bytes(), nonce, proof64.as_bytes())
@@ -419,7 +421,8 @@ impl<D: Digest + BlockSizeUser> WaitingServerFinal<D> {
     ) -> Result<StateServerFinal, SessionError> {
         match ServerFinal::parse(server_final).map_err(SCRAMError::ParseError)? {
             ServerFinal::Verifier(verifier) => {
-                let v = base64::decode(verifier)
+                let v = base64::engine::general_purpose::STANDARD
+                    .decode(verifier)
                     .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
 
                 if self.verifier.as_slice() == &v[..] {

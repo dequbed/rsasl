@@ -1,6 +1,3 @@
-use core::any::type_name;
-use core::fmt;
-
 use crate::callback::{Action, CallbackError, ClosureCR, Request, Satisfy, SessionCallback};
 use crate::channel_bindings::ChannelBindingCallback;
 use crate::context::{build_context, Provider, ProviderExt, ThisProvider};
@@ -9,6 +6,8 @@ use crate::property::{ChannelBindingName, ChannelBindings, Property};
 use crate::registry::Mechanism;
 use crate::typed::{tags, Tagged};
 use crate::validate::{Validate, ValidationError};
+use core::any::type_name;
+use core::fmt;
 
 #[allow(clippy::exhaustive_enums)]
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
@@ -29,7 +28,7 @@ mod provider {
     use crate::mechname::Mechname;
     use crate::sasl::Sasl;
     use crate::validate::{NoValidation, Validation};
-    use acid_io::Write;
+    use core2::io::Write;
 
     /// This represents a single authentication exchange
     ///
@@ -95,6 +94,12 @@ mod provider {
         /// authentication data but the last call to `step` returned `State::Running` you **MUST**
         /// call `step` a final time with a `None` input!
         /// This is critical to upholding all security guarantees that different mechanisms offer.
+        ///
+        /// A mechanism may exhibit undefined behaviour if `step` is called after either an Error
+        /// or `State::Finished` has been returned by a previous call.  This includes behaviours
+        /// such as writing garbage data to the provided writer, panicking, or blocking
+        /// indefinitely.  It is thus paramount to construct a fresh `Session` if authentication is
+        /// re-attempted after either `State::Finished` or an Error is returned.
         ///
         /// SASL itself can usually not tell you if an authentication was successful or not,
         /// instead this is done by the protocol itself.
@@ -226,10 +231,12 @@ mod provider {
             writer: &mut impl Write,
         ) -> Result<State, SessionError> {
             use base64::write::EncoderWriter;
-            let mut writer64 = EncoderWriter::new(writer, base64::STANDARD);
+            let mut writer64 =
+                EncoderWriter::new(writer, &base64::engine::general_purpose::STANDARD);
 
             let state = if let Some(input) = input {
-                let input = base64::decode_config(input, base64::STANDARD)?;
+                let input =
+                    base64::Engine::decode(&base64::engine::general_purpose::STANDARD, input)?;
                 self.step(Some(&input[..]), &mut writer64)
             } else {
                 self.step(None, &mut writer64)
@@ -238,11 +245,11 @@ mod provider {
         }
     }
 
-    impl<'a> MechanismData<'a> {
+    impl<'a, 'b> MechanismData<'a, 'b> {
         fn new(
             callback: &'a dyn SessionCallback,
             chanbind_cb: &'a dyn ChannelBindingCallback,
-            validator: &'a mut Validate<'a>,
+            validator: &'a mut Validate<'b>,
             mechanism_desc: Mechanism,
             side: Side,
         ) -> Self {
@@ -280,7 +287,7 @@ mod provider {
             where
                 F: FnMut(&[u8]) -> Result<G, SessionError>,
             {
-                let mut mechanism_data = MechanismData::new(
+                let mechanism_data = MechanismData::new(
                     self.sasl.config.get_callback(),
                     &self.sasl.cb,
                     validate,
@@ -295,14 +302,14 @@ mod provider {
 #[cfg(any(feature = "provider", feature = "testutils", test))]
 pub use provider::Session;
 
-pub struct MechanismData<'a> {
+pub struct MechanismData<'a, 'b> {
     callback: &'a dyn SessionCallback,
     chanbind_cb: &'a dyn ChannelBindingCallback,
-    validator: &'a mut Validate<'a>,
+    validator: &'a mut Validate<'b>,
     session_data: SessionData,
 }
 
-impl MechanismData<'_> {
+impl MechanismData<'_, '_> {
     pub fn validate(&mut self, provider: &dyn Provider) -> Result<(), ValidationError> {
         let context = build_context(provider);
         self.callback
@@ -310,7 +317,7 @@ impl MechanismData<'_> {
     }
 
     fn callback(
-        &mut self,
+        &self,
         provider: &dyn Provider,
         request: &mut Request<'_>,
     ) -> Result<(), SessionError> {
@@ -322,14 +329,14 @@ impl MechanismData<'_> {
     }
 
     pub fn action<'a, T>(
-        &mut self,
+        &self,
         provider: &dyn Provider,
         value: &'a T::Value,
     ) -> Result<(), SessionError>
     where
         T: Property<'a>,
     {
-        let mut tagged = Tagged::<'a, Action<T>>(Some(value));
+        let mut tagged = Tagged::<'_, Action<T>>(Some(value));
         self.callback(provider, Request::new_action::<T>(&mut tagged))?;
         if tagged.is_some() {
             Err(SessionError::CallbackError(CallbackError::NoCallback(
@@ -340,11 +347,7 @@ impl MechanismData<'_> {
         }
     }
 
-    pub fn need_with<P, F, G>(
-        &mut self,
-        provider: &dyn Provider,
-        closure: F,
-    ) -> Result<G, SessionError>
+    pub fn need_with<P, F, G>(&self, provider: &dyn Provider, closure: F) -> Result<G, SessionError>
     where
         P: for<'p> Property<'p>,
         F: FnOnce(&<P as Property<'_>>::Value) -> Result<G, SessionError>,
@@ -354,7 +357,7 @@ impl MechanismData<'_> {
     }
 
     pub fn maybe_need_with<P, F, G>(
-        &mut self,
+        &self,
         provider: &dyn Provider,
         closure: F,
     ) -> Result<Option<G>, SessionError>
@@ -373,7 +376,7 @@ impl MechanismData<'_> {
     }
 
     pub fn maybe_need_cb_data<'a, P, F, G>(
-        &mut self,
+        &self,
         cbname: &'a str,
         provider: P,
         f: F,
@@ -391,7 +394,7 @@ impl MechanismData<'_> {
     }
 
     pub fn need_cb_data<'a, P, F, G>(
-        &mut self,
+        &self,
         cbname: &'a str,
         provider: P,
         f: F,
@@ -405,7 +408,7 @@ impl MechanismData<'_> {
     }
 }
 
-impl fmt::Debug for MechanismData<'_> {
+impl fmt::Debug for MechanismData<'_, '_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("MechanismData").finish()
     }

@@ -3,7 +3,8 @@
 //! This client allows testing interoperability between different SASL implementations.
 
 use clap::builder::TypedValueParser;
-use clap::{Arg, Command, Error, ErrorKind};
+use clap::error::ErrorKind;
+use clap::{Arg, Command, Error};
 use miette::{miette, IntoDiagnostic, WrapErr};
 use rsasl::callback::{CallbackError, Context, Request, SessionCallback, SessionData};
 use rsasl::mechanisms::gssapi::properties::GssService;
@@ -117,14 +118,17 @@ impl TypedValueParser for UrlParser {
     }
 }
 
-fn connect<S: AsRef<str>>(host: url::Host<S>, port: u16) -> miette::Result<(Box<dyn io::BufRead>, Box<dyn io::Write>)> {
+fn connect<S: AsRef<str>>(
+    host: url::Host<S>,
+    port: u16,
+) -> miette::Result<(Box<dyn io::BufRead>, Box<dyn io::Write>)> {
     let stream = match host {
         Host::Ipv4(ip) => TcpStream::connect((ip, port)),
         Host::Ipv6(ip) => TcpStream::connect((ip, port)),
         Host::Domain(ref domain) => TcpStream::connect((domain.as_ref(), port)),
     }
-        .into_diagnostic()
-        .wrap_err(format!("failed to connect to {}:{}", host, port))?;
+    .into_diagnostic()
+    .wrap_err(format!("failed to connect to {}:{}", host, port))?;
 
     let write_end = stream
         .try_clone()
@@ -139,7 +143,6 @@ pub fn main() -> miette::Result<()> {
             Arg::new("listen")
                 .long("listen")
                 .short('l')
-                .takes_value(true)
                 .value_parser(UrlParser)
                 .help(
                     "address to listen to. Either '-' for STDIN or an url with scheme tcp or tls",
@@ -169,32 +172,31 @@ pub fn main() -> miette::Result<()> {
         .into_diagnostic()
         .wrap_err("Failed to start client session")?;
 
-    let (mut rx, mut tx): (Box<dyn io::BufRead>, Box<dyn io::Write>) = match matches.get_one::<Either<url::Url, UrlStdin>>("listen") {
-        Some(Either::Left(url)) => { 
-            let host = url.host().ok_or_else(|| miette!("URL must have a host part"))?;
-            let port = url.port().unwrap_or(62185);
+    let (mut rx, mut tx): (Box<dyn io::BufRead>, Box<dyn io::Write>) =
+        match matches.get_one::<Either<url::Url, UrlStdin>>("listen") {
+            Some(Either::Left(url)) => {
+                let host = url
+                    .host()
+                    .ok_or_else(|| miette!("URL must have a host part"))?;
+                let port = url.port().unwrap_or(62185);
 
-            connect(host, port)? 
-        }
-        Some(Either::Right(UrlStdin)) => {
-            let stdin = io::stdin().lock();
-            let stdout = io::stdout().lock();
-            (Box::new(stdin), Box::new(stdout))
-        }
-        None => {
-            connect(Host::Domain("127.0.0.1"), 62185)?
-        }
-    };
+                connect(host, port)?
+            }
+            Some(Either::Right(UrlStdin)) => {
+                let stdin = io::stdin().lock();
+                let stdout = io::stdout().lock();
+                (Box::new(stdin), Box::new(stdout))
+            }
+            None => connect(Host::Domain("127.0.0.1"), 62185)?,
+        };
 
     let chosen = session.get_mechname();
     // Print the selected mechanism as the first output
     println!("{}", chosen.as_str());
-    tx
-        .write_all(chosen.as_bytes())
+    tx.write_all(chosen.as_bytes())
         .into_diagnostic()
         .wrap_err("failed to write to stream")?;
-    tx
-        .write_all(b"\n")
+    tx.write_all(b"\n")
         .into_diagnostic()
         .wrap_err("failed to write to stream")?;
 
@@ -205,8 +207,7 @@ pub fn main() -> miette::Result<()> {
         println!();
         // Then we wait on the first line sent by the server.
         let mut line = String::new();
-        rx
-            .read_line(&mut line)
+        rx.read_line(&mut line)
             .into_diagnostic()
             .wrap_err("failed to read line from stdin")?;
         Some(line)
@@ -227,8 +228,7 @@ pub fn main() -> miette::Result<()> {
         state.is_running()
     } {
         let mut line = String::new();
-        rx
-            .read_line(&mut line)
+        rx.read_line(&mut line)
             .into_diagnostic()
             .wrap_err("failed to read line from stdin")?;
         input = Some(line);

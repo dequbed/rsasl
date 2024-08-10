@@ -152,7 +152,7 @@ pub struct TOKEN(PhantomData<()>);
 ///
 /// It does however additionally include hidden internal errors that are required for some
 /// functionality but can not be handled by user code. Due to those this enum is marked
-/// [`#[non_exhaustive]`](https://rust-lang.github.io/rfcs/2008-non-exhaustive.html) — in
+/// [`#[non_exhaustive]`](https://rust-lang.github.io/rfcs/2008-non-exhaustive.html) - in
 /// practice this means that any match on the variant of `CallbackError` must include a catch-all
 /// `_`.
 ///
@@ -240,8 +240,6 @@ where
         }
     }
 
-    // false positive
-    #[allow(clippy::missing_const_for_fn)]
     pub fn try_unwrap(self) -> Option<G> {
         if let Some(ClosureCRState::Satisfied(val)) = self.closure {
             Some(val)
@@ -296,12 +294,13 @@ impl<'a> Request<'a> {
         unsafe { &mut *(opt as &mut dyn Erased as *mut dyn Erased as *mut Self) }
     }
 
-    pub(crate) fn new_action<'t, 'p, P: Property<'p>>(
-        val: &'t mut Tagged<'p, Action<P>>,
-    ) -> &'t mut Self {
-        unsafe { &mut *(val as &mut dyn Erased as *mut dyn Erased as *mut Self) }
+    pub(crate) fn new_action<'p, P: Property<'p>>(
+        val: &'a mut Tagged<'p, Action<P>>,
+    ) -> &'a mut Request<'p> {
+        unsafe { &mut *(val as &mut dyn Erased as *mut dyn Erased as *mut Request) }
     }
 }
+
 impl<'a> Request<'a> {
     fn is_satisfy<P: Property<'a>>(&self) -> bool {
         self.0.is::<tags::RefMut<Satisfy<P>>>()
@@ -310,7 +309,7 @@ impl<'a> Request<'a> {
         self.0.is::<Action<P>>()
     }
 
-    /// Returns true iff this Request is for the Property `P`.
+    /// Returns true if this Request is for the Property `P`.
     ///
     /// Using this method is generally not necessary as [`satisfy`](Request::satisfy),
     /// [`satisfy_with`](Request::satisfy_with) and [`get_action`](Request::get_action) can used

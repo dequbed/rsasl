@@ -23,7 +23,7 @@
 //! implementations of just the authentication part.
 //!
 //! SASL implements this by abstracting all authentication into so called 'mechanisms' that
-//! authenticate in a number of 'steps', with each step consisting of some amount of data being
+//! authenticate in a number of `steps`, with each step consisting of some amount of data being
 //! sent from the client to the server and from the server to the client.
 //! This data is explicitly opaque to the outer protocol (e.g. SMTP, IMAP, …). The protocol only
 //! needs to define a way to transport this data to the respective other end. The way this is done
@@ -122,6 +122,8 @@
 //! [`State::Finished`](session::State::Finished) is returned:
 //!
 //! ```rust
+//! # #[cfg(all(not(miri), feature = "provider"))]
+//! # {
 //! # use std::io;
 //! # use std::sync::Arc;
 //! use rsasl::prelude::*;
@@ -170,6 +172,7 @@
 //!     // rsasl can in most cases not tell if the authentication was successful, this would have
 //!     // to be checked in a protocol-specific way.
 //! }
+//! # }
 //! ```
 //!
 //! After an authentication exchange has finished [`Session::validation`](session::Session::validation)
@@ -251,24 +254,6 @@
 //! define a [`Mechanism`](registry::Mechanism) struct describing the implemented mechanism.
 //! Documentation about how to add a custom mechanism is found in the [`registry module documentation`](registry).
 
-#![warn(
-    clippy::all,
-    clippy::pedantic,
-    clippy::nursery,
-    clippy::exhaustive_enums,
-    clippy::exhaustive_structs
-)]
-#![allow(
-    non_upper_case_globals,
-    non_camel_case_types,
-    clippy::doc_markdown,
-    clippy::module_name_repetitions,
-    clippy::inline_always,
-    clippy::missing_errors_doc,
-    clippy::box_default
-)]
-// FIXME: problems with `registry_static::MECHANISMS` and `linkme::distributed_slice`
-#![allow(clippy::exhaustive_enums)]
 // Mark rsasl `no_std` if the `std` feature flag is not enabled.
 #![cfg_attr(not(any(feature = "std", test)), no_std)]
 #[cfg(not(any(feature = "std", test)))]

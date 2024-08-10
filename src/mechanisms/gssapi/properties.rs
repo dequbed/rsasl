@@ -4,8 +4,9 @@ use crate::property::SizedProperty;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum Error {
-    #[error("GSS-API error")]
+    #[error("GSS-API error: {0}")]
     Gss(
         #[source]
         #[from]
@@ -38,6 +39,7 @@ impl SizedProperty<'_> for GssSecurityLayer {
 
 bitflags::bitflags! {
     #[repr(transparent)]
+    #[derive(Copy, Clone)]
     pub struct SecurityLayer: u8 {
         const NO_SECURITY_LAYER = 0b001;
         const INTEGRITY = 0b010;

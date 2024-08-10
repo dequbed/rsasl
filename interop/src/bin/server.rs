@@ -293,7 +293,6 @@ pub fn main() -> miette::Result<()> {
 }
 
 #[cfg(test)]
-#[allow(non_snake_case)]
 mod tests {
     #[test]
     // Ensure that the stdlib .split_whitespace() method handles tailing whitespace as we expect

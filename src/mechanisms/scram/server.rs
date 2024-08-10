@@ -1,15 +1,20 @@
 use crate::alloc::format;
 use crate::alloc::{boxed::Box, string::String, vec::Vec};
+use crate::context::{Demand, DemandReply, Provider};
 use crate::error::{MechanismError, MechanismErrorKind, SessionError};
+use crate::mechanism::Authentication;
 use crate::mechanisms::scram::client::{ProtocolError, SCRAMError};
 use crate::mechanisms::scram::parser::{
     ClientFinal, ClientFirstMessage, GS2CBindFlag, ServerErrorValue, ServerFinal, ServerFirst,
 };
+use crate::mechanisms::scram::properties::ScramStoredPassword;
 use crate::mechanisms::scram::tools::{compute_signatures, generate_nonce, DOutput};
+use crate::property::{AuthId, AuthzId};
 use crate::session::{MechanismData, MessageSent, State};
 use crate::vectored_io::VectoredWriter;
-use acid_io::Write;
+use base64::Engine;
 use core::marker::PhantomData;
+use core2::io::Write;
 use digest::crypto_common::BlockSizeUser;
 use digest::generic_array::GenericArray;
 use digest::{Digest, FixedOutput, OutputSizeUser};
@@ -17,11 +22,7 @@ use hmac::SimpleHmac;
 use rand::{thread_rng, Rng, RngCore};
 use thiserror::Error;
 
-use crate::context::{Demand, DemandReply, Provider};
-use crate::mechanism::Authentication;
-use crate::mechanisms::scram::properties::ScramStoredPassword;
-use crate::property::{AuthId, AuthzId};
-
+#[allow(dead_code)]
 trait ScramConfig {
     type DIGEST: Digest + BlockSizeUser;
     const ALGORITHM_NAME: &'static str;
@@ -179,7 +180,7 @@ impl<const N: usize> WaitingClientFirst<N> {
 
                 Ok((
                     format!("{iterations}"),
-                    base64::encode(salt),
+                    base64::engine::general_purpose::STANDARD.encode(salt),
                     GenericArray::clone_from_slice(stored_key),
                     GenericArray::clone_from_slice(server_key),
                 ))
@@ -212,7 +213,7 @@ impl<const N: usize> WaitingClientFirst<N> {
         } else {
             let mut salt = [0u8; DEFAULT_SALT_LEN];
             thread_rng().fill_bytes(&mut salt);
-            let salt = base64::encode(salt);
+            let salt = base64::engine::general_purpose::STANDARD.encode(salt);
 
             let msg = ServerFirst::new(
                 client_nonce,
@@ -301,7 +302,8 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
             server_key,
         }) = self.data
         {
-            let cb = base64::decode(channel_binding)
+            let cb = base64::engine::general_purpose::STANDARD
+                .decode(channel_binding)
                 .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
 
             if gs2_header[..] != cb[..] {
@@ -311,7 +313,8 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
                     && proof.len() <= (<SimpleHmac<D> as OutputSizeUser>::output_size() * 4 / 3) + 3
                 {
                     let mut proof_decoded = DOutput::<D>::default();
-                    base64::decode_config_slice(proof, base64::STANDARD, &mut proof_decoded)
+                    base64::engine::general_purpose::STANDARD
+                        .decode_slice(proof, &mut proof_decoded)
                         .map_err(|_| SCRAMError::Protocol(ProtocolError::Base64Decode))?;
 
                     let mut client_signature = DOutput::<D>::default();
@@ -343,7 +346,8 @@ impl<D: Digest + BlockSizeUser + FixedOutput, const N: usize> WaitingClientFinal
                     let calculated_stored_key = D::digest(client_key);
 
                     if stored_key == calculated_stored_key {
-                        let encoded = base64::encode(server_signature);
+                        let encoded =
+                            base64::engine::general_purpose::STANDARD.encode(server_signature);
                         let msg = ServerFinal::Verifier(encoded.as_bytes());
                         let mut vecw = VectoredWriter::new(msg.to_ioslices());
                         *written = vecw.write_all_vectored(writer)?;

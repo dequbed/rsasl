@@ -4,8 +4,8 @@ use crate::mechanism::{Authentication, MechanismData, State};
 use crate::mechanisms::gssapi::properties::{Error, GssSecurityLayer, GssService, SecurityLayer};
 use crate::property::Hostname;
 use crate::session::MessageSent;
-use acid_io::Write;
 use core::fmt;
+use core2::io::Write;
 use libgssapi::context::{ClientCtx, CtxFlags, SecurityContext};
 use libgssapi::credential::{Cred, CredUsage};
 use libgssapi::name::Name;
@@ -70,7 +70,7 @@ impl Authentication for Gssapi {
                     .map_err(Error::Gss)?;
 
                 self.state = GssapiState::Pending(ClientCtx::new(
-                    cred,
+                    Some(cred),
                     target,
                     // Allow all flags. Setting them does not mean the final context will provide
                     // them, so this should not be an issue.

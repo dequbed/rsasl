@@ -33,6 +33,7 @@ use core::fmt;
 use crate::config::SASLConfig;
 use crate::error::SASLError;
 pub use crate::session::Side;
+#[allow(unused_imports)]
 #[cfg(feature = "registry_static")]
 pub use registry_static::*;
 
@@ -116,7 +117,7 @@ impl fmt::Debug for Mechanism {
             .field("name", &self.mechanism)
             .field("has client", &self.client.is_some())
             .field("has server", &self.server.is_some())
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -263,11 +264,10 @@ impl Registry {
 #[cfg(feature = "registry_static")]
 mod registry_static {
     use super::Mechanism;
-    pub use linkme::distributed_slice;
 
     //noinspection RsTypeCheck
-    #[distributed_slice]
-    pub static MECHANISMS: [Mechanism] = [..];
+    #[linkme::distributed_slice]
+    pub static MECHANISMS: [Mechanism];
 }
 #[cfg(not(feature = "registry_static"))]
 mod registry_static {
@@ -287,6 +287,7 @@ mod selector {
         fn finalize(&mut self) -> Result<Box<dyn Authentication>, SASLError>;
     }
 
+    #[non_exhaustive]
     pub enum Selection {
         Nothing(Box<dyn Selector>),
         Done(&'static Mechanism),

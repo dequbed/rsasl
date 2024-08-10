@@ -19,6 +19,23 @@ release. They will however *never* happen in a patch release.
 [Changes rendered on GitHub][Upcoming/diff]
 
 
+# [v2.0.2] — 2024-08-10
+
+[Changes rendered on GitHub][v2.0.2/diff]
+
+## Added
+- Mathieu-Lala added a lot of build engineering, improving the CI and adding dependabot alerts. 
+
+## Changed
+- Mathieu-Lala also moved the I/O-dependant code from `acid_io` to `core2`.
+  This change is not user-visible as it only applies to `no_std` systems which
+  are not supported yet.
+
+## Fixed
+- #41 — Library not compiling on rust v1.82.0
+  Changes in the typechecker made rsasl not compile on Rust versions past
+  v1.81. Thanks to Mathieu-Lala this was fixed for rsasl v2.0.2
+
 # [v2.0.1] — 2023-09-12
 
 [Changes rendered on GitHub][v2.0.1/diff]
@@ -237,7 +254,9 @@ making this release possible.**
 
 [Upcoming Changes]: https://github.com/dequbed/rsasl/tree/development
 <!-- next-url -->
-[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/v2.0.1...development
+[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/v2.0.2...development
+[v2.0.2]: https://github.com/dequbed/rsasl/releases/tag/v2.0.2
+[v2.0.2/diff]: https://github.com/dequbed/rsasl/compare/v2.0.1...v2.0.2
 [v2.0.1]: https://github.com/dequbed/rsasl/releases/tag/v2.0.1
 [v2.0.1/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0...v2.0.1
 [v2.0.0]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0

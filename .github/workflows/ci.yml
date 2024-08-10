@@ -6,50 +6,62 @@ on:
     branches:
       - development
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 env:
   RUSTFLAGS: -Dwarnings
   RUST_BACKTRACE: full
+  rust_min: 1.65.0
 
 jobs:
   rustfmt:
-    name: rustfmt / stable
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: cargo fmt
-        run: cargo fmt --all -- --check
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
 
   clippy:
-    name: clippy / stable
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - name: Install required packages (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
-      - run: cargo clippy --all-features --all-targets --tests -- -Dwarnings
+      - if: ${{ runner.os == 'Linux' }}
+        run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
+      - run: cargo clippy --all-features --all-targets --tests
 
-  check:
-    name: check / stable
+  docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+      - if: ${{ runner.os == 'Linux' }}
+        run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
+      - run: cargo doc --workspace --no-deps --all-features --document-private-items
+        env:
+          RUSTFLAGS: --cfg docsrs -Dwarnings
+          RUSTDOCFLAGS: --cfg docsrs -Dwarnings
+
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Setup dependency cache
-        uses: Swatinem/rust-cache@v2
-      - name: install cargo-hack
-        run: cargo install cargo-hack
-      - name: Install required packages (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install cargo-hack
+      - if: ${{ runner.os == 'Linux' }}
+        run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
       - run: cargo hack check --each-feature --features=std --skip=testutils
 
   test:
-    name: test / ${{matrix.rust}}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -58,39 +70,56 @@ jobs:
         include:
           - rust: nightly
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{matrix.rust}}
-      - name: Install required packages (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
+      - if: ${{ runner.os == 'Linux' }}
+        run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
       - run: cargo test --all
-        env:
-          RUSTFLAGS: ${{matrix.rustflags}} ${{env.RUSTFLAGS}}
 
   miri:
-    name: miri / stable
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@miri
-      - name: Install required packages (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
+      - if: ${{ runner.os == 'Linux' }}
+        run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
       - run: cargo miri test --all --all-features
         env:
           MIRIFLAGS: -Zmiri-strict-provenance
 
   msrv:
-    name: Rust 1.61.0
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@1.61.0
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ env.rust_min }}
           components: rust-src
-      - name: Install required packages (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install libgssapi-krb5-2 libkrb5-dev
+      - if: ${{ runner.os == 'Linux' }}
+        run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
       - run: cargo check --all-features
+
+  minimal-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: taiki-e/install-action@cargo-minimal-versions
+      - uses: taiki-e/install-action@cargo-hack
+      - if: ${{ runner.os == 'Linux' }}
+        run: sudo apt update && sudo apt install -y libclang-dev libgssapi-krb5-2 libkrb5-dev
+      - run: cargo minimal-versions --direct --ignore-private check
+
+  spellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.rust_min }}
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-spellcheck
+      - run: cargo spellcheck --code 1

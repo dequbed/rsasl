@@ -15,9 +15,10 @@ mod scram_sha1 {
         Selection, Selector, Side, NONCE_LEN,
     };
 
-    #[cfg(feature = "registry_static")]
-    use crate::registry::{distributed_slice, MECHANISMS};
-    #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+    #[cfg_attr(
+        feature = "registry_static",
+        linkme::distributed_slice(crate::registry::MECHANISMS)
+    )]
     #[cfg(feature = "scram-sha-1")]
     pub static SCRAM_SHA1: Mechanism = Mechanism {
         mechanism: Mechname::const_new(b"SCRAM-SHA-1"),
@@ -118,9 +119,10 @@ mod scram_sha256 {
         Selection, Selector, Side, NONCE_LEN,
     };
 
-    #[cfg(feature = "registry_static")]
-    use crate::registry::{distributed_slice, MECHANISMS};
-    #[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+    #[cfg_attr(
+        feature = "registry_static",
+        linkme::distributed_slice(crate::registry::MECHANISMS)
+    )]
     pub static SCRAM_SHA256: Mechanism = Mechanism {
         mechanism: Mechname::const_new(b"SCRAM-SHA-256"),
         priority: 600,

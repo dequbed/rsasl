@@ -20,10 +20,11 @@ pub fn hash_password<D>(password: &[u8], iterations: u32, salt: &[u8], out: &mut
 where
     D: Digest + BlockSizeUser + Clone + Sync,
 {
-    pbkdf2::pbkdf2::<SimpleHmac<D>>(password, salt, iterations, out.as_mut_slice());
+    let _ = pbkdf2::pbkdf2::<SimpleHmac<D>>(password, salt, iterations, out.as_mut_slice());
 }
 
 #[allow(clippy::too_many_arguments)]
+#[allow(clippy::missing_panics_doc)]
 pub fn compute_signatures<D: Digest + BlockSizeUser + FixedOutput>(
     stored_key: &GenericArray<u8, D::OutputSize>,
     server_key: &DOutput<D>,
@@ -77,6 +78,7 @@ pub fn compute_signatures<D: Digest + BlockSizeUser + FixedOutput>(
         .finalize_into(server_signature);
 }
 
+#[allow(clippy::missing_panics_doc)]
 #[must_use]
 pub fn derive_keys<D>(password: &[u8]) -> (DOutput<D>, DOutput<D>)
 where

@@ -5,8 +5,8 @@ use crate::mechanism::{Authentication, MechanismError};
 use crate::prelude::SessionError;
 use crate::property::{AuthId, Password};
 use crate::session::{MechanismData, MessageSent, State};
-use acid_io::Write;
 use core::str::Utf8Error;
+use core2::io::Write;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

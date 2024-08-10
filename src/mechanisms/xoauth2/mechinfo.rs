@@ -1,13 +1,12 @@
+use super::{client, server};
 use crate::alloc::boxed::Box;
 use crate::mechname::Mechname;
 use crate::registry::{Matches, Mechanism, Named, Side};
 
-#[cfg(feature = "registry_static")]
-use crate::registry::{distributed_slice, MECHANISMS};
-
-use super::{client, server};
-
-#[cfg_attr(feature = "registry_static", distributed_slice(MECHANISMS))]
+#[cfg_attr(
+    feature = "registry_static",
+    linkme::distributed_slice(crate::registry::MECHANISMS)
+)]
 /// Mechanism description for PLAIN
 ///
 /// See the [`plain`](super) module documentation for details and usage.
