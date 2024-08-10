@@ -18,6 +18,18 @@ release. They will however *never* happen in a patch release.
 
 [Changes rendered on GitHub][Upcoming/diff]
 
+## Added
+- Mathieu-Lala added a lot of build engineering, improving the CI and adding dependabot alerts. 
+
+## Changed
+- Mathieu-Lala also moved the I/O-dependant code from `acid_io` to `core2`.
+  This change is not user-visible as it only applies to `no_std` systems which
+  are not supported yet.
+
+## Fixed
+- #41 — Library not compiling on rust v1.82.0
+  Changes in the typechecker made rsasl not compile on Rust versions past
+  v1.81. Thanks to Mathieu-Lala this was fixed for rsasl v2.0.2
 
 # [v2.0.1] — 2023-09-12
 

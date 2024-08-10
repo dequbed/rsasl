@@ -57,7 +57,7 @@ to [GNU gsasl](https://www.gnu.org/software/gsasl). This makes the use of `unsaf
 You can find the latest 1.X.Y version in the [branch `1.X.X`](https://github.com/dequbed/rsasl/tree/1.X.X)
 
 Version `2.0.0` is a pure-Rust rewrite of this crate that is able to drop almost all `unsafe` code from the crate.
-It is currently in a release-candidate testing phase as `2.0.0-rc.X` to ensure the API is usable as is.
+The `main` branch contains the tagged stable releases, the current state of development can be found in the `development` state.
 
 ## License
 
