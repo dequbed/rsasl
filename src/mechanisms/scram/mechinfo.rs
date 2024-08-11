@@ -217,6 +217,111 @@ mod scram_sha256 {
 #[cfg(feature = "scram-sha-2")]
 pub use scram_sha256::*;
 
+#[cfg(feature = "scram-sha-2")]
+mod scram_sha512 {
+    use super::{
+        client, server, Authentication, Box, Matches, Mechanism, Mechname, Named, SASLError,
+        Selection, Selector, Side, NONCE_LEN,
+    };
+
+    #[cfg_attr(
+        feature = "registry_static",
+        linkme::distributed_slice(crate::registry::MECHANISMS)
+    )]
+    pub static SCRAM_SHA512: Mechanism = Mechanism {
+        mechanism: Mechname::const_new(b"SCRAM-SHA-512"),
+        priority: 600,
+        client: Some(|| Ok(Box::new(client::ScramSha512Client::<NONCE_LEN>::new(true)))),
+        server: Some(|sasl| {
+            let can_cb = sasl
+                .mech_list()
+                .any(|m| m.mechanism.as_str() == "SCRAM-SHA-512-PLUS");
+            Ok(Box::new(server::ScramSha512Server::<NONCE_LEN>::new(
+                can_cb,
+            )))
+        }),
+        first: Side::Client,
+        select: |cb| {
+            Some(if cb {
+                Selection::Nothing(Box::new(ScramSelector512::No))
+            } else {
+                Matches::<Select512>::name()
+            })
+        },
+        offer: |_| true,
+    };
+
+    struct Select512;
+    impl Named for Select512 {
+        fn mech() -> &'static Mechanism {
+            &SCRAM_SHA512
+        }
+    }
+
+    #[derive(Copy, Clone, Debug)]
+    enum ScramSelector512 {
+        /// No SCRAM-SHA512 found yet
+        No,
+        /// Only SCRAM-SHA512 but not -PLUS found
+        Bare,
+        /// SCRAM-SHA512-PLUS found.
+        Plus,
+    }
+    impl Selector for ScramSelector512 {
+        fn select(&mut self, mechname: &Mechname) -> Option<&'static Mechanism> {
+            if *mechname == *SCRAM_SHA512.mechanism {
+                *self = match *self {
+                    Self::No => Self::Bare,
+                    x => x,
+                }
+            } else if *mechname == *SCRAM_SHA512_PLUS.mechanism {
+                *self = Self::Plus;
+            }
+            None
+        }
+
+        fn done(&mut self) -> Option<&'static Mechanism> {
+            match self {
+                Self::No => None,
+                _ => Some(&SCRAM_SHA512),
+            }
+        }
+
+        fn finalize(&mut self) -> Result<Box<dyn Authentication>, SASLError> {
+            Ok(Box::new(match self {
+                Self::Bare => client::ScramSha512Client::<NONCE_LEN>::new(false),
+                Self::Plus => client::ScramSha512Client::<NONCE_LEN>::new(true),
+                Self::No => unreachable!(),
+            }))
+        }
+    }
+
+    pub static SCRAM_SHA512_PLUS: Mechanism = Mechanism {
+        mechanism: Mechname::const_new(b"SCRAM-SHA-512-PLUS"),
+        priority: 700,
+        client: Some(|| Ok(Box::new(client::ScramSha512Client::<NONCE_LEN>::new_plus()))),
+        server: Some(|_sasl| Ok(Box::new(server::ScramSha512Server::<NONCE_LEN>::new_plus()))),
+        first: Side::Client,
+        select: |cb| {
+            if cb {
+                Some(Matches::<Select512Plus>::name())
+            } else {
+                None
+            }
+        },
+        offer: |_| true,
+    };
+
+    struct Select512Plus;
+    impl Named for Select512Plus {
+        fn mech() -> &'static Mechanism {
+            &SCRAM_SHA512_PLUS
+        }
+    }
+}
+#[cfg(feature = "scram-sha-2")]
+pub use scram_sha512::*;
+
 #[cfg(test)]
 mod tests {
     use super::*;

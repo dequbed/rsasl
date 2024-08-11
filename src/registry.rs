@@ -155,6 +155,8 @@ mod config {
         pub(crate) fn credentials(authzid: bool) -> Self {
             static CRED_AUTHZID: &[Mechanism] = &[
                 #[cfg(feature = "scram-sha-2")]
+                crate::mechanisms::scram::SCRAM_SHA512,
+                #[cfg(feature = "scram-sha-2")]
                 crate::mechanisms::scram::SCRAM_SHA256,
                 #[cfg(feature = "scram-sha-1")]
                 crate::mechanisms::scram::SCRAM_SHA1,
@@ -163,6 +165,8 @@ mod config {
             ];
 
             static CRED: &[Mechanism] = &[
+                #[cfg(feature = "scram-sha-2")]
+                crate::mechanisms::scram::SCRAM_SHA512,
                 #[cfg(feature = "scram-sha-2")]
                 crate::mechanisms::scram::SCRAM_SHA256,
                 #[cfg(feature = "scram-sha-1")]
@@ -190,6 +194,8 @@ mod config {
     impl Default for Registry {
         fn default() -> Self {
             static BUILTIN: &[Mechanism] = &[
+                #[cfg(feature = "scram-sha-2")]
+                crate::mechanisms::scram::SCRAM_SHA512,
                 #[cfg(feature = "scram-sha-2")]
                 crate::mechanisms::scram::SCRAM_SHA256,
                 #[cfg(feature = "scram-sha-1")]
