@@ -18,6 +18,12 @@ release. They will however *never* happen in a patch release.
 
 [Changes rendered on GitHub][Upcoming/diff]
 
+## Added
+- `SCRAM-SHA-512` and `SCRAM-SHA-512-PLUS` mechanisms were added by WenyXu
+
+## Fixed
+- #26 — SCRAM-SHA512 and SCRAM-SHA512-PLUS support
+  The two mechanisms have been added by WenyXu, as mentioned above
 
 # [v2.0.2] — 2024-08-10
 
