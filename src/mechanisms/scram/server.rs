@@ -42,8 +42,8 @@ const DEFAULT_SALT_LEN: usize = 32;
 pub type ScramSha1Server<const N: usize> = ScramServer<sha1::Sha1, N>;
 #[cfg(feature = "scram-sha-2")]
 pub type ScramSha256Server<const N: usize> = ScramServer<sha2::Sha256, N>;
-// #[cfg(feature = "scram-sha-2")]
-// pub type ScramSha512Server<const N: usize> = ScramServer<sha2::Sha512, N>;
+#[cfg(feature = "scram-sha-2")]
+pub type ScramSha512Server<const N: usize> = ScramServer<sha2::Sha512, N>;
 
 #[derive(Debug, Error)]
 pub enum ScramServerError {
