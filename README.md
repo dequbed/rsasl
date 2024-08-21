@@ -23,9 +23,10 @@ rsasl provide a number of mechanisms by itself:
 - PLAIN
 - SCRAM-SHA-1 and SCRAM-SHA-1-PLUS
 - SCRAM-SHA-256 and SCRAM-SHA-256-PLUS
+- SCRAM-SHA-512 and SCRAM-SHA-512-PLUS
 - XOAUTH2
 
-Support for the following mechanisms was available in rsasl 1 but is not implemented in rsasl 2:
+Support for the following mechanisms was available in rsasl 1 but is not yet implemented in rsasl 2:
 
 - OPENID20
 - SAML20
