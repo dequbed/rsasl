@@ -123,7 +123,7 @@ pbkdf2 = { version = "0.12.2", optional = true, default-features = false }
 rand = { version = "0.8.5", optional = true }
 sha1 = { version = "0.10.6", optional = true }
 sha2 = { version = "0.10.8", optional = true }
-stringprep = { version = "0.1.4", optional = true, default-features = false }
+stringprep = { version = "0.1.5", optional = true, default-features = false }
 thiserror = { version = "1.0.63", default-features = false }
 
 [dependencies.serde]
