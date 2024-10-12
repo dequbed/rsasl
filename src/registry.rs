@@ -270,9 +270,14 @@ impl Registry {
 #[cfg(feature = "registry_static")]
 mod registry_static {
     use super::Mechanism;
+    /// Reexport from [`linkme`](https://docs.rs/linkme).
+    ///
+    /// **Please add compatible `linkme` version to your `Cargo.toml`.** Currently, there is no way
+    /// to export public dependency. See [Tracking issue for RFC 1977: public & private dependencies](https://github.com/rust-lang/rust/issues/44663).
+    pub use linkme::distributed_slice;
 
     //noinspection RsTypeCheck
-    #[linkme::distributed_slice]
+    #[distributed_slice]
     pub static MECHANISMS: [Mechanism];
 }
 #[cfg(not(feature = "registry_static"))]
