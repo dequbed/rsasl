@@ -108,7 +108,7 @@ impl<'a> SaslName<'a> {
             return Err(SaslNameError::InvalidChar(0));
         }
 
-        if input.contains(|c| matches!(c, ',' | '=')) {
+        if input.contains([',', '=']) {
             let escaped: String = input.chars().flat_map(SaslEscapeState::escape).collect();
             Ok(Cow::Owned(escaped))
         } else {
@@ -120,7 +120,7 @@ impl<'a> SaslName<'a> {
     /// Convert a SCRAM-side string into the representation expected by Rust
     ///
     /// This will clone the given string if characters need unescaping
-    pub fn unescape(input: &'a [u8]) -> Result<Cow<'_, str>, SaslNameError> {
+    pub fn unescape(input: &[u8]) -> Result<Cow<'_, str>, SaslNameError> {
         if input.is_empty() {
             return Err(SaslNameError::Empty);
         }
