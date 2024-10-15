@@ -42,7 +42,7 @@ pub struct OAuthBearerError<'a> {
     /// This may be omitted, which implies that unscoped tokens are required.  If a scope is
     /// specified, then a single scope is preferred.  At the time this document was written,
     /// there are several implementations that do not properly support space-separated lists of
-    /// scopes, so the use of a space- separated list of scopes is NOT RECOMMENDED.
+    /// scopes, so the use of a space-separated list of scopes is NOT RECOMMENDED.
     pub scope: Option<&'a str>,
 
     #[serde(
@@ -69,6 +69,13 @@ pub struct OAuthBearerError<'a> {
     /// [OpenID.Core](http://openid.net/specs/openid-connect-core-1_0.html), is RECOMMENDED to
     /// give clients the capability to explicitly request a refresh token.
     pub openid_config: Option<&'a str>,
+}
+
+impl<'a> OAuthBearerError<'a> {
+    #[must_use]
+    pub const fn new(status: &'a str, scope: Option<&'a str>, openid_config: Option<&'a str>) -> Self {
+        Self { status, scope, openid_config }
+    }
 }
 
 #[non_exhaustive]
