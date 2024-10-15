@@ -18,6 +18,10 @@ release. They will however *never* happen in a patch release.
 
 [Changes rendered on GitHub][Upcoming/diff]
 
+## Fixed
+- #58 — Constructing OAuthBearerError is not (directly) possible
+- #57 — Export types for unstable_custom_mechanism feature
+
 
 # [v2.1.0] — 2024-08-21
 
@@ -28,7 +32,9 @@ release. They will however *never* happen in a patch release.
 
 ## Fixed
 - #26 — SCRAM-SHA512 and SCRAM-SHA512-PLUS support
+
   The two mechanisms have been added by WenyXu, as mentioned above
+
 
 # [v2.0.2] — 2024-08-10
 
