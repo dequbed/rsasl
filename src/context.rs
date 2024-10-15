@@ -23,6 +23,7 @@ pub trait ProviderExt<'a>: Provider<'a> {
 }
 impl<'a, P: Provider<'a>> ProviderExt<'a> for P {}
 
+#[allow(clippy::exhaustive_structs)]
 #[derive(Debug)]
 pub struct EmptyProvider;
 impl Provider<'_> for EmptyProvider {
