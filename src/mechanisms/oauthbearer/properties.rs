@@ -73,8 +73,16 @@ pub struct OAuthBearerError<'a> {
 
 impl<'a> OAuthBearerError<'a> {
     #[must_use]
-    pub const fn new(status: &'a str, scope: Option<&'a str>, openid_config: Option<&'a str>) -> Self {
-        Self { status, scope, openid_config }
+    pub const fn new(
+        status: &'a str,
+        scope: Option<&'a str>,
+        openid_config: Option<&'a str>,
+    ) -> Self {
+        Self {
+            status,
+            scope,
+            openid_config,
+        }
     }
 }
 
