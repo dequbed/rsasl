@@ -4,6 +4,10 @@
 use crate::error::SessionError::NoSecurityLayer;
 use core2::io::Write;
 
+#[cfg(any(doc, feature = "unstable_custom_mechanism"))]
+pub use crate::context::{Demand, DemandReply, EmptyProvider, Provider, ProviderExt, ThisProvider};
+#[cfg(any(doc, feature = "unstable_custom_mechanism"))]
+pub use crate::error::MechanismErrorKind;
 #[allow(unused_imports)]
 pub use crate::error::{MechanismError, SessionError};
 pub use crate::session::{MechanismData, State};

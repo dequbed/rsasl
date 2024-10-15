@@ -254,6 +254,10 @@
 //! define a [`Mechanism`](registry::Mechanism) struct describing the implemented mechanism.
 //! Documentation about how to add a custom mechanism is found in the [`registry module documentation`](registry).
 
+// `missing_const_for_fn` warns functions with parameter types having no const constructor.
+//
+// See also https://github.com/rust-lang/rust-clippy/issues/8021
+#![allow(clippy::missing_const_for_fn)]
 // Mark rsasl `no_std` if the `std` feature flag is not enabled.
 #![cfg_attr(not(any(feature = "std", test)), no_std)]
 #[cfg(not(any(feature = "std", test)))]

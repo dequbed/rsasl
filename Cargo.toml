@@ -1,6 +1,6 @@
 [package]
 name = "rsasl"
-version = "2.1.0"
+version = "2.2.0"
 authors = ["Nadja Reitzenstein <me@dequbed.space>"]
 categories = ["authentication", "api-bindings", "network-programming"]
 documentation = "https://docs.rs/rsasl"
@@ -115,25 +115,25 @@ base64 = { version = "0.22.1", optional = true }
 bitflags = { version = "2.6.0", optional = true }
 core2 = { version = "0.4.0", default-features = false }
 digest = { version = "0.10.7", optional = true }
-document-features = { version = "0.2.8", optional = true }
+document-features = { version = "0.2.10", optional = true }
 hmac = { version = "0.12.1", optional = true, features = ["reset"] }
 libgssapi = { version = "0.7.2", optional = true, default-features = false }
-linkme = { version = "0.3.26", optional = true, default-features = false }
+linkme = { version = "0.3.28", optional = true, default-features = false }
 pbkdf2 = { version = "0.12.2", optional = true, default-features = false }
 rand = { version = "0.8.5", optional = true }
 sha1 = { version = "0.10.6", optional = true }
 sha2 = { version = "0.10.8", optional = true }
-stringprep = { version = "0.1.4", optional = true, default-features = false }
+stringprep = { version = "0.1.5", optional = true, default-features = false }
 thiserror = { version = "1.0.63", default-features = false }
 
 [dependencies.serde]
-version = "1.0.205"
+version = "1.0.210"
 optional = true
 default-features = false
 features = ["alloc", "derive"]
 
 [dependencies.serde_json]
-version = "1.0.122"
+version = "1.0.128"
 optional = true
 default-features = false
 features = ["alloc"]
