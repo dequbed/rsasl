@@ -133,7 +133,7 @@ default-features = false
 features = ["alloc", "derive"]
 
 [dependencies.serde_json]
-version = "1.0.128"
+version = "1.0.132"
 optional = true
 default-features = false
 features = ["alloc"]
