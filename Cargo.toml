@@ -117,7 +117,7 @@ core2 = { version = "0.4.0", default-features = false }
 digest = { version = "0.10.7", optional = true }
 document-features = { version = "0.2.10", optional = true }
 hmac = { version = "0.12.1", optional = true, features = ["reset"] }
-libgssapi = { version = "0.7.2", optional = true, default-features = false }
+libgssapi = { version = "0.8.2", optional = true, default-features = false }
 linkme = { version = "0.3.31", optional = true, default-features = false }
 pbkdf2 = { version = "0.12.2", optional = true, default-features = false }
 rand = { version = "0.8.5", optional = true }
