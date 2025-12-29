@@ -14,16 +14,11 @@ pub struct XOAuth2 {
     state: XOAuth2State,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 enum XOAuth2State {
+    #[default]
     Initial,
     Errored,
-}
-
-impl Default for XOAuth2State {
-    fn default() -> Self {
-        Self::Initial
-    }
 }
 
 #[derive(Debug, Error)]

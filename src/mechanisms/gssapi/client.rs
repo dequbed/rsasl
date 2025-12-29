@@ -16,18 +16,14 @@ pub struct Gssapi {
     state: GssapiState,
 }
 
+#[derive(Default)]
 enum GssapiState {
+    #[default]
     Initial,
     Pending(ClientCtx),
     Last(ClientCtx, SecurityLayer),
     Completed(Option<(ClientCtx, bool)>),
     Errored,
-}
-
-impl Default for GssapiState {
-    fn default() -> Self {
-        Self::Initial
-    }
 }
 
 impl fmt::Debug for GssapiState {

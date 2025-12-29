@@ -107,7 +107,7 @@ use thiserror::Error;
 pub trait Validation: 'static {
     type Value: 'static;
 }
-impl<'a, V: Validation> tags::Type<'a> for V {
+impl<V: Validation> tags::Type<'_> for V {
     type Reified = Option<V::Value>;
 }
 
@@ -134,7 +134,7 @@ impl<'a> Validate<'a> {
         unsafe { &mut *(opt as &mut dyn Erased as *mut dyn Erased as *mut Self) }
     }
 }
-impl<'a> Validate<'a> {
+impl Validate<'_> {
     #[inline(always)]
     pub fn is<T: Validation>(&self) -> bool {
         self.0.tag_id() == TypeId::of::<T>()

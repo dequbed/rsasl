@@ -64,7 +64,7 @@ impl<'a, T: tags::Type<'a>> Erased<'a> for Tagged<'a, T> {
         TypeId::of::<T>()
     }
 }
-impl<'a> dyn Erased<'a> {
+impl dyn Erased<'_> {
     #[inline]
     pub(crate) fn is<'p, T: tags::Type<'p>>(&self) -> bool {
         TypeId::of::<T>() == self.tag_id()

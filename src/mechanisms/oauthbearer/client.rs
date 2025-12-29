@@ -12,17 +12,12 @@ pub struct OAuthBearer {
     state: OAuthBearerState,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 enum OAuthBearerState {
+    #[default]
     Initial,
     WaitingServerResponse,
     Done,
-}
-
-impl Default for OAuthBearerState {
-    fn default() -> Self {
-        Self::Initial
-    }
 }
 
 impl Authentication for OAuthBearer {

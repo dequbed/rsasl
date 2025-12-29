@@ -68,7 +68,7 @@ pub trait Authentication: Send + Sync {
     /// method protects input data using said security layer and writes it into the provided writer.
     ///
     /// If no security layer has been installed this method MUST return
-    /// `Err(`[`SessionError::NoSecurityLayer`]`).
+    /// <code>Err([SessionError::NoSecurityLayer]</code>.
     ///
     /// A call to this function returns the number of input bytes that were successfully
     /// protected and written into the given writer. As this protection may add overhead,
@@ -92,8 +92,8 @@ pub trait Authentication: Send + Sync {
     /// writer.
     ///
     /// If no security layer has been installed this method MUST return
-    /// `Err(`[`SessionError::NoSecurityLayer`]`)`.  If there is not enough input data to
-    /// successfully unprotect this method MUST return `Err(`[`SessionError::InputDataRequired`]`)`
+    /// <code>Err([SessionError::NoSecurityLayer])</code>.  If there is not enough input data to
+    /// successfully unprotect this method MUST return <code>Err([SessionError::InputDataRequired])</code>.
     ///
     /// A call to this function returns the number of protected input bytes that were successfully
     /// unprotected and written into the given writer.
