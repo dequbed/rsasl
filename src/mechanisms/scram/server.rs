@@ -158,7 +158,7 @@ impl<const N: usize> WaitingClientFirst<N> {
                 gs2_header.extend_from_slice(cbdata);
                 Ok(())
             })?,
-        };
+        }
 
         let params = session_data.maybe_need_with::<ScramStoredPassword, _, _>(
             &provider,

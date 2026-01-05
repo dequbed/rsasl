@@ -171,7 +171,7 @@ mod provider {
         /// method protects input data using said security layer and writes it into the provided writer.
         ///
         /// If no security layer has been installed this method returns
-        /// `Err(`[`SessionError::NoSecurityLayer`]`).
+        /// <code>Err([SessionError::NoSecurityLayer]</code>.
         ///
         /// A call to this function returns the number of input bytes that were successfully
         /// protected and written into the given writer. As this protection may add overhead, use
@@ -195,7 +195,7 @@ mod provider {
         /// writer.
         ///
         /// If no security layer has been installed this method returns
-        /// `Err(`[`SessionError::NoSecurityLayer`]`)`.
+        /// <code>Err([SessionError::NoSecurityLayer])</code>.
         ///
         /// A call to this function returns the number of protected input bytes that were successfully
         /// unprotected and written into the given writer. Similar to [`Self::encode`] the number of

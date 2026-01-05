@@ -82,7 +82,7 @@ impl Authentication for Plain {
             };
 
             session.validate(&provider)?;
-        };
+        }
 
         Ok(State::Finished(MessageSent::No))
     }

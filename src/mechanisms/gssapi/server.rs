@@ -16,7 +16,9 @@ pub struct Gssapi {
     state: GssapiState,
 }
 
+#[derive(Default)]
 enum GssapiState {
+    #[default]
     Initial,
     Pending(ServerCtx),
     Installed(ServerCtx, SecurityLayer),
@@ -37,12 +39,6 @@ impl fmt::Debug for GssapiState {
             Self::Done(None) => f.write_str("Done<NoSecurity>"),
             Self::Errored => f.write_str("Errored"),
         }
-    }
-}
-
-impl Default for GssapiState {
-    fn default() -> Self {
-        Self::Initial
     }
 }
 

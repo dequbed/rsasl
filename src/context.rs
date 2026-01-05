@@ -167,7 +167,7 @@ impl<'a> Context<'a> {
     /// ```
     pub fn get_ref<P: Property<'a>>(&self) -> Option<&'a P::Value> {
         let mut tagged = Tagged::<'_, tags::Optional<tags::Ref<DemandTag<P>>>>(None);
-        self.0.provide(Demand::new(&mut tagged));
+        let _ = self.0.provide(Demand::new(&mut tagged));
         tagged.0
     }
 
@@ -178,7 +178,7 @@ impl<'a> Context<'a> {
     /// **or** if the mechanism does not allow mutable access to its value.
     pub fn get_mut<P: Property<'a>>(&mut self) -> Option<&'a mut P::Value> {
         let mut tagged = Tagged::<'_, tags::Optional<tags::RefMut<DemandTag<P>>>>(None);
-        self.0.provide_mut(Demand::new(&mut tagged));
+        let _ = self.0.provide_mut(Demand::new(&mut tagged));
         tagged.0
     }
 }
