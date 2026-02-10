@@ -12,15 +12,11 @@ pub struct OAuthBearer {
     state: OAuthBearerState,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Default)]
 enum OAuthBearerState {
+    #[default]
     Initial,
     Errored,
-}
-impl Default for OAuthBearerState {
-    fn default() -> Self {
-        Self::Initial
-    }
 }
 
 struct Prov<'a> {

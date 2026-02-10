@@ -196,7 +196,7 @@ impl<const N: usize> StateClientFirst<N> {
             }
             CbSupport::ServerNoSupport => gs2_header.push(b'y'),
             CbSupport::ClientNoSupport => gs2_header.push(b'n'),
-        };
+        }
         gs2_header.push(b',');
 
         session.maybe_need_with::<AuthzId, _, _>(&EmptyProvider, |authzid| {

@@ -23,7 +23,7 @@ pub trait ProviderExt<'a>: Provider<'a> {
 }
 impl<'a, P: Provider<'a>> ProviderExt<'a> for P {}
 
-#[allow(clippy::exhaustive_structs)]
+#[allow(clippy::exhaustive_structs, dead_code)]
 #[derive(Debug)]
 pub struct EmptyProvider;
 impl Provider<'_> for EmptyProvider {
@@ -117,8 +117,9 @@ impl<'a> Demand<'a> {
     }
 }
 
+#[allow(clippy::transmute_ptr_to_ptr)]
 pub fn build_context<'a, 'b>(provider: &'a (dyn Provider<'b> + 'a)) -> &'a Context<'b> {
-    unsafe { &*(provider as *const dyn Provider as *const Context) }
+    unsafe { std::mem::transmute(provider) }
 }
 
 #[repr(transparent)]
@@ -167,7 +168,7 @@ impl<'a> Context<'a> {
     /// ```
     pub fn get_ref<P: Property<'a>>(&self) -> Option<&'a P::Value> {
         let mut tagged = Tagged::<'_, tags::Optional<tags::Ref<DemandTag<P>>>>(None);
-        self.0.provide(Demand::new(&mut tagged));
+        let _ = self.0.provide(Demand::new(&mut tagged));
         tagged.0
     }
 
@@ -178,7 +179,7 @@ impl<'a> Context<'a> {
     /// **or** if the mechanism does not allow mutable access to its value.
     pub fn get_mut<P: Property<'a>>(&mut self) -> Option<&'a mut P::Value> {
         let mut tagged = Tagged::<'_, tags::Optional<tags::RefMut<DemandTag<P>>>>(None);
-        self.0.provide_mut(Demand::new(&mut tagged));
+        let _ = self.0.provide_mut(Demand::new(&mut tagged));
         tagged.0
     }
 }

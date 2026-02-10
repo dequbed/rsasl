@@ -96,7 +96,7 @@ impl ExactSizeIterator for SaslEscapeState {
 #[repr(transparent)]
 /// Escaped saslname type
 pub struct SaslName<'a>(Cow<'a, str>);
-impl<'a> SaslName<'a> {
+impl SaslName<'_> {
     /// Convert a Rust-side string into the representation required by SCRAM
     ///
     /// This will clone the given string if characters need escaping
@@ -466,7 +466,7 @@ impl<'scram> ClientFinal<'scram> {
                 break &next[2..];
             } else if &next[0..2] == b"m=" {
                 return Err(ParseError::UnknownMandatoryExtensions);
-            };
+            }
         };
 
         if let Some(next) = partiter.next() {
