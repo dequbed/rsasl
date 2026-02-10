@@ -117,8 +117,9 @@ impl<'a> Demand<'a> {
     }
 }
 
+#[allow(clippy::transmute_ptr_to_ptr)]
 pub fn build_context<'a, 'b>(provider: &'a (dyn Provider<'b> + 'a)) -> &'a Context<'b> {
-    unsafe { &*(provider as *const dyn Provider as *const Context) }
+    unsafe { std::mem::transmute(provider) }
 }
 
 #[repr(transparent)]
