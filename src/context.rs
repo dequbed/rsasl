@@ -23,7 +23,7 @@ pub trait ProviderExt<'a>: Provider<'a> {
 }
 impl<'a, P: Provider<'a>> ProviderExt<'a> for P {}
 
-#[allow(clippy::exhaustive_structs)]
+#[allow(clippy::exhaustive_structs, dead_code)]
 #[derive(Debug)]
 pub struct EmptyProvider;
 impl Provider<'_> for EmptyProvider {
@@ -117,8 +117,9 @@ impl<'a> Demand<'a> {
     }
 }
 
+#[allow(clippy::transmute_ptr_to_ptr)]
 pub fn build_context<'a, 'b>(provider: &'a (dyn Provider<'b> + 'a)) -> &'a Context<'b> {
-    unsafe { &*(provider as *const dyn Provider as *const Context) }
+    unsafe { std::mem::transmute(provider) }
 }
 
 #[repr(transparent)]
