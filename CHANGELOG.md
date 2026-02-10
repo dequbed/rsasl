@@ -23,7 +23,7 @@ release. They will however *never* happen in a patch release.
 [Changes rendered on GitHub][v2.2.1/diff]
 
 ## Changed
-- fixed compilation failing on current rustc nightly due to dyn pointer cast changes (see https://github.com/rust-lang/rust/issues/141402)
+- fixed compilation failing on current rustc nightly due to dyn pointer cast changes (see [rust-lang/rust#141402](https://github.com/rust-lang/rust/issues/141402))
 
 
 # [v2.2.0] — 2024-10-15
