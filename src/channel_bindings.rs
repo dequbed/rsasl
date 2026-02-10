@@ -12,6 +12,7 @@ pub trait ChannelBindingCallback {
     fn get_cb_data(&self, cbname: &str) -> Option<&[u8]>;
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct NoChannelBindings;
 impl ChannelBindingCallback for NoChannelBindings {
