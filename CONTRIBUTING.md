@@ -4,13 +4,27 @@ First: If you are unsure or afraid of *anything*, just ask or submit the issue o
 yelled at for giving it your best efford. The worst that can happen is that you'll be politely asked to change
 something. We appreciate any sort of contributions, and don't want a wall of rules to get in the way of that.
 
-rsasl welcomes contributions from everyone. Here are the guidelines if you are thinking about helping us:
+rsasl welcomes contributions from everyone; irrespective of disability, skin colour, gender, religion, or fluidity in written English.
+We'd rather have a pull request or issue in rough, automatically translated, English than miss out on your contribution.
+Here are the guidelines if you are thinking about helping us:
+
+We expect contributors to adhere to the ethos of the project.
+
+Source code is not an artifact, an intermediate representation, nor a
+bothersome annoyance whose creation is to be offloaded to metal and
+transistors. Source code is a source of truth - the only source of truth that
+constitutes this software project - and it deserves to be understood and
+curated by the accountable and reasoned mind of a human being.
+
+Please refrain from contributing changes that you have not personally
+understood and instigated the authorship of. We do not expect perfection, but
+we do expect you to personally understand your own motivations and decisions.
 
 ## Contributions
 
-Contributions to rsasl should be made in the form of GitHub Pull Requests. 
+Contributions to rsasl should be made in the form of Pull Requests on [Codeberg](https://codeberg.org/dequbed/rsasl). The [GitHub mirror](https://github.com/dequbed/rsasl) is not monitored actively, so pull requests there will be slower to be reviewed.
 
-Issues that we think are easy to get started on are marked with the label ["good first issue"](https://github.com/dequbed/rsasl/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+Issues that we think are easy to get started on are marked with the label ["good first issue"](https://codeberg.org/dequbed/rsasl/issues?labels=1457526).
 These issues will generally also contain a sentence or two on the reasons why this issue is considered a good first issue.
 
 Should you want to work on an issue please claim the issue first by commenting that you want to work on it. This is 

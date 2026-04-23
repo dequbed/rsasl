@@ -16,11 +16,11 @@ release. They will however *never* happen in a patch release.
 <!-- next-header -->
 # [Upcoming Changes] — Not Yet ;)
 
-[Changes rendered on GitHub][Upcoming/diff]
+[Changes rendered on Codeberg][Upcoming/diff]
 
 # [v2.2.1] — 2026-02-10
 
-[Changes rendered on GitHub][v2.2.1/diff]
+[Changes rendered on Codeberg][v2.2.1/diff]
 
 ## Changed
 - fixed compilation failing on current rustc nightly due to dyn pointer cast changes (see [rust-lang/rust#141402](https://github.com/rust-lang/rust/issues/141402))
@@ -28,7 +28,7 @@ release. They will however *never* happen in a patch release.
 
 # [v2.2.0] — 2024-10-15
 
-[Changes rendered on GitHub][v2.2.0/diff]
+[Changes rendered on Codeberg][v2.2.0/diff]
 
 ## Fixed
 - #58 — Constructing OAuthBearerError is not (directly) possible
@@ -37,7 +37,7 @@ release. They will however *never* happen in a patch release.
 
 # [v2.1.0] — 2024-08-21
 
-[Changes rendered on GitHub][v2.1.0/diff]
+[Changes rendered on Codeberg][v2.1.0/diff]
 
 ## Added
 - `SCRAM-SHA-512` and `SCRAM-SHA-512-PLUS` mechanisms were added by WenyXu
@@ -50,7 +50,7 @@ release. They will however *never* happen in a patch release.
 
 # [v2.0.2] — 2024-08-10
 
-[Changes rendered on GitHub][v2.0.2/diff]
+[Changes rendered on Codeberg][v2.0.2/diff]
 
 ## Added
 - Mathieu-Lala added a lot of build engineering, improving the CI and adding dependabot alerts. 
@@ -67,7 +67,7 @@ release. They will however *never* happen in a patch release.
 
 # [v2.0.1] — 2023-09-12
 
-[Changes rendered on GitHub][v2.0.1/diff]
+[Changes rendered on Codeberg][v2.0.1/diff]
 
 ## Fixed
 - #29 — `GSSAPI` fails to build on macOS
@@ -77,7 +77,7 @@ release. They will however *never* happen in a patch release.
 
 # [v2.0.0] — 2023-02-04
 
-[Changes rendered on GitHub][v2.0.0/diff]
+[Changes rendered on Codeberg][v2.0.0/diff]
 
 ## Added
 - `GSSAPI` mechanism implementation
@@ -86,7 +86,7 @@ release. They will however *never* happen in a patch release.
 
 ## Changed
 - Recursive callbacks calls are now prevented by making property methods on `MechanismData` take `&mut self`. 
-  See ADR-0003 ([crate::docs::adr] on docs.rs, [GitHub link](https://github.com/dequbed/rsasl/tree/development/docs/decisions) otherwise) for further details about why this change was done.
+  See ADR-0003 ([crate::docs::adr] on docs.rs, [Codeberg link](https://codeberg.org/dequbed/rsasl/src/branch/development/docs/decisions) otherwise) for further details about why this change was done.
 
 ## Fixed
 - #9 — `GSSAPI` Mechanism support
@@ -96,7 +96,7 @@ release. They will however *never* happen in a patch release.
 
 # [v2.0.0-rc.4] — 2022-11-22
 
-[Changes rendered on GitHub][v2.0.0-rc.4/diff]
+[Changes rendered on Codeberg][v2.0.0-rc.4/diff]
 
 ## Added
 - `SASLClient::start_suggested` can now be called with any `impl IntoIterator<Item=&&Mechname>`.  As 
@@ -111,7 +111,7 @@ release. They will however *never* happen in a patch release.
 
 # [v2.0.0-rc.3] — 2022-10-12
 
-[Changes rendered on GitHub][v2.0.0-rc.3/diff]
+[Changes rendered on Codeberg][v2.0.0-rc.3/diff]
 
 ## Changed
 - Thanks to Mathieu Lala work rsasl is much closer to a stable release! PR#19 fixes most clippy lints and marks 
@@ -125,7 +125,7 @@ release. They will however *never* happen in a patch release.
 
 # [v2.0.0-rc.2] — 2022-09-28
 
-[Changes rendered on GitHub][v2.0.0-rc.2/diff]
+[Changes rendered on Codeberg][v2.0.0-rc.2/diff]
 
 ## Added
 - All dependencies on `std::io::Write` have been moved to `acid_io::Write` from the [`acid_io` crate](https://github.com/dataphract/acid_io).
@@ -159,7 +159,7 @@ release. They will however *never* happen in a patch release.
 
 # [v2.0.0-rc.1] — 2022-08-30
 
-[Changes rendered on GitHub][v2.0.0-rc.1/diff]
+[Changes rendered on Codeberg][v2.0.0-rc.1/diff]
 
 `v2.0.0-rc.1` is a re-release of the `v2.0.0-preview12` version due to me messing up the pre-release version 
 numbering of the `preview` releases. `preview12` is ordered alphanumerically as mixed ASCII and thus considered smaller 
@@ -169,7 +169,7 @@ as 'r' is sorted after 'p' and thus 'rc.X' > 'previewYZ'. Sorry for the confusio
 
 # [v2.0.0-preview12] — 2022-08-30
 
-[Changes rendered on GitHub][v2.0.0-preview12/diff]
+[Changes rendered on Codeberg][v2.0.0-preview12/diff]
 
 ## Added
 - New integration tests that should make it easier to test rsasl against other implementations
@@ -181,14 +181,14 @@ as 'r' is sorted after 'p' and thus 'rc.X' > 'previewYZ'. Sorry for the confusio
 
 # [v2.0.0-preview11] — 2022-08-25
 
-[Changes rendered on GitHub][v2.0.0-preview11/diff]
+[Changes rendered on Codeberg][v2.0.0-preview11/diff]
 
 ## Fixed
 - Fixed a bug where the XOAUTH2 mechanisms were registered as `PLAIN` instead, making all `PLAIN` authentication fail.
 
 # [v2.0.0-preview10] — 2022-08-24
 
-[Changes rendered on GitHub][v2.0.0-preview10/diff]
+[Changes rendered on Codeberg][v2.0.0-preview10/diff]
 
 ## Fixed
 - `ANONYMOUS` client now correctly allows no token to be provided
@@ -202,7 +202,7 @@ as 'r' is sorted after 'p' and thus 'rc.X' > 'previewYZ'. Sorry for the confusio
 
 # [v2.0.0-preview9] — 2022-08-08
 
-[Changes rendered on GitHub][v2.0.0-preview9/diff]
+[Changes rendered on Codeberg][v2.0.0-preview9/diff]
 
 ## Changed
 - `Mechname::new` is now more appropiately named `Mechname::parse`
@@ -215,7 +215,7 @@ as 'r' is sorted after 'p' and thus 'rc.X' > 'previewYZ'. Sorry for the confusio
 
 # [v2.0.0-preview8] — 2022-08-05
 
-[Changes rendered on GitHub][v2.0.0-preview8/diff]
+[Changes rendered on Codeberg][v2.0.0-preview8/diff]
 
 rsasl is now licensed under Apache-2.0 and MIT dual license.
 
@@ -238,7 +238,7 @@ rsasl is now licensed under Apache-2.0 and MIT dual license.
 
 # [v2.0.0-preview7] — 2022-07-30
 
-[Changes rendered on GitHub][v2.0.0-preview7/diff]
+[Changes rendered on Codeberg][v2.0.0-preview7/diff]
 
 First 'alpha' release of rsasl 2.0.0, with most of the API stabilized enough that testing if rsasl
 is usable by third-party crates in other situations than BFFH is possible.
@@ -248,7 +248,7 @@ Examples of using rsasl in other crates:
 
 # [v2.0.0-preview1] — 2021-12-03
 
-[Changes rendered on GitHub][v2.0.0-preview1/diff]
+[Changes rendered on Codeberg][v2.0.0-preview1/diff]
 
 First preview release for the pure-Rust version. This is a full rewrite of rsasl, changing just
 about every part of the code. Most of the code was transpiled using
@@ -260,7 +260,7 @@ making this release possible.**
 
 # [v1.4.1] — 2021-10-20
 
-[Changes rendered on GitHub][v1.4.1/diff]
+[Changes rendered on Codeberg][v1.4.1/diff]
 
 * Fixes potential bad pointer conversion on non-x86 targets
 
@@ -281,43 +281,43 @@ making this release possible.**
 
 * Initial stabilized release
 
-[Upcoming Changes]: https://github.com/dequbed/rsasl/tree/development
+[Upcoming Changes]: https://codeberg.org/dequbed/rsasl/src/branch/development
 <!-- next-url -->
-[Upcoming/diff]: https://github.com/dequbed/rsasl/compare/v2.2.1...development
-[v2.2.1]: https://github.com/dequbed/rsasl/releases/tag/v2.2.1
-[v2.2.1/diff]: https://github.com/dequbed/rsasl/compare/v2.2.0...v2.2.1
-[v2.2.0]: https://github.com/dequbed/rsasl/releases/tag/v2.2.0
-[v2.2.0/diff]: https://github.com/dequbed/rsasl/compare/v2.1.0...v2.2.0
-[v2.1.0]: https://github.com/dequbed/rsasl/releases/tag/v2.1.0
-[v2.1.0/diff]: https://github.com/dequbed/rsasl/compare/v2.0.2...v2.1.0
-[v2.0.2]: https://github.com/dequbed/rsasl/releases/tag/v2.0.2
-[v2.0.2/diff]: https://github.com/dequbed/rsasl/compare/v2.0.1...v2.0.2
-[v2.0.1]: https://github.com/dequbed/rsasl/releases/tag/v2.0.1
-[v2.0.1/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0...v2.0.1
-[v2.0.0]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0
-[v2.0.0/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-rc.4...v2.0.0
-[v2.0.0-rc.4]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.4
-[v2.0.0-rc.4/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-rc.3...v2.0.0-rc.4
-[v2.0.0-rc.3]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.3
-[v2.0.0-rc.3/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-rc.2...v2.0.0-rc.3
-[v2.0.0-rc.2]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.2
-[v2.0.0-rc.2/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-rc.1...v2.0.0-rc.2
-[v2.0.0-rc.1]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-rc.1
-[v2.0.0-rc.1/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview12...v2.0.0-rc.1
-[v2.0.0-preview12]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-preview12
-[v2.0.0-preview12/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview11...v2.0.0-preview12
-[v2.0.0-preview11]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-preview11
-[v2.0.0-preview11/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview10...v2.0.0-preview11
-[v2.0.0-preview10]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-preview10
-[v2.0.0-preview10/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview9...v2.0.0-preview10
-[v2.0.0-preview9]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-preview9
-[v2.0.0-preview9/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview8...v2.0.0-preview9
-[v2.0.0-preview8]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-preview8
-[v2.0.0-preview8/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview7...v2.0.0-preview8
-[v2.0.0-preview7]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-preview7
-[v2.0.0-preview7/diff]: https://github.com/dequbed/rsasl/compare/v2.0.0-preview1...v2.0.0-preview7
-[v2.0.0-preview1]: https://github.com/dequbed/rsasl/releases/tag/v2.0.0-preview1
-[v2.0.0-preview1/diff]: https://github.com/dequbed/rsasl/compare/v1.4.1...v2.0.0-preview1
-[v1.4.1]: https://github.com/dequbed/rsasl/releases/tag/v1.4.1
-[v1.4.1/diff]: https://github.com/dequbed/rsasl/compare/v1.4.0...v1.4.1
-[v1.4.0]: https://github.com/dequbed/rsasl/releases/tag/v1.4.0
+[Upcoming/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.2.1...development
+[v2.2.1]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.2.1
+[v2.2.1/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.2.0...v2.2.1
+[v2.2.0]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.2.0
+[v2.2.0/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.1.0...v2.2.0
+[v2.1.0]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.1.0
+[v2.1.0/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.0.2...v2.1.0
+[v2.0.2]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.0.2
+[v2.0.2/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.0.1...v2.0.2
+[v2.0.1]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.0.1
+[v2.0.1/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.0.0...v2.0.1
+[v2.0.0]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.0.0
+[v2.0.0/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.0.0-rc.4...v2.0.0
+[v2.0.0-rc.4]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.0.0-rc.4
+[v2.0.0-rc.4/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.0.0-rc.3...v2.0.0-rc.4
+[v2.0.0-rc.3]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.0.0-rc.3
+[v2.0.0-rc.3/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.0.0-rc.2...v2.0.0-rc.3
+[v2.0.0-rc.2]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.0.0-rc.2
+[v2.0.0-rc.2/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.0.0-rc.1...v2.0.0-rc.2
+[v2.0.0-rc.1]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.0.0-rc.1
+[v2.0.0-rc.1/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.0.0-preview12...v2.0.0-rc.1
+[v2.0.0-preview12]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.0.0-preview12
+[v2.0.0-preview12/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.0.0-preview11...v2.0.0-preview12
+[v2.0.0-preview11]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.0.0-preview11
+[v2.0.0-preview11/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.0.0-preview10...v2.0.0-preview11
+[v2.0.0-preview10]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.0.0-preview10
+[v2.0.0-preview10/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.0.0-preview9...v2.0.0-preview10
+[v2.0.0-preview9]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.0.0-preview9
+[v2.0.0-preview9/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.0.0-preview8...v2.0.0-preview9
+[v2.0.0-preview8]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.0.0-preview8
+[v2.0.0-preview8/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.0.0-preview7...v2.0.0-preview8
+[v2.0.0-preview7]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.0.0-preview7
+[v2.0.0-preview7/diff]: https://codeberg.org/dequbed/rsasl/compare/v2.0.0-preview1...v2.0.0-preview7
+[v2.0.0-preview1]: https://codeberg.org/dequbed/rsasl/releases/tag/v2.0.0-preview1
+[v2.0.0-preview1/diff]: https://codeberg.org/dequbed/rsasl/compare/v1.4.1...v2.0.0-preview1
+[v1.4.1]: https://codeberg.org/dequbed/rsasl/releases/tag/v1.4.1
+[v1.4.1/diff]: https://codeberg.org/dequbed/rsasl/compare/v1.4.0...v1.4.1
+[v1.4.0]: https://codeberg.org/dequbed/rsasl/releases/tag/v1.4.0
