@@ -1,11 +1,11 @@
 [package]
 name = "rsasl"
 version = "2.2.1"
-authors = ["Nadja Reitzenstein <me@dequbed.space>"]
+authors = ["Nadja Reitzenstein <dequbed@paranoidlabs.org>"]
 categories = ["authentication", "api-bindings", "network-programming"]
 documentation = "https://docs.rs/rsasl"
 edition = "2021"
-homepage = "https://github.com/dequbed/rsasl"
+homepage = "https://codeberg.org/dequbed/rsasl"
 # Manually list files to include; excluding out-of-tree integration tests and testing binaries that arent useful when
 # rsasl is only used as a dependency.
 include = [
@@ -22,7 +22,7 @@ include = [
 keywords = ["sasl", "authentication", "sso", "framework", "middleware"]
 license = "Apache-2.0 OR MIT"
 readme = "README.md"
-repository = "https://github.com/dequbed/rsasl"
+repository = "https://codeberg.org/dequbed/rsasl"
 rust-version = "1.65.0"
 description = """
 The Rust SASL framework, aimed at both middleware-style protocol implementation and application code.

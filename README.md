@@ -55,7 +55,7 @@ The [CHANGELOG.md](CHANGELOG.md) contains a detailed release history, including 
 
 Major version 1 of this crate uses [gsasl-sys](https://crates.io/crates/gsasl-sys) which are binding
 to [GNU gsasl](https://www.gnu.org/software/gsasl). This makes the use of `unsafe` code and FFI necessary.
-You can find the latest 1.X.Y version in the [branch `1.X.X`](https://github.com/dequbed/rsasl/tree/1.X.X)
+You can find the latest 1.X.Y version in the [branch `1.X.X`](https://codeberg.org/dequbed/rsasl/src/branch/1.X.X)
 
 Version `2.0.0` is a pure-Rust rewrite of this crate that is able to drop almost all `unsafe` code from the crate.
 The `main` branch contains the tagged stable releases, the current state of development can be found in the `development` state.
@@ -67,7 +67,7 @@ Version 2 and later of this library are dual licensed under both [Apache-2.0](LI
 
 ## Examples
 
-You can find a few examples on [GitHub](https://github.com/dequbed/rsasl/tree/main/examples).
+You can find a few examples on [Codeberg](https://codeberg.org/dequbed/rsasl/src/branch/development/examples).
 
 [Latest Version]: https://img.shields.io/crates/v/rsasl.svg
 [crates.io]: https://crates.io/crates/rsasl
